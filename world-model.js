@@ -48,7 +48,7 @@ export function createWorldModel({ citySize = 1500, roadSpacing = 200, roadWidth
   const inBounds = (x, z, margin = 0) => Math.abs(x) <= halfSize - margin && Math.abs(z) <= halfSize - margin;
   return Object.freeze({
     citySize, halfSize, roadSpacing, roadWidth, roadSurfaceY, seed,
-    groundY, isRoadCorridor, roadOffset, regionAt, regionKey, inBounds,
+    groundY, isRoadCorridor, roadOffset, regionAt, regionKey, inBounds, hash,
     nearestRoad: (x, z) => {
       const offset = roadOffset(x, z);
       return offset.x <= offset.z
