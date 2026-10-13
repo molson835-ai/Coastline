@@ -22,7 +22,7 @@ test('mobile driving controls are visible and operate the vehicle', async ({ pag
 
   await forward.dispatchEvent('pointerdown', { pointerId: 1, pointerType: 'touch', isPrimary: true, button: 0 });
   await left.dispatchEvent('pointerdown', { pointerId: 2, pointerType: 'touch', isPrimary: true, button: 0 });
-  await page.waitForTimeout(700);
+  await page.waitForTimeout(1000);
   await left.dispatchEvent('pointerup', { pointerId: 2, pointerType: 'touch', isPrimary: true, button: 0 });
   await forward.dispatchEvent('pointerup', { pointerId: 1, pointerType: 'touch', isPrimary: true, button: 0 });
 
