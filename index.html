@@ -39,15 +39,15 @@ function curve(z){return Math.sin(z*.00115)*35+Math.sin(z*.00265+1.1)*12+Math.si
 function roadSlope(z){return (curve(z+1)-curve(z-1))*.5}
 function mesh(geo,material,parent=scene){const m=new THREE.Mesh(geo,material);parent.add(m);return m}
 function ribbon(side,offset,width,material){const positions=[],indices=[],N=800,step=worldLength/N;for(let i=0;i<=N;i++){let z=i*step,c=curve(z),x=c+side*(roadWidth/2+offset);positions.push(x,0,z,x+side*width,0,z)}for(let i=0;i<N;i++){let a=i*2;indices.push(a,a+1,a+2,a+1,a+3,a+2)}const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));g.setIndex(indices);g.computeVertexNormals();const m=mesh(g,material);m.receiveShadow=true;return m}
-function road(){const pos=[],uv=[],idx=[],N=1600,step=worldLength/N;for(let i=0;i<=N;i++){const z=i*step,c=curve(z),s=roadSlope(z);for(const x of [-roadWidth/2,roadWidth/2]){pos.push(c+x,Math.sin(z*.003)*.25,z);uv.push(x/roadWidth+.5,z/18)}}for(let i=0;i<N;i++){const a=i*2;idx.push(a,a+1,a+2,a+1,a+3,a+2)}const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));g.setIndex(idx);g.computeVertexNormals();const r=mesh(g,roadMat);r.receiveShadow=true;
+function road(){const pos=[],uv=[],idx=[],N=1600,step=worldLength/N;for(let i=0;i<=N;i++){const z=i*step,c=curve(z),s=roadSlope(z);for(const x of [-roadWidth/2,roadWidth/2]){pos.push(c+x,.075,z);uv.push(x/roadWidth+.5,z/18)}}for(let i=0;i<N;i++){const a=i*2;idx.push(a,a+1,a+2,a+1,a+3,a+2)}const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));g.setIndex(idx);g.computeVertexNormals();const r=mesh(g,roadMat);r.receiveShadow=true;
 ribbon(-1,0,1.4,shoulderMat);ribbon(1,0,1.4,shoulderMat);
-for(const side of [-1,1]){const p=[],ind=[];for(let i=0;i<=N;i++){const z=i*step,c=curve(z),y=Math.sin(z*.003)*.25+.025;for(const d of [side*(roadWidth*.44),side*(roadWidth*.46)])p.push(c+d,y,z)}for(let i=0;i<N;i++){let a=i*2;ind.push(a,a+1,a+2,a+1,a+3,a+2)}const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(p,3));geo.setIndex(ind);geo.computeVertexNormals();mesh(geo,lineMat)}
+for(const side of [-1,1]){const p=[],ind=[];for(let i=0;i<=N;i++){const z=i*step,c=curve(z),y=.1;for(const d of [side*(roadWidth*.44),side*(roadWidth*.46)])p.push(c+d,y,z)}for(let i=0;i<N;i++){let a=i*2;ind.push(a,a+1,a+2,a+1,a+3,a+2)}const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(p,3));geo.setIndex(ind);geo.computeVertexNormals();mesh(geo,lineMat)}
 // dashed center markings
-const dashCount=Math.ceil((worldLength-8)/22),dashMesh=new THREE.InstancedMesh(new THREE.BoxGeometry(.16,.035,9),lineMat,dashCount),dashDummy=new THREE.Object3D();let dashIndex=0;for(let z=8;z<worldLength;z+=22){dashDummy.position.set(curve(z),Math.sin(z*.003)*.25+.04,z);dashDummy.updateMatrix();dashMesh.setMatrixAt(dashIndex++,dashDummy.matrix)}scene.add(dashMesh)
+const dashCount=Math.ceil((worldLength-8)/22),dashMesh=new THREE.InstancedMesh(new THREE.BoxGeometry(.16,.035,9),lineMat,dashCount),dashDummy=new THREE.Object3D();let dashIndex=0;for(let z=8;z<worldLength;z+=22){dashDummy.position.set(curve(z),.115,z);dashDummy.updateMatrix();dashMesh.setMatrixAt(dashIndex++,dashDummy.matrix)}scene.add(dashMesh)
 }
 road();window.__coastlineBoot.stage(34,'Drawing the coastal road');
 // Broad procedural land and ocean strips, subdivided to follow the coast
-function terrain(side){const p=[],ind=[],N=500,step=worldLength/N,across=12;for(let i=0;i<=N;i++){const z=i*step,c=curve(z),edge=roadWidth/2+1.5;for(let j=0;j<=across;j++){const t=j/across,d=edge+t*(side===-1?360:250);let x=c+side*d;let y=side===1?(Math.sin(z*.004+j*.3)*.22+Math.sin(z*.012+j)*.08):Math.sin(z*.005+j*.7)*.12; if(side===1)y+=Math.max(0,t-.35)*Math.sin(z*.0018)*.45;p.push(x,y,z)}}for(let i=0;i<N;i++)for(let j=0;j<across;j++){let a=i*(across+1)+j,b=a+across+1;ind.push(a,b,a+1,b,b+1,a+1)}const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(p,3));g.setIndex(ind);g.computeVertexNormals();const m=mesh(g,side===-1?sandMat:grassMat);m.receiveShadow=true;return m}
+function terrain(side){const p=[],ind=[],N=500,step=worldLength/N,across=12;for(let i=0;i<=N;i++){const z=i*step,c=curve(z),edge=roadWidth/2+1.5;for(let j=0;j<=across;j++){const t=j/across,d=edge+t*(side===-1?360:250);let x=c+side*d;let y=side===1?(Math.sin(z*.004+j*.3)*.025+Math.sin(z*.012+j)*.012):Math.sin(z*.005+j*.7)*.025; if(side===1)y+=Math.max(0,t-.35)*Math.sin(z*.0018)*.05;p.push(x,y,z)}}for(let i=0;i<N;i++)for(let j=0;j<across;j++){let a=i*(across+1)+j,b=a+across+1;ind.push(a,b,a+1,b,b+1,a+1)}const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(p,3));g.setIndex(ind);g.computeVertexNormals();const m=mesh(g,side===-1?sandMat:grassMat);m.receiveShadow=true;return m}
 terrain(-1);terrain(1);
 
 // Secondary coastal roads: smooth Bézier spurs that visibly join the highway.
@@ -61,7 +61,7 @@ function buildSideRoad(z,side,label,turn){
   const t=i/N,p=bezierPoint(a,b,cc,d,t),prev=bezierPoint(a,b,cc,d,Math.max(0,t-.002)),next=bezierPoint(a,b,cc,d,Math.min(1,t+.002));
   const dx=next.x-prev.x,dz=next.z-prev.z,len=Math.hypot(dx,dz)||1,nx=-dz/len,nz=dx/len;
   centres.push({x:p.x,z:p.z,nx,nz});
-  positions.push(p.x+nx*half,.045,p.z+nz*half,p.x-nx*half,.045,p.z-nz*half);
+  const roadY=.08+Math.sin(p.z*.003)*.015;positions.push(p.x+nx*half,roadY,p.z+nz*half,p.x-nx*half,roadY,p.z-nz*half);
   uvs.push(0,t*10,1,t*10);
  }
  for(let i=0;i<N;i++){const k=i*2;indices.push(k,k+1,k+2,k+1,k+3,k+2)}
@@ -69,13 +69,13 @@ function buildSideRoad(z,side,label,turn){
  const road=mesh(geo,roadMat);road.receiveShadow=true;
  // Pale gravel shoulders create a clear road edge against the grass.
  for(const sideOffset of [-1,1]){
-  const pp=[],ii=[];for(let i=0;i<=N;i++){const p=centres[i];for(const w of [half+.08,half+.85])pp.push(p.x+p.nx*w,.018,p.z+p.nz*w)}
+  const pp=[],ii=[];for(let i=0;i<=N;i++){const p=centres[i];for(const w of [half+.08,half+.85])pp.push(p.x+p.nx*w,.045+Math.sin(p.z*.003)*.015,p.z+p.nz*w)}
   for(let i=0;i<N;i++){const k=i*2;ii.push(k,k+1,k+2,k+1,k+3,k+2)}
   const sg=new THREE.BufferGeometry();sg.setAttribute('position',new THREE.Float32BufferAttribute(pp,3));sg.setIndex(ii);sg.computeVertexNormals();mesh(sg,shoulderMat);
  }
  // Broken yellow centerline on the spur, with gaps at regular intervals.
  const dashGeo=new THREE.BoxGeometry(.13,.025,2.7),dashMat=mat(0xf4d58a,.65);
- for(let i=8;i<N-3;i+=11){const p=centres[i],o=mesh(dashGeo,dashMat);o.position.set(p.x,.085,p.z);o.rotation.y=Math.atan2(centres[Math.min(N,i+1)].x-centres[Math.max(0,i-1)].x,centres[Math.min(N,i+1)].z-centres[Math.max(0,i-1)].z);}
+ for(let i=8;i<N-3;i+=11){const p=centres[i],o=mesh(dashGeo,dashMat);o.position.set(p.x,.125+Math.sin(p.z*.003)*.015,p.z);o.rotation.y=Math.atan2(centres[Math.min(N,i+1)].x-centres[Math.max(0,i-1)].x,centres[Math.min(N,i+1)].z-centres[Math.max(0,i-1)].z);}
  // Destination sign, mounted on two timber posts beside the road end.
  const end=centres[N],signGroup=new THREE.Group();signGroup.position.set(end.x+side*7,.0,end.z);
  const postMat=trunkMat,boardMat=mat(0x174d42,.7);
