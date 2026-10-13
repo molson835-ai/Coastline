@@ -13,7 +13,8 @@ test('terrain sampling and all road junctions use a stable shared elevation', as
       junctionHeights: [[-600,-600],[-200,400],[0,0],[400,-200],[600,600]].map(([x,z]) => api.groundY(x,z)),
       offRoadHeight: api.groundY(123,237),
       onRoadHeight: api.groundY(200,237),
-      vehicleY: state.vehicleY
+      vehicleY: state.vehicleY,
+      vehicleGroundY: api.groundY(state.x,state.z)
     };
   });
 
@@ -21,7 +22,7 @@ test('terrain sampling and all road junctions use a stable shared elevation', as
   expect(result.junctionHeights.every(y => Math.abs(y - 3) < 0.001)).toBe(true);
   expect(Math.abs(result.onRoadHeight - 3)).toBeLessThan(0.001);
   expect(Number.isFinite(result.offRoadHeight)).toBe(true);
-  expect(Math.abs(result.vehicleY - 3)).toBeLessThan(0.001);
+  expect(Math.abs(result.vehicleY - result.vehicleGroundY)).toBeLessThan(0.001);
 });
 
 test('pedestrians have distinct impact reactions and transition into hit state', async ({ page }) => {
