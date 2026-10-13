@@ -13,6 +13,8 @@ test('traffic stays in road lanes and vehicles collide with trees and streetligh
       lampBlocked: api.obstacleBlocked(obstacles.lampSample.x, obstacles.lampSample.z, 0.2),
       treeCount: obstacles.trees,
       lampCount: obstacles.lamps,
+      trafficSignals: obstacles.trafficSignals,
+      signs: obstacles.signs,
       trafficCount: traffic.length,
       trafficOnRoad: traffic.filter(v => v.onRoad).length,
       trafficAxes: traffic.map(v => v.axis),
@@ -22,6 +24,8 @@ test('traffic stays in road lanes and vehicles collide with trees and streetligh
 
   expect(initial.treeCount).toBeGreaterThan(0);
   expect(initial.lampCount).toBeGreaterThan(0);
+  expect(initial.trafficSignals).toBeGreaterThanOrEqual(36);
+  expect(initial.signs).toBeGreaterThanOrEqual(17);
   expect(initial.treeBlocked).toBe(true);
   expect(initial.lampBlocked).toBe(true);
   expect(initial.trafficCount).toBe(20);
