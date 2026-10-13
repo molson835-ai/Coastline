@@ -199,12 +199,11 @@ function update(dt,t){
   while(physicsAccumulator>=FIXED_DT&&steps<5){
     const v=chassis.linvel();
     const rotation=chassis.rotation();
-    const forward=new RAPIER.Vector3(0,0,1);
-    const rotatedForward=rotation?new RAPIER.Vector3(
-      2*(rotation.x*rotation.z+rotation.w*rotation.y),
-      2*(rotation.y*rotation.z-rotation.w*rotation.x),
-      1-2*(rotation.x*rotation.x+rotation.y*rotation.y)
-    ):forward;
+    const rotatedForward={
+      x:2*(rotation.x*rotation.z+rotation.w*rotation.y),
+      y:2*(rotation.y*rotation.z-rotation.w*rotation.x),
+      z:1-2*(rotation.x*rotation.x+rotation.y*rotation.y)
+    };
     const signedForwardSpeed=v.x*rotatedForward.x+v.y*rotatedForward.y+v.z*rotatedForward.z;
     const reverseRequested=brake&&signedForwardSpeed<1.8;
     const braking=handbrake||(brake&&!reverseRequested);
