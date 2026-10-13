@@ -104,7 +104,7 @@ for(const z of [1.45,-1.42])for(const x of [-.83,.83]){
  const wheel=mesh(new THREE.CylinderGeometry(.43,.43,.27,20),rubber,spin);wheel.rotation.z=Math.PI/2;wheel.castShadow=true;
  const hub=mesh(new THREE.CylinderGeometry(.22,.22,.285,12),rim,spin);hub.rotation.z=Math.PI/2;
  // Small hub bolts make wheel rotation easier to read at speed.
- for(let k=0;k<6;k++){const a=k*Math.PI/3;const bolt=mesh(new THREE.SphereGeometry(.025,6,5),rubber,spin);bolt.position.set(Math.cos(a)*.14,.0,Math.sin(a)*.14);bolt.position.x+=.145;}
+ for(const face of [-.15,.15])for(let k=0;k<6;k++){const a=k*Math.PI/3;const bolt=mesh(new THREE.SphereGeometry(.025,6,5),rubber,spin);bolt.position.set(face,Math.cos(a)*.14,Math.sin(a)*.14);}
  wheelVisuals.push({pivot,spin,front:z>0});
 }
 for(const x of [-.68,.68]){const l=mesh(new THREE.BoxGeometry(.42,.16,.06),lamp,car);l.position.set(x,.82,2.19);const t=mesh(new THREE.BoxGeometry(.38,.14,.06),tail,car);t.position.set(x,.82,-2.2)}
