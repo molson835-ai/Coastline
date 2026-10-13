@@ -27,7 +27,7 @@ const hemi=new THREE.HemisphereLight(0xc9edff,0x65735b,2.0);scene.add(hemi);
 const sun=new THREE.DirectionalLight(0xffe6bd,3.2);sun.position.set(-100,180,80);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);sun.shadow.camera.left=-90;sun.shadow.camera.right=90;sun.shadow.camera.top=140;sun.shadow.camera.bottom=-80;sun.shadow.bias=-.00015;scene.add(sun);sun.target.position.set(0,0,40);scene.add(sun.target);
 const mat=(color,roughness=.85,metalness=0)=>new THREE.MeshStandardMaterial({color,roughness,metalness});
 const roadMat=mat(0x343a3b,.94),shoulderMat=mat(0xc2b18c),lineMat=mat(0xf6efdc,.65),grassMat=mat(0x718c60),grassDark=mat(0x466c4e),rockMat=mat(0x77796e),sandMat=mat(0xd8c49a),trunkMat=mat(0x68503a),leafMats=[mat(0x356b4b),mat(0x487b51),mat(0x5c8958),mat(0x2f6048)],houseMats=[mat(0xf0dfc3),mat(0xd7d3c3),mat(0xc6b7a0)],roofMat=mat(0x55514c),glassMat=new THREE.MeshPhysicalMaterial({color:0x193b4b,metalness:.25,roughness:.22,clearcoat:1});
-const roadWidth=13.5,worldLength=8000;
+const roadWidth=13.5,worldLength=8000;\n// Double-sided ground materials keep procedural terrain visible from the camera above it.\nroadMat.side=THREE.DoubleSide;shoulderMat.side=THREE.DoubleSide;sandMat.side=THREE.DoubleSide;grassMat.side=THREE.DoubleSide;lineMat.side=THREE.DoubleSide;rockMat.side=THREE.DoubleSide;
 function curve(z){return Math.sin(z*.00115)*35+Math.sin(z*.00265+1.1)*12+Math.sin(z*.00043)*23}
 function roadSlope(z){return (curve(z+1)-curve(z-1))*.5}
 function mesh(geo,material,parent=scene){const m=new THREE.Mesh(geo,material);parent.add(m);return m}
@@ -57,9 +57,17 @@ for(let z=25;z<worldLength-20;z+=12+Math.random()*17){let c=curve(z),side=Math.r
 // Rocky shoreline, low scrub and occasional boulders
 for(let z=20;z<worldLength;z+=8+Math.random()*18){const c=curve(z),side=Math.random()<.68?-1:1,d=roadWidth/2+2+Math.random()*25;const rock=mesh(new THREE.DodecahedronGeometry(.5+Math.random()*2,0),rockMat);rock.position.set(c+side*d,-.1+Math.random()*.4,z);rock.scale.set(1.3,.65,.8);rock.rotation.set(Math.random(),Math.random(),Math.random());rock.castShadow=true}
 for(let z=60;z<worldLength-50;z+=210+Math.random()*170){const c=curve(z),x=c+roadWidth/2+35+Math.random()*60;const group=new THREE.Group();const w=8+Math.random()*8,h=4+Math.random()*3,d=8+Math.random()*8;const base=mesh(new THREE.BoxGeometry(w,h,d),houseMats[(Math.random()*houseMats.length)|0],group);base.position.y=h/2;base.castShadow=true;base.receiveShadow=true;const roof=mesh(new THREE.ConeGeometry(w*.78,2.5,4),roofMat,group);roof.position.y=h+1;roof.rotation.y=Math.PI/4;roof.castShadow=true;group.position.set(x,Math.sin(z*.004)*1.8,z);scene.add(group)}
-// Guard rails with posts following the road
+// Guard rails use instanced geometry: thousands of roadside pieces, only a few draw calls.
 const railMat=mat(0x8b999a,.38,.65);
-for(let z=80;z<worldLength;z+=4){const c=curve(z),s=roadSlope(z);for(const side of [-1,1]){if(side===-1&&z%3>1.5)continue;const x=c+side*(roadWidth/2+2.2);const post=mesh(new THREE.BoxGeometry(.12,.9,.12),railMat);post.position.set(x,.45,z);const rail=mesh(new THREE.BoxGeometry(.13,.18,4.2),railMat);rail.position.set(x,1.05,z+1.5);rail.rotation.y=Math.atan(s);}}
+for(const side of [-1,1]){
+ const count=Math.floor((worldLength-100)/8),postGeo=new THREE.BoxGeometry(.12,.9,.12),barGeo=new THREE.BoxGeometry(.13,.18,8.2);
+ const posts=new THREE.InstancedMesh(postGeo,railMat,count),bars=new THREE.InstancedMesh(barGeo,railMat,count);
+ const dummy=new THREE.Object3D();
+ for(let i=0;i<count;i++){const z=80+i*8,c=curve(z),s=roadSlope(z),x=c+side*(roadWidth/2+2.2);
+ dummy.position.set(x,.45,z);dummy.rotation.set(0,Math.atan(s),0);dummy.updateMatrix();posts.setMatrixAt(i,dummy.matrix);
+ dummy.position.set(x,1.05,z+4);dummy.updateMatrix();bars.setMatrixAt(i,dummy.matrix)}
+ posts.castShadow=true;bars.castShadow=true;scene.add(posts,bars);
+}
 function makeCar(){const car=new THREE.Group();const shell=mat(0x126f89,.25,.48),highlight=mat(0x29b8ce,.22,.45),rubber=mat(0x11161b,.9),rim=mat(0xb8c5c8,.28,.8),lamp=new THREE.MeshStandardMaterial({color:0xfff1ce,emissive:0xffd99a,emissiveIntensity:1.2}),tail=new THREE.MeshStandardMaterial({color:0xff3430,emissive:0xc40012,emissiveIntensity:1});
 const body=mesh(new THREE.BoxGeometry(2.12,.62,4.35),shell,car);body.position.y=.75;body.castShadow=true;body.receiveShadow=true;
 const hood=mesh(new THREE.BoxGeometry(1.95,.22,1.15),highlight,car);hood.position.set(0,1.03,1.25);hood.castShadow=true;
@@ -81,7 +89,7 @@ const center=curve(playerZ),roadLocal=lateral;offroad=Math.abs(roadLocal)>roadWi
 car.position.set(center+roadLocal,Math.sin(playerZ*.003)*.25+.12,playerZ);car.rotation.y=roadSlope(playerZ)-heading*.32;car.rotation.z=-steer*.065*Math.min(1,speed/45);car.rotation.x=Math.sin(playerZ*.025)*.008;
 const camTarget=new THREE.Vector3(car.position.x+Math.sin(heading)*2,1.3,playerZ+11);const desired=new THREE.Vector3(car.position.x-Math.sin(heading)*1.3,5.4,playerZ-11.5);camera.position.lerp(desired,1-Math.exp(-dt*3.2));camera.lookAt(camTarget);camera.fov=THREE.MathUtils.lerp(camera.fov,65+speed*.035,1-Math.exp(-dt*2));camera.updateProjectionMatrix();
 // subtle rolling ocean glints
-for(const f of foamList){f.position.z-=speed*dt*.2;if(f.position.z<playerZ-100)f.position.z=playerZ+worldLength*.45;f.position.x=f.userData.baseX+Math.sin(t*.0004+f.userData.phase)*2}
+for(const f of foamList){f.position.z-=speed*dt*.2;if(f.position.z<localZ-100)f.position.z=localZ+worldLength*.45;f.position.x=f.userData.baseX+Math.sin(t*.0004+f.userData.phase)*2}
 $('speed').textContent=Math.round(speed);$('distance').textContent=distance.toFixed(2);$('status').textContent=offroad?'Shoulder run · steer back onto the asphalt':speed>2?'Cruising the coast · enjoy the drive':'Ready when you are · W / ↑ to drive';
 }
 const foamList=[];scene.traverse(o=>{if(o.material===foamMat&&o.isMesh)foamList.push(o)});
