@@ -29,7 +29,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
 
       - name: Install test dependencies
         run: npm install
@@ -76,5 +75,5 @@ jobs:
           if [ -n "$existing" ]; then
             gh issue comment "$existing" --body "$body"
           else
-            gh issue create --title "Gameplay watchdog failure" --body "$body" --label "bug"
+            gh issue create --title "Gameplay watchdog failure" --body "$body"
           fi
