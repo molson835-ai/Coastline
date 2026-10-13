@@ -61,7 +61,7 @@ const trunkGeo=new THREE.CylinderGeometry(.18,.34,2.2,6),canopyGeo=new THREE.Con
 const obstacles=[];function tree(x,y,z,s,kind=0){const g=new THREE.Group();g.position.set(x,y,z);g.scale.setScalar(s);const trunk=mesh(trunkGeo,trunkMat,g);trunk.position.y=1.1;trunk.castShadow=true;if(kind===0){for(let i=0;i<3;i++){const c=mesh(new THREE.ConeGeometry(1.45-i*.2,2.2,7),leafMats[(Math.random()*leafMats.length)|0],g);c.position.y=2.25+i*.9;c.castShadow=true}}else{const c=mesh(new THREE.IcosahedronGeometry(1.55,1),leafMats[(Math.random()*leafMats.length)|0],g);c.position.y=3.1;c.scale.set(1.1,.9,1);c.castShadow=true}scene.add(g);obstacles.push({x,z,r:1.25*s,kind:'tree'})
 for(let z=25;z<worldLength-20;z+=22+Math.random()*25){let c=curve(z),side=Math.random()<.72?1:-1,d=roadWidth/2+5+Math.random()*(side===1?75:42);tree(c+side*d,Math.sin(z*.004)*1.8,z,.55+Math.random()*1.4,Math.random()<.42?1:0)}
 // Rocky shoreline, low scrub and occasional boulders
-for(let z=20;z<worldLength;z+=20+Math.random()*24){const c=curve(z),side=Math.random()<.68?-1:1,d=roadWidth/2+2+Math.random()*25;const rock=mesh(new THREE.DodecahedronGeometry(.5+Math.random()*2,0),rockMat);rock.position.set(c+side*d,-.1+Math.random()*.4,z);rock.scale.set(1.3,.65,.8);rock.rotation.set(Math.random(),Math.random(),Math.random());rock.castShadow=true;obstacles.push({x:rock.position.x,z,r:1.2,kind:'rock'})}
+for(let z=20;z<worldLength;z+=20+Math.random()*24){const c=curve(z),side=Math.random()<.68?-1:1,d=roadWidth/2+2+Math.random()*25;const rock=mesh(new THREE.DodecahedronGeometry(.5+Math.random()*2,0),rockMat);rock.position.set(c+side*d,-.1+Math.random()*.4,z);rock.scale.set(1.3,.65,.8);rock.rotation.set(Math.random(),Math.random(),Math.random());rock.castShadow=true;obstacles.push({x:rock.position.x,z,r:1.2*(rock.geometry.parameters.radius||1),kind:'rock'})}
 window.__coastlineBoot.stage(68,'Placing trees, rocks and coastal homes');
 for(let z=60;z<worldLength-50;z+=300+Math.random()*250){const c=curve(z),x=c+roadWidth/2+35+Math.random()*60;const group=new THREE.Group();const w=8+Math.random()*8,h=4+Math.random()*3,d=8+Math.random()*8;const base=mesh(new THREE.BoxGeometry(w,h,d),houseMats[(Math.random()*houseMats.length)|0],group);base.position.y=h/2;base.castShadow=true;base.receiveShadow=true;const roof=mesh(new THREE.ConeGeometry(w*.78,2.5,4),roofMat,group);roof.position.y=h+1;roof.rotation.y=Math.PI/4;roof.castShadow=true;group.position.set(x,Math.sin(z*.004)*1.8,z);scene.add(group);obstacles.push({x,z,r:Math.max(w,d)*.55,kind:'house'})}
 // Guard rails use instanced geometry: thousands of roadside pieces, only a few draw calls.
@@ -80,6 +80,21 @@ const body=mesh(new THREE.BoxGeometry(2.12,.62,4.35),shell,car);body.position.y=
 const hood=mesh(new THREE.BoxGeometry(1.95,.22,1.15),highlight,car);hood.position.set(0,1.03,1.25);hood.castShadow=true;
 const cabin=mesh(new THREE.BoxGeometry(1.55,.72,1.8),glassMat,car);cabin.position.set(0,1.27,-.25);cabin.castShadow=true;
 const roof=mesh(new THREE.BoxGeometry(1.35,.1,.95),shell,car);roof.position.set(0,1.67,-.25);
+// Layered glazing, mirrors, grille and lower valances break up the simple block silhouette.
+const windshield=mesh(new THREE.BoxGeometry(1.42,.48,.075),glassMat,car);windshield.position.set(0,1.43,.63);windshield.rotation.x=-.22;
+const rearGlass=mesh(new THREE.BoxGeometry(1.36,.4,.07),glassMat,car);rearGlass.position.set(0,1.43,-1.12);rearGlass.rotation.x=.22;
+for(const side of [-1,1]){
+ const sideGlass=mesh(new THREE.BoxGeometry(.055,.38,1.18),glassMat,car);sideGlass.position.set(side*.79,1.37,-.24);
+ const mirror=mesh(new THREE.BoxGeometry(.22,.14,.22),shell,car);mirror.position.set(side*1.08,1.12,.52);
+ const sill=mesh(new THREE.BoxGeometry(.12,.16,2.3),rubber,car);sill.position.set(side*1.01,.46,-.05);
+}
+const grilleMat=new THREE.MeshStandardMaterial({color:0x10191e,metalness:.35,roughness:.45});
+const grille=mesh(new THREE.BoxGeometry(.78,.22,.055),grilleMat,car);grille.position.set(0,.68,2.205);
+const lowerFront=mesh(new THREE.BoxGeometry(1.75,.13,.16),rubber,car);lowerFront.position.set(0,.43,2.16);
+const rearValance=mesh(new THREE.BoxGeometry(1.7,.14,.14),rubber,car);rearValance.position.set(0,.43,-2.16);
+for(const x of [-.55,-.28,0,.28,.55]){const slat=mesh(new THREE.BoxGeometry(.035,.16,.018),rim,car);slat.position.set(x,.68,2.24)}
+const roofBarMat=mat(0x252d31,.42,.72);
+for(const z of [-.58,.08]){const bar=mesh(new THREE.BoxGeometry(1.12,.045,.07),roofBarMat,car);bar.position.set(0,1.75,z)}
 const bumper=mesh(new THREE.BoxGeometry(2.15,.18,.18),shell,car);bumper.position.set(0,.51,2.18);
 for(const x of [-.83,.83])for(const z of [-1.42,1.45]){const wheel=mesh(new THREE.CylinderGeometry(.43,.43,.27,20),rubber,car);wheel.rotation.z=Math.PI/2;wheel.position.set(x,.47,z);wheel.castShadow=true;const hub=mesh(new THREE.CylinderGeometry(.22,.22,.285,12),rim,car);hub.rotation.z=Math.PI/2;hub.position.copy(wheel.position)}
 for(const x of [-.68,.68]){const l=mesh(new THREE.BoxGeometry(.42,.16,.06),lamp,car);l.position.set(x,.82,2.19);const t=mesh(new THREE.BoxGeometry(.38,.14,.06),tail,car);t.position.set(x,.82,-2.2)}
