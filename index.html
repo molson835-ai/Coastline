@@ -19,6 +19,7 @@
 <script>window.__coastlineBoot={stage:function(n,msg){var b=document.getElementById("loadbar"),p=document.getElementById("loadpct"),s=document.getElementById("loadstatus"),l=document.getElementById("loadlabel");if(b)b.style.width=n+"%";if(p)p.textContent=n+"%";if(s)s.textContent=msg;if(l)l.textContent="BUILDING YOUR WORLD";},ready:function(){var b=document.getElementById("loadbar"),p=document.getElementById("loadpct"),s=document.getElementById("loadstatus"),l=document.getElementById("loadlabel");if(b)b.style.width="100%";if(p)p.textContent="100%";if(s)s.textContent="World ready · enjoy the drive";if(l)l.textContent="WORLD READY";setTimeout(function(){var e=document.getElementById("loading");if(e){e.classList.add("hide");setTimeout(function(){e.remove();},750);}},350);},fail:function(msg){var l=document.getElementById("loadlabel"),s=document.getElementById("loadstatus"),e=document.getElementById("loaderror"),b=document.getElementById("loadretry");if(l)l.textContent="COULD NOT START";if(s)s.textContent=msg;if(e)e.style.display="block";if(b)b.style.display="inline-block";}};setTimeout(function(){var e=document.getElementById("loading");if(e&&!e.classList.contains("hide")&&document.getElementById("loadpct").textContent!=="100%")window.__coastlineBoot.fail("Still waiting after 15 seconds. Check your connection and retry.");},15000);window.addEventListener("error",function(e){if(document.getElementById("loading")&&document.getElementById("loadpct").textContent!=="100%")window.__coastlineBoot.fail("Startup error: "+(e.message||"a script or graphics resource failed")+". Retry, or check the browser connection/WebGL settings.");});window.addEventListener("unhandledrejection",function(e){if(document.getElementById("loading")&&document.getElementById("loadpct").textContent!=="100%")window.__coastlineBoot.fail("Could not load the graphics library: "+String(e.reason&&e.reason.message||e.reason||"connection interrupted")+". Retry or try another connection.");});</script>
 <script type="module">
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js';
+import RAPIER from 'https://cdn.jsdelivr.net/npm/@dimforge/rapier3d-compat@0.17.3/+esm';
 window.__coastlineBoot.stage(12,'3D engine loaded · preparing renderer');
 const $=id=>document.getElementById(id);
 const scene=new THREE.Scene();scene.background=new THREE.Color(0x91c7e0);scene.fog=new THREE.FogExp2(0xb5d5dc,.00115);
@@ -99,31 +100,125 @@ const bumper=mesh(new THREE.BoxGeometry(2.15,.18,.18),shell,car);bumper.position
 for(const x of [-.83,.83])for(const z of [-1.42,1.45]){const wheel=mesh(new THREE.CylinderGeometry(.43,.43,.27,20),rubber,car);wheel.rotation.z=Math.PI/2;wheel.position.set(x,.47,z);wheel.castShadow=true;const hub=mesh(new THREE.CylinderGeometry(.22,.22,.285,12),rim,car);hub.rotation.z=Math.PI/2;hub.position.copy(wheel.position)}
 for(const x of [-.68,.68]){const l=mesh(new THREE.BoxGeometry(.42,.16,.06),lamp,car);l.position.set(x,.82,2.19);const t=mesh(new THREE.BoxGeometry(.38,.14,.06),tail,car);t.position.set(x,.82,-2.2)}
 car.traverse(o=>{if(o.isMesh)o.castShadow=true});scene.add(car);return car}
-const car=makeCar();let speed=0,distance=0,lateral=0,steer=0,heading=0,playerZ=15,offroad=false,handbrake=false,last=performance.now(),collisionCooldown=0,crashed=false;
+const car=makeCar();
+let speed=0,distance=0,playerZ=15,offroad=false,handbrake=false,last=performance.now(),crashed=false;
+let physicsWorld=null,chassis=null,vehicleController=null,physicsAccumulator=0;
+const FIXED_DT=1/60;
+async function initPhysics(){
+  await RAPIER.init();
+  physicsWorld=new RAPIER.World({x:0,y:-9.81,z:0});
+  physicsWorld.timestep=FIXED_DT;
+  // Continuous static ground gives the raycast wheels a reliable surface across the whole route.
+  const groundBody=physicsWorld.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(0,-.55,worldLength/2));
+  physicsWorld.createCollider(RAPIER.ColliderDesc.cuboid(500,.55,worldLength/2+100).setFriction(1.35),groundBody);
+  // Physical rail segments follow the same spline as the visible guardrails.
+  for(const side of [-1,1]){
+    for(let z=24;z<worldLength-20;z+=16){
+      const yaw=Math.atan(roadSlope(z)),x=curve(z)+side*(roadWidth/2+2.2);
+      const body=physicsWorld.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(x,.72,z).setRotation({x:0,y:Math.sin(yaw/2),z:0,w:Math.cos(yaw/2)}));
+      physicsWorld.createCollider(RAPIER.ColliderDesc.cuboid(.16,.52,8.25).setFriction(.8).setRestitution(.12),body);
+    }
+  }
+  // Add static collision shapes for procedural props so the chassis can strike them physically.
+  for(const o of obstacles){
+    let desc;
+    if(o.kind==='tree') desc=RAPIER.ColliderDesc.cuboid(Math.max(.28,o.r*.45),1.45,Math.max(.28,o.r*.45));
+    else if(o.kind==='house') desc=RAPIER.ColliderDesc.cuboid(Math.max(1,o.r*.78),2.2,Math.max(1,o.r*.78));
+    else desc=RAPIER.ColliderDesc.cuboid(Math.max(.35,o.r*.8),.7,Math.max(.35,o.r*.8));
+    const y=o.kind==='house'?2.2:(o.kind==='tree'?1.5:.45);
+    const body=physicsWorld.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(o.x,y,o.z));
+    physicsWorld.createCollider(desc.setFriction(.85).setRestitution(.08),body);
+  }
+  // Chassis is a dynamic rigid body; ray-cast wheels provide suspension, grip and steering.
+  const bodyDesc=RAPIER.RigidBodyDesc.dynamic().setTranslation(curve(15),1.15,15).setLinearDamping(.08).setAngularDamping(2.6).setCanSleep(false);
+  chassis=physicsWorld.createRigidBody(bodyDesc);
+  physicsWorld.createCollider(RAPIER.ColliderDesc.cuboid(1.02,.36,2.08).setFriction(.9).setRestitution(.04).setMass(1200),chassis);
+  vehicleController=physicsWorld.createVehicleController(chassis);
+  const wheelPositions=[
+    {x:-.83,y:-.12,z:1.42},{x:.83,y:-.12,z:1.42},
+    {x:-.83,y:-.12,z:-1.42},{x:.83,y:-.12,z:-1.42}
+  ];
+  wheelPositions.forEach((p,i)=>{
+    vehicleController.addWheel(p,{x:0,y:-1,z:0},{x:-1,y:0,z:0},.38,.43);
+    vehicleController.setWheelSuspensionStiffness(i,28);
+    vehicleController.setWheelFrictionSlip(i,5.5);
+    vehicleController.setWheelSideFrictionStiffness(i,1.8);
+  });
+  // Keep the car visually aligned with the physics chassis.
+  syncCarFromPhysics();
+}
+function syncCarFromPhysics(){
+  if(!chassis)return;
+  const p=chassis.translation(),q=chassis.rotation();
+  car.position.set(p.x,p.y-.75,p.z);
+  car.quaternion.set(q.x,q.y,q.z,q.w);
+}
+function reset(){
+  if(!chassis)return;
+  speed=0;distance=0;playerZ=15;offroad=false;crashed=false;physicsAccumulator=0;
+  chassis.setTranslation({x:curve(15),y:1.15,z:15},true);
+  chassis.setRotation({x:0,y:0,z:0,w:1},true);
+  chassis.setLinvel({x:0,y:0,z:0},true);chassis.setAngvel({x:0,y:0,z:0},true);
+  syncCarFromPhysics();
+}
 const keys=new Set();addEventListener('keydown',e=>{if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key))e.preventDefault();keys.add(e.key.toLowerCase());if(e.key.toLowerCase()==='r')reset()});addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));
 document.querySelectorAll('[data-key]').forEach(b=>{const k=b.dataset.key.toLowerCase();const down=e=>{e.preventDefault();keys.add(k);b.classList.add('on')},up=e=>{e.preventDefault();keys.delete(k);b.classList.remove('on')};b.addEventListener('pointerdown',down);b.addEventListener('pointerup',up);b.addEventListener('pointercancel',up);b.addEventListener('pointerleave',up)});
-function reset(){speed=0;distance=0;lateral=0;steer=0;heading=0;playerZ=15;collisionCooldown=0;crashed=false;car.position.set(curve(15),.12,15);car.rotation.set(0,0,0)}
 function is(...k){return k.some(x=>keys.has(x.toLowerCase()))}
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-function update(dt,t){const accel=is('w','arrowup'),brake=is('s','arrowdown'),left=is('a','arrowleft'),right=is('d','arrowright');handbrake=is(' ');collisionCooldown=Math.max(0,collisionCooldown-dt);crashed=false;if(accel)speed+=24*dt;else speed-=2.1*dt;if(brake)speed-=42*dt;if(handbrake)speed-=10*dt;speed=clamp(speed,0,190);
-// Arcade bicycle model: steering changes the car's heading; heading determines its path.
-const input=(left?1:0)-(right?1:0);steer+=(input-steer)*Math.min(1,dt*(handbrake?5.5:8));const turnRate=.28+Math.min(speed,120)/120*.72;heading+=steer*turnRate*dt*(handbrake?1.45:1);heading=clamp(heading,-.78,.78);if(!input&&!handbrake)heading*=Math.exp(-dt*(speed<8?3.2:1.05));lateral+=Math.tan(heading)*speed*.72*dt*.45;lateral=clamp(lateral,-roadWidth*2.6,roadWidth*2.6);playerZ+=Math.max(0,speed*Math.cos(heading))*dt*.72;distance=playerZ/1609.34;
-const localZ=playerZ%worldLength,center=curve(localZ),roadLocal=lateral;sun.position.set(center-100,180,localZ+80);sun.target.position.set(center,0,localZ+40);offroad=Math.abs(roadLocal)>roadWidth*.46;if(offroad)speed=Math.max(0,speed-22*dt);
-const carX=center+roadLocal;
-// Guardrails are solid boundaries: stop the car at the rail and bounce it back toward the road.
-const railLimit=roadWidth/2+2.2-1.12;
-if(Math.abs(lateral)>railLimit){lateral=Math.sign(lateral)*railLimit;speed*=.38;heading*=-.22;steer=0;collisionCooldown=.28;crashed=true;}
-// Solid gameplay collision checks against the actual procedural rocks, trees and homes.
-if(collisionCooldown<=0&&speed>.5){for(const o of obstacles){let signedDz=localZ-o.z;if(signedDz>worldLength/2)signedDz-=worldLength;if(signedDz< -worldLength/2)signedDz+=worldLength;const dz=Math.abs(signedDz),dx=carX-o.x,overlapX=o.r+1.05-Math.abs(dx),overlapZ=o.r+1.65-dz;if(overlapZ>0&&overlapX>0){speed*=.18;heading+=Math.sign(dx||1)*.08;if(overlapX<overlapZ)lateral+=Math.sign(dx||1)*(overlapX+.45);else playerZ+=Math.sign(signedDz||-1)*(overlapZ+.45);collisionCooldown=.24;crashed=true;break}}}
-car.position.set(curve(localZ)+lateral,Math.sin(localZ*.003)*.25+.12,localZ);car.rotation.y=Math.atan(roadSlope(localZ))+heading;car.rotation.z=-steer*.045*Math.min(1,speed/45);car.rotation.x=Math.sin(localZ*.025)*.008;
-const camTarget=new THREE.Vector3(car.position.x+Math.sin(car.rotation.y)*2,1.25,localZ+10);const desired=new THREE.Vector3(car.position.x-Math.sin(car.rotation.y)*2.4,5.2,localZ-12.5);camera.position.lerp(desired,1-Math.exp(-dt*2.5));camera.lookAt(camTarget);camera.fov=THREE.MathUtils.lerp(camera.fov,64+speed*.045,1-Math.exp(-dt*1.8));camera.updateProjectionMatrix();
-// subtle rolling ocean glints
-for(const f of foamList){f.position.z-=speed*dt*.2;if(f.position.z<localZ-100)f.position.z=localZ+worldLength*.45;f.position.x=f.userData.baseX+Math.sin(t*.0004+f.userData.phase)*2}
-$('speed').textContent=Math.round(speed);$('distance').textContent=distance.toFixed(2);$('status').textContent=crashed?'Impact! Ease off and steer clear of the obstacle':offroad?'Off-road · grip reduced, steer back onto asphalt':speed>2?'Cruising the coast · enjoy the drive':'Ready when you are · W / ↑ to drive';
+function update(dt,t){
+  if(!chassis||!vehicleController)return;
+  const accel=is('w','arrowup'),brake=is('s','arrowdown'),left=is('a','arrowleft'),right=is('d','arrowright');
+  handbrake=is(' ');crashed=false;
+  let steerInput=(left?1:0)-(right?1:0);
+  const p0=chassis.translation(),v0=chassis.linvel();
+  const rawSpeed=Math.hypot(v0.x,v0.y,v0.z);
+  const steerAngle=steerInput*(.48*(1-Math.min(rawSpeed,32)/42));
+  // Fixed-step simulation keeps suspension and collision response stable across frame rates.
+  physicsAccumulator=Math.min(physicsAccumulator+dt,.12);
+  let steps=0;
+  while(physicsAccumulator>=FIXED_DT&&steps<5){
+    const v=chassis.linvel(),forwardSpeed=Math.abs(v.z);
+    const braking=brake||handbrake;
+    const engine=accel?7200:(brake&&forwardSpeed<1.5?-2600:0);
+    for(let i=0;i<4;i++){
+      vehicleController.setWheelSteering(i,i<2?steerAngle:0);
+      vehicleController.setWheelEngineForce(i,i<2?0:engine*.5);
+      vehicleController.setWheelBrake(i,braking?(handbrake?115:85):0);
+    }
+    vehicleController.updateVehicle(FIXED_DT);
+    physicsWorld.step();
+    physicsAccumulator-=FIXED_DT;steps++;
+  }
+  let p=chassis.translation(),q=chassis.rotation(),v=chassis.linvel();
+  // Loop the endless coastal route without carrying the physics body outside the collider field.
+  if(p.z>worldLength-24){
+    chassis.setTranslation({x:curve(24),y:p.y,z:24},true);
+    p=chassis.translation();
+  }
+  if(p.z<8&&v.z<0){
+    chassis.setTranslation({x:curve(8),y:p.y,z:8},true);
+    chassis.setLinvel({x:v.x,y:v.y,z:0},true);
+    p=chassis.translation();
+  }
+  speed=Math.hypot(v.x,v.y,v.z)*2.23694;
+  distance+=speed*.44704*dt/1609.34;
+  playerZ=p.z;
+  const center=curve(p.z),lateral=p.x-center;
+  offroad=Math.abs(lateral)>roadWidth*.46;
+  sun.position.set(center-100,180,p.z+80);sun.target.position.set(center,0,p.z+40);
+  syncCarFromPhysics();
+  const yaw=car.rotation.y;
+  const camTarget=new THREE.Vector3(car.position.x+Math.sin(yaw)*2,1.25,p.z+Math.cos(yaw)*5);
+  const desired=new THREE.Vector3(car.position.x-Math.sin(yaw)*2.4,5.2,p.z-Math.cos(yaw)*12.5);
+  camera.position.lerp(desired,1-Math.exp(-dt*3.2));camera.lookAt(camTarget);
+  camera.fov=THREE.MathUtils.lerp(camera.fov,64+speed*.045,1-Math.exp(-dt*1.8));camera.updateProjectionMatrix();
+  for(const f of foamList){f.position.z-=speed*dt*.2;if(f.position.z<p.z-100)f.position.z=p.z+worldLength*.45;f.position.x=f.userData.baseX+Math.sin(t*.0004+f.userData.phase)*2}
+  $('speed').textContent=Math.round(speed);$('distance').textContent=distance.toFixed(2);
+  $('status').textContent=crashed?'Impact! Ease off and steer clear of the obstacle':offroad?'Off-road · grip reduced, steer back onto asphalt':speed>2?'Cruising the coast · enjoy the drive':'Ready when you are · W / ↑ to drive';
 }
 const foamList=[];scene.traverse(o=>{if(o.material===foamMat&&o.isMesh)foamList.push(o)});window.__coastlineBoot.stage(88,'Finishing lighting and camera');
-function animate(now){const dt=Math.min((now-last)/1000,.04);last=now;update(dt,now);renderer.render(scene,camera);requestAnimationFrame(animate)}requestAnimationFrame(animate);
+function animate(now){const dt=Math.min((now-last)/1000,.04);last=now;update(dt,now);renderer.render(scene,camera);requestAnimationFrame(animate)}
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.75))});
-window.__coastlineBoot.ready();
+initPhysics().then(()=>{window.__coastlineBoot.ready();requestAnimationFrame(animate)}).catch(err=>{console.error('Coastline physics failed to initialize',err);window.__coastlineBoot.fail('Physics engine failed to start: '+(err&&err.message||err));});
 </script>
 </body></html>
