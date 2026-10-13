@@ -9,7 +9,7 @@ Use this checklist for each release candidate. Record the commit SHA, browser, d
 - [ ] No uncaught JavaScript errors during startup and core interactions.
 - [ ] Road/junction elevation and terrain regression tests pass.
 - [ ] Vehicle and pedestrian collision/state tests pass.
-- [ ] Mission/activity start, completion, reward, and retry tests pass (once activity progression is implemented).
+- [ ] Mission/activity start, completion, reward, and retry tests pass.
 - [ ] Performance telemetry contract reports finite frame metrics, first-frame time, renderer counters, and entity counts; unsupported memory values are nullable.
 - [ ] Deployment points to the intended commit and the live URL loads the expected build.
 
@@ -45,3 +45,44 @@ Use this checklist for each release candidate. Record the commit SHA, browser, d
 - [ ] Known issues and rollback point are documented.
 - [ ] License/attribution and third-party asset checks are complete for reused content.
 - [ ] No unapproved paid service, API, or recurring cost was introduced.
+
+
+## Initial mobile performance budget
+These are targets to measure, not claims that the current game meets them. Calibrate on a physical Android device and desktop reference machine.
+
+- Desktop: aim for 60 FPS and p95 frame time <= 20 ms during normal driving.
+- Mid-range mobile: maintain at least 30 FPS, aiming for 45–60 FPS; p95 frame time <= 33.3 ms for the 30 FPS floor.
+- First rendered frame: aim for <= 8 seconds on a representative mobile device; measure cold and warm loads separately.
+- Report FPS, average/p95 frame time, load-to-first-frame time, draw calls, triangles, geometry/texture counts, entity counts, and JS heap where supported.
+- Unsupported memory measurements must be marked unavailable, never zero. Watch for steadily growing memory during a 10-minute session.
+- Track entity baselines before expanding the map; do not impose one universal entity ceiling across all devices.
+
+## Human playtest checklist
+### World and collisions
+- [ ] Drive across multiple intersections; check shaking, gaps, floating road pieces, or abrupt elevation changes.
+- [ ] Drive from road to grass and back; check terrain clipping, falling below ground, or hovering.
+- [ ] Check building/prop collisions and whether the avatar stays grounded.
+- [ ] Drive toward the city edge and note abrupt world boundaries or disconnected roads.
+
+### Driving and controls
+- [ ] Test acceleration, braking/reverse, low- and high-speed steering, and controlled drifting where available.
+- [ ] Enter and exit several vehicles; confirm safe placement and re-entry.
+- [ ] Test keyboard and real-phone touch controls, including simultaneous steering and throttle.
+- [ ] Check camera, pause/resume, screen orientation, and control overlap.
+
+### World activity and mission
+- [ ] Observe traffic and pedestrians for two minutes; note stuck actors, odd pathing, and collision reactions.
+- [ ] Start the courier job, follow its objective, complete it, and verify the +$500 reward.
+- [ ] Start and complete the job again; verify replayability and correct cumulative cash.
+- [ ] Play continuously for 5–10 minutes and watch for slowdown, errors, or memory growth.
+- [ ] If something fails, use BUG REPORT and attach the copied diagnostics.
+
+## Build-specific playtest handoff template
+- Build URL:
+- Commit / PR:
+- What changed:
+- Device/browser:
+- Focused tasks:
+- Known limitations:
+- Automated checks and exact run URL:
+- Human feedback:
