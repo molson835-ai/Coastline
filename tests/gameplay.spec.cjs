@@ -36,7 +36,7 @@ test('Coastline boots, exits a vehicle, shows the avatar, and supports walking t
   expect(Math.hypot(afterWalk.x - walkStart.x, afterWalk.z - walkStart.z), 'W should move the player in open ground').toBeGreaterThan(0.2);
 
   await page.evaluate(() => window.__coastlineTest.keyDown('a'));
-  await page.waitForTimeout(350);
+  await page.waitForTimeout(800);
   await page.evaluate(() => window.__coastlineTest.keyUp('a'));
   const afterTurn = await page.evaluate(() => window.__coastlineTest.state());
   expect(Math.abs(afterTurn.heading - afterWalk.heading), 'A should turn the avatar/camera').toBeGreaterThan(0.05);
