@@ -1,11 +1,9 @@
 name: Coastline AI Continuous Development
 
+# Manual-only while paid API usage is unavailable.
+# Do not restore schedule/issues triggers until a no-cost model backend is configured.
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '17 */12 * * *'
-  issues:
-    types: [opened, labeled]
 
 permissions:
   contents: write
