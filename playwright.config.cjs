@@ -6,6 +6,7 @@ module.exports = defineConfig({
   expect: { timeout: 15000 },
   reporter: [['list'], ['html', { outputFolder: 'playwright-report', open: 'never' }]],
   use: {
+    viewport: { width: 390, height: 844 },
     baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://127.0.0.1:4173',
     headless: true,
     launchOptions: {
