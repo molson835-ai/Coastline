@@ -85,9 +85,9 @@ function is(...k){return k.some(x=>keys.has(x.toLowerCase()))}
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 function update(dt,t){const accel=is('w','arrowup'),brake=is('s','arrowdown'),left=is('a','arrowleft'),right=is('d','arrowright');handbrake=is(' ');if(accel)speed+=23*dt;else speed-=3.4*dt;if(brake)speed-=36*dt;if(handbrake)speed-=15*dt;speed=clamp(speed,0,190);
 const input=(right?1:0)-(left?1:0);steer+=(input-steer)*Math.min(1,dt*(handbrake?3:5.5));const kmh=speed*.44704;heading+=steer*dt*(.12+kmh*.012)*(handbrake?1.8:1);lateral+=steer*dt*(.65+speed/75)*(handbrake?1.6:1);lateral=clamp(lateral,-10,10);playerZ+=speed*dt*.72;distance=playerZ/1609.34;
-const center=curve(playerZ),roadLocal=lateral;offroad=Math.abs(roadLocal)>roadWidth*.46;if(offroad)speed=Math.max(0,speed-18*dt);
-car.position.set(center+roadLocal,Math.sin(playerZ*.003)*.25+.12,playerZ);car.rotation.y=roadSlope(playerZ)-heading*.32;car.rotation.z=-steer*.065*Math.min(1,speed/45);car.rotation.x=Math.sin(playerZ*.025)*.008;
-const camTarget=new THREE.Vector3(car.position.x+Math.sin(heading)*2,1.3,playerZ+11);const desired=new THREE.Vector3(car.position.x-Math.sin(heading)*1.3,5.4,playerZ-11.5);camera.position.lerp(desired,1-Math.exp(-dt*3.2));camera.lookAt(camTarget);camera.fov=THREE.MathUtils.lerp(camera.fov,65+speed*.035,1-Math.exp(-dt*2));camera.updateProjectionMatrix();
+const localZ=playerZ%worldLength,center=curve(localZ),roadLocal=lateral;offroad=Math.abs(roadLocal)>roadWidth*.46;if(offroad)speed=Math.max(0,speed-18*dt);
+car.position.set(center+roadLocal,Math.sin(localZ*.003)*.25+.12,localZ);car.rotation.y=roadSlope(localZ)-heading*.32;car.rotation.z=-steer*.065*Math.min(1,speed/45);car.rotation.x=Math.sin(localZ*.025)*.008;
+const camTarget=new THREE.Vector3(car.position.x+Math.sin(heading)*2,1.3,localZ+11);const desired=new THREE.Vector3(car.position.x-Math.sin(heading)*1.3,5.4,localZ-11.5);camera.position.lerp(desired,1-Math.exp(-dt*3.2));camera.lookAt(camTarget);camera.fov=THREE.MathUtils.lerp(camera.fov,65+speed*.035,1-Math.exp(-dt*2));camera.updateProjectionMatrix();
 // subtle rolling ocean glints
 for(const f of foamList){f.position.z-=speed*dt*.2;if(f.position.z<localZ-100)f.position.z=localZ+worldLength*.45;f.position.x=f.userData.baseX+Math.sin(t*.0004+f.userData.phase)*2}
 $('speed').textContent=Math.round(speed);$('distance').textContent=distance.toFixed(2);$('status').textContent=offroad?'Shoulder run · steer back onto the asphalt':speed>2?'Cruising the coast · enjoy the drive':'Ready when you are · W / ↑ to drive';
