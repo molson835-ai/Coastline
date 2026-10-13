@@ -130,19 +130,18 @@ async function initPhysics(){
     physicsWorld.createCollider(desc.setFriction(.85).setRestitution(.08),body);
   }
   // Chassis is a dynamic rigid body; ray-cast wheels provide suspension, grip and steering.
-  const bodyDesc=RAPIER.RigidBodyDesc.dynamic().setTranslation(curve(15),1.15,15).setLinearDamping(.08).setAngularDamping(2.6).setCanSleep(false);
+  const bodyDesc=RAPIER.RigidBodyDesc.dynamic().setTranslation(curve(15),.72,15).setLinearDamping(.08).setAngularDamping(2.6).setCanSleep(false);
   chassis=physicsWorld.createRigidBody(bodyDesc);
   physicsWorld.createCollider(RAPIER.ColliderDesc.cuboid(1.02,.36,2.08).setFriction(.9).setRestitution(.04).setMass(1200),chassis);
   vehicleController=physicsWorld.createVehicleController(chassis);
   const wheelPositions=[
-    {x:-.83,y:-.12,z:1.42},{x:.83,y:-.12,z:1.42},
-    {x:-.83,y:-.12,z:-1.42},{x:.83,y:-.12,z:-1.42}
+    {x:-.83,y:.15,z:1.42},{x:.83,y:.15,z:1.42},
+    {x:-.83,y:.15,z:-1.42},{x:.83,y:.15,z:-1.42}
   ];
   wheelPositions.forEach((p,i)=>{
-    vehicleController.addWheel(p,{x:0,y:-1,z:0},{x:-1,y:0,z:0},.38,.43);
+    vehicleController.addWheel(p,{x:0,y:-1,z:0},{x:-1,y:0,z:0},.44,.43);
     vehicleController.setWheelSuspensionStiffness(i,28);
     vehicleController.setWheelFrictionSlip(i,5.5);
-    vehicleController.setWheelSideFrictionStiffness(i,1.8);
   });
   // Keep the car visually aligned with the physics chassis.
   syncCarFromPhysics();
@@ -156,7 +155,7 @@ function syncCarFromPhysics(){
 function reset(){
   if(!chassis)return;
   speed=0;distance=0;playerZ=15;offroad=false;crashed=false;physicsAccumulator=0;
-  chassis.setTranslation({x:curve(15),y:1.15,z:15},true);
+  chassis.setTranslation({x:curve(15),y:.72,z:15},true);
   chassis.setRotation({x:0,y:0,z:0,w:1},true);
   chassis.setLinvel({x:0,y:0,z:0},true);chassis.setAngvel({x:0,y:0,z:0},true);
   syncCarFromPhysics();
