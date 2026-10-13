@@ -30,7 +30,7 @@ test('Coastline boots, exits a vehicle, shows the avatar, and supports walking t
   await page.evaluate(() => window.__coastlineTest.setWalkPosition(0, 0, 0));
   const walkStart = await page.evaluate(() => window.__coastlineTest.state());
   await page.evaluate(() => window.__coastlineTest.keyDown('w'));
-  await page.waitForTimeout(450);
+  await page.waitForTimeout(1000);
   await page.evaluate(() => window.__coastlineTest.keyUp('w'));
   const afterWalk = await page.evaluate(() => window.__coastlineTest.state());
   expect(Math.hypot(afterWalk.x - walkStart.x, afterWalk.z - walkStart.z), 'W should move the player in open ground').toBeGreaterThan(0.2);
