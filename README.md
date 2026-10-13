@@ -15,6 +15,7 @@ Current features:
 - Rapier rigid-body chassis and ray-cast wheel controller prototype
 - Suspension, steering, tire grip, braking and physical guardrail/obstacle colliders
 - Collision-event feedback and reduced tire grip away from the road
+- Visible front-wheel steering, spinning tires and detailed wheel hubs
 - Repeating 8 km route with a cumulative distance counter
 - Instanced guardrails to reduce rendering overhead
 

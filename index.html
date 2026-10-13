@@ -76,6 +76,7 @@ for(const side of [-1,1]){
  dummy.position.set(x,1.05,z+4);dummy.updateMatrix();bars.setMatrixAt(i,dummy.matrix)}
  posts.castShadow=true;bars.castShadow=true;scene.add(posts,bars);
 }
+const wheelVisuals=[];let wheelSpinAngle=0;
 function makeCar(){const car=new THREE.Group();const shell=mat(0x126f89,.25,.48),highlight=mat(0x29b8ce,.22,.45),rubber=mat(0x11161b,.9),rim=mat(0xb8c5c8,.28,.8),lamp=new THREE.MeshStandardMaterial({color:0xfff1ce,emissive:0xffd99a,emissiveIntensity:1.2}),tail=new THREE.MeshStandardMaterial({color:0xff3430,emissive:0xc40012,emissiveIntensity:1});
 const body=mesh(new THREE.BoxGeometry(2.12,.62,4.35),shell,car);body.position.y=.75;body.castShadow=true;body.receiveShadow=true;
 const hood=mesh(new THREE.BoxGeometry(1.95,.22,1.15),highlight,car);hood.position.set(0,1.03,1.25);hood.castShadow=true;
@@ -97,7 +98,15 @@ for(const x of [-.55,-.28,0,.28,.55]){const slat=mesh(new THREE.BoxGeometry(.035
 const roofBarMat=mat(0x252d31,.42,.72);
 for(const z of [-.58,.08]){const bar=mesh(new THREE.BoxGeometry(1.12,.045,.07),roofBarMat,car);bar.position.set(0,1.75,z)}
 const bumper=mesh(new THREE.BoxGeometry(2.15,.18,.18),shell,car);bumper.position.set(0,.51,2.18);
-for(const x of [-.83,.83])for(const z of [-1.42,1.45]){const wheel=mesh(new THREE.CylinderGeometry(.43,.43,.27,20),rubber,car);wheel.rotation.z=Math.PI/2;wheel.position.set(x,.47,z);wheel.castShadow=true;const hub=mesh(new THREE.CylinderGeometry(.22,.22,.285,12),rim,car);hub.rotation.z=Math.PI/2;hub.position.copy(wheel.position)}
+for(const z of [1.45,-1.42])for(const x of [-.83,.83]){
+ const pivot=new THREE.Group();pivot.position.set(x,.47,z);car.add(pivot);
+ const spin=new THREE.Group();pivot.add(spin);
+ const wheel=mesh(new THREE.CylinderGeometry(.43,.43,.27,20),rubber,spin);wheel.rotation.z=Math.PI/2;wheel.castShadow=true;
+ const hub=mesh(new THREE.CylinderGeometry(.22,.22,.285,12),rim,spin);hub.rotation.z=Math.PI/2;
+ // Small hub bolts make wheel rotation easier to read at speed.
+ for(const face of [-.15,.15])for(let k=0;k<6;k++){const a=k*Math.PI/3;const bolt=mesh(new THREE.SphereGeometry(.025,6,5),rubber,spin);bolt.position.set(face,Math.cos(a)*.14,Math.sin(a)*.14);}
+ wheelVisuals.push({pivot,spin,front:z>0});
+}
 for(const x of [-.68,.68]){const l=mesh(new THREE.BoxGeometry(.42,.16,.06),lamp,car);l.position.set(x,.82,2.19);const t=mesh(new THREE.BoxGeometry(.38,.14,.06),tail,car);t.position.set(x,.82,-2.2)}
 car.traverse(o=>{if(o.isMesh)o.castShadow=true});scene.add(car);return car}
 const car=makeCar();
@@ -153,6 +162,15 @@ function syncCarFromPhysics(){
   const p=chassis.translation(),q=chassis.rotation();
   car.position.set(p.x,p.y-.75,p.z);
   car.quaternion.set(q.x,q.y,q.z,q.w);
+}
+function animateWheelVisuals(dt,steering){
+  // Match visible front-wheel angle to the ray-cast steering input and spin tires by travel speed.
+  wheelSpinAngle+=speed*.44704*dt/.43;
+  const steer=Math.max(-.48,Math.min(.48,steering));
+  for(const w of wheelVisuals){
+    w.pivot.rotation.y=w.front?steer:0;
+    w.spin.rotation.x=wheelSpinAngle;
+  }
 }
 function reset(){
   if(!chassis)return;
@@ -214,6 +232,7 @@ function update(dt,t){
   offroad=Math.abs(lateral)>roadWidth*.46;
   sun.position.set(center-100,180,p.z+80);sun.target.position.set(center,0,p.z+40);
   syncCarFromPhysics();
+  animateWheelVisuals(dt,steerAngle);
   const yaw=car.rotation.y;
   const camTarget=new THREE.Vector3(car.position.x+Math.sin(yaw)*2,1.25,p.z+Math.cos(yaw)*5);
   const desired=new THREE.Vector3(car.position.x-Math.sin(yaw)*2.4,5.2,p.z-Math.cos(yaw)*12.5);
