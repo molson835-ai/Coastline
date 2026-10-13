@@ -1,0 +1,46 @@
+name: Coastline AI Continuous Development
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 */12 * * *'
+  issues:
+    types: [opened, labeled]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: coastline-ai-dev
+  cancel-in-progress: false
+
+jobs:
+  ai-dev:
+    if: github.event_name != 'issues' || github.event.action == 'opened' || github.event.label.name == 'ai-dev'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout Coastline
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Run Coastline AI developer
+        uses: openai/codex-action@a8d8be6ee028bea4525bc722d16f36687b408c81
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          permission-profile: ':workspace'
+          safety-strategy: drop-sudo
+          prompt-file: .github/AI_DEV_PROMPT.md
+          output-file: ai-dev-result.md
+      - name: Upload AI development report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coastline-ai-dev-report
+          path: ai-dev-result.md
+          if-no-files-found: ignore
