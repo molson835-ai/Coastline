@@ -3,104 +3,98 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>Coastline — First Drive</title>
+<meta name="theme-color" content="#071722">
+<title>Coastline — Coastal Drive</title>
 <style>
-:root{color-scheme:dark;--glass:rgba(7,18,28,.78);--line:rgba(255,255,255,.18)}
-*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#9bd9ed;font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:white}
-canvas{display:block;width:100%;height:100%;touch-action:none}
-.hud{position:fixed;inset:0;pointer-events:none;padding:16px;display:flex;flex-direction:column;justify-content:space-between;text-shadow:0 2px 8px #0008}
-.top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.brand,.stats,.help,.mission{background:var(--glass);border:1px solid var(--line);backdrop-filter:blur(10px);border-radius:14px;padding:10px 14px}
-.brand strong{display:block;letter-spacing:.16em;font-size:13px}.brand span{font-size:11px;color:#c6e6ef}
-.stats{display:flex;gap:16px;font-size:12px}.stats b{font-size:18px;display:block}
-.bottom{display:flex;justify-content:space-between;align-items:flex-end;gap:12px}.mission{max-width:270px;font-size:12px;line-height:1.5}.mission strong{display:block;color:#8ee9ff;letter-spacing:.12em;font-size:10px;margin-bottom:3px}
-.help{font-size:11px;color:#e1f0f4;line-height:1.7}
-.mobile{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);display:none;gap:9px;align-items:flex-end}
-.pad{display:flex;gap:7px}.touch{pointer-events:auto;border:1px solid #ffffff55;border-radius:15px;background:#07121cbb;color:white;font-size:20px;width:55px;height:55px;touch-action:none}.touch:active,.touch.on{background:#1c90a9dd}.pedals{display:flex;gap:7px}
-@media(max-width:700px){.hud{padding:10px}.stats{gap:8px;padding:8px}.stats b{font-size:15px}.help{display:none}.mission{font-size:10px;max-width:200px}.mobile{display:flex}.bottom{padding-bottom:72px}}
+:root{color-scheme:dark;--glass:rgba(5,17,27,.62);--line:rgba(255,255,255,.16)}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#8fc8d9;color:#fff;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}canvas{display:block;width:100%;height:100%;touch-action:none}
+.hud{position:fixed;inset:0;pointer-events:none;padding:clamp(10px,2vw,24px);display:flex;flex-direction:column;justify-content:space-between;text-shadow:0 2px 10px #00131c}.top,.bottom{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}.brand,.stats,.mission,.help{background:var(--glass);border:1px solid var(--line);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-radius:15px;padding:12px 16px;box-shadow:0 8px 28px #00121b25}.brand strong{display:block;letter-spacing:.22em;font-size:13px}.brand span{font-size:10px;color:#b8dce5;letter-spacing:.12em}.stats{display:flex;gap:22px}.stats span{font-size:9px;letter-spacing:.16em;color:#b9d6df}.stats b{display:block;font-size:23px;font-weight:650;letter-spacing:-.04em}.stats small{font-size:9px;color:#a9c9d3;letter-spacing:.12em}.bottom{align-items:flex-end}.mission{font-size:12px;line-height:1.5;max-width:310px}.mission strong{display:block;color:#7fe7f4;font-size:10px;letter-spacing:.2em;margin-bottom:4px}.help{font-size:11px;line-height:1.8;color:#d9eaf0}.pill{display:inline-block;border:1px solid #ffffff30;border-radius:5px;padding:0 5px;margin-right:3px;background:#ffffff12}.mobile{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);display:none;gap:9px;align-items:flex-end}.pad,.pedals{display:flex;gap:7px}.touch{pointer-events:auto;border:1px solid #ffffff55;border-radius:16px;background:#071722b8;color:white;font-size:20px;width:58px;height:58px;touch-action:none;box-shadow:0 4px 15px #0003}.touch:active,.touch.on{background:#178da5dc}.loading{position:fixed;inset:0;display:grid;place-items:center;background:linear-gradient(#143b50,#071722);z-index:5;transition:opacity .7s}.loading.hide{opacity:0;pointer-events:none}.loadbox{text-align:center;letter-spacing:.2em;font-size:12px;color:#bce7ef}.loadbox strong{display:block;color:white;font-size:26px;letter-spacing:.28em;margin-bottom:10px}.bar{height:3px;width:190px;background:#ffffff20;margin:18px auto;overflow:hidden}.bar i{display:block;height:100%;width:30%;background:#80eff7;animation:load 1.2s ease-in-out infinite alternate}@keyframes load{to{width:100%}}
+@media(max-width:700px){.hud{padding:10px}.brand,.stats,.mission{padding:9px 11px}.stats{gap:10px}.stats b{font-size:17px}.help{display:none}.mission{font-size:10px;max-width:220px}.mobile{display:flex}.bottom{padding-bottom:72px}.brand span{font-size:8px}}
 </style>
 </head>
 <body>
-<canvas id="game" aria-label="Coastline driving game"></canvas>
-<div class="hud">
- <div class="top">
-  <div class="brand"><strong>COASTLINE</strong><span>FIRST DRIVE · PROTOTYPE 0.1</span></div>
-  <div class="stats"><div><span>SPEED</span><b><span id="speed">0</span> <small>MPH</small></b></div><div><span>DISTANCE</span><b><span id="distance">0.00</span> <small>MI</small></b></div></div>
- </div>
- <div class="bottom">
-  <div class="mission"><strong>YOUR FIRST DRIVE</strong>Follow the shoreline. Explore the coast and keep the car on the road.<br><span id="status">Engine ready · Press W or ↑ to drive</span></div>
-  <div class="help">W / ↑ Accelerate · S / ↓ Brake<br>A / ← D / → Steer · SPACE Handbrake · R Reset</div>
- </div>
-</div>
-<div class="mobile">
- <div class="pad"><button class="touch" data-key="ArrowLeft">◀</button><button class="touch" data-key="ArrowRight">▶</button></div>
- <div class="pedals"><button class="touch" data-key="ArrowDown">▼</button><button class="touch" data-key="ArrowUp">▲</button></div>
-</div>
-<script>
-(()=>{
-const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
-let W=0,H=0,dpr=1;function resize(){dpr=Math.min(devicePixelRatio||1,2);W=innerWidth;H=innerHeight;canvas.width=W*dpr;canvas.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0)}addEventListener('resize',resize);resize();
-const keys=new Set();addEventListener('keydown',e=>{if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key))e.preventDefault();keys.add(e.key.toLowerCase());if(e.key===' ')keys.add('space');if(e.key.toLowerCase()==='r')reset()});
-addEventListener('keyup',e=>{keys.delete(e.key.toLowerCase());if(e.key===' ')keys.delete('space')});
-document.querySelectorAll('[data-key]').forEach(b=>{const k=b.dataset.key.toLowerCase();const down=e=>{e.preventDefault();keys.add(k);b.classList.add('on')};const up=e=>{e.preventDefault();keys.delete(k);b.classList.remove('on')};b.addEventListener('pointerdown',down);b.addEventListener('pointerup',up);b.addEventListener('pointercancel',up);b.addEventListener('pointerleave',up)});
-let speed=0,dist=0,lateral=0,heading=0,roadPhase=0,steer=0,last=performance.now(),offroad=0;
-function reset(){speed=0;dist=0;lateral=0;heading=0;roadPhase=0;steer=0;offroad=0}
-function down(...names){return names.some(n=>keys.has(n.toLowerCase()))}
-function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
-function roadCurve(z){return Math.sin(z*.0007)*.55+Math.sin(z*.0017+1.4)*.22}
-function draw(){
- const horizon=H*.39;
- const sky=ctx.createLinearGradient(0,0,0,horizon);sky.addColorStop(0,'#4ba6d4');sky.addColorStop(1,'#c5edf3');ctx.fillStyle=sky;ctx.fillRect(0,0,W,horizon);
- // sun and distant headlands
- ctx.fillStyle='#fff4c4';ctx.beginPath();ctx.arc(W*.78,H*.12,Math.min(W,H)*.045,0,Math.PI*2);ctx.fill();
- ctx.fillStyle='#729c9b';ctx.beginPath();ctx.moveTo(0,horizon*.88);for(let x=0;x<=W;x+=W/8)ctx.lineTo(x,horizon*.65+Math.sin(x*.009)*horizon*.12+Math.sin(x*.021)*horizon*.06);ctx.lineTo(W,horizon);ctx.lineTo(0,horizon);ctx.fill();
- // sea
- const sea=ctx.createLinearGradient(0,horizon,0,H*.72);sea.addColorStop(0,'#2eafc4');sea.addColorStop(1,'#16758e');ctx.fillStyle=sea;ctx.fillRect(0,horizon,W,H-horizon);
- for(let i=0;i<38;i++){let y=horizon+(i/38)*(H*.37),x=((i*137+dist*35)%(W+100))-40;ctx.strokeStyle='rgba(222,250,246,'+(0.08+(i%4)*.025)+')';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+18+(i%5)*9,y);ctx.stroke()}
- // terrain road polygon perspective with shoreline road curves
- const bottom=H*1.08,roadWidth=W*.64;
- function roadX(y){let p=(y-horizon)/(bottom-horizon);return W*.5+roadCurve(dist*950+(1-p)*2100)*W*.24}
- ctx.fillStyle='#d4c49a';ctx.beginPath();ctx.moveTo(0,horizon);ctx.lineTo(W,horizon);ctx.lineTo(W,bottom);ctx.lineTo(0,bottom);ctx.fill();
- // left beach / right grass land
- ctx.fillStyle='#e7d4a5';ctx.beginPath();ctx.moveTo(0,horizon);for(let y=horizon;y<=bottom;y+=8)ctx.lineTo(roadX(y)-roadWidth*.5,y);ctx.lineTo(0,bottom);ctx.fill();
- ctx.fillStyle='#4e8a67';ctx.beginPath();ctx.moveTo(W,horizon);for(let y=horizon;y<=bottom;y+=8)ctx.lineTo(roadX(y)+roadWidth*.5,y);ctx.lineTo(W,bottom);ctx.fill();
- // road
- ctx.fillStyle='#555e63';ctx.beginPath();for(let y=horizon;y<=bottom;y+=5)ctx.lineTo(roadX(y)-roadWidth*.5,y);for(let y=bottom;y>=horizon;y-=5)ctx.lineTo(roadX(y)+roadWidth*.5,y);ctx.closePath();ctx.fill();
- // road edges and dashed center lines
- ctx.lineWidth=2;ctx.strokeStyle='#f7edce';for(const side of [-1,1]){ctx.beginPath();for(let y=horizon;y<=bottom;y+=5){const x=roadX(y)+side*roadWidth*.46;if(y===horizon)ctx.moveTo(x,y);else ctx.lineTo(x,y)}ctx.stroke()}
- for(let z=0;z<20;z++){let world=dist*950+z*115+60;let y=horizon+(1-((world%2300)/2300))*(bottom-horizon);if(y<horizon+3)continue;let p=(y-horizon)/(bottom-horizon),x=roadX(y),w=Math.max(2,p*7);ctx.fillStyle='#fff1c5';ctx.fillRect(x-w/2,y,w,Math.max(2,p*24))}
- // trees, beach umbrellas, small coastal props, repeat with depth
- for(let i=0;i<22;i++){const z=(i*173+dist*800)%3700,p=1-z/3700,y=horizon+p*(H*.78),scale=.12+p*1.5;const side=i%2?1:-1;const rx=roadX(y)+side*(roadWidth*.55+scale*(i%3)*20+scale*18);if(rx<-50||rx>W+50)continue;
- if(side===1){ctx.fillStyle='#735640';ctx.fillRect(rx-3*scale,y-23*scale,6*scale,24*scale);ctx.fillStyle=i%3?'#276b4c':'#3d8052';ctx.beginPath();ctx.arc(rx,y-27*scale,14*scale,0,Math.PI*2);ctx.fill()}
- else {ctx.fillStyle='#fff0d1';ctx.fillRect(rx-10*scale,y-6*scale,20*scale,3*scale);ctx.fillStyle=i%2?'#ed7d61':'#f5cb5c';ctx.beginPath();ctx.moveTo(rx-10*scale,y-6*scale);ctx.lineTo(rx,y-19*scale);ctx.lineTo(rx+10*scale,y-6*scale);ctx.closePath();ctx.fill()}
- }
- // car anchored near lower screen, road bends imply lateral change
- const carX=W*.5+lateral*W*.3,carY=H*.79,carW=Math.min(W*.13,82),carH=carW*.62;
- ctx.save();ctx.translate(carX,carY);ctx.rotate(steer*.12);
- ctx.fillStyle='#10212b66';ctx.beginPath();ctx.ellipse(0,carH*.4,carW*.72,carH*.42,0,0,Math.PI*2);ctx.fill();
- ctx.fillStyle='#111820';ctx.fillRect(-carW*.48,-carH*.28,carW*.18,carH*.42);ctx.fillRect(carW*.3,-carH*.28,carW*.18,carH*.42);ctx.fillRect(-carW*.48,carH*.08,carW*.18,carH*.36);ctx.fillRect(carW*.3,carH*.08,carW*.18,carH*.36);
- const body=ctx.createLinearGradient(-carW/2,0,carW/2,0);body.addColorStop(0,'#087b9a');body.addColorStop(.45,'#35c5d7');body.addColorStop(1,'#09677e');ctx.fillStyle=body;ctx.beginPath();ctx.moveTo(-carW*.5,carH*.25);ctx.lineTo(-carW*.43,-carH*.18);ctx.lineTo(-carW*.24,-carH*.48);ctx.lineTo(carW*.24,-carH*.48);ctx.lineTo(carW*.43,-carH*.18);ctx.lineTo(carW*.5,carH*.25);ctx.quadraticCurveTo(0,carH*.43,-carW*.5,carH*.25);ctx.fill();
- ctx.fillStyle='#193f51';ctx.beginPath();ctx.moveTo(-carW*.29,-carH*.2);ctx.lineTo(-carW*.18,-carH*.41);ctx.lineTo(carW*.18,-carH*.41);ctx.lineTo(carW*.29,-carH*.2);ctx.closePath();ctx.fill();
- ctx.fillStyle='#fff3c6';ctx.fillRect(-carW*.38,-carH*.06,carW*.15,carH*.07);ctx.fillRect(carW*.23,-carH*.06,carW*.15,carH*.07);
- ctx.fillStyle='#f36d56';ctx.fillRect(-carW*.4,carH*.19,carW*.15,carH*.08);ctx.fillRect(carW*.25,carH*.19,carW*.15,carH*.08);ctx.restore();
+<div class="loading" id="loading"><div class="loadbox"><strong>COASTLINE</strong>BUILDING YOUR WORLD<div class="bar"><i></i></div><span style="font-size:9px;letter-spacing:.1em">REAL-TIME 3D · COASTAL REGION</span></div></div>
+<div class="hud"><div class="top"><div class="brand"><strong>COASTLINE</strong><span>COASTAL DRIVE · EARLY ACCESS</span></div><div class="stats"><div><span>SPEED</span><b><span id="speed">0</span> <small>MPH</small></b></div><div><span>DISTANCE</span><b><span id="distance">0.00</span> <small>MI</small></b></div></div></div><div class="bottom"><div class="mission"><strong>THE PACIFIC COAST</strong>Take the scenic route. Follow the curves, feel the road, and explore the shoreline.<br><span id="status">Ready when you are · W / ↑ to drive</span></div><div class="help"><span class="pill">W / ↑</span> Accelerate &nbsp; <span class="pill">S / ↓</span> Brake<br><span class="pill">A / D</span> Steer &nbsp; <span class="pill">SPACE</span> Handbrake &nbsp; <span class="pill">R</span> Reset</div></div></div>
+<div class="mobile"><div class="pad"><button class="touch" data-key="ArrowLeft">◀</button><button class="touch" data-key="ArrowRight">▶</button></div><div class="pedals"><button class="touch" data-key="ArrowDown">▼</button><button class="touch" data-key="ArrowUp">▲</button></div></div>
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js';
+const $=id=>document.getElementById(id);
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x9bcfdf);scene.fog=new THREE.FogExp2(0xa9d4dc,.00165);
+const camera=new THREE.PerspectiveCamera(65,innerWidth/innerHeight,.1,1400);
+const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
+renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.75));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;document.body.insertBefore(renderer.domElement,document.querySelector('.hud'));
+const hemi=new THREE.HemisphereLight(0xc9edff,0x65735b,2.0);scene.add(hemi);
+const sun=new THREE.DirectionalLight(0xffe6bd,3.2);sun.position.set(-100,180,80);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);sun.shadow.camera.left=-90;sun.shadow.camera.right=90;sun.shadow.camera.top=140;sun.shadow.camera.bottom=-80;sun.shadow.bias=-.00015;scene.add(sun);sun.target.position.set(0,0,40);scene.add(sun.target);
+const mat=(color,roughness=.85,metalness=0)=>new THREE.MeshStandardMaterial({color,roughness,metalness});
+const roadMat=mat(0x343a3b,.94),shoulderMat=mat(0xc2b18c),lineMat=mat(0xf6efdc,.65),grassMat=mat(0x718c60),grassDark=mat(0x466c4e),rockMat=mat(0x77796e),sandMat=mat(0xd8c49a),trunkMat=mat(0x68503a),leafMats=[mat(0x356b4b),mat(0x487b51),mat(0x5c8958),mat(0x2f6048)],houseMats=[mat(0xf0dfc3),mat(0xd7d3c3),mat(0xc6b7a0)],roofMat=mat(0x55514c),glassMat=new THREE.MeshPhysicalMaterial({color:0x193b4b,metalness:.25,roughness:.22,clearcoat:1});
+const roadWidth=13.5,worldLength=8000;\n// Double-sided ground materials keep procedural terrain visible from the camera above it.\nroadMat.side=THREE.DoubleSide;shoulderMat.side=THREE.DoubleSide;sandMat.side=THREE.DoubleSide;grassMat.side=THREE.DoubleSide;lineMat.side=THREE.DoubleSide;rockMat.side=THREE.DoubleSide;
+function curve(z){return Math.sin(z*.00115)*35+Math.sin(z*.00265+1.1)*12+Math.sin(z*.00043)*23}
+function roadSlope(z){return (curve(z+1)-curve(z-1))*.5}
+function mesh(geo,material,parent=scene){const m=new THREE.Mesh(geo,material);parent.add(m);return m}
+function ribbon(side,offset,width,material){const positions=[],indices=[],N=800,step=worldLength/N;for(let i=0;i<=N;i++){let z=i*step,c=curve(z),x=c+side*(roadWidth/2+offset);positions.push(x,0,z,x+side*width,0,z)}for(let i=0;i<N;i++){let a=i*2;indices.push(a,a+1,a+2,a+1,a+3,a+2)}const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));g.setIndex(indices);g.computeVertexNormals();const m=mesh(g,material);m.receiveShadow=true;return m}
+function road(){const pos=[],uv=[],idx=[],N=1600,step=worldLength/N;for(let i=0;i<=N;i++){const z=i*step,c=curve(z),s=roadSlope(z);for(const x of [-roadWidth/2,roadWidth/2]){pos.push(c+x,Math.sin(z*.003)*.25,z);uv.push(x/roadWidth+.5,z/18)}}for(let i=0;i<N;i++){const a=i*2;idx.push(a,a+1,a+2,a+1,a+3,a+2)}const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));g.setIndex(idx);g.computeVertexNormals();const r=mesh(g,roadMat);r.receiveShadow=true;
+ribbon(-1,0,1.4,shoulderMat);ribbon(1,0,1.4,shoulderMat);
+for(const side of [-1,1]){const p=[],ind=[];for(let i=0;i<=N;i++){const z=i*step,c=curve(z),y=Math.sin(z*.003)*.25+.025;for(const d of [side*(roadWidth*.44),side*(roadWidth*.46)])p.push(c+d,y,z)}for(let i=0;i<N;i++){let a=i*2;ind.push(a,a+1,a+2,a+1,a+3,a+2)}const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(p,3));geo.setIndex(ind);geo.computeVertexNormals();mesh(geo,lineMat)}
+// dashed center markings
+for(let z=8;z<worldLength;z+=22){const c=curve(z),mark=mesh(new THREE.BoxGeometry(.16,.035,9),lineMat);mark.position.set(c,Math.sin(z*.003)*.25+.04,z);mark.receiveShadow=true}
 }
-function frame(now){let dt=Math.min((now-last)/1000,.05);last=now;
- const accel=down('w','arrowup'),brake=down('s','arrowdown'),left=down('a','arrowleft'),right=down('d','arrowright'),hand=down('space');
- if(accel)speed+=30*dt;else speed-=5*dt;if(brake)speed-=43*dt;if(hand)speed-=22*dt;speed=clamp(speed,0,145);
- const input=(right?1:0)-(left?1:0);steer+=(input-steer)*Math.min(1,dt*5);
- heading+=steer*speed*dt*.0009;
- lateral+=steer*dt*(.45+speed/90);
- lateral-=roadCurve(dist*950)*dt*(speed/100)*.5;
- lateral=clamp(lateral,-1.8,1.8);
- const curve=roadCurve(dist*950);
- offroad=Math.abs(lateral+curve*.25)>.83;
- if(offroad)speed=Math.max(0,speed-18*dt);
- dist+=speed*dt/3600;
- draw();
- document.getElementById('speed').textContent=Math.round(speed);
- document.getElementById('distance').textContent=dist.toFixed(2);
- document.getElementById('status').textContent=offroad?'Off the road · steer back onto the asphalt':speed>2?'Cruising the coast · enjoy the drive':'Engine ready · Press W or ↑ to drive';
- requestAnimationFrame(frame)}
-requestAnimationFrame(frame);
-})();
+road();
+// Broad procedural land and ocean strips, subdivided to follow the coast
+function terrain(side){const p=[],ind=[],N=500,step=worldLength/N,across=12;for(let i=0;i<=N;i++){const z=i*step,c=curve(z),edge=roadWidth/2+1.5;for(let j=0;j<=across;j++){const t=j/across,d=edge+t*(side===-1?360:250);let x=c+side*d;let y=side===1?(Math.sin(z*.004+j*.3)*1.8+Math.sin(z*.012+j)*.55):Math.sin(z*.005+j*.7)*.35;if(side===1)y+=Math.max(0,t-.35)*Math.sin(z*.0018)*9;p.push(x,y,z)}}for(let i=0;i<N;i++)for(let j=0;j<across;j++){let a=i*(across+1)+j,b=a+across+1;ind.push(a,b,a+1,b,b+1,a+1)}const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(p,3));g.setIndex(ind);g.computeVertexNormals();const m=mesh(g,side===-1?sandMat:grassMat);m.receiveShadow=true;return m}
+terrain(-1);terrain(1);
+// ocean, deep color plus animated sun glint particles
+const ocean=mesh(new THREE.PlaneGeometry(900,worldLength+300,80,180),new THREE.MeshStandardMaterial({color:0x167b98,roughness:.29,metalness:.12,transparent:false}));ocean.rotation.x=-Math.PI/2;ocean.position.set(-250,-1.3,worldLength/2);ocean.receiveShadow=false;
+// Foam streaks scattered on the water
+const foamMat=new THREE.MeshBasicMaterial({color:0xa8e5e7,transparent:true,opacity:.28});
+for(let i=0;i<280;i++){const f=mesh(new THREE.BoxGeometry(1+Math.random()*5,.025,.08+Math.random()*.12),foamMat);f.position.set(-390+Math.random()*240,-1.12,Math.random()*worldLength);f.rotation.y=(Math.random()-.5)*.12;f.userData.phase=Math.random()*6.28;f.userData.baseX=f.position.x}
+// horizon mountain/headland layers
+function ridge(z0,side,scale,color){const pts=[],N=150;for(let i=0;i<=N;i++){let z=z0+i*18,x=curve(z)+side*(roadWidth/2+150+Math.sin(i*.18)*scale);pts.push(new THREE.Vector3(x,-1,z))}const shape=new THREE.Shape();shape.moveTo(pts[0].x,pts[0].z);for(let i=1;i<pts.length;i++)shape.lineTo(pts[i].x,pts[i].z);shape.lineTo(pts[pts.length-1].x,pts[pts.length-1].z+250);shape.lineTo(pts[0].x,pts[0].z+250);const geo=new THREE.ShapeGeometry(shape);const m=mesh(geo,mat(color));m.rotation.x=Math.PI/2;m.position.y=18;return m}
+ridge(0,-1,45,0x789b99);ridge(200,1,60,0x849e91);
+// Tree groups: hand-built low-poly pines and coastal trees
+const trunkGeo=new THREE.CylinderGeometry(.18,.34,2.2,6),canopyGeo=new THREE.ConeGeometry(1.5,3.3,7);
+function tree(x,y,z,s,kind=0){const g=new THREE.Group();g.position.set(x,y,z);g.scale.setScalar(s);const trunk=mesh(trunkGeo,trunkMat,g);trunk.position.y=1.1;trunk.castShadow=true;if(kind===0){for(let i=0;i<3;i++){const c=mesh(new THREE.ConeGeometry(1.45-i*.2,2.2,7),leafMats[(Math.random()*leafMats.length)|0],g);c.position.y=2.25+i*.9;c.castShadow=true}}else{const c=mesh(new THREE.IcosahedronGeometry(1.55,1),leafMats[(Math.random()*leafMats.length)|0],g);c.position.y=3.1;c.scale.set(1.1,.9,1);c.castShadow=true}scene.add(g)}
+for(let z=25;z<worldLength-20;z+=12+Math.random()*17){let c=curve(z),side=Math.random()<.72?1:-1,d=roadWidth/2+5+Math.random()*(side===1?75:42);tree(c+side*d,Math.sin(z*.004)*1.8,z,.55+Math.random()*1.4,Math.random()<.42?1:0)}
+// Rocky shoreline, low scrub and occasional boulders
+for(let z=20;z<worldLength;z+=8+Math.random()*18){const c=curve(z),side=Math.random()<.68?-1:1,d=roadWidth/2+2+Math.random()*25;const rock=mesh(new THREE.DodecahedronGeometry(.5+Math.random()*2,0),rockMat);rock.position.set(c+side*d,-.1+Math.random()*.4,z);rock.scale.set(1.3,.65,.8);rock.rotation.set(Math.random(),Math.random(),Math.random());rock.castShadow=true}
+for(let z=60;z<worldLength-50;z+=210+Math.random()*170){const c=curve(z),x=c+roadWidth/2+35+Math.random()*60;const group=new THREE.Group();const w=8+Math.random()*8,h=4+Math.random()*3,d=8+Math.random()*8;const base=mesh(new THREE.BoxGeometry(w,h,d),houseMats[(Math.random()*houseMats.length)|0],group);base.position.y=h/2;base.castShadow=true;base.receiveShadow=true;const roof=mesh(new THREE.ConeGeometry(w*.78,2.5,4),roofMat,group);roof.position.y=h+1;roof.rotation.y=Math.PI/4;roof.castShadow=true;group.position.set(x,Math.sin(z*.004)*1.8,z);scene.add(group)}
+// Guard rails use instanced geometry: thousands of roadside pieces, only a few draw calls.
+const railMat=mat(0x8b999a,.38,.65);
+for(const side of [-1,1]){
+ const count=Math.floor((worldLength-100)/8),postGeo=new THREE.BoxGeometry(.12,.9,.12),barGeo=new THREE.BoxGeometry(.13,.18,8.2);
+ const posts=new THREE.InstancedMesh(postGeo,railMat,count),bars=new THREE.InstancedMesh(barGeo,railMat,count);
+ const dummy=new THREE.Object3D();
+ for(let i=0;i<count;i++){const z=80+i*8,c=curve(z),s=roadSlope(z),x=c+side*(roadWidth/2+2.2);
+ dummy.position.set(x,.45,z);dummy.rotation.set(0,Math.atan(s),0);dummy.updateMatrix();posts.setMatrixAt(i,dummy.matrix);
+ dummy.position.set(x,1.05,z+4);dummy.updateMatrix();bars.setMatrixAt(i,dummy.matrix)}
+ posts.castShadow=true;bars.castShadow=true;scene.add(posts,bars);
+}
+function makeCar(){const car=new THREE.Group();const shell=mat(0x126f89,.25,.48),highlight=mat(0x29b8ce,.22,.45),rubber=mat(0x11161b,.9),rim=mat(0xb8c5c8,.28,.8),lamp=new THREE.MeshStandardMaterial({color:0xfff1ce,emissive:0xffd99a,emissiveIntensity:1.2}),tail=new THREE.MeshStandardMaterial({color:0xff3430,emissive:0xc40012,emissiveIntensity:1});
+const body=mesh(new THREE.BoxGeometry(2.12,.62,4.35),shell,car);body.position.y=.75;body.castShadow=true;body.receiveShadow=true;
+const hood=mesh(new THREE.BoxGeometry(1.95,.22,1.15),highlight,car);hood.position.set(0,1.03,1.25);hood.castShadow=true;
+const cabin=mesh(new THREE.BoxGeometry(1.55,.72,1.8),glassMat,car);cabin.position.set(0,1.27,-.25);cabin.castShadow=true;
+const roof=mesh(new THREE.BoxGeometry(1.35,.1,.95),shell,car);roof.position.set(0,1.67,-.25);
+const bumper=mesh(new THREE.BoxGeometry(2.15,.18,.18),shell,car);bumper.position.set(0,.51,2.18);
+for(const x of [-.83,.83])for(const z of [-1.42,1.45]){const wheel=mesh(new THREE.CylinderGeometry(.43,.43,.27,20),rubber,car);wheel.rotation.z=Math.PI/2;wheel.position.set(x,.47,z);wheel.castShadow=true;const hub=mesh(new THREE.CylinderGeometry(.22,.22,.285,12),rim,car);hub.rotation.z=Math.PI/2;hub.position.copy(wheel.position)}
+for(const x of [-.68,.68]){const l=mesh(new THREE.BoxGeometry(.42,.16,.06),lamp,car);l.position.set(x,.82,2.19);const t=mesh(new THREE.BoxGeometry(.38,.14,.06),tail,car);t.position.set(x,.82,-2.2)}
+car.traverse(o=>{if(o.isMesh)o.castShadow=true});scene.add(car);return car}
+const car=makeCar();let speed=0,distance=0,lateral=0,steer=0,heading=0,playerZ=15,offroad=false,handbrake=false,last=performance.now();
+const keys=new Set();addEventListener('keydown',e=>{if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key))e.preventDefault();keys.add(e.key.toLowerCase());if(e.key.toLowerCase()==='r')reset()});addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));
+document.querySelectorAll('[data-key]').forEach(b=>{const k=b.dataset.key.toLowerCase();const down=e=>{e.preventDefault();keys.add(k);b.classList.add('on')},up=e=>{e.preventDefault();keys.delete(k);b.classList.remove('on')};b.addEventListener('pointerdown',down);b.addEventListener('pointerup',up);b.addEventListener('pointercancel',up);b.addEventListener('pointerleave',up)});
+function reset(){speed=0;distance=0;lateral=0;steer=0;heading=0;playerZ=15}
+function is(...k){return k.some(x=>keys.has(x.toLowerCase()))}
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+function update(dt,t){const accel=is('w','arrowup'),brake=is('s','arrowdown'),left=is('a','arrowleft'),right=is('d','arrowright');handbrake=is(' ');if(accel)speed+=23*dt;else speed-=3.4*dt;if(brake)speed-=36*dt;if(handbrake)speed-=15*dt;speed=clamp(speed,0,190);
+const input=(right?1:0)-(left?1:0);steer+=(input-steer)*Math.min(1,dt*(handbrake?3:5.5));const kmh=speed*.44704;heading+=steer*dt*(.12+kmh*.012)*(handbrake?1.8:1);lateral+=steer*dt*(.65+speed/75)*(handbrake?1.6:1);lateral=clamp(lateral,-10,10);playerZ+=speed*dt*.72;distance=playerZ/1609.34;
+const localZ=playerZ%worldLength,center=curve(localZ),roadLocal=lateral;offroad=Math.abs(roadLocal)>roadWidth*.46;if(offroad)speed=Math.max(0,speed-18*dt);
+car.position.set(center+roadLocal,Math.sin(localZ*.003)*.25+.12,localZ);car.rotation.y=roadSlope(localZ)-heading*.32;car.rotation.z=-steer*.065*Math.min(1,speed/45);car.rotation.x=Math.sin(localZ*.025)*.008;
+const camTarget=new THREE.Vector3(car.position.x+Math.sin(heading)*2,1.3,localZ+11);const desired=new THREE.Vector3(car.position.x-Math.sin(heading)*1.3,5.4,localZ-11.5);camera.position.lerp(desired,1-Math.exp(-dt*3.2));camera.lookAt(camTarget);camera.fov=THREE.MathUtils.lerp(camera.fov,65+speed*.035,1-Math.exp(-dt*2));camera.updateProjectionMatrix();
+// subtle rolling ocean glints
+for(const f of foamList){f.position.z-=speed*dt*.2;if(f.position.z<localZ-100)f.position.z=localZ+worldLength*.45;f.position.x=f.userData.baseX+Math.sin(t*.0004+f.userData.phase)*2}
+$('speed').textContent=Math.round(speed);$('distance').textContent=distance.toFixed(2);$('status').textContent=offroad?'Shoulder run · steer back onto the asphalt':speed>2?'Cruising the coast · enjoy the drive':'Ready when you are · W / ↑ to drive';
+}
+const foamList=[];scene.traverse(o=>{if(o.material===foamMat&&o.isMesh)foamList.push(o)});
+function animate(now){const dt=Math.min((now-last)/1000,.04);last=now;update(dt,now);renderer.render(scene,camera);requestAnimationFrame(animate)}requestAnimationFrame(animate);
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.75))});
+setTimeout(()=>$('loading').classList.add('hide'),900);setTimeout(()=>$('loading').remove(),1700);
 </script>
 </body></html>
