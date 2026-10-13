@@ -1,0 +1,79 @@
+name: Coastline gameplay watchdog
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    - cron: '17 */6 * * *'
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: coastline-gameplay-watchdog-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  browser-smoke-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install test dependencies
+        run: npm install
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Start local web server
+        run: |
+          npx http-server . -p 4173 -c-1 > /tmp/coastline-server.log 2>&1 &
+          for i in {1..30}; do
+            curl -fsS http://127.0.0.1:4173/game-v3.html >/dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/coastline-server.log
+          exit 1
+
+      - name: Run gameplay smoke test
+        env:
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:4173
+        run: npx playwright test
+
+      - name: Upload test report and traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coastline-gameplay-report
+          path: |
+            playwright-report/
+            test-results/
+            /tmp/coastline-server.log
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Open or update a bug report on failure
+        if: failure() && github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          existing=$(gh issue list --state open --search '"Gameplay watchdog failure" in:title' --json number --jq '.[0].number // empty')
+          body="The automated browser smoke test failed.\n\nRun details: ${RUN_URL}\n\nInspect the attached `coastline-gameplay-report` artifact for traces, screenshots, and logs.\n\nThis issue is updated by the scheduled watchdog; it does not automatically modify or deploy game code."
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body "$body"
+          else
+            gh issue create --title "Gameplay watchdog failure" --body "$body"
+          fi
