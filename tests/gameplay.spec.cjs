@@ -1,6 +1,6 @@
 const { test, expect } = require('@playwright/test');
 
-test('Coastline boots, renders, and exits the vehicle without a runtime crash', async ({ page }) => {
+test('Coastline boots, exits a vehicle, shows the avatar, and supports walking turns', async ({ page }) => {
   const pageErrors = [];
   const consoleErrors = [];
   page.on('pageerror', error => pageErrors.push(error.message));
@@ -11,14 +11,31 @@ test('Coastline boots, renders, and exits the vehicle without a runtime crash', 
   await page.goto('/game-v3.html', { waitUntil: 'domcontentloaded' });
   await expect(page.locator('canvas')).toBeAttached({ timeout: 30000 });
   await expect(page.locator('#mode')).toHaveText('DRIVING');
-  await page.waitForTimeout(7000);
+  await page.waitForTimeout(5000);
 
-  // Catch the class of regression that previously caused the black screen.
-  expect(pageErrors, 'uncaught JavaScript errors').toEqual([]);
+  expect(pageErrors, 'uncaught JavaScript errors during startup').toEqual([]);
   expect(consoleErrors.filter(text => !/favicon|third-party cookie/i.test(text)), 'browser console errors').toEqual([]);
 
   await page.locator('#actionButton').click();
   await expect(page.locator('#mode')).toHaveText('ON FOOT');
   await expect(page.locator('#actionButton')).toHaveText('USE');
-  expect(pageErrors, 'errors after exiting vehicle').toEqual([]);
+
+  const afterExit = await page.evaluate(() => window.__coastlineTest.state());
+  expect(afterExit.avatarVisible, 'avatar should be visible on foot').toBe(true);
+  expect(afterExit.buildingCount).toBeGreaterThan(10);
+  expect(afterExit.vehicleCount).toBeGreaterThan(1);
+
+  await page.evaluate(() => window.__coastlineTest.keyDown('w'));
+  await page.waitForTimeout(450);
+  await page.evaluate(() => window.__coastlineTest.keyUp('w'));
+  const afterWalk = await page.evaluate(() => window.__coastlineTest.state());
+  expect(Math.hypot(afterWalk.x - afterExit.x, afterWalk.z - afterExit.z), 'W should move the player').toBeGreaterThan(0.2);
+
+  await page.evaluate(() => window.__coastlineTest.keyDown('a'));
+  await page.waitForTimeout(350);
+  await page.evaluate(() => window.__coastlineTest.keyUp('a'));
+  const afterTurn = await page.evaluate(() => window.__coastlineTest.state());
+  expect(Math.abs(afterTurn.heading - afterWalk.heading), 'A should turn the avatar/camera').toBeGreaterThan(0.05);
+
+  expect(pageErrors, 'uncaught JavaScript errors after interactions').toEqual([]);
 });
