@@ -36,7 +36,7 @@ function road(){const pos=[],uv=[],idx=[],N=1600,step=worldLength/N;for(let i=0;
 ribbon(-1,0,1.4,shoulderMat);ribbon(1,0,1.4,shoulderMat);
 for(const side of [-1,1]){const p=[],ind=[];for(let i=0;i<=N;i++){const z=i*step,c=curve(z),y=Math.sin(z*.003)*.25+.025;for(const d of [side*(roadWidth*.44),side*(roadWidth*.46)])p.push(c+d,y,z)}for(let i=0;i<N;i++){let a=i*2;ind.push(a,a+1,a+2,a+1,a+3,a+2)}const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(p,3));geo.setIndex(ind);geo.computeVertexNormals();mesh(geo,lineMat)}
 // dashed center markings
-for(let z=8;z<worldLength;z+=22){const c=curve(z),mark=mesh(new THREE.BoxGeometry(.16,.035,9),lineMat);mark.position.set(c,Math.sin(z*.003)*.25+.04,z);mark.receiveShadow=true}
+const dashCount=Math.ceil((worldLength-8)/22),dashMesh=new THREE.InstancedMesh(new THREE.BoxGeometry(.16,.035,9),lineMat,dashCount),dashDummy=new THREE.Object3D();let dashIndex=0;for(let z=8;z<worldLength;z+=22){dashDummy.position.set(curve(z),Math.sin(z*.003)*.25+.04,z);dashDummy.updateMatrix();dashMesh.setMatrixAt(dashIndex++,dashDummy.matrix)}scene.add(dashMesh)
 }
 road();
 // Broad procedural land and ocean strips, subdivided to follow the coast
@@ -53,10 +53,10 @@ ridge(0,-1,45,0x789b99);ridge(200,1,60,0x849e91);
 // Tree groups: hand-built low-poly pines and coastal trees
 const trunkGeo=new THREE.CylinderGeometry(.18,.34,2.2,6),canopyGeo=new THREE.ConeGeometry(1.5,3.3,7);
 function tree(x,y,z,s,kind=0){const g=new THREE.Group();g.position.set(x,y,z);g.scale.setScalar(s);const trunk=mesh(trunkGeo,trunkMat,g);trunk.position.y=1.1;trunk.castShadow=true;if(kind===0){for(let i=0;i<3;i++){const c=mesh(new THREE.ConeGeometry(1.45-i*.2,2.2,7),leafMats[(Math.random()*leafMats.length)|0],g);c.position.y=2.25+i*.9;c.castShadow=true}}else{const c=mesh(new THREE.IcosahedronGeometry(1.55,1),leafMats[(Math.random()*leafMats.length)|0],g);c.position.y=3.1;c.scale.set(1.1,.9,1);c.castShadow=true}scene.add(g)}
-for(let z=25;z<worldLength-20;z+=12+Math.random()*17){let c=curve(z),side=Math.random()<.72?1:-1,d=roadWidth/2+5+Math.random()*(side===1?75:42);tree(c+side*d,Math.sin(z*.004)*1.8,z,.55+Math.random()*1.4,Math.random()<.42?1:0)}
+for(let z=25;z<worldLength-20;z+=22+Math.random()*25){let c=curve(z),side=Math.random()<.72?1:-1,d=roadWidth/2+5+Math.random()*(side===1?75:42);tree(c+side*d,Math.sin(z*.004)*1.8,z,.55+Math.random()*1.4,Math.random()<.42?1:0)}
 // Rocky shoreline, low scrub and occasional boulders
-for(let z=20;z<worldLength;z+=8+Math.random()*18){const c=curve(z),side=Math.random()<.68?-1:1,d=roadWidth/2+2+Math.random()*25;const rock=mesh(new THREE.DodecahedronGeometry(.5+Math.random()*2,0),rockMat);rock.position.set(c+side*d,-.1+Math.random()*.4,z);rock.scale.set(1.3,.65,.8);rock.rotation.set(Math.random(),Math.random(),Math.random());rock.castShadow=true}
-for(let z=60;z<worldLength-50;z+=210+Math.random()*170){const c=curve(z),x=c+roadWidth/2+35+Math.random()*60;const group=new THREE.Group();const w=8+Math.random()*8,h=4+Math.random()*3,d=8+Math.random()*8;const base=mesh(new THREE.BoxGeometry(w,h,d),houseMats[(Math.random()*houseMats.length)|0],group);base.position.y=h/2;base.castShadow=true;base.receiveShadow=true;const roof=mesh(new THREE.ConeGeometry(w*.78,2.5,4),roofMat,group);roof.position.y=h+1;roof.rotation.y=Math.PI/4;roof.castShadow=true;group.position.set(x,Math.sin(z*.004)*1.8,z);scene.add(group)}
+for(let z=20;z<worldLength;z+=20+Math.random()*24){const c=curve(z),side=Math.random()<.68?-1:1,d=roadWidth/2+2+Math.random()*25;const rock=mesh(new THREE.DodecahedronGeometry(.5+Math.random()*2,0),rockMat);rock.position.set(c+side*d,-.1+Math.random()*.4,z);rock.scale.set(1.3,.65,.8);rock.rotation.set(Math.random(),Math.random(),Math.random());rock.castShadow=true}
+for(let z=60;z<worldLength-50;z+=300+Math.random()*250){const c=curve(z),x=c+roadWidth/2+35+Math.random()*60;const group=new THREE.Group();const w=8+Math.random()*8,h=4+Math.random()*3,d=8+Math.random()*8;const base=mesh(new THREE.BoxGeometry(w,h,d),houseMats[(Math.random()*houseMats.length)|0],group);base.position.y=h/2;base.castShadow=true;base.receiveShadow=true;const roof=mesh(new THREE.ConeGeometry(w*.78,2.5,4),roofMat,group);roof.position.y=h+1;roof.rotation.y=Math.PI/4;roof.castShadow=true;group.position.set(x,Math.sin(z*.004)*1.8,z);scene.add(group)}
 // Guard rails use instanced geometry: thousands of roadside pieces, only a few draw calls.
 const railMat=mat(0x8b999a,.38,.65);
 for(const side of [-1,1]){
@@ -85,7 +85,7 @@ function is(...k){return k.some(x=>keys.has(x.toLowerCase()))}
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 function update(dt,t){const accel=is('w','arrowup'),brake=is('s','arrowdown'),left=is('a','arrowleft'),right=is('d','arrowright');handbrake=is(' ');if(accel)speed+=23*dt;else speed-=3.4*dt;if(brake)speed-=36*dt;if(handbrake)speed-=15*dt;speed=clamp(speed,0,190);
 const input=(right?1:0)-(left?1:0);steer+=(input-steer)*Math.min(1,dt*(handbrake?3:5.5));const kmh=speed*.44704;heading+=steer*dt*(.12+kmh*.012)*(handbrake?1.8:1);lateral+=steer*dt*(.65+speed/75)*(handbrake?1.6:1);lateral=clamp(lateral,-10,10);playerZ+=speed*dt*.72;distance=playerZ/1609.34;
-const localZ=playerZ%worldLength,center=curve(localZ),roadLocal=lateral;offroad=Math.abs(roadLocal)>roadWidth*.46;if(offroad)speed=Math.max(0,speed-18*dt);
+const localZ=playerZ%worldLength,center=curve(localZ),roadLocal=lateral;sun.position.set(center-100,180,localZ+80);sun.target.position.set(center,0,localZ+40);offroad=Math.abs(roadLocal)>roadWidth*.46;if(offroad)speed=Math.max(0,speed-18*dt);
 car.position.set(center+roadLocal,Math.sin(localZ*.003)*.25+.12,localZ);car.rotation.y=roadSlope(localZ)-heading*.32;car.rotation.z=-steer*.065*Math.min(1,speed/45);car.rotation.x=Math.sin(localZ*.025)*.008;
 const camTarget=new THREE.Vector3(car.position.x+Math.sin(heading)*2,1.3,localZ+11);const desired=new THREE.Vector3(car.position.x-Math.sin(heading)*1.3,5.4,localZ-11.5);camera.position.lerp(desired,1-Math.exp(-dt*3.2));camera.lookAt(camTarget);camera.fov=THREE.MathUtils.lerp(camera.fov,65+speed*.035,1-Math.exp(-dt*2));camera.updateProjectionMatrix();
 // subtle rolling ocean glints
