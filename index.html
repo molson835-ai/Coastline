@@ -214,7 +214,8 @@ function update(dt,t){
       vehicleController.setWheelBrake(i,braking?(handbrake?95:75):0);
       vehicleController.setWheelFrictionSlip(i,offroad?2.6:5.5);
     }
-    vehicleController.updateVehicle(FIXED_DT);
+    // Prevent wheel suspension rays from hitting the car or other dynamic bodies as if they were road.
+    vehicleController.updateVehicle(FIXED_DT,RAPIER.QueryFilterFlags.EXCLUDE_DYNAMIC);
     physicsWorld.step(eventQueueRef.current);
     eventQueueRef.current.drainCollisionEvents((h1,h2,started)=>{
       if(started&&chassisCollider&&(h1===chassisCollider.handle||h2===chassisCollider.handle)){
