@@ -42,6 +42,7 @@ for(const ix of [-200,0,200])for(const iz of [-200,0,200]){
     scene.add(g);trafficSignalHeads.push({bulbs,offset:worldModel.hash(ix,iz,cornerX*3+cornerZ)*5});
   }
   addRoadSign(ix-12.2,iz-12.2,'stop',Math.PI/4);
+  addRoadSign(ix+12.2,iz-12.2,'street',Math.PI/2);
 }
 for(const x of [-600,-400,-200,0,200,400,600]){
   const left=new THREE.Mesh(new THREE.BoxGeometry(.22,.045,1500),edgeLineMat);left.position.set(x-7.9,3.14,0);scene.add(left);
