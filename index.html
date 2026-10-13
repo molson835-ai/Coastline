@@ -188,8 +188,8 @@ function update(dt,t){
   if(!chassis||!vehicleController)return;
   const accel=is('w','arrowup'),brake=is('s','arrowdown'),left=is('a','arrowleft'),right=is('d','arrowright');
   handbrake=is(' ');impactTimer=Math.max(0,impactTimer-dt);crashed=impactTimer>0;
-  // Three.js car nose points +Z; invert the controller sign so left input turns left on screen.
-  let steerInput=(right?1:0)-(left?1:0);
+  // Match Rapier's steering convention to the player's left/right input.
+  let steerInput=(left?1:0)-(right?1:0);
   const v0=chassis.linvel();
   const rawSpeed=Math.hypot(v0.x,v0.y,v0.z);
   const steerAngle=steerInput*(.48*(1-Math.min(rawSpeed,32)/42));
