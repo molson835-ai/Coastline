@@ -14,7 +14,7 @@
 </head>
 <body>
 <div class="loading" id="loading"><div class="loadbox"><strong>COASTLINE</strong><span id="loadlabel">STARTING GRAPHICS ENGINE</span><div class="bar"><i id="loadbar"></i></div><span id="loadpct">0%</span><span class="loadstatus" id="loadstatus">Connecting to the 3D engine...</span><div class="loaderror" id="loaderror">The 3D engine did not start. The graphics library may be blocked or the connection interrupted.</div><button class="loadretry" id="loadretry" onclick="location.reload()">Retry loading</button></div></div>
-<div class="hud"><div class="top"><div class="brand"><strong>COASTLINE</strong><span>PACIFIC RUN · OPEN WORLD</span></div><div class="stats"><div><span>SPEED</span><b><span id="speed">0</span> <small>MPH</small></b></div><div><span>DISTANCE</span><b><span id="distance">0.00</span> <small>MI</small></b></div></div></div><div class="bottom"><div class="mission"><strong>THE PACIFIC COAST</strong>Take the scenic route. Follow the curves, feel the road, and explore the shoreline.<br><span id="status">Ready when you are · W / ↑ to drive</span></div><div class="help"><span class="pill">W / ↑</span> Accelerate &nbsp; <span class="pill">S / ↓</span> Brake<br><span class="pill">A / D</span> Steer &nbsp; <span class="pill">SPACE</span> Handbrake &nbsp; <span class="pill">R</span> Reset</div></div></div>
+<div class="hud"><div class="top"><div class="brand"><strong>COASTLINE</strong><span>PACIFIC RUN · OPEN WORLD</span></div><div class="stats"><div><span>SPEED</span><b><span id="speed">0</span> <small>MPH</small></b></div><div><span>DISTANCE</span><b><span id="distance">0.00</span> <small>MI</small></b></div></div></div><div class="bottom"><div class="mission"><strong>THE PACIFIC COAST</strong>Take the scenic route. Follow the curves, feel the road, and explore the shoreline.<br><span id="status">Ready when you are · W / ↑ to drive</span></div><div class="help"><span class="pill">W / ↑</span> Accelerate &nbsp; <span class="pill">S / ↓</span> Reverse / brake<br><span class="pill">A / D</span> Steer &nbsp; <span class="pill">SPACE</span> Handbrake &nbsp; <span class="pill">R</span> Reset</div></div></div>
 <div class="mobile"><div class="pad"><button class="touch" data-key="ArrowLeft">◀</button><button class="touch" data-key="ArrowRight">▶</button></div><div class="pedals"><button class="touch" data-key="ArrowDown">▼</button><button class="touch" data-key="ArrowUp">▲</button></div></div>
 <script>window.__coastlineBoot={stage:function(n,msg){var b=document.getElementById("loadbar"),p=document.getElementById("loadpct"),s=document.getElementById("loadstatus"),l=document.getElementById("loadlabel");if(b)b.style.width=n+"%";if(p)p.textContent=n+"%";if(s)s.textContent=msg;if(l)l.textContent="BUILDING YOUR WORLD";},ready:function(){var b=document.getElementById("loadbar"),p=document.getElementById("loadpct"),s=document.getElementById("loadstatus"),l=document.getElementById("loadlabel");if(b)b.style.width="100%";if(p)p.textContent="100%";if(s)s.textContent="World ready · enjoy the drive";if(l)l.textContent="WORLD READY";setTimeout(function(){var e=document.getElementById("loading");if(e){e.classList.add("hide");setTimeout(function(){e.remove();},750);}},350);},fail:function(msg){var l=document.getElementById("loadlabel"),s=document.getElementById("loadstatus"),e=document.getElementById("loaderror"),b=document.getElementById("loadretry");if(l)l.textContent="COULD NOT START";if(s)s.textContent=msg;if(e)e.style.display="block";if(b)b.style.display="inline-block";}};setTimeout(function(){var e=document.getElementById("loading");if(e&&!e.classList.contains("hide")&&document.getElementById("loadpct").textContent!=="100%")window.__coastlineBoot.fail("Still waiting after 15 seconds. Check your connection and retry.");},15000);window.addEventListener("error",function(e){if(document.getElementById("loading")&&document.getElementById("loadpct").textContent!=="100%")window.__coastlineBoot.fail("Startup error: "+(e.message||"a script or graphics resource failed")+". Retry, or check the browser connection/WebGL settings.");});window.addEventListener("unhandledrejection",function(e){if(document.getElementById("loading")&&document.getElementById("loadpct").textContent!=="100%")window.__coastlineBoot.fail("Could not load the graphics library: "+String(e.reason&&e.reason.message||e.reason||"connection interrupted")+". Retry or try another connection.");});</script>
 <script type="module">
@@ -127,7 +127,7 @@ async function initPhysics(){
     for(let z=24;z<worldLength-20;z+=16){
       const yaw=Math.atan(roadSlope(z)),x=curve(z)+side*(roadWidth/2+2.2);
       const body=physicsWorld.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(x,.72,z).setRotation({x:0,y:Math.sin(yaw/2),z:0,w:Math.cos(yaw/2)}));
-      physicsWorld.createCollider(RAPIER.ColliderDesc.cuboid(.16,.52,8.25).setFriction(.8).setRestitution(.12),body);
+      physicsWorld.createCollider(RAPIER.ColliderDesc.cuboid(.16,.52,8.25).setFriction(.8).setRestitution(0),body);
     }
   }
   // Add static collision shapes for procedural props so the chassis can strike them physically.
@@ -138,12 +138,12 @@ async function initPhysics(){
     else desc=RAPIER.ColliderDesc.cuboid(Math.max(.35,o.r*.8),.7,Math.max(.35,o.r*.8));
     const y=o.kind==='house'?2.2:(o.kind==='tree'?1.5:.45);
     const body=physicsWorld.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(o.x,y,o.z));
-    physicsWorld.createCollider(desc.setFriction(.85).setRestitution(.08),body);
+    physicsWorld.createCollider(desc.setFriction(.45).setRestitution(0),body);
   }
   // Chassis is a dynamic rigid body; ray-cast wheels provide suspension, grip and steering.
   const bodyDesc=RAPIER.RigidBodyDesc.dynamic().setTranslation(curve(15),.72,15).setLinearDamping(.08).setAngularDamping(2.6).setCanSleep(false);
   chassis=physicsWorld.createRigidBody(bodyDesc);
-  chassisCollider=physicsWorld.createCollider(RAPIER.ColliderDesc.cuboid(1.02,.36,2.08).setFriction(.9).setRestitution(.04).setMass(1200).setActiveEvents(RAPIER.ActiveEvents.COLLISION_EVENTS),chassis);
+  chassisCollider=physicsWorld.createCollider(RAPIER.ColliderDesc.cuboid(1.02,.36,2.08).setFriction(.75).setRestitution(0).setMass(1200).setActiveEvents(RAPIER.ActiveEvents.COLLISION_EVENTS),chassis);
   vehicleController=physicsWorld.createVehicleController(chassis);
   const wheelPositions=[
     {x:-.83,y:.15,z:1.42},{x:.83,y:.15,z:1.42},
@@ -188,27 +188,41 @@ function update(dt,t){
   if(!chassis||!vehicleController)return;
   const accel=is('w','arrowup'),brake=is('s','arrowdown'),left=is('a','arrowleft'),right=is('d','arrowright');
   handbrake=is(' ');impactTimer=Math.max(0,impactTimer-dt);crashed=impactTimer>0;
-  let steerInput=(left?1:0)-(right?1:0);
-  const p0=chassis.translation(),v0=chassis.linvel();
+  // Three.js car nose points +Z; invert the controller sign so left input turns left on screen.
+  let steerInput=(right?1:0)-(left?1:0);
+  const v0=chassis.linvel();
   const rawSpeed=Math.hypot(v0.x,v0.y,v0.z);
   const steerAngle=steerInput*(.48*(1-Math.min(rawSpeed,32)/42));
   // Fixed-step simulation keeps suspension and collision response stable across frame rates.
   physicsAccumulator=Math.min(physicsAccumulator+dt,.12);
   let steps=0;
   while(physicsAccumulator>=FIXED_DT&&steps<5){
-    const v=chassis.linvel(),forwardSpeed=Math.abs(v.z);
-    const braking=brake||handbrake;
-    const engine=accel?7200:(brake&&forwardSpeed<1.5?-2600:0);
+    const v=chassis.linvel();
+    const rotation=chassis.rotation();
+    const forward=new RAPIER.Vector3(0,0,1);
+    const rotatedForward=rotation?new RAPIER.Vector3(
+      2*(rotation.x*rotation.z+rotation.w*rotation.y),
+      2*(rotation.y*rotation.z-rotation.w*rotation.x),
+      1-2*(rotation.x*rotation.x+rotation.y*rotation.y)
+    ):forward;
+    const signedForwardSpeed=v.x*rotatedForward.x+v.y*rotatedForward.y+v.z*rotatedForward.z;
+    const reverseRequested=brake&&signedForwardSpeed<1.8;
+    const braking=handbrake||(brake&&!reverseRequested);
+    const engine=accel?7200:(reverseRequested?-4200:0);
     for(let i=0;i<4;i++){
       vehicleController.setWheelSteering(i,i<2?steerAngle:0);
       vehicleController.setWheelEngineForce(i,i<2?0:engine*.5);
-      vehicleController.setWheelBrake(i,braking?(handbrake?115:85):0);
+      vehicleController.setWheelBrake(i,braking?(handbrake?95:75):0);
       vehicleController.setWheelFrictionSlip(i,offroad?2.6:5.5);
     }
     vehicleController.updateVehicle(FIXED_DT);
     physicsWorld.step(eventQueueRef.current);
     eventQueueRef.current.drainCollisionEvents((h1,h2,started)=>{
       if(started&&chassisCollider&&(h1===chassisCollider.handle||h2===chassisCollider.handle)){
+        // Kill the pinball effect: no restitution, sharply damp velocity and rotation on impact.
+        const impactV=chassis.linvel(),impactW=chassis.angvel();
+        chassis.setLinvel({x:impactV.x*.38,y:Math.min(impactV.y,0)*.25,z:impactV.z*.38},true);
+        chassis.setAngvel({x:impactW.x*.35,y:impactW.y*.45,z:impactW.z*.35},true);
         impactTimer=.85;crashed=true;
       }
     });
@@ -240,7 +254,7 @@ function update(dt,t){
   camera.fov=THREE.MathUtils.lerp(camera.fov,64+speed*.045,1-Math.exp(-dt*1.8));camera.updateProjectionMatrix();
   for(const f of foamList){f.position.z-=speed*dt*.2;if(f.position.z<p.z-100)f.position.z=p.z+worldLength*.45;f.position.x=f.userData.baseX+Math.sin(t*.0004+f.userData.phase)*2}
   $('speed').textContent=Math.round(speed);$('distance').textContent=distance.toFixed(2);
-  $('status').textContent=crashed?'CRASH / COLLISION · recover your line and accelerate carefully':offroad?'Off-road · reduced tire grip, steer back onto asphalt':speed>2?'Cruising the coast · enjoy the drive':'Ready when you are · W / ↑ to drive';
+  $('status').textContent=crashed?'CRASH / COLLISION · recover your line and accelerate carefully':offroad?'Off-road · reduced tire grip, steer back onto asphalt':speed>2?'Cruising the coast · enjoy the drive':'Ready when you are · W / ↑ forward · S / ↓ reverse';
 }
 const foamList=[];scene.traverse(o=>{if(o.material===foamMat&&o.isMesh)foamList.push(o)});window.__coastlineBoot.stage(88,'Finishing lighting and camera');
 function animate(now){const dt=Math.min((now-last)/1000,.04);last=now;update(dt,now);renderer.render(scene,camera);requestAnimationFrame(animate)}
