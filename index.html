@@ -207,7 +207,7 @@ function update(dt,t){
     const signedForwardSpeed=v.x*rotatedForward.x+v.y*rotatedForward.y+v.z*rotatedForward.z;
     const reverseRequested=brake&&signedForwardSpeed<1.8;
     const braking=handbrake||(brake&&!reverseRequested);
-    const engine=accel?7200:(reverseRequested?-4200:0);
+    const engine=accel?7200:(reverseRequested?-7200:0);
     for(let i=0;i<4;i++){
       vehicleController.setWheelSteering(i,i<2?steerAngle:0);
       vehicleController.setWheelEngineForce(i,i<2?0:engine*.5);
