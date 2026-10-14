@@ -2,7 +2,7 @@ const { test, expect } = require('@playwright/test');
 
 test('world collision probes distinguish a building footprint from open ground', async ({ page }) => {
   await page.goto('/game-v3.html', { waitUntil: 'domcontentloaded' });
-  await expect(page.locator('canvas')).toBeAttached({ timeout: 30000 });
+  await expect(page.locator('canvas').first()).toBeAttached({ timeout: 30000 });
   await page.waitForFunction(() => Boolean(window.__coastlineTest), null, { timeout: 30000 });
 
   const probes = await page.evaluate(() => ({
@@ -18,7 +18,7 @@ test('world collision probes distinguish a building footprint from open ground',
 
 test('on-foot movement cannot walk through a building boundary', async ({ page }) => {
   await page.goto('/game-v3.html', { waitUntil: 'domcontentloaded' });
-  await expect(page.locator('canvas')).toBeAttached({ timeout: 30000 });
+  await expect(page.locator('canvas').first()).toBeAttached({ timeout: 30000 });
   await page.waitForFunction(() => Boolean(window.__coastlineTest), null, { timeout: 30000 });
 
   // A known generated building is centered at (-500, -500), with a 70-unit depth.
