@@ -116,6 +116,6 @@ export function createNpcWorldSlice({ THREE, scene, groundY, trafficSignalHeads,
   }
   return Object.freeze({
     update,
-    snapshot: () => ({ version: 1, phase, phaseStarted, agency: agency.snapshot(), npc: agency.agent('town-tech-01') })
+    snapshot: () => ({ version: 1, phase, phaseStarted, target: { x: tx, z: tz }, agency: agency.snapshot(), npc: agency.agent('town-tech-01') })
   });
 }
