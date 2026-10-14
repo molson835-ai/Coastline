@@ -1,15 +1,131 @@
-// Renderer-agnostic Coastline 2.0 simulation services.
-// Inspired by recurring large-world patterns: spatial queries, simulation LOD,
-// event-driven interactions and separate world truth from rendering.
-const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-export const MATERIALS=Object.freeze({road:{solid:true,damageable:false,response:'vehicle-impact'},curb:{solid:true,damageable:false,response:'vehicle-impact'},sidewalk:{solid:true,damageable:false,response:'hard-stop'},building:{solid:true,damageable:true,response:'wall-impact'},pole:{solid:true,damageable:true,response:'bend-or-break'},tree:{solid:true,damageable:true,response:'flex-or-fall'},fence:{solid:true,damageable:true,response:'break'},pedestrian:{solid:true,damageable:false,response:'avoid-or-stop'},wildlife:{solid:true,damageable:false,response:'flee'}});
-export function createSpatialHash(cellSize=32){const cells=new Map(),key=(x,z)=>`${Math.floor(x/cellSize)}:${Math.floor(z/cellSize)}`;const add=(id,x,z,data={})=>{const k=key(x,z);if(!cells.has(k))cells.set(k,new Map());cells.get(k).set(id,{id,x,z,...data});return k};const remove=(id,x,z)=>{const c=cells.get(key(x,z));if(!c)return;c.delete(id);if(!c.size)cells.delete(key(x,z))};const update=(id,oldPos,newPos,data={})=>{remove(id,oldPos.x,oldPos.z);return add(id,newPos.x,newPos.z,data)};const nearby=(x,z,radius=cellSize)=>{const out=[],minX=Math.floor((x-radius)/cellSize),maxX=Math.floor((x+radius)/cellSize),minZ=Math.floor((z-radius)/cellSize),maxZ=Math.floor((z+radius)/cellSize),r2=radius*radius;for(let cx=minX;cx<=maxX;cx++)for(let cz=minZ;cz<=maxZ;cz++){const c=cells.get(`${cx}:${cz}`);if(!c)continue;for(const item of c.values())if((item.x-x)**2+(item.z-z)**2<=r2)out.push(item)}return out};return Object.freeze({cellSize,add,remove,update,nearby,size:()=>cells.size})}
-export function simulationLOD(distance,{full=80,active=220,proxy=520}={}){if(distance<=full)return 0;if(distance<=active)return 1;if(distance<=proxy)return 2;return 3}
-export function tickRateForLOD(lod){return [30,10,3,0][clamp(lod,0,3)]}
-export function createDamageState(){return{front:0,rear:0,left:0,right:0,roof:0,glass:0,lights:{left:0,right:0},structural:0,lastImpact:null}}
-export function applyImpact(damage,{relativeSpeed=0,side='front',mass=1,objectType='vehicle'}={}){const d=damage||createDamageState(),energy=clamp(Math.abs(relativeSpeed)/18*mass,0,8),amount=clamp(energy*.085,0,.72),key=['front','rear','left','right','roof'].includes(side)?side:'front';d[key]=clamp(d[key]+amount,0,1);d.structural=clamp(d.structural+amount*.42,0,1);d.glass=clamp(d.glass+amount*(objectType==='vehicle'?.22:.05),0,1);if(key==='left')d.lights.left=clamp(d.lights.left+amount*.8,0,1);if(key==='right')d.lights.right=clamp(d.lights.right+amount*.8,0,1);d.lastImpact={time:Date.now(),side:key,energy,objectType};return d}
-export function collisionResponse(material='road',{speed=0}={}){const p=MATERIALS[material]||MATERIALS.road;if(!p.solid)return{blocked:false,restitution:0};if(material==='pedestrian'||material==='wildlife')return{blocked:true,restitution:.02,impulseScale:.05,avoid:true};if(material==='tree'||material==='pole')return{blocked:true,restitution:.08,damageable:true,impulseScale:.12};if(material==='building'||material==='sidewalk')return{blocked:true,restitution:.02,damageable:p.damageable,impulseScale:.04};return{blocked:true,restitution:.05,damageable:p.damageable,impulseScale:.06}}
-export function createParkingRegistry(worldModel,{spacing=8}={}){const occupied=new Set(),makeSpot=(x,z,side,slot)=>{const p=worldModel.parking(x,z,side,slot,spacing);return{id:`${p.roadId}:${side}:${slot}`,x:p.x,z:p.z,axis:p.axis,side,slot,rotation:p.rotation,roadId:p.roadId}};const reserve=id=>{if(occupied.has(id))return false;occupied.add(id);return true};const release=id=>occupied.delete(id);const nearestAvailable=(x,z,radius=45)=>{const r=worldModel.nearestRoad(x,z),out=[];for(const side of[-1,1])for(let slot=-4;slot<=4;slot++){const p=makeSpot(r.x,r.z,side,slot);const d=(p.x-x)**2+(p.z-z)**2;if(!occupied.has(p.id)&&d<=radius*radius)out.push(p)}out.sort((a,b)=>(a.x-x)**2+(a.z-z)**2-(b.x-x)**2-(b.z-z)**2);return out[0]||null};return Object.freeze({makeSpot,reserve,release,nearestAvailable,isOccupied:id=>occupied.has(id),occupiedCount:()=>occupied.size})}
-export function createWorldEventBus(){const listeners=new Map();const on=(type,fn)=>{if(!listeners.has(type))listeners.set(type,new Set());listeners.get(type).add(fn);return()=>listeners.get(type)?.delete(fn)};const emit=(type,payload={})=>{for(const fn of listeners.get(type)||[])fn(payload)};return Object.freeze({on,emit})}
-export function createWorldRuntime({worldModel,chunkSize=200}={}){if(!worldModel)throw new Error('createWorldRuntime requires worldModel');const entities=new Map(),spatial=createSpatialHash(32);const register=e=>{if(!e?.id)throw new Error('world entity requires id');entities.set(e.id,e);spatial.add(e.id,e.x||0,e.z||0,{type:e.type||'unknown'});return e};const move=(id,x,z)=>{const e=entities.get(id);if(!e)return false;const old={x:e.x,z:e.z};e.x=x;e.z=z;spatial.update(id,old,{x,z},{type:e.type});return true};const unregister=id=>{const e=entities.get(id);if(!e)return false;spatial.remove(id,e.x||0,e.z||0);entities.delete(id);return true};return Object.freeze({register,move,unregister,get:id=>entities.get(id),queryNearby:(x,z,r)=>spatial.nearby(x,z,r).map(i=>entities.get(i.id)).filter(Boolean),queryChunk:(x,z)=>worldModel.cellBounds(x,z,chunkSize).key,actorLOD:(x,z,p)=>simulationLOD(Math.hypot(x-p.x,z-p.z)),size:()=>entities.size,chunks:()=>new Set([...entities.values()].map(e=>worldModel.cellBounds(e.x||0,e.z||0,chunkSize).key)).size})}
-export function createWorldArchitecture(worldModel){return Object.freeze({worldModel,runtime:createWorldRuntime({worldModel}),parking:createParkingRegistry(worldModel),events:createWorldEventBus(),materials:MATERIALS,simulationLOD,tickRateForLOD,collisionResponse,applyImpact})}
+// Coastline 2.0 runtime architecture.
+// This module is deliberately renderer-agnostic: world truth and simulation state
+// should remain usable by WebGL, future WebGPU, tests, missions and persistence.
+
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const distSq = (a, b) => { const dx = a.x - b.x, dz = a.z - b.z; return dx * dx + dz * dz; };
+
+export const MATERIALS = Object.freeze({
+  road: { solid: true, damageable: false, response: 'vehicle-impact' },
+  curb: { solid: true, damageable: false, response: 'vehicle-impact' },
+  sidewalk: { solid: true, damageable: false, response: 'hard-stop' },
+  building: { solid: true, damageable: true, response: 'wall-impact' },
+  pole: { solid: true, damageable: true, response: 'bend-or-break' },
+  tree: { solid: true, damageable: true, response: 'flex-or-fall' },
+  fence: { solid: true, damageable: true, response: 'break' },
+  pedestrian: { solid: true, damageable: false, response: 'avoid-or-stop' },
+  wildlife: { solid: true, damageable: false, response: 'flee' }
+});
+
+export function createSpatialHash(cellSize = 32) {
+  const cells = new Map();
+  const key = (x, z) => `${Math.floor(x / cellSize)}:${Math.floor(z / cellSize)}`;
+  const add = (id, x, z, data = {}) => {
+    const k = key(x, z); if (!cells.has(k)) cells.set(k, new Map());
+    cells.get(k).set(id, { id, x, z, ...data }); return k;
+  };
+  const remove = (id, x, z) => { const c = cells.get(key(x, z)); if (!c) return; c.delete(id); if (!c.size) cells.delete(key(x, z)); };
+  const update = (id, oldPos, newPos, data = {}) => { remove(id, oldPos.x, oldPos.z); return add(id, newPos.x, newPos.z, data); };
+  const nearby = (x, z, radius = cellSize) => {
+    const result = [], minX = Math.floor((x - radius) / cellSize), maxX = Math.floor((x + radius) / cellSize), minZ = Math.floor((z - radius) / cellSize), maxZ = Math.floor((z + radius) / cellSize), r2 = radius * radius;
+    for (let cx = minX; cx <= maxX; cx++) for (let cz = minZ; cz <= maxZ; cz++) {
+      const c = cells.get(`${cx}:${cz}`); if (!c) continue;
+      for (const item of c.values()) if ((item.x - x) ** 2 + (item.z - z) ** 2 <= r2) result.push(item);
+    }
+    return result;
+  };
+  return Object.freeze({ cellSize, add, remove, update, nearby, size: () => cells.size });
+}
+
+export function createDamageState() {
+  return { front: 0, rear: 0, left: 0, right: 0, roof: 0, glass: 0, lights: { left: 0, right: 0 }, structural: 0, lastImpact: null };
+}
+
+export function applyImpact(damage, { speed = 0, relativeSpeed = speed, side = 'front', mass = 1, objectType = 'vehicle' } = {}) {
+  const d = damage || createDamageState();
+  const energy = clamp((Math.abs(relativeSpeed) / 18) * mass, 0, 8);
+  const amount = clamp(energy * 0.085, 0, .72);
+  const key = ['front', 'rear', 'left', 'right', 'roof'].includes(side) ? side : 'front';
+  d[key] = clamp(d[key] + amount, 0, 1);
+  d.structural = clamp(d.structural + amount * .42, 0, 1);
+  d.glass = clamp(d.glass + amount * (objectType === 'vehicle' ? .22 : .05), 0, 1);
+  if (key === 'left') d.lights.left = clamp(d.lights.left + amount * .8, 0, 1);
+  if (key === 'right') d.lights.right = clamp(d.lights.right + amount * .8, 0, 1);
+  d.lastImpact = { time: Date.now(), side: key, energy, objectType };
+  return d;
+}
+
+export function collisionResponse(material = 'road', impact = {}) {
+  const profile = MATERIALS[material] || MATERIALS.road;
+  if (!profile.solid) return { blocked: false, restitution: 0 };
+  const speed = Math.abs(impact.speed || 0);
+  if (material === 'pedestrian' || material === 'wildlife') return { blocked: true, restitution: .02, impulseScale: speed > 4 ? .05 : .12, avoid: true };
+  if (material === 'tree' || material === 'pole') return { blocked: true, restitution: .08, damageable: true, impulseScale: .12 };
+  if (material === 'building' || material === 'sidewalk') return { blocked: true, restitution: .02, damageable: profile.damageable, impulseScale: .04 };
+  return { blocked: true, restitution: .05, damageable: profile.damageable, impulseScale: .06 };
+}
+
+export function simulationLOD(distance, { full = 80, active = 220, proxy = 520 } = {}) {
+  if (distance <= full) return 0; // full AI/physics/animation
+  if (distance <= active) return 1; // reduced tick rate, normal movement
+  if (distance <= proxy) return 2; // proxy simulation/state only
+  return 3; // persisted world state; no per-frame actor work
+}
+
+export function tickRateForLOD(lod) { return [30, 10, 3, 0][clamp(lod, 0, 3)]; }
+
+export function createWorldRuntime({ worldModel, chunkSize = 200 } = {}) {
+  if (!worldModel) throw new Error('createWorldRuntime requires worldModel');
+  const entities = new Map(), spatial = createSpatialHash(32), chunks = new Map();
+  const register = (entity) => {
+    if (!entity?.id) throw new Error('world entity requires id');
+    entities.set(entity.id, entity); spatial.add(entity.id, entity.x || 0, entity.z || 0, { type: entity.type || 'unknown' });
+    const c = worldModel.cellBounds(entity.x || 0, entity.z || 0, chunkSize); chunks.set(c.key, (chunks.get(c.key) || 0) + 1);
+    return entity;
+  };
+  const move = (id, x, z) => {
+    const e = entities.get(id); if (!e) return false;
+    const old = { x: e.x, z: e.z }; e.x = x; e.z = z; spatial.update(id, old, { x, z }, { type: e.type }); return true;
+  };
+  const unregister = (id) => { const e = entities.get(id); if (!e) return false; spatial.remove(id, e.x || 0, e.z || 0); entities.delete(id); return true; };
+  const queryNearby = (x, z, radius) => spatial.nearby(x, z, radius).map(item => entities.get(item.id)).filter(Boolean);
+  const queryChunk = (x, z) => worldModel.cellBounds(x, z, chunkSize).key;
+  const actorLOD = (x, z, player) => simulationLOD(Math.sqrt((x - player.x) ** 2 + (z - player.z) ** 2));
+  return Object.freeze({ register, move, unregister, queryNearby, queryChunk, actorLOD, get: id => entities.get(id), size: () => entities.size, chunks: () => chunks.size });
+}
+
+export function createParkingRegistry(worldModel, { spacing = 8 } = {}) {
+  const occupied = new Set();
+  const key = (road, side, slot) => `${road}:${side}:${slot}`;
+  const makeSpot = (x, z, side, slot) => {
+    const r = worldModel.nearestRoad(x, z);
+    const p = worldModel.parking(x, z, side, slot, spacing);
+    return { id: key(worldModel.roadId(x, z), side, slot), x: p.x, z: p.z, axis: p.axis, side, slot, roadId: worldModel.roadId(x, z) };
+  };
+  const reserve = id => { if (occupied.has(id)) return false; occupied.add(id); return true; };
+  const release = id => occupied.delete(id);
+  const isOccupied = id => occupied.has(id);
+  const nearestAvailable = (x, z, radius = 45) => {
+    const r = worldModel.nearestRoad(x, z), candidates = [];
+    for (let side of [-1, 1]) for (let slot = -4; slot <= 4; slot++) {
+      const p = makeSpot(r.x, r.z, side, slot); if (!isOccupied(p.id) && distSq(p, { x, z }) <= radius * radius) candidates.push(p);
+    }
+    candidates.sort((a, b) => distSq(a, { x, z }) - distSq(b, { x, z }));
+    return candidates[0] || null;
+  };
+  return Object.freeze({ makeSpot, reserve, release, isOccupied, nearestAvailable, occupiedCount: () => occupied.size });
+}
+
+export function createWorldEventBus() {
+  const listeners = new Map();
+  const on = (type, fn) => { if (!listeners.has(type)) listeners.set(type, new Set()); listeners.get(type).add(fn); return () => listeners.get(type)?.delete(fn); };
+  const emit = (type, payload = {}) => { for (const fn of listeners.get(type) || []) fn(payload); };
+  return Object.freeze({ on, emit });
+}
+
+export function createWorldArchitecture(worldModel) {
+  const runtime = createWorldRuntime({ worldModel });
+  const parking = createParkingRegistry(worldModel);
+  const events = createWorldEventBus();
+  return Object.freeze({ worldModel, runtime, parking, events, materials: MATERIALS, simulationLOD, tickRateForLOD, collisionResponse, applyImpact });
+}
