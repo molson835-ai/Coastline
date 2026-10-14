@@ -181,7 +181,7 @@ function makeRideable(x,z,kind,color=0x247b8a){
   }
   g.position.set(x,groundY(x,z),z);scene.add(g);
   const v={g,x,z,heading:kind==='aircraft'?Math.PI/2:0,speed:0,parked:true,drivable:true,occupied:false,ai:false,kind,flightHeight:0};
-  g.rotation.y=v.heading;vehicles.push(v);return v;
+  g.rotation.y=v.heading;v.worldEntityId='rideable:'+kind;vehicles.push(v);worldArchitecture.runtime.register({id:v.worldEntityId,type:'vehicle',x:v.x,z:v.z,parked:true,kind:v.kind});return v;
 }
 makeRideable(-680,100,'bicycle',0x247b8a);
 makeRideable(-650,100,'motorcycle',0xb74638);
