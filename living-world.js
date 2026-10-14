@@ -1,6 +1,8 @@
 // Deterministic, bounded decision helpers for Coastline's living-world simulation.
 // These functions choose high-level intent only; movement, collision, and world state
 // remain authoritative in the game simulation.
+import { REALISM_PROFILES, realismLibraryRules } from './realism-library.js';
+
 function stableInt(value) {
   if (typeof value === 'number' && Number.isFinite(value)) return value | 0;
   const s = String(value ?? '0'); let h = 2166136261;
@@ -62,7 +64,7 @@ export function separationSteering({ x = 0, z = 0, neighbors = [], radius = 2.2,
 
 export function livingWorldRules() {
   return {
-    version: 3,
+    version: 4,
     residentDecision: 'seeded identity + time/weather-aware activity selection',
     wildlifeDecision: 'threat-first flee, then weather/daylight-aware intent',
     localAvoidance: 'bounded separation steering',
@@ -70,6 +72,8 @@ export function livingWorldRules() {
     movementAuthority: 'game simulation',
     collisionAuthority: 'game physics',
     assetCaching: 'same-origin service-worker cache with network refresh',
+    visualGrammar: realismLibraryRules().philosophy,
+    realismProfiles: Object.keys(REALISM_PROFILES),
     activities: [...residentActivities],
     wildlifeBehaviors: ['flee', 'shelter', 'rest', 'forage', 'roam']
   };
