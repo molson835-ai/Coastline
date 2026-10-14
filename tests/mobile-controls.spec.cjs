@@ -39,15 +39,17 @@ test('mobile driving controls are visible and operate the vehicle', async ({ pag
   await page.evaluate(({ x, z }) => window.__coastlineTest.setVehiclePosition(x, z, 0), spawn);
   const before = await page.evaluate(() => window.__coastlineTest.state());
 
-  await forward.dispatchEvent('pointerdown', { pointerId: 1, pointerType: 'touch', isPrimary: true, button: 0 });
+  await forward.hover();
+  await page.mouse.down();
   await page.waitForTimeout(700);
-  await forward.dispatchEvent('pointerup', { pointerId: 1, pointerType: 'touch', isPrimary: true, button: 0 });
+  await page.mouse.up();
   const afterDrive = await page.evaluate(() => window.__coastlineTest.state());
   expect(afterDrive.z, 'forward control should move the car').toBeGreaterThan(before.z + 0.5);
 
-  await left.dispatchEvent('pointerdown', { pointerId: 2, pointerType: 'touch', isPrimary: true, button: 0 });
+  await left.hover();
+  await page.mouse.down();
   await page.waitForTimeout(500);
-  await left.dispatchEvent('pointerup', { pointerId: 2, pointerType: 'touch', isPrimary: true, button: 0 });
+  await page.mouse.up();
   const afterSteer = await page.evaluate(() => window.__coastlineTest.state());
   expect(Math.abs(afterSteer.heading - before.heading), 'left control should steer the car').toBeGreaterThan(0.01);
 
