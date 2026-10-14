@@ -12,5 +12,9 @@ test('world rendering enables detailed terrain, asphalt and soft shadow lighting
   expect(graphics.asphaltTexture).toBe(true);
   expect(graphics.water).toBe(true);
   expect(graphics.exposure).toBeGreaterThan(0.5);
+  const street = await page.evaluate(() => window.__coastlineTest.streetDetailState());
+  expect(street.sidewalkSegments).toBe(168);
+  expect(street.curbSegments).toBe(168);
+  expect(street.stormDrains).toBe(168);
   expect(errors).toEqual([]);
 });
