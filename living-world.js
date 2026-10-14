@@ -2,6 +2,7 @@
 // These functions choose high-level intent only; movement, collision, and world state
 // remain authoritative in the game simulation.
 import { REALISM_PROFILES, realismLibraryRules } from './realism-library.js';
+import './presentation-runtime.js';
 
 function stableInt(value) {
   if (typeof value === 'number' && Number.isFinite(value)) return value | 0;
@@ -47,8 +48,6 @@ export function chooseWildlifeBehavior({ id = 0, daylight = 0.7, weather = 'clea
   return 'roam';
 }
 
-// Lightweight local avoidance primitive for agents that do not yet have a full navmesh.
-// Returns a normalized steering vector; it never teleports an actor or overrides physics.
 export function separationSteering({ x = 0, z = 0, neighbors = [], radius = 2.2, strength = 1 } = {}) {
   let sx = 0, sz = 0, count = 0, r2 = radius * radius;
   for (const n of neighbors || []) {
@@ -74,6 +73,7 @@ export function livingWorldRules() {
     assetCaching: 'same-origin service-worker cache with network refresh',
     visualGrammar: realismLibraryRules().philosophy,
     realismProfiles: Object.keys(REALISM_PROFILES),
+    presentationRuntime: 'event-driven HUD polish and mission fade',
     activities: [...residentActivities],
     wildlifeBehaviors: ['flee', 'shelter', 'rest', 'forage', 'roam']
   };
