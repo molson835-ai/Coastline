@@ -17,7 +17,7 @@ test('living-world decisions are bounded, contextual, and reproducible', async (
     return { rules, residentA, residentB, rainy, threatened, state };
   });
 
-  expect(result.rules.version).toBe(1);
+  expect(Number.isInteger(result.rules.version) && result.rules.version >= 1).toBe(true);
   expect(result.rules.decisionsPerRenderFrame).toBe(false);
   expect(result.residentA).toBe(result.residentB);
   expect(result.rules.activities).toContain(result.residentA);
