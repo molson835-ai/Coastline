@@ -3,6 +3,9 @@
 // remain authoritative in the game simulation.
 import { REALISM_PROFILES, realismLibraryRules } from './realism-library.js';
 import './presentation-runtime.js';
+import {
+  createEncounterDirector, createWorldMemory, advanceMystery, chooseRumor, replayabilityRules,
+} from './replayability-engine.js';
 
 function stableInt(value) {
   if (typeof value === 'number' && Number.isFinite(value)) return value | 0;
@@ -61,12 +64,28 @@ export function separationSteering({ x = 0, z = 0, neighbors = [], radius = 2.2,
   return { x: (sx / len) * strength, z: (sz / len) * strength };
 }
 
+// A single adapter surface for the game shell to connect event triggers, clues, and save data.
+// It does not persist automatically; the host chooses when and where to save snapshot().
+export function createLivingWorldReplayability({ seed = 'coastline', initialMemory = {} } = {}) {
+  const memory = createWorldMemory(initialMemory);
+  const encounters = createEncounterDirector({ seed });
+  return Object.freeze({
+    memory,
+    encounters,
+    nextRumor: options => chooseRumor({ seed, ...options }),
+    nextMysteryStage: (mystery, completed) => advanceMystery(mystery, completed),
+    snapshot: () => memory.snapshot(),
+    rules: replayabilityRules,
+  });
+}
+
 export function livingWorldRules() {
   return {
-    version: 4,
+    version: 5,
     residentDecision: 'seeded identity + time/weather-aware activity selection',
     wildlifeDecision: 'threat-first flee, then weather/daylight-aware intent',
     localAvoidance: 'bounded separation steering',
+    replayability: replayabilityRules(),
     decisionsPerRenderFrame: false,
     movementAuthority: 'game simulation',
     collisionAuthority: 'game physics',
