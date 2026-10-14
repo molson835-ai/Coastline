@@ -6,6 +6,7 @@ import './presentation-runtime.js';
 import {
   createEncounterDirector, createWorldMemory, advanceMystery, chooseRumor, replayabilityRules,
 } from './replayability-engine.js';
+import { createNpcAgency, NPC_ROLES, NPC_STORY_ARCS } from './npc-agency-engine.js';
 
 function stableInt(value) {
   if (typeof value === 'number' && Number.isFinite(value)) return value | 0;
@@ -79,9 +80,12 @@ export function createLivingWorldReplayability({ seed = 'coastline', initialMemo
   });
 }
 
+export { createNpcAgency, NPC_ROLES, NPC_STORY_ARCS };
+
 export function livingWorldRules() {
   return {
-    version: 5,
+    version: 6,
+    npcAgency: 'bounded deterministic roles, needs, event reactions, persistent memories, and personal story arcs',
     residentDecision: 'seeded identity + time/weather-aware activity selection',
     wildlifeDecision: 'threat-first flee, then weather/daylight-aware intent',
     localAvoidance: 'bounded separation steering',
