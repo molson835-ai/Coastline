@@ -26,6 +26,34 @@ test('spatial runtime tracks entities and nearby queries', () => {
   assert.equal(runtime.queryNearby(0, 0, 10).length, 2);
 });
 
+test('runtime chunk bookkeeping follows registration, movement and removal', () => {
+  const model = createWorldModel({ citySize: 1500, roadSpacing: 200 });
+  const runtime = engine.createWorldRuntime({ worldModel: model, chunkSize: 200 });
+  const first = model.cellBounds(0, 0, 200).key;
+  const second = model.cellBounds(250, 0, 200).key;
+  runtime.register({ id: 'npc', type: 'pedestrian', x: 0, z: 0 });
+  assert.equal(runtime.chunks(), 1);
+  assert.equal(runtime.chunkEntityCount(first), 1);
+  runtime.move('npc', 250, 0);
+  assert.equal(runtime.chunkEntityCount(first), 0);
+  assert.equal(runtime.chunkEntityCount(second), 1);
+  assert.equal(runtime.chunks(), 1);
+  runtime.unregister('npc');
+  assert.equal(runtime.size(), 0);
+  assert.equal(runtime.chunks(), 0);
+});
+
+test('re-registering an id replaces its spatial and chunk state', () => {
+  const model = createWorldModel({ seed: 3 });
+  const runtime = engine.createWorldRuntime({ worldModel: model });
+  runtime.register({ id: 'npc', type: 'pedestrian', x: 0, z: 0 });
+  runtime.register({ id: 'npc', type: 'vehicle', x: 300, z: 0 });
+  assert.equal(runtime.size(), 1);
+  assert.equal(runtime.get('npc').type, 'vehicle');
+  assert.equal(runtime.queryNearby(0, 0, 20).length, 0);
+  assert.equal(runtime.queryNearby(300, 0, 20).length, 1);
+});
+
 test('parking registry prevents duplicate reservations', () => {
   const model = createWorldModel({ seed: 0 });
   const parking = engine.createParkingRegistry(model);
