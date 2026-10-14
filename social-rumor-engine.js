@@ -19,7 +19,7 @@ export const RUMOR_TOPICS = Object.freeze({
 });
 function normalizePerson(person = {}) {
   return {
-    id: String(person.id ?? 'person-' + Math.random().toString(36).slice(2)),
+    id: String(person.id ?? 'person-' + hash(JSON.stringify(person))),
     name: String(person.name ?? 'Local resident'),
     region: String(person.region ?? 'town'),
     ties: { ...(person.ties ?? {}) },
