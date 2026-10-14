@@ -32,8 +32,10 @@ export function createWorldModel({ citySize = 1500, roadSpacing = 200, roadWidth
     return offset.x <= half || offset.z <= half;
   };
   const groundY = (x, z) => {
-    const raw = roadSurfaceY + noise(x * 0.008, z * 0.008, seed) * 7
-      + noise(x * 0.025, z * 0.025, seed) * 1.8;
+    const raw = roadSurfaceY + noise(x * 0.0022, z * 0.0022, seed + 11) * 9
+      + noise(x * 0.008, z * 0.008, seed) * 6.5
+      + noise(x * 0.025, z * 0.025, seed + 23) * 1.8
+      + noise(x * 0.067, z * 0.067, seed + 37) * 0.65;
     const offset = roadOffset(x, z);
     return lerp(roadSurfaceY, raw, smoothstep(11, 40, Math.min(offset.x, offset.z)));
   };
