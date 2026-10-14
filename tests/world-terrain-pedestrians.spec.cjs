@@ -2,7 +2,7 @@ const { test, expect } = require('@playwright/test');
 
 test('terrain sampling and all road junctions use a stable shared elevation', async ({ page }) => {
   await page.goto('/game-v3.html', { waitUntil: 'domcontentloaded' });
-  await expect(page.locator('canvas')).toBeAttached({ timeout: 30000 });
+  await expect(page.locator('canvas').first()).toBeAttached({ timeout: 30000 });
   await page.waitForFunction(() => Boolean(window.__coastlineTest), null, { timeout: 30000 });
 
   const result = await page.evaluate(() => {
