@@ -17,4 +17,9 @@ test('public-works NPC reacts to a nearby player and begins a persistent repair 
   expect(active.npc.flags.signalOutage).toBe(true);
   expect(active.npc.memory.some(item => item.type === 'infrastructure_failure')).toBe(true);
   expect(active.agency.events.some(event => event.type === 'signal_outage')).toBe(true);
+
+  await expect.poll(async () => page.evaluate(() => window.__coastlineTest.npcWorldSliceState().phase), { timeout: 18000, intervals: [250, 500, 1000] }).toBe('complete');
+  const completed = await page.evaluate(() => window.__coastlineTest.npcWorldSliceState());
+  expect(completed.agency.outcomes.some(event => event.type === 'signal_restored')).toBe(true);
+  expect(completed.npc.flags.signalOutage).toBe(false);
 });
