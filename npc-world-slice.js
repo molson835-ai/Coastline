@@ -6,8 +6,11 @@ export function createNpcWorldSlice({ THREE, scene, groundY, trafficSignalHeads,
   if (!target) return { update() {}, snapshot: () => ({ version: 1, available: false }) };
 
   const tx = target.x, tz = target.z;
+  let savedState = null;
+  try { savedState = JSON.parse(localStorage.getItem('coastline-npc-world-slice-v1') || 'null'); } catch {}
   const agency = createNpcAgency({
     seed: 'coastline-douglassville-public-works-v1',
+    initialState: savedState?.agency ?? {},
     definitions: [{
       id: 'town-tech-01', name: 'Mara Ellis', role: 'publicWorks', arcId: 'signalOutage',
       x: tx, z: tz, home: 'northside', workplace: 'public-works-depot',
@@ -65,7 +68,10 @@ export function createNpcWorldSlice({ THREE, scene, groundY, trafficSignalHeads,
   worker.position.set(tx + 2.3, groundY(tx + 2.3, tz + 1.4), tz + 1.4);
   worker.rotation.y = Math.PI * .72; scene.add(worker);
 
-  let phase = 'idle', phaseStarted = 0, lastDecision = 0, toastShown = false;
+  let phase = savedState?.phase === 'complete' ? 'complete' : 'idle', phaseStarted = 0, lastDecision = 0, toastShown = false;
+  function persistStory() {
+    try { localStorage.setItem('coastline-npc-world-slice-v1', JSON.stringify({ version: 1, phase, agency: agency.snapshot() })); } catch {}
+  }
   const start = time => {
     phase = 'repairing'; phaseStarted = time;
     agency.publishEvent({ type: 'signal_outage', targetNpc: 'town-tech-01', location: 'Main Street', time: time / 1000 });
@@ -96,6 +102,7 @@ export function createNpcWorldSlice({ THREE, scene, groundY, trafficSignalHeads,
         agency.publishEvent({ type: 'parts_arrived', targetNpc: 'town-tech-01', location: 'Main Street', time: now / 1000 });
         phase = 'complete';
         setSignalFault(false);
+        persistStory();
         toast('MAIN STREET · Signal restored. Mara logs the repair and heads back to her route.');
       }
     } else if (phase === 'complete') {
