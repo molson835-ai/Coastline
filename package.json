@@ -4,7 +4,7 @@
   "scripts": {
     "test:gameplay": "playwright test",
     "test:engine": "node --test tests/world-engine*.spec.mjs",
-    "test:systems": "node --test tests/replayability-engine.spec.mjs tests/npc-agency-engine.spec.mjs",
+    "test:systems": "node --test tests/replayability-engine.spec.mjs tests/npc-agency-engine.spec.mjs tests/social-rumor-engine.spec.mjs",
     "test": "npm run test:engine && npm run test:systems && npm run test:gameplay"
   },
   "devDependencies": {
