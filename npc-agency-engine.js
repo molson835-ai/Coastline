@@ -172,19 +172,31 @@ export function createNpcAgency({ seed = 'coastline-npc-v1', definitions = [], i
         remember(agent, 'player_helped', { eventId: event.id }, event.time);
       }
       if (event.type === 'emergency' && agent.role === 'paramedic') {
+        agent.flags.emergency_chain = true;
         agent.action = 'respond_to_emergency';
         agent.flags.activeEmergency = event.id;
         remember(agent, 'emergency_dispatched', { eventId: event.id, severity: event.severity ?? 1 }, event.time);
       }
       if (event.type === 'signal_outage' && agent.role === 'publicWorks') {
+        agent.flags.signal_outage = true;
         agent.flags.signalOutage = true;
         remember(agent, 'infrastructure_failure', { location: event.location ?? 'unknown' }, event.time);
       }
+      if (event.type === 'parts_delayed' && agent.role === 'publicWorks') agent.flags.parts_delayed = true;
+      if (event.type === 'parts_arrived' && agent.role === 'publicWorks') agent.flags.parts_arrived = true;
       if (event.type === 'parts_arrived' && agent.flags.signalOutage) {
         agent.flags.signalOutage = false;
         remember(agent, 'repair_materials_arrived', { eventId: event.id }, event.time);
         emit('signal_restored', { sourceNpc: agent.id, location: event.location ?? 'unknown' }, event.time);
       }
+      if (event.type === 'customer_debt' && agent.role === 'mechanic') agent.flags.customer_debt = true;
+      if (event.type === 'player_offers_help' && agent.role === 'mechanic') agent.flags.player_offers_help = true;
+      if (event.type === 'repair_completed' && agent.role === 'mechanic') agent.flags.repair_completed = true;
+      if (event.type === 'player_helped_npc' && agent.role === 'paramedic' && event.targetNpc === agent.id) agent.flags.player_or_partner_help = true;
+      if (event.type === 'rest_period' && agent.role === 'paramedic') agent.flags.rest_period = true;
+      if (event.type === 'night_sighting' && agent.role === 'suspiciousDriver') agent.flags.night_sighting = true;
+      if (event.type === 'evidence_found' && agent.role === 'suspiciousDriver') agent.flags.evidence_found = true;
+      if (event.type === 'case_resolved' && agent.role === 'suspiciousDriver') agent.flags.case_resolved = true;
       if (event.type === 'vehicle_breakdown' && agent.role === 'mechanic') {
         agent.flags.pendingRepair = event.vehicleId ?? event.id;
         remember(agent, 'repair_opportunity', { vehicleId: agent.flags.pendingRepair }, event.time);
