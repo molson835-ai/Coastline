@@ -143,6 +143,7 @@ function publicAgent(agent) {
 
 export function createNpcAgency({ seed = 'coastline-npc-v1', definitions = [], initialState = {}, maxMemory = 24 } = {}) {
   const agents = new Map();
+  maxMemory = Math.max(1, Math.floor(Number(maxMemory) || 24));
   for (const definition of definitions) agents.set(String(definition.id), normalizeAgent(definition));
   for (const saved of initialState.agents ?? []) agents.set(String(saved.id), normalizeAgent(saved));
   const worldEvents = [...(initialState.events ?? [])].slice(-100);
@@ -157,7 +158,7 @@ export function createNpcAgency({ seed = 'coastline-npc-v1', definitions = [], i
   function emit(type, detail = {}, time = 0) {
     const event = Object.freeze({ id: 'npc-world-' + (++eventSerial), type, time, ...detail });
     worldEvents.push(event);
-    if (worldEvents.length > 100) worldEvents.shift();
+    if (worldEvents.length > 100) { const dropped = worldEvents.shift(); if (dropped?.id) eventIds.delete(dropped.id); }
     eventIds.add(event.id);
     outcomes.push(event);
     if (outcomes.length > 100) outcomes.shift();
@@ -225,9 +226,9 @@ export function createNpcAgency({ seed = 'coastline-npc-v1', definitions = [], i
       if (!event || typeof event.type !== 'string') return null;
       if (event.id && eventIds.has(event.id)) return null;
       const normalized = { ...event, id: event.id ?? 'external-' + (++eventSerial), time: Number(event.time) || 0 };
-      eventIds.add(normalized.id);
       worldEvents.push(normalized);
-      if (worldEvents.length > 100) worldEvents.shift();
+      if (worldEvents.length > 100) { const dropped = worldEvents.shift(); if (dropped?.id) eventIds.delete(dropped.id); }
+      eventIds.add(normalized.id);
       applyEvent(normalized);
       return Object.freeze({ ...normalized });
     },
