@@ -65,18 +65,14 @@ export function createNpcWorldSlice({ THREE, scene, groundY, trafficSignalHeads,
   worker.position.set(tx + 2.3, groundY(tx + 2.3, tz + 1.4), tz + 1.4);
   worker.rotation.y = Math.PI * .72; scene.add(worker);
 
-  let phase = 'idle', phaseStarted = 0, lastDecision = 0, toastShown = false, savedSignalMaterials = null;
+  let phase = 'idle', phaseStarted = 0, lastDecision = 0, toastShown = false;
   const start = time => {
     phase = 'repairing'; phaseStarted = time;
     agency.publishEvent({ type: 'signal_outage', targetNpc: 'town-tech-01', location: 'Main Street', time: time / 1000 });
     if (!toastShown) { toast('PUBLIC WORKS · Mara is responding to a signal fault on Main Street.'); toastShown = true; }
-    savedSignalMaterials = target.bulbs.map(b => ({ material: b.mat, color: b.mat.color.getHex(), intensity: b.mat.emissiveIntensity }));
   };
   function setSignalFault(faulted) {
-    for (const bulb of target.bulbs) {
-      bulb.mat.emissiveIntensity = faulted ? .015 : bulb.mat.emissiveIntensity;
-      if (faulted) bulb.mat.color.setHex(0x34383b);
-    }
+    for (const bulb of target.bulbs) bulb.mesh.visible = !faulted;
   }
   function update(dt, now) {
     if (!Number.isFinite(now)) return;
@@ -99,10 +95,7 @@ export function createNpcWorldSlice({ THREE, scene, groundY, trafficSignalHeads,
       if (elapsed > 13) {
         agency.publishEvent({ type: 'parts_arrived', targetNpc: 'town-tech-01', location: 'Main Street', time: now / 1000 });
         phase = 'complete';
-        for (const bulb of target.bulbs) {
-          const old = savedSignalMaterials?.find(item => item.material === bulb.mat);
-          if (old) { bulb.mat.color.setHex(old.color); bulb.mat.emissiveIntensity = old.intensity; }
-        }
+        setSignalFault(false);
         toast('MAIN STREET · Signal restored. Mara logs the repair and heads back to her route.');
       }
     } else if (phase === 'complete') {
