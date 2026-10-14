@@ -26,7 +26,8 @@ test('mobile driving controls are visible and operate the vehicle', async ({ pag
         let clear = true;
         for (let dx = -6; dx <= 6 && clear; dx += 3) {
           for (let dz = 0; dz <= 24; dz += 3) {
-            if (api.obstacleBlocked(x + dx, z + dz, 1.8)) { clear = false; break; }
+            const px = x + dx, pz = z + dz;
+            if (api.obstacleBlocked(px, pz, 1.8) || roster.some(v => Math.hypot(v.x - px, v.z - pz) < 5)) { clear = false; break; }
           }
         }
         if (clear) return { x, z };
