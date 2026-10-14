@@ -28,6 +28,8 @@ test('buildings, benches, low walls, bicycles, motorcycles and aircraft are inte
   });
   expect(entered).toBe(true);
   await expect.poll(async () => page.evaluate(() => window.__coastlineTest.buildingState().inside)).toBe('Harbor Hotel');
+  const stairHeight = await page.evaluate(() => window.__coastlineTest.interiorElevationAt(-497, -505.2));
+  expect(stairHeight).toBeGreaterThan(0);
 
   await page.evaluate(() => window.__coastlineTest.exitBuilding());
   await expect.poll(async () => page.evaluate(() => window.__coastlineTest.state().mode)).toBe('walk');
