@@ -7,6 +7,7 @@
 </style></head><body><div class="hud"><div class="row"><div class="card"><div class="brand">COASTLINE</div><div class="sub">OPEN WORLD · CITY DISTRICT</div></div><div class="card stats"><div><span>MODE</span><b id="mode">DRIVING</b></div><div><span>SPEED</span><b id="speed">0</b></div><div><span>CASH</span><b id="cash">250</b></div></div></div><div class="row"><div class="card mission"><b id="mission">MISSION: THE CITY</b><br><span id="objective">Explore the city. Walk, drive, enter vehicles and interact with buildings.</span></div><div class="card help">WASD move/drive · E use/enter/exit · SPACE jump or climb · SHIFT sprint / aircraft descend · ESC pause</div></div></div><div class="cross"></div><div id="toast" class="toast"></div><div class="touch left-controls" aria-label="Forward and reverse"><button data-k="w" aria-label="Forward">▲</button><button data-k="s" aria-label="Reverse">▼</button></div><div class="touch right-controls" aria-label="Steering, jumping, aircraft altitude and interaction"><button data-k="a" aria-label="Steer left">◀</button><button data-k="d" aria-label="Steer right">▶</button><button data-k="space" aria-label="Jump or aircraft climb">↑</button><button data-k="shift" aria-label="Sprint or aircraft descend">↓</button><button id="actionButton" type="button">EXIT</button></div><button id="bugReport" class="bug-report" type="button">BUG REPORT</button><div id="coastMap" aria-label="Interactive city map. Tap to set a waypoint"><canvas id="mapCanvas" width="300" height="300"></canvas><div id="mapHint">TAP MAP · SET DESTINATION</div><div id="mapLabel">FREE ROAM</div></div><div id="diag" class="diag"><h3>Coastline Diagnostics</h3><p id="diagText">Collecting gameplay diagnostics…</p><button id="copyDiag" type="button">COPY REPORT</button><button id="openIssue" type="button">OPEN GITHUB ISSUE</button><button id="closeDiag" class="secondary" type="button">CLOSE</button></div><div id="veil" class="veil"><div class="panel"><h2>PAUSED</h2><p>Coastline Open World</p><button id="resume">RESUME</button></div></div><script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js"}}</script><script type="module">
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js';
 import { createWorldModel } from './world-model.js';
+import { DOUGLASSVILLE_LAYOUT } from './douglassville-layout.js';
 import { chooseResidentActivity, chooseWildlifeBehavior, livingWorldRules } from './living-world.js';
 import { createWorldArchitecture } from './world-engine.js';
 import { EffectComposer } from 'https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/postprocessing/EffectComposer.js';
@@ -52,6 +53,35 @@ function buildStreetDetails(){
   sidewalks.receiveShadow=true;curbs.receiveShadow=true;scene.add(sidewalks,curbs,drains);
 }
 buildStreetDetails();
+
+// Douglassville-inspired regional geography: curved highways, named local roads,
+// a rail corridor, and a river edge break up the generic grid.
+function regionalCurve(points,y=3.18){return new THREE.CatmullRomCurve3(points.map(([x,z])=>new THREE.Vector3(x,y,z)),false,'catmullrom',.12)}
+function ribbonGeometry(curve,width,segments=100,yOffset=0){
+ const positions=[],indices=[];
+ for(let i=0;i<=segments;i++){const t=i/segments,p=curve.getPoint(t),tan=curve.getTangent(t);const len=Math.hypot(tan.x,tan.z)||1,nx=-tan.z/len,nz=tan.x/len;positions.push(p.x+nx*width/2,p.y+yOffset,p.z+nz*width/2,p.x-nx*width/2,p.y+yOffset,p.z-nz*width/2);if(i<segments){const a=i*2,b=a+1,c=a+2,d=a+3;indices.push(a,b,c,b,d,c)}}
+ const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));geo.setIndex(indices);geo.computeVertexNormals();return geo;
+}
+function buildRegionalRoads(){
+ const shoulderMat=M(0x777a70,.98),highwayMat=M(0x30383a,.96),localMat=M(0x454b4a,.97),markMat=M(0xe9e4cf,.75),medianMat=M(0x777d70,.95);
+ for(const roadDef of DOUGLASSVILLE_LAYOUT.roads){
+  const curve=regionalCurve(roadDef.points,3.13),isHighway=roadDef.kind==='highway'||roadDef.kind==='bypass',surface=new THREE.Mesh(ribbonGeometry(curve,roadDef.width+3,100,-.055),shoulderMat),asphalt=new THREE.Mesh(ribbonGeometry(curve,roadDef.width,100,.005),isHighway?highwayMat:localMat);
+  surface.receiveShadow=true;asphalt.receiveShadow=true;scene.add(surface,asphalt);
+  const edgeOffset=roadDef.width/2-.45,curvePoints=curve.getPoints(100);
+  for(const side of [-1,1]){const edgeCurve=new THREE.CatmullRomCurve3(curvePoints.map((p,i)=>{const tan=curve.getTangent(i/100),len=Math.hypot(tan.x,tan.z)||1;return new THREE.Vector3(p.x+(-tan.z/len)*edgeOffset*side,3.2,p.z+(tan.x/len)*edgeOffset*side)}));scene.add(new THREE.Mesh(new THREE.TubeGeometry(edgeCurve,100,.075,4,false),markMat))}
+  if(isHighway){
+   for(let i=3;i<curvePoints.length-3;i+=5){const a=curvePoints[i],b=curvePoints[Math.min(i+2,curvePoints.length-1)],dash=new THREE.Mesh(new THREE.BoxGeometry(.18,.035,Math.max(2,a.distanceTo(b)*.7)),markMat);dash.position.set((a.x+b.x)/2,3.205,(a.z+b.z)/2);dash.rotation.y=Math.atan2(b.x-a.x,b.z-a.z);scene.add(dash)}
+   scene.add(new THREE.Mesh(ribbonGeometry(curve,1.1,100,.07),medianMat));
+  }else{
+   for(let i=2;i<curvePoints.length-2;i+=8){const a=curvePoints[i],b=curvePoints[Math.min(i+2,curvePoints.length-1)],dash=new THREE.Mesh(new THREE.BoxGeometry(.13,.025,Math.max(1.5,a.distanceTo(b)*.45),),markMat);dash.position.set((a.x+b.x)/2,3.2,(a.z+b.z)/2);dash.rotation.y=Math.atan2(b.x-a.x,b.z-a.z);scene.add(dash)}
+  }
+ }
+ const railCurve=regionalCurve(DOUGLASSVILLE_LAYOUT.rail.points,3.02),railPoints=railCurve.getPoints(90),railMat=M(0x373b3b,.65,.48),tieMat=M(0x554536,.98);
+ for(let i=0;i<railPoints.length;i+=2){const p=railPoints[i],tan=railCurve.getTangent(i/90),len=Math.hypot(tan.x,tan.z)||1,nx=-tan.z/len,nz=tan.x/len;for(const side of [-1,1]){const rail=new THREE.Mesh(new THREE.BoxGeometry(.14,.16,Math.max(2,p.distanceTo(railPoints[Math.min(i+1,railPoints.length-1)])*2)),railMat);rail.position.set(p.x+nx*side*.8,3.08,p.z+nz*side*.8);rail.rotation.y=Math.atan2(tan.x,tan.z);scene.add(rail)}const tie=new THREE.Mesh(new THREE.BoxGeometry(2.35,.09,.42),tieMat);tie.position.set(p.x,3.01,p.z);tie.rotation.y=Math.atan2(tan.x,tan.z);scene.add(tie)}
+ const creekCurve=regionalCurve(DOUGLASSVILLE_LAYOUT.creek.points,2.15),creek=new THREE.Mesh(ribbonGeometry(creekCurve,8,100,.02),new THREE.MeshStandardMaterial({color:0x477f91,roughness:.28,metalness:.05,transparent:true,opacity:.88,side:THREE.DoubleSide,depthWrite:false}));scene.add(creek);
+}
+buildRegionalRoads();
+
 // Downtown blocks and landmark buildings.
 const buildings=[];const buildingNames=['Harbor Hotel','City Hall','Coastline Bank','Marina Market','Sunset Diner','Arcade','Auto Works','Seaside Apartments','Pier Offices','Clinic','Fire Station','Boardwalk Hotel'];const colors=[0x9b6c58,0x637d8a,0x8c8b77,0x76658d,0x9b7957,0x5c7c73,0xb7a080,0x82645a,0x4e7477,0x987e9c,0x777a73,0xb18b60];const facadeStyles=['brick','glass','stucco','industrial','heritage','retail'];const storefrontNames=['TIDE & TIMBER','BLUE FIN COFFEE','HARBOR SUPPLY','SALTBOX MARKET','PIER 9 RECORDS','SUNSET TACOS','WAVEFORM SURF','MARINA PHARMACY','COASTAL CUTS','ANCHOR BOOKS','FERRY FLOWERS','BOARDWALK BIKES','GULL & GRAIN','SEAGLASS GIFTS','NORTH PIER DELI','LOW TIDE OUTFITTERS'];
 function makeSignTexture(label,bg,fg=0xffffff){const canvas=document.createElement('canvas');canvas.width=512;canvas.height=128;const c=canvas.getContext('2d');c.fillStyle='#'+bg.toString(16).padStart(6,'0');c.fillRect(0,0,512,128);c.fillStyle='#'+fg.toString(16).padStart(6,'0');c.font='bold 34px system-ui,sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText(label.slice(0,25),256,64,480);const t=new THREE.CanvasTexture(canvas);t.colorSpace=THREE.SRGBColorSpace;return t}
@@ -111,7 +141,7 @@ function garagePurchase(site,action){const v=garageVehicle();if(!v){toast('Bring
 
 
 // Waterfront and pier.
-const waterMaterial=M(0x167d9a,.16,.08);waterMaterial.transparent=true;waterMaterial.opacity=.94;const water=new THREE.Mesh(new THREE.PlaneGeometry(500,1500,32,96),waterMaterial);water.rotation.x=-Math.PI/2;water.position.set(-820,1,0);scene.add(water);const waterBaseY=water.position.y;water.geometry.computeVertexNormals();const pier=new THREE.Mesh(new THREE.BoxGeometry(230,.6,34),wood);pier.position.set(-705,groundY(-705,0)+.2,0);scene.add(pier);
+const waterMaterial=M(0x167d9a,.16,.08);waterMaterial.transparent=true;waterMaterial.opacity=.94;const water=new THREE.Mesh(new THREE.PlaneGeometry(1500,260,96,24),waterMaterial);water.rotation.x=-Math.PI/2;water.position.set(0,1.2,-820);scene.add(water);const waterBaseY=water.position.y;water.geometry.computeVertexNormals();const pier=new THREE.Mesh(new THREE.BoxGeometry(34,.6,110),wood);pier.position.set(-260,groundY(-260,-715)+.2,-715);scene.add(pier);
 // Street lamps, signs and small props create a navigable street scale.
 const lampPositions=[];for(let x=-700;x<=700;x+=100)for(let z=-700;z<=700;z+=100){if(Math.abs(x)%200===0&&Math.abs(z)%200===0)continue;const y=groundY(x+6,z+6),p=new THREE.Group();p.position.set(x+6,y,z+6);const pole=new THREE.Mesh(new THREE.CylinderGeometry(.07,.09,5,7),metal);pole.position.y=2.5;p.add(pole);const lamp=new THREE.Mesh(new THREE.SphereGeometry(.22,8,6),M(0xffd98a,.3));lamp.position.y=5;p.add(lamp);scene.add(p);lampPositions.push({x:x+6,z:z+6,group:p,damage:0,kind:'lamp'})}
 // Signalized downtown intersections, realistic street signage, and crosswalks.
@@ -265,10 +295,12 @@ function drawCoastMap(){
  if(!mapCtx)return;
  const c=mapCtx,w=300,h=300;c.clearRect(0,0,w,h);
  c.fillStyle='#142a31';c.fillRect(0,0,w,h);
- // Subtle land blocks and a readable orthogonal street grid.
+ // Douglassville-inspired regional map: river edge, named arterials, rail, and local streets.
  for(let x=0;x<w;x+=40)for(let y=0;y<h;y+=40){c.fillStyle=((x+y)/40)%2?'#1b3437':'#203b3a';c.fillRect(x+2,y+2,36,36)}
- c.strokeStyle='#687b7b';c.lineWidth=7;
- for(let v=-600;v<=600;v+=200){const p=mapPoint(v,v);c.beginPath();c.moveTo(p.x,0);c.lineTo(p.x,h);c.stroke();c.beginPath();c.moveTo(0,p.y);c.lineTo(w,p.y);c.stroke()}
+ c.fillStyle='#246078';c.fillRect(0,0,w,18);c.strokeStyle='#687b7b';c.lineWidth=2;
+ for(let v=-600;v<=600;v+=200){const p=mapPoint(v,v);c.beginPath();c.moveTo(p.x,18);c.lineTo(p.x,h);c.stroke();c.beginPath();c.moveTo(0,p.y);c.lineTo(w,p.y);c.stroke()}
+ for(const road of DOUGLASSVILLE_LAYOUT.roads){c.beginPath();road.points.forEach(([x,z],i)=>{const p=mapPoint(x,z);if(i===0)c.moveTo(p.x,p.y);else c.lineTo(p.x,p.y)});c.lineJoin='round';c.lineCap='round';c.strokeStyle=road.kind==='highway'||road.kind==='bypass'?'#d0b27a':road.kind==='arterial'?'#b8c2bb':'#8a9b98';c.lineWidth=road.kind==='highway'||road.kind==='bypass'?5:road.kind==='arterial'?3:1.7;c.stroke()}
+ c.beginPath();DOUGLASSVILLE_LAYOUT.rail.points.forEach(([x,z],i)=>{const p=mapPoint(x,z);if(!i)c.moveTo(p.x,p.y);else c.lineTo(p.x,p.y)});c.strokeStyle='#d6d6c7';c.lineWidth=1.5;c.setLineDash([3,2]);c.stroke();c.setLineDash([]);
  c.strokeStyle='#d2c8a4';c.lineWidth=1.2;c.setLineDash([5,5]);
  for(let v=-600;v<=600;v+=200){const p=mapPoint(v,v);c.beginPath();c.moveTo(p.x,0);c.lineTo(p.x,h);c.stroke();c.beginPath();c.moveTo(0,p.y);c.lineTo(w,p.y);c.stroke()}c.setLineDash([]);
  if(mapWaypoint){
