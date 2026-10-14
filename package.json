@@ -4,7 +4,8 @@
   "scripts": {
     "test:gameplay": "playwright test",
     "test:engine": "node --test tests/world-engine*.spec.mjs",
-    "test": "npm run test:engine && npm run test:gameplay"
+    "test:systems": "node --test tests/replayability-engine.spec.mjs",
+    "test": "npm run test:engine && npm run test:systems && npm run test:gameplay"
   },
   "devDependencies": {
     "@playwright/test": "^1.55.0"
