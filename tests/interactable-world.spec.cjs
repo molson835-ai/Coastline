@@ -33,6 +33,7 @@ test('buildings, benches, low walls, bicycles, motorcycles and aircraft are inte
 
   await page.evaluate(() => window.__coastlineTest.exitBuilding());
   await expect.poll(async () => page.evaluate(() => window.__coastlineTest.state().mode)).toBe('walk');
+  await page.evaluate(() => { const api = window.__coastlineTest; const s = api.state(); api.setWalkPosition(s.x, s.z, s.heading); });
 
   await page.evaluate(() => window.__coastlineTest.keyDown('space'));
   await page.waitForTimeout(250);
