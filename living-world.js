@@ -13,6 +13,14 @@ function unitHash(a, b = 0, c = 0) {
   return (x >>> 0) / 4294967296;
 }
 
+// Cache only same-origin game assets. This reduces repeat-download data without
+// putting a second scheduler or simulation loop into the hot path.
+if (typeof window !== 'undefined' && 'serviceWorker' in navigator && location.protocol !== 'file:') {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./coastline-sw.js', { scope: './' }).catch(() => {});
+  }, { once: true });
+}
+
 const residentActivities = Object.freeze(['walk', 'phone', 'coffee', 'wait', 'jog', 'look around']);
 
 export function chooseResidentActivity({ id = 0, daylight = 0.7, weather = 'clear', timeSlice = 0 } = {}) {
@@ -54,13 +62,14 @@ export function separationSteering({ x = 0, z = 0, neighbors = [], radius = 2.2,
 
 export function livingWorldRules() {
   return {
-    version: 2,
+    version: 3,
     residentDecision: 'seeded identity + time/weather-aware activity selection',
     wildlifeDecision: 'threat-first flee, then weather/daylight-aware intent',
     localAvoidance: 'bounded separation steering',
     decisionsPerRenderFrame: false,
     movementAuthority: 'game simulation',
     collisionAuthority: 'game physics',
+    assetCaching: 'same-origin service-worker cache with network refresh',
     activities: [...residentActivities],
     wildlifeBehaviors: ['flee', 'shelter', 'rest', 'forage', 'roam']
   };
