@@ -22,10 +22,15 @@ test('public-works NPC reacts to a nearby player and begins a character-specific
   const completed = await page.evaluate(() => window.__coastlineTest.npcWorldSliceState());
   expect(completed.agency.outcomes.some(event => event.type === 'signal_restored')).toBe(true);
   expect(completed.npc.flags.signalOutage).toBe(false);
+  const townRumor = completed.rumors.rumors.find(rumor => rumor.topic === 'signalOutage');
+  expect(townRumor).toBeTruthy();
+  expect(townRumor.history.length).toBeGreaterThan(1);
+  expect(completed.rumors.people.filter(person => person.knowledge.signalOutage).length).toBeGreaterThan(1);
 
   await page.reload({ waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => Boolean(window.__coastlineTest?.npcWorldSliceState), null, { timeout: 30000 });
   const restored = await page.evaluate(() => window.__coastlineTest.npcWorldSliceState());
   expect(restored.phase).toBe('complete');
   expect(restored.agency.outcomes.some(event => event.type === 'signal_restored')).toBe(true);
+  expect(restored.rumors.rumors.find(rumor => rumor.topic === 'signalOutage').history.length).toBeGreaterThan(1);
 });
