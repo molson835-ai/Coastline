@@ -24,7 +24,7 @@ function createInterior(b){
   const desk=new THREE.Mesh(new THREE.BoxGeometry(4,.85,1.25),trim);desk.position.set(0,.52,-5.8);g.add(desk);
   const top=new THREE.Mesh(new THREE.BoxGeometry(4.2,.12,1.4),M(0x9b7757,.75));top.position.set(0,1,-5.8);g.add(top);
   for(const x of [-5.5,5.5]){const sofa=new THREE.Mesh(new THREE.BoxGeometry(2.6,.7,1.1),seatMat);sofa.position.set(x,.45,-1.5);g.add(sofa);const backrest=new THREE.Mesh(new THREE.BoxGeometry(2.6,.9,.25),seatMat);backrest.position.set(x,.85,-2);g.add(backrest)}
-  for(const x of [-4,4]){const plantPot=new THREE.Mesh(new THREE.CylinderGeometry(.35,.28,.55,8),trim);plantPot.position.set(x,.35,6);g.add(plantPot);const leaves=new THREE.Mesh(new THREE.SphereGeometry(.75,7,6),treeLeaf[1]);leaves.position.set(x,1.15,6);g.add(leaves)}
+  for(const x of [-4,4]){const plantPot=new THREE.Mesh(new THREE.CylinderGeometry(.35,.28,.55,8),trim);plantPot.position.set(x,.35,6);g.add(plantPot);const leaves=new THREE.Mesh(new THREE.SphereGeometry(.75,7,6),M(0x376a43,.96));leaves.position.set(x,1.15,6);g.add(leaves)}
   const mat=new THREE.Mesh(new THREE.BoxGeometry(3.2,.08,2),M(0x9a8063,.98));mat.position.set(0,.15,2);g.add(mat);
   g.visible=false;scene.add(g);return g;
 }
