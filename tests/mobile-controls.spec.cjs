@@ -20,8 +20,8 @@ test('mobile driving controls are visible and operate the vehicle', async ({ pag
   const spawn = await page.evaluate(() => {
     const api = window.__coastlineTest;
     const roster = api.vehicleRoster();
-    for (let x = -700; x <= 700; x += 50) {
-      for (let z = -700; z <= 700; z += 50) {
+    for (let x = 700; x >= -700; x -= 50) {
+      for (let z = 700; z >= -700; z -= 50) {
         if (roster.some(v => Math.hypot(v.x - x, v.z - z) < 12)) continue;
         let clear = true;
         for (let dx = -6; dx <= 6 && clear; dx += 3) {
