@@ -17,7 +17,7 @@ export const DOUGLASSVILLE_LAYOUT = Object.freeze({
   ],
   rail: { name:'Norfolk Southern rail corridor', points:[[-760,-455],[-560,-455],[-360,-456],[-160,-458],[40,-462],[240,-467],[440,-472],[640,-478],[760,-482]] },
   creek: { name:'Monocacy Creek', points:[[-700,520],[-600,445],[-520,365],[-455,275],[-405,190],[-350,115],[-290,70],[-220,48],[-150,42],[-90,20]] },
-  river: { name:'Schuylkill River', points:[[-760,-650],[-580,-638],[-400,-648],[-220,-635],[-40,-650],[140,-638],[320,-655],[500,-644],[680,-660],[760,-650]] },
+  river: { name:'Schuylkill River', points:[[-760,-720],[-580,-708],[-400,-718],[-220,-705],[-40,-720],[140,-708],[320,-725],[500,-714],[680,-730],[760,-720]] },
   landmarks: [
     {id:'morlatton-village',name:'Morlatton Village',kind:'historic',x:-390,z:-365},
     {id:'white-horse-inn',name:'White Horse Inn',kind:'historic',x:-350,z:-345},
