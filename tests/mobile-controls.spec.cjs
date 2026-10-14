@@ -3,7 +3,7 @@ const { test, expect } = require('@playwright/test');
 test('mobile driving controls are visible and operate the vehicle', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/game-v3.html', { waitUntil: 'domcontentloaded' });
-  await expect(page.locator('canvas')).toBeAttached({ timeout: 30000 });
+  await expect(page.locator('canvas').first()).toBeAttached({ timeout: 30000 });
   await page.waitForFunction(() => Boolean(window.__coastlineTest), null, { timeout: 30000 });
 
   const forward = page.getByRole('button', { name: 'Forward' });
