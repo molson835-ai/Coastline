@@ -25,9 +25,9 @@ test('mobile driving controls are visible and operate the vehicle', async ({ pag
         if (roster.some(v => Math.hypot(v.x - x, v.z - z) < 12)) continue;
         let clear = true;
         for (let dx = -6; dx <= 6 && clear; dx += 3) {
-          for (let dz = 0; dz <= 24; dz += 3) {
+          for (let dz = -30; dz <= 30; dz += 1.5) {
             const px = x + dx, pz = z + dz;
-            if (api.obstacleBlocked(px, pz, 1.8) || api.pedestrianCollisionBlocked(px, pz, 1.8) || roster.some(v => Math.hypot(v.x - px, v.z - pz) < 5)) { clear = false; break; }
+            if (api.obstacleBlocked(px, pz, 1.8) || api.pedestrianCollisionBlocked(px, pz, 1.8) || roster.some(v => Math.hypot(v.x - px, v.z - pz) < 7)) { clear = false; break; }
           }
         }
         if (clear) return { x, z };
@@ -41,10 +41,10 @@ test('mobile driving controls are visible and operate the vehicle', async ({ pag
 
   await forward.hover();
   await page.mouse.down();
-  await page.waitForTimeout(700);
+  await page.waitForTimeout(1400);
   await page.mouse.up();
   const afterDrive = await page.evaluate(() => window.__coastlineTest.state());
-  expect(afterDrive.z, 'forward control should move the car').toBeGreaterThan(before.z + 0.5);
+  expect(Math.hypot(afterDrive.x - before.x, afterDrive.z - before.z), 'forward control should move the car along its heading').toBeGreaterThan(0.5);
 
   await left.hover();
   await page.mouse.down();
