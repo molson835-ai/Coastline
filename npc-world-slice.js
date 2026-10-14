@@ -1,5 +1,6 @@
 // A first visible, causal NPC slice: a public-works technician repairs a traffic signal.
 import { createNpcAgency } from './npc-agency-engine.js';
+import { createSocialRumorEngine } from './social-rumor-engine.js';
 
 export function createNpcWorldSlice({ THREE, scene, groundY, trafficSignalHeads, toast, getPlayer }) {
   const target = [...trafficSignalHeads].sort((a, b) => Math.hypot(a.x - 10.5, a.z - 10.5) - Math.hypot(b.x - 10.5, b.z - 10.5))[0];
@@ -17,6 +18,18 @@ export function createNpcWorldSlice({ THREE, scene, groundY, trafficSignalHeads,
       traits: { conscientiousness: 0.91, sociability: 0.57, courage: 0.73 },
       needs: { purpose: 0.76, safety: 0.12, rest: 0.28, belonging: 0.34 }
     }]
+  });
+
+  const rumorEngine = createSocialRumorEngine({
+    seed: 'coastline-main-street-rumors-v1',
+    initialState: savedState?.rumors ?? {},
+    people: [
+      { id: 'town-tech-01', name: 'Mara Ellis', region: 'main-street', accuracy: 0.96, sociability: 0.66, ties: { 'diner-regular': 0.82, 'radio-dispatcher': 0.9, 'local-mechanic': 0.74 } },
+      { id: 'diner-regular', name: 'Diner regular', region: 'main-street', accuracy: 0.57, sociability: 0.94, ties: { 'radio-dispatcher': 0.92, 'local-mechanic': 0.86 } },
+      { id: 'radio-dispatcher', name: 'Radio dispatcher', region: 'main-street', accuracy: 0.99, sociability: 0.82, ties: { 'local-mechanic': 0.84 } },
+      { id: 'local-mechanic', name: 'Local mechanic', region: 'main-street', accuracy: 0.7, sociability: 0.78 },
+      { id: 'creek-resident', name: 'Creek-road resident', region: 'creek-road', accuracy: 0.63, sociability: 0.88 }
+    ]
   });
 
   const materials = {
@@ -70,11 +83,12 @@ export function createNpcWorldSlice({ THREE, scene, groundY, trafficSignalHeads,
 
   let phase = savedState?.phase === 'complete' ? 'complete' : 'idle', phaseStarted = 0, lastDecision = 0, toastShown = false;
   function persistStory() {
-    try { localStorage.setItem('coastline-npc-world-slice-v1', JSON.stringify({ version: 1, phase, agency: agency.snapshot() })); } catch {}
+    try { localStorage.setItem('coastline-npc-world-slice-v1', JSON.stringify({ version: 1, phase, agency: agency.snapshot(), rumors: rumorEngine.snapshot() })); } catch {}
   }
   const start = time => {
     phase = 'repairing'; phaseStarted = time;
     agency.publishEvent({ type: 'signal_outage', targetNpc: 'town-tech-01', location: 'Main Street', time: time / 1000 });
+    rumorEngine.observe({ topic: 'signalOutage', personId: 'town-tech-01', time: time / 1000, confidence: 0.95, evidence: 'direct', location: 'Main Street' });
     if (!toastShown) { toast('PUBLIC WORKS · Mara is responding to a signal fault on Main Street.'); toastShown = true; }
   };
   function setSignalFault(faulted) {
@@ -102,8 +116,11 @@ export function createNpcWorldSlice({ THREE, scene, groundY, trafficSignalHeads,
         agency.publishEvent({ type: 'parts_arrived', targetNpc: 'town-tech-01', location: 'Main Street', time: now / 1000 });
         phase = 'complete';
         setSignalFault(false);
+        for (let i = 0; i < 8; i++) rumorEngine.step({ time: now / 1000 + i * 31, maxTransfers: 4 });
         persistStory();
-        toast('MAIN STREET · Signal restored. Mara logs the repair and heads back to her route.');
+        const rumorState = rumorEngine.snapshot();
+        const knownBy = rumorState.people.filter(person => person.knowledge.signalOutage).length;
+        toast(knownBy > 1 ? 'MAIN STREET · Signal restored. Word is spreading through town—details may change as people retell it.' : 'MAIN STREET · Signal restored. Mara logs the repair and heads back to her route.');
       }
     } else if (phase === 'complete') {
       worker.rotation.y = Math.PI * .72 + Math.sin(now * .001) * .035;
@@ -116,6 +133,6 @@ export function createNpcWorldSlice({ THREE, scene, groundY, trafficSignalHeads,
   }
   return Object.freeze({
     update,
-    snapshot: () => ({ version: 1, phase, phaseStarted, target: { x: tx, z: tz }, agency: agency.snapshot(), npc: agency.agent('town-tech-01') })
+    snapshot: () => ({ version: 1, phase, phaseStarted, target: { x: tx, z: tz }, agency: agency.snapshot(), rumors: rumorEngine.snapshot(), npc: agency.agent('town-tech-01') })
   });
 }
