@@ -59,7 +59,7 @@ buildStreetDetails();
 function regionalCurve(points,y=3.18){return new THREE.CatmullRomCurve3(points.map(([x,z])=>new THREE.Vector3(x,y,z)),false,'catmullrom',.12)}
 function ribbonGeometry(curve,width,segments=100,yOffset=0){
  const positions=[],indices=[];
- for(let i=0;i<=segments;i++){const t=i/segments,p=curve.getPoint(t),tan=curve.getTangent(t);const len=Math.hypot(tan.x,tan.z)||1,nx=-tan.z/len,nz=tan.x/len;positions.push(p.x+nx*width/2,p.y+yOffset,p.z+nz*width/2,p.x-nx*width/2,p.y+yOffset,p.z-nz*width/2);if(i<segments){const a=i*2,b=a+1,c=a+2,d=a+3;indices.push(a,b,c,b,d,c)}}
+ for(let i=0;i<=segments;i++){const t=i/segments,p=curve.getPoint(t),tan=curve.getTangent(t);const len=Math.hypot(tan.x,tan.z)||1,nx=-tan.z/len,nz=tan.x/len;positions.push(p.x+nx*width/2,p.y+yOffset,p.z+nz*width/2,p.x-nx*width/2,p.y+yOffset,p.z-nz*width/2);if(i<segments){const a=i*2,b=a+1,c=a+2,d=a+3;indices.push(a,c,b,b,c,d)}}
  const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));geo.setIndex(indices);geo.computeVertexNormals();return geo;
 }
 function buildRegionalRoads(){
@@ -98,6 +98,17 @@ const sign=new THREE.Mesh(new THREE.BoxGeometry(Math.min(w*.8,25),2.2,.28),new T
 if(style==='retail'||style==='heritage'){const awningColors=[0xb5463c,0x2e7181,0xd2a94b,0x466b4b];const awning=new THREE.Mesh(new THREE.BoxGeometry(Math.min(w*.7,20),.18,1.5),M(awningColors[Math.abs(i)%awningColors.length],.8));awning.position.set(0,3.1,d/2+.85);group.add(awning);for(let a=-Math.min(w*.7,20)/2;a<Math.min(w*.7,20)/2;a+=1.2){const valance=new THREE.Mesh(new THREE.BoxGeometry(.55,.25,.1),M(awningColors[Math.abs(i)%awningColors.length],.8));valance.position.set(a,2.91,d/2+1.55);group.add(valance)}}
 scene.add(group);const item={group,x,z,w,d,h,name,door,open:false,style,color,signLabel:label};buildings.push(item);return group}
 let bi=0;for(let x=-500;x<=500;x+=200)for(let z=-500;z<=500;z+=200){if(Math.abs(x)<=100&&Math.abs(z)<=100)continue;const w=70+((bi*17)%45),d=70+((bi*23)%45),h=10+((bi*13)%42);building(x,z,w,d,h,buildingNames[bi%buildingNames.length],bi++);}building(-100,100,110,100,55,'CITY HALL',99);building(100,-100,100,100,42,'MARINA MARKET',98);
+// Local landmarks anchor the map in southeastern Pennsylvania rather than a generic coast.
+building(-390,-365,24,20,8,'WHITE HORSE INN',121);
+building(-350,-340,22,18,7,'MORLATTON STONE HOUSE',122);
+building(-315,-378,18,16,6,'MORLATTON BARN',123);
+building(175,65,32,24,9,'422 MARKET & DELI',124);
+building(245,38,26,22,8,'AMITY AUTO SERVICE',125);
+const stationCanopy=new THREE.Group();stationCanopy.position.set(210,groundY(210,5),5);const canopyRoof=new THREE.Mesh(new THREE.BoxGeometry(20,.6,12),M(0xe7e0c8,.8));canopyRoof.position.y=4.1;stationCanopy.add(canopyRoof);for(const sx of [-8,8])for(const sz of [-4,4]){const post=new THREE.Mesh(new THREE.CylinderGeometry(.16,.16,4,7),metal);post.position.set(sx,2,sz);stationCanopy.add(post)}for(let sx of [-5,0,5]){const pump=new THREE.Mesh(new THREE.BoxGeometry(.8,1.5,.7),M(0xd9d8ce,.65));pump.position.set(sx,.8,0);stationCanopy.add(pump)}scene.add(stationCanopy);
+const parkGround=new THREE.Mesh(new THREE.BoxGeometry(100,.12,72),M(0x49734a,.98));parkGround.position.set(110,groundY(110,410)+.04,410);scene.add(parkGround);const fieldLineMat=M(0xdedfc7,.8);for(const zz of [385,410,435]){const line=new THREE.Mesh(new THREE.BoxGeometry(78,.035,.14),fieldLineMat);line.position.set(110,groundY(110,410)+.12,zz);scene.add(line)}
+const hillMats=[M(0x4b6844,.98),M(0x5a7449,.98),M(0x6d8050,.98)],hillGeo=new THREE.DodecahedronGeometry(1,1);
+for(let i=0;i<34;i++){const hx=-650+(i%7)*28,hz=470+Math.floor(i/7)*34;const mound=new THREE.Mesh(hillGeo,hillMats[i%hillMats.length]);mound.position.set(hx,groundY(hx,hz)+1.5,hz);mound.scale.set(8+(i%3)*3,2.4+(i%4),10+(i%2)*4);scene.add(mound)}
+
 // Procedural interiors: every generated building has its own walkable room and furnishings.
 function createInterior(b){
   const g=new THREE.Group();g.position.set(b.x,groundY(b.x,b.z),b.z);const wall=M(0xd1c7b5,.94),floorMat=M(0x786b5a,.96),ceilingMat=M(0x9c968b,.98),trim=M(0x604534,.82),seatMat=M(b.name.includes('Hotel')?0x426c72:0x7c6552,.9);
@@ -310,7 +321,7 @@ function drawCoastMap(){
   const dist=route.reduce((sum,p,i)=>i?sum+Math.abs(p.x-route[i-1].x)+Math.abs(p.z-route[i-1].z):sum,0)+Math.hypot(mapWaypoint.x-route[route.length-1].x,mapWaypoint.z-route[route.length-1].z);
   mapLabel.textContent=dist<18?'DESTINATION REACHED':Math.round(dist)+' m TO DESTINATION';
  }else mapLabel.textContent='FREE ROAM';
- const me=mapPoint(mapVisualX,mapVisualZ);c.save();c.translate(me.x,me.y);c.rotate(-player.heading);c.fillStyle='#ffffff';c.strokeStyle='#10262c';c.lineWidth=3;c.beginPath();c.moveTo(0,-10);c.lineTo(7,8);c.lineTo(0,5);c.lineTo(-7,8);c.closePath();c.fill();c.stroke();c.restore();
+ for(const item of DOUGLASSVILLE_LAYOUT.landmarks){const p=mapPoint(item.x,item.z);c.beginPath();c.arc(p.x,p.y,item.kind==='historic'?2.5:1.8,0,Math.PI*2);c.fillStyle=item.kind==='historic'?'#f1c77b':item.kind==='park'||item.kind==='nature'?'#75b878':'#d8ded7';c.fill()}c.fillStyle='#f3dfad';c.font='bold 8px system-ui';c.fillText('US 422',mapPoint(30,35).x-12,mapPoint(30,35).y-6);c.fillText('PA 662',mapPoint(315,240).x+3,mapPoint(315,240).y);const me=mapPoint(mapVisualX,mapVisualZ);c.save();c.translate(me.x,me.y);c.rotate(-player.heading);c.fillStyle='#ffffff';c.strokeStyle='#10262c';c.lineWidth=3;c.beginPath();c.moveTo(0,-10);c.lineTo(7,8);c.lineTo(0,5);c.lineTo(-7,8);c.closePath();c.fill();c.stroke();c.restore();
 }
 mapCanvas.addEventListener('click',e=>{const r=mapCanvas.getBoundingClientRect(),px=(e.clientX-r.left)/r.width*CITY-CITY/2,pz=(e.clientY-r.top)/r.height*CITY-CITY/2;mapWaypoint={x:px,z:pz};drawCoastMap();toast('Waypoint set — follow the cyan route on your map')});
 mapCanvas.addEventListener('touchend',e=>{if(e.changedTouches.length){const t=e.changedTouches[0],r=mapCanvas.getBoundingClientRect(),px=(t.clientX-r.left)/r.width*CITY-CITY/2,pz=(t.clientY-r.top)/r.height*CITY-CITY/2;mapWaypoint={x:px,z:pz};drawCoastMap();toast('Waypoint set — follow the cyan route on your map')}},{passive:true});
