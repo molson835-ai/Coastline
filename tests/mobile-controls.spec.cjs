@@ -16,8 +16,26 @@ test('mobile driving controls are visible and operate the vehicle', async ({ pag
   await expect(page.getByRole('button', { name: 'Steer right' })).toBeVisible();
   await expect(action).toBeVisible();
 
-  // Place the player vehicle on clear ground so the test measures controls, not spawn placement.
-  await page.evaluate(() => window.__coastlineTest.setVehiclePosition(-650, -500, 0));
+  // Find an open stretch away from other vehicles and solid world props so this test measures controls, not spawn placement.
+  const spawn = await page.evaluate(() => {
+    const api = window.__coastlineTest;
+    const roster = api.vehicleRoster();
+    for (let x = -700; x <= 700; x += 50) {
+      for (let z = -700; z <= 700; z += 50) {
+        if (roster.some(v => Math.hypot(v.x - x, v.z - z) < 12)) continue;
+        let clear = true;
+        for (let dx = -6; dx <= 6 && clear; dx += 3) {
+          for (let dz = 0; dz <= 24; dz += 3) {
+            if (api.obstacleBlocked(x + dx, z + dz, 1.8)) { clear = false; break; }
+          }
+        }
+        if (clear) return { x, z };
+      }
+    }
+    return null;
+  });
+  expect(spawn, 'a clear test lane should exist').not.toBeNull();
+  await page.evaluate(({ x, z }) => window.__coastlineTest.setVehiclePosition(x, z, 0), spawn);
   const before = await page.evaluate(() => window.__coastlineTest.state());
 
   await forward.dispatchEvent('pointerdown', { pointerId: 1, pointerType: 'touch', isPrimary: true, button: 0 });
