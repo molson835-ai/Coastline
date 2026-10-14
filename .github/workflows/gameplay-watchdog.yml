@@ -49,7 +49,7 @@ jobs:
       - name: Run gameplay smoke test
         env:
           PLAYWRIGHT_BASE_URL: http://127.0.0.1:4173
-        run: npx playwright test
+        run: npm test
 
       - name: Upload test report and traces
         if: always()

@@ -2,9 +2,12 @@
   "name": "coastline-gameplay-watchdog",
   "private": true,
   "scripts": {
-    "test:gameplay": "playwright test"
+    "test:gameplay": "playwright test",
+    "test:engine": "node --test tests/world-engine*.spec.mjs",
+    "test": "npm run test:engine && npm run test:gameplay"
   },
   "devDependencies": {
     "@playwright/test": "^1.55.0"
-  }
+  },
+  "type": "module"
 }
