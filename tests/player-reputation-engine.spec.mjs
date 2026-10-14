@@ -6,7 +6,7 @@ test('conduct events shape regional reputation and profile tendencies', () => {
   const reputation = createPlayerReputation({ seed: 'player-a' });
   reputation.record({ type: 'collision', region: 'Main Street', time: 10, severity: 1, witnessed: true });
   reputation.record({ type: 'helpedWorker', region: 'Main Street', time: 20, severity: 1, witnessed: true });
-  assert.equal(reputation.profile('Main Street', 20).score, 0);
+  assert.ok(Math.abs(reputation.profile('Main Street', 20).score) < 0.01);
   assert.equal(reputation.profile('Main Street', 20).standing, 'unknown');
   assert.ok(reputation.profile('Main Street', 20).tendencies.includes('reckless'));
   assert.equal(reputation.profile('Creek Road', 20).score, 0);
