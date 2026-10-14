@@ -101,10 +101,10 @@ export function createSimulationScheduler({ maxActorsPerStep = 48 } = {}) {
       if (!Number.isFinite(period)) continue;
       const id = actor.id ?? ready.length;
       const previous = lastTick.get(id);
-      const phase = hash(id) * period;
-      if (previous == null || now - previous >= period || (now + phase) % period < 0.016) ready.push({ actor, lod });
+      if (previous == null || now - previous >= period) ready.push({ actor, lod, previous });
     }
-    ready.sort((a, b) => (a.lod - b.lod) || (hash(a.actor.id) - hash(b.actor.id)));
+    // Prioritize never-ticked and longest-waiting actors so the work cap cannot starve the tail.
+    ready.sort((a, b) => (a.lod - b.lod) || ((a.previous == null ? -Infinity : a.previous) - (b.previous == null ? -Infinity : b.previous)) || (hash(a.actor.id) - hash(b.actor.id)));
     const selected = ready.slice(0, Math.max(0, maxActorsPerStep));
     for (const item of selected) lastTick.set(item.actor.id, now);
     return selected;
