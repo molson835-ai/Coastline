@@ -31,9 +31,19 @@ function normalizePerson(person = {}) {
 }
 export function createSocialRumorEngine({ seed = 'coastline-rumors-v1', people = [], initialState = {}, maxRumors = 80 } = {}) {
   const roster = new Map();
-  for (const person of [...(initialState.people ?? []), ...people]) {
-    const normalized = normalizePerson(person);
-    if (!roster.has(normalized.id) || people.some(p => String(p.id) === normalized.id)) roster.set(normalized.id, normalized);
+  for (const saved of (initialState.people ?? [])) {
+    const normalized = normalizePerson(saved);
+    roster.set(normalized.id, normalized);
+  }
+  for (const definition of people) {
+    const normalized = normalizePerson(definition);
+    const saved = roster.get(normalized.id);
+    roster.set(normalized.id, saved ? {
+      ...saved, ...normalized,
+      ties: { ...saved.ties, ...normalized.ties },
+      knowledge: { ...saved.knowledge },
+      lastShared: { ...saved.lastShared },
+    } : normalized);
   }
   const rumors = [...(initialState.rumors ?? [])].slice(-Math.max(1, maxRumors)).map(r => ({ ...r, history: [...(r.history ?? [])] }));
   let serial = Math.max(Number(initialState.serial) || 0, rumors.reduce((m, r) => Math.max(m, Number(String(r.id).match(/(\d+)$/)?.[1]) || 0), 0));
