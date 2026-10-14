@@ -1,6 +1,6 @@
 // Coastline 2.0 runtime architecture.
-// This module is deliberately renderer-agnostic: world truth and simulation state
-// should remain usable by WebGL, future WebGPU, tests, missions and persistence.
+// Renderer-agnostic world truth and simulation services for WebGL, WebGPU,
+// tests, missions and persistence.
 
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const distSq = (a, b) => { const dx = a.x - b.x, dz = a.z - b.z; return dx * dx + dz * dz; };
@@ -24,7 +24,7 @@ export function createSpatialHash(cellSize = 32) {
     const k = key(x, z); if (!cells.has(k)) cells.set(k, new Map());
     cells.get(k).set(id, { id, x, z, ...data }); return k;
   };
-  const remove = (id, x, z) => { const c = cells.get(key(x, z)); if (!c) return; c.delete(id); if (!c.size) cells.delete(key(x, z)); };
+  const remove = (id, x, z) => { const c = cells.get(key(x, z)); if (!c) return false; const removed = c.delete(id); if (!c.size) cells.delete(key(x, z)); return removed; };
   const update = (id, oldPos, newPos, data = {}) => { remove(id, oldPos.x, oldPos.z); return add(id, newPos.x, newPos.z, data); };
   const nearby = (x, z, radius = cellSize) => {
     const result = [], minX = Math.floor((x - radius) / cellSize), maxX = Math.floor((x + radius) / cellSize), minZ = Math.floor((z - radius) / cellSize), maxZ = Math.floor((z + radius) / cellSize), r2 = radius * radius;
@@ -66,10 +66,10 @@ export function collisionResponse(material = 'road', impact = {}) {
 }
 
 export function simulationLOD(distance, { full = 80, active = 220, proxy = 520 } = {}) {
-  if (distance <= full) return 0; // full AI/physics/animation
-  if (distance <= active) return 1; // reduced tick rate, normal movement
-  if (distance <= proxy) return 2; // proxy simulation/state only
-  return 3; // persisted world state; no per-frame actor work
+  if (distance <= full) return 0;
+  if (distance <= active) return 1;
+  if (distance <= proxy) return 2;
+  return 3;
 }
 
 export function tickRateForLOD(lod) { return [30, 10, 3, 0][clamp(lod, 0, 3)]; }
@@ -77,37 +77,52 @@ export function tickRateForLOD(lod) { return [30, 10, 3, 0][clamp(lod, 0, 3)]; }
 export function createWorldRuntime({ worldModel, chunkSize = 200 } = {}) {
   if (!worldModel) throw new Error('createWorldRuntime requires worldModel');
   const entities = new Map(), spatial = createSpatialHash(32), chunks = new Map();
+  const adjustChunk = (x, z, delta) => {
+    const c = worldModel.cellBounds(x, z, chunkSize), next = (chunks.get(c.key) || 0) + delta;
+    if (next <= 0) chunks.delete(c.key); else chunks.set(c.key, next);
+  };
   const register = (entity) => {
     if (!entity?.id) throw new Error('world entity requires id');
-    entities.set(entity.id, entity); spatial.add(entity.id, entity.x || 0, entity.z || 0, { type: entity.type || 'unknown' });
-    const c = worldModel.cellBounds(entity.x || 0, entity.z || 0, chunkSize); chunks.set(c.key, (chunks.get(c.key) || 0) + 1);
+    const old = entities.get(entity.id);
+    if (old) { spatial.remove(entity.id, old.x || 0, old.z || 0); adjustChunk(old.x || 0, old.z || 0, -1); }
+    entities.set(entity.id, entity);
+    spatial.add(entity.id, entity.x || 0, entity.z || 0, { type: entity.type || 'unknown' });
+    adjustChunk(entity.x || 0, entity.z || 0, 1);
     return entity;
   };
   const move = (id, x, z) => {
     const e = entities.get(id); if (!e) return false;
-    const old = { x: e.x, z: e.z }; e.x = x; e.z = z; spatial.update(id, old, { x, z }, { type: e.type }); return true;
+    const old = { x: e.x || 0, z: e.z || 0 }, next = { x, z };
+    e.x = x; e.z = z;
+    spatial.update(id, old, next, { type: e.type || 'unknown' });
+    const oldChunk = worldModel.cellBounds(old.x, old.z, chunkSize).key;
+    const newChunk = worldModel.cellBounds(x, z, chunkSize).key;
+    if (oldChunk !== newChunk) { adjustChunk(old.x, old.z, -1); adjustChunk(x, z, 1); }
+    return true;
   };
-  const unregister = (id) => { const e = entities.get(id); if (!e) return false; spatial.remove(id, e.x || 0, e.z || 0); entities.delete(id); return true; };
+  const unregister = (id) => {
+    const e = entities.get(id); if (!e) return false;
+    spatial.remove(id, e.x || 0, e.z || 0); adjustChunk(e.x || 0, e.z || 0, -1); entities.delete(id); return true;
+  };
   const queryNearby = (x, z, radius) => spatial.nearby(x, z, radius).map(item => entities.get(item.id)).filter(Boolean);
   const queryChunk = (x, z) => worldModel.cellBounds(x, z, chunkSize).key;
   const actorLOD = (x, z, player) => simulationLOD(Math.sqrt((x - player.x) ** 2 + (z - player.z) ** 2));
-  return Object.freeze({ register, move, unregister, queryNearby, queryChunk, actorLOD, get: id => entities.get(id), size: () => entities.size, chunks: () => chunks.size });
+  return Object.freeze({ register, move, unregister, queryNearby, queryChunk, actorLOD, get: id => entities.get(id), size: () => entities.size, chunks: () => chunks.size, chunkEntityCount: key => chunks.get(key) || 0 });
 }
 
 export function createParkingRegistry(worldModel, { spacing = 8 } = {}) {
   const occupied = new Set();
   const key = (road, side, slot) => `${road}:${side}:${slot}`;
   const makeSpot = (x, z, side, slot) => {
-    const r = worldModel.nearestRoad(x, z);
     const p = worldModel.parking(x, z, side, slot, spacing);
-    return { id: key(worldModel.roadId(x, z), side, slot), x: p.x, z: p.z, axis: p.axis, side, slot, roadId: worldModel.roadId(x, z) };
+    return { id: key(p.roadId, side, slot), x: p.x, z: p.z, axis: p.axis, side, slot, roadId: p.roadId, rotation: p.rotation };
   };
   const reserve = id => { if (occupied.has(id)) return false; occupied.add(id); return true; };
   const release = id => occupied.delete(id);
   const isOccupied = id => occupied.has(id);
   const nearestAvailable = (x, z, radius = 45) => {
     const r = worldModel.nearestRoad(x, z), candidates = [];
-    for (let side of [-1, 1]) for (let slot = -4; slot <= 4; slot++) {
+    for (const side of [-1, 1]) for (let slot = -4; slot <= 4; slot++) {
       const p = makeSpot(r.x, r.z, side, slot); if (!isOccupied(p.id) && distSq(p, { x, z }) <= radius * radius) candidates.push(p);
     }
     candidates.sort((a, b) => distSq(a, { x, z }) - distSq(b, { x, z }));
