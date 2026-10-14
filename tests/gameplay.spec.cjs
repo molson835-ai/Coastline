@@ -8,8 +8,14 @@ test('Coastline boots, exits a vehicle, shows the avatar, and supports walking t
     if (message.type() === 'error') consoleErrors.push(message.text());
   });
 
+  const failedRequests = [];
+  page.on('requestfailed', request => failedRequests.push(`${request.url()} :: ${request.failure()?.errorText || 'request failed'}`));
   await page.goto('/game-v3.html', { waitUntil: 'domcontentloaded' });
-  await expect(page.locator('canvas')).toBeAttached({ timeout: 30000 });
+  try {
+    await expect(page.locator('canvas')).toBeAttached({ timeout: 12000 });
+  } catch (error) {
+    throw new Error(`Coastline did not create a canvas. pageErrors=${JSON.stringify(pageErrors)} consoleErrors=${JSON.stringify(consoleErrors)} failedRequests=${JSON.stringify(failedRequests)}; original=${error.message}`);
+  }
   await expect(page.locator('#mode')).toHaveText('DRIVING');
   await page.waitForTimeout(5000);
 
