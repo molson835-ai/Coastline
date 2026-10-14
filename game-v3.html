@@ -14,7 +14,6 @@ import { EffectComposer } from 'https://cdn.jsdelivr.net/npm/three@0.170.0/examp
 import { RenderPass } from 'https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/postprocessing/OutputPass.js';
-if('serviceWorker'in navigator&&location.protocol!=='file:')window.addEventListener('load',()=>{navigator.serviceWorker.register('./coastline-sw.js',{scope:'./'}).catch(()=>{})},{once:true});
 const pageLoadStartedAt=performance.now();
 const $=id=>document.getElementById(id),scene=new THREE.Scene();scene.background=new THREE.Color(0x201b3c);scene.fog=new THREE.FogExp2(0xb8cbd2,.00048);const camera=new THREE.PerspectiveCamera(66,innerWidth/innerHeight,.1,1400),renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});const lowPowerDevice=innerWidth<=760||(navigator.hardwareConcurrency||8)<=4||(navigator.deviceMemory||8)<=4;let currentPixelRatio=Math.min(devicePixelRatio||1,lowPowerDevice?.9:1.15);renderer.setPixelRatio(currentPixelRatio);renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.22;
 const composer=new EffectComposer(renderer);
