@@ -56,3 +56,15 @@ test('invalid sources and topics are safely ignored', () => {
   assert.equal(world.observe({ topic: 'signalOutage', personId: 'missing' }), null);
   assert.equal(world.share({ rumorId: 'missing', fromId: 'mara', toId: 'diner' }), null);
 });
+
+test('player conduct rumors have grounded claims and can be learned by witnesses', () => {
+  const world = createSocialRumorEngine({ seed: 'conduct-rumors', people });
+  const reckless = world.observe({ topic: 'recklessDriving', personId: 'mara', time: 10, location: 'Main Street' });
+  assert.equal(reckless.claim, RUMOR_TOPICS.recklessDriving.trueClaim);
+  const helpful = world.observe({ topic: 'helpfulDriver', personId: 'diner', time: 20, location: 'Main Street' });
+  assert.equal(helpful.claim, RUMOR_TOPICS.helpfulDriver.trueClaim);
+  const damage = world.observe({ topic: 'propertyDamage', personId: 'dispatcher', time: 30, location: 'Main Street' });
+  assert.equal(damage.claim, RUMOR_TOPICS.propertyDamage.trueClaim);
+  assert.ok(world.knowledge('dispatcher').propertyDamage);
+  assert.equal(world.rules().noGlobalOmniscience, true);
+});
