@@ -1,0 +1,27 @@
+name: Coastline itch.io HTML package
+
+on:
+  push:
+    branches:
+      - main
+      - codex/replayability-exploration-systems
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package-html5:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm run package:itch
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Coastline-itch-html
+          path: dist/Coastline-itch-html.zip
+          if-no-files-found: error
+          retention-days: 14
