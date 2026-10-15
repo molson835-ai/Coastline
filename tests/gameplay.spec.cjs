@@ -69,34 +69,14 @@ test('vehicle steering follows left/right input and reverse builds usable negati
   await page.goto('/game-v3.html?beta=vehicle-controls-regression', { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => Boolean(window.__coastlineTest), null, { timeout: 20000 });
 
-  const roadStart = await page.evaluate(() => {
-    const api = window.__coastlineTest;
-    const candidates = [];
-    for (let x = -600; x <= 600; x += 200) {
-      for (let z = -600; z <= 580; z += 20) {
-        // Keep away from junctions, where signal poles and turning traffic can
-        // legitimately interfere with the control test's first few metres.
-        if (Math.abs(((z % 200) + 200) % 200) < 45 || Math.abs(((z % 200) + 200) % 200 - 200) < 45) continue;
-        candidates.push({ x, z });
-      }
-    }
-    const roster = api.vehicleRoster();
-    const clear = p => {
-      for (let dz = -4; dz <= 36; dz += 4) {
-        const x = p.x, z = p.z + dz;
-        if (api.buildingBlocked(x, z, 2) || api.obstacleBlocked?.(x, z, 2)) return false;
-        if (roster.some(v => Math.hypot(v.x - x, v.z - z) < 10)) return false;
-      }
-      return true;
-    };
-    const spot = candidates.find(p => clear(p) && api.worldModel?.isRoadCorridor(p.x, p.z));
-    if (!spot) throw new Error('Could not locate an unobstructed road segment for vehicle controls regression');
-    return spot;
-  });
+  // Use a known straight road segment between intersections. Keep the first
+  // acceleration sample short so the test isolates control response rather than
+  // long-run interactions with independently moving traffic.
+  const roadStart = { x: 0, z: 120 };
   const resetCar = () => page.evaluate(({ x, z }) => window.__coastlineTest.setVehiclePosition(x, z, 0), roadStart);
   await resetCar();
   await page.evaluate(() => window.__coastlineTest.keyDown('w'));
-  await page.waitForTimeout(700);
+  await page.waitForTimeout(220);
   await page.evaluate(() => window.__coastlineTest.keyUp('w'));
   const movingForward = await page.evaluate(() => window.__coastlineTest.state());
   expect(movingForward.vehicleSpeed, 'W should accelerate the car forward').toBeGreaterThan(2);
@@ -110,7 +90,7 @@ test('vehicle steering follows left/right input and reverse builds usable negati
 
   await resetCar();
   await page.evaluate(() => window.__coastlineTest.keyDown('w'));
-  await page.waitForTimeout(700);
+  await page.waitForTimeout(220);
   await page.evaluate(() => window.__coastlineTest.keyUp('w'));
   await page.evaluate(() => window.__coastlineTest.keyDown('d'));
   await page.waitForTimeout(500);
@@ -120,7 +100,7 @@ test('vehicle steering follows left/right input and reverse builds usable negati
 
   await resetCar();
   await page.evaluate(() => window.__coastlineTest.keyDown('s'));
-  await page.waitForTimeout(1000);
+  await page.waitForTimeout(500);
   await page.evaluate(() => window.__coastlineTest.keyUp('s'));
   const reversing = await page.evaluate(() => window.__coastlineTest.state());
   expect(reversing.vehicleSpeed, 'S should build useful reverse speed').toBeLessThan(-4);
