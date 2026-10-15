@@ -61,3 +61,32 @@ test('Coastline boots, exits a vehicle, shows the avatar, and supports walking t
 
   expect(pageErrors, 'uncaught JavaScript errors after interactions').toEqual([]);
 });
+
+
+test('vehicle steering follows left/right input and reverse builds usable negative speed', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  await page.goto('/game-v3.html?beta=vehicle-controls-regression', { waitUntil: 'domcontentloaded' });
+  await page.waitForFunction(() => Boolean(window.__coastlineTest), null, { timeout: 20000 });
+
+  await page.evaluate(() => window.__coastlineTest.setVehiclePosition(0, 0, 0));
+  await page.evaluate(() => window.__coastlineTest.keyDown('w'));
+  await page.waitForTimeout(700);
+  await page.evaluate(() => window.__coastlineTest.keyUp('w'));
+  const movingForward = await page.evaluate(() => window.__coastlineTest.state());
+  expect(movingForward.vehicleSpeed, 'W should accelerate the car forward').toBeGreaterThan(2);
+
+  await page.evaluate(() => window.__coastlineTest.keyDown('a'));
+  await page.waitForTimeout(500);
+  await page.evaluate(() => window.__coastlineTest.keyUp('a'));
+  const leftTurn = await page.evaluate(() => window.__coastlineTest.state());
+  expect(leftTurn.heading, 'A should steer left while driving forward').toBeLessThan(movingForward.heading);
+
+  await page.evaluate(() => window.__coastlineTest.setVehiclePosition(0, 0, 0));
+  await page.evaluate(() => window.__coastlineTest.keyDown('s'));
+  await page.waitForTimeout(1000);
+  await page.evaluate(() => window.__coastlineTest.keyUp('s'));
+  const reversing = await page.evaluate(() => window.__coastlineTest.state());
+  expect(reversing.vehicleSpeed, 'S should build useful reverse speed').toBeLessThan(-4);
+  expect(errors, 'vehicle controls should not introduce runtime errors').toEqual([]);
+});
