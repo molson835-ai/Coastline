@@ -51,8 +51,8 @@ for(let ix=-600;ix<=600;ix+=200)for(let iz=-600;iz<=600;iz+=200){for(let k=0;k<8
 crossH.count=ch;crossV.count=cv;crossH.instanceMatrix.needsUpdate=crossV.instanceMatrix.needsUpdate=true;scene.add(crossH,crossV);
 
 const asphaltWearMat=M(0x1c2022,.99),asphaltWear=new THREE.InstancedMesh(new THREE.CircleGeometry(1,10),asphaltWearMat,120),drainCoverMat=M(0x4b5253,.8,.35),drainCovers=new THREE.InstancedMesh(new THREE.CylinderGeometry(.38,.38,.035,12),drainCoverMat,64),detailDummy=new THREE.Object3D();
-for(let i=0;i<120;i++){const rx=(Math.floor(i/10)-6)*200,rz=((i*71)%1320)-660;detailDummy.position.set(rx+((i%7)-3)*1.05,3.118,rz);detailDummy.rotation.set(-Math.PI/2,0,(i%5)*.37);const sc=.38+(i%4)*.16;detailDummy.scale.set(sc*2,sc,1);detailDummy.updateMatrix();asphaltWear.setMatrixAt(i,detailDummy.matrix)}
-for(let i=0;i<64;i++){const rx=(Math.floor(i/8)-4)*200,rz=((i*97)%1280)-640;detailDummy.position.set(rx+(i%2?5.5:-5.5),3.135,rz);detailDummy.rotation.set(0,0,0);detailDummy.scale.set(1,1,1);detailDummy.updateMatrix();drainCovers.setMatrixAt(i,detailDummy.matrix)}
+for(let i=0;i<120;i++){const rx=((Math.floor(i/10)%7)-3)*200,rz=((i*71)%1320)-660;detailDummy.position.set(rx+((i%7)-3)*1.05,3.118,rz);detailDummy.rotation.set(-Math.PI/2,0,(i%5)*.37);const sc=.38+(i%4)*.16;detailDummy.scale.set(sc*2,sc,1);detailDummy.updateMatrix();asphaltWear.setMatrixAt(i,detailDummy.matrix)}
+for(let i=0;i<64;i++){const rx=((Math.floor(i/8)%7)-3)*200,rz=((i*97)%1280)-640;detailDummy.position.set(rx+(i%2?5.5:-5.5),3.135,rz);detailDummy.rotation.set(0,0,0);detailDummy.scale.set(1,1,1);detailDummy.updateMatrix();drainCovers.setMatrixAt(i,detailDummy.matrix)}
 scene.add(asphaltWear,drainCovers);
 // Traffic signal assemblies at the central junctions give intersections a readable scale.
 const signalPole=M(0x30383d,.78,.35),signalHousing=M(0x11171b,.55,.2),signalRed=M(0x551c1b,.25,.1,1.2),signalAmber=M(0x66431a,.25,.1,.8),signalGreen=M(0x164b35,.25,.1,.8);
