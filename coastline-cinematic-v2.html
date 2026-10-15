@@ -24,4 +24,4 @@ window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camer
 function toast(msg){var t=document.getElementById('toast');if(!t)return;t.textContent=msg;t.style.display='block';clearTimeout(toast.timer);toast.timer=setTimeout(()=>t.style.display='none',2400)}
 let keys={};addEventListener('keydown',e=>{keys[e.code]=true;if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code))e.preventDefault()});addEventListener('keyup',e=>keys[e.code]=false);
 function loop(){requestAnimationFrame(loop);try{if(aiRuntime?.update)aiRuntime.update();if(liveOps?.update)liveOps.update();if(world.update)world.update(keys);renderer.render(scene,camera);var sp=document.getElementById('speed');if(sp)sp.textContent=Math.round(Math.abs(world.speed||0));var rg=document.getElementById('region');if(rg)rg.textContent=world.region||'DOWNTOWN'}catch(error){console.warn('Coastline frame recovery:',error)}}loop();
-})();</script></body></html>
+</script></body></html>
