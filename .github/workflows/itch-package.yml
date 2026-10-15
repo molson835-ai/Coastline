@@ -22,6 +22,23 @@ jobs:
         run: node scripts/build-itch.mjs
       - name: Create HTML5 upload ZIP
         run: cd dist/itch-html && zip -qr ../Coastline-itch-html.zip .
+      - name: Install browser-test dependencies
+        run: |
+          npm install
+          npx playwright install --with-deps chromium
+      - name: Serve the actual package root
+        run: |
+          npx http-server dist/itch-html -p 4174 -c-1 > /tmp/coastline-itch-server.log 2>&1 &
+          for i in {1..30}; do
+            curl -fsS http://127.0.0.1:4174/ >/dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/coastline-itch-server.log
+          exit 1
+      - name: Smoke-test packaged index.html in Chromium
+        env:
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:4174
+        run: npx playwright test tests/itch-package.spec.cjs
       - uses: actions/upload-artifact@v4
         with:
           name: Coastline-itch-html
