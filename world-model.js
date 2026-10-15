@@ -24,6 +24,27 @@ export function createWorldModel({ citySize = 1500, roadSpacing = 200, roadWidth
   const shoulder = (x,z,side=1,inset=9.3) => { const r=nearestRoad(x,z); return r.axis==='vertical'?{x:r.x+side*inset,z,axis:r.axis}:{x,z:r.z+side*inset,axis:r.axis}; };
   // Parking is deliberately placed beyond the sidewalk on both road orientations.
   const parking = (x,z,side=1,slot=0,spacing=8) => { const r=nearestRoad(x,z), along=Math.round((r.axis==='vertical'?z:x)/spacing)*spacing+slot*spacing, curbToSpot=roadHalfWidth+10.5, p=r.axis==='vertical'?{x:r.x+side*curbToSpot,z:along}:{x:along,z:r.z+side*curbToSpot}; return {...p,axis:r.axis,side,slot,roadId:roadId(x,z),rotation:r.axis==='vertical'?(side>0?Math.PI/2:-Math.PI/2):(side>0?0:Math.PI)}; };
-  const roadNodes = () => { const nodes=[]; for(let x=-halfSize;x<=halfSize;x+=roadSpacing) for(let z=-halfSize;z<=halfSize;z+=roadSpacing) nodes.push({id:`n:${Math.round(x)}:${Math.round(z)}`,x,z,type:'intersection',region:regionAt(x,z)}); return nodes; };
-  return Object.freeze({citySize,halfSize,roadSpacing,roadWidth,roadSurfaceY,seed,groundY,groundNormal,isRoadCorridor,roadOffset,regionAt,regionKey,cellBounds,inBounds,nearestRoad,roadId,roadLane,sidewalk,shoulder,parking,roadNodes,hash});
+  // Road intersections must use the same world-origin grid as nearestRoad().
+  const roadNodes = () => {
+    const nodes=[], min=Math.ceil(-halfSize/roadSpacing)*roadSpacing, max=Math.floor(halfSize/roadSpacing)*roadSpacing;
+    for(let x=min;x<=max;x+=roadSpacing) for(let z=min;z<=max;z+=roadSpacing)
+      nodes.push({id:`n:${Math.round(x)}:${Math.round(z)}`,x,z,type:'intersection',region:regionAt(x,z)});
+    return nodes;
+  };
+  // Deterministic Manhattan route through the orthogonal street grid. The path
+  // contains intersections only; vehicle steering remains the simulation's job.
+  const findRoadPath = (startX,startZ,endX,endZ) => {
+    if (![startX,startZ,endX,endZ].every(Number.isFinite)) return [];
+    const min=Math.ceil(-halfSize/roadSpacing)*roadSpacing, max=Math.floor(halfSize/roadSpacing)*roadSpacing;
+    if(min>max) return [];
+    const snap=v=>clamp(Math.round(v/roadSpacing)*roadSpacing,min,max);
+    let x=snap(startX), z=snap(startZ);
+    const targetX=snap(endX), targetZ=snap(endZ), path=[];
+    const add=()=>path.push({id:`n:${Math.round(x)}:${Math.round(z)}`,x,z,type:'intersection',region:regionAt(x,z)});
+    add();
+    while(x!==targetX){x+=Math.sign(targetX-x)*roadSpacing;add();}
+    while(z!==targetZ){z+=Math.sign(targetZ-z)*roadSpacing;add();}
+    return path;
+  };
+  return Object.freeze({citySize,halfSize,roadSpacing,roadWidth,roadSurfaceY,seed,groundY,groundNormal,isRoadCorridor,roadOffset,regionAt,regionKey,cellBounds,inBounds,nearestRoad,roadId,roadLane,sidewalk,shoulder,parking,roadNodes,findRoadPath,hash});
 }
