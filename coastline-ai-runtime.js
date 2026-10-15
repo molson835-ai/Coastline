@@ -20,10 +20,56 @@ export class CoastlineAIRuntime {
     this.keys = new Set();
     this.lastTraffic = new WeakMap();
     this.worldPlans = [];
-    this.buildId = 'AI-RUNTIME-0.1.0';
+    this.buildId = 'AI-RUNTIME-0.2.0';
+    this.worker = null;
+    this.workerSeq = 0;
+    this.lastWorkerAt = 0;
+    this.workerStatus = 'STARTING';
+    this.budget = { aiHz: 8, maxActiveNPCs: 48, maxTrafficUpdates: 28, worldBuildsPerTick: 1, quality: 'BALANCED' };
+    this.lastWorkerSummary = { cells: 0, near: 0, mid: 0, far: 0, traffic: 0 };
+    this.startWorker();
     this.makePanel();
     this.bindKeys();
     this.log('info', 'AI runtime online; safe checks enabled.');
+  }
+  startWorker() {
+    if (typeof Worker === 'undefined') { this.workerStatus = 'FALLBACK'; this.log('warn', 'Web Worker unavailable; using local diagnostics.'); return; }
+    try {
+      this.worker = new Worker(new URL('./coastline-ai-worker.js', import.meta.url), { type: 'module' });
+      this.worker.onmessage = e => {
+        const result = e.data || {};
+        if (result.type === 'COASTLINE_AI_ERROR') { this.workerStatus = 'ERROR'; this.log('error', 'AI worker tick failed', result.message); return; }
+        if (result.type !== 'COASTLINE_AI_TICK_RESULT') return;
+        this.workerStatus = 'ONLINE';
+        this.budget = result.budget || this.budget;
+        this.lastWorkerSummary = result.summary || this.lastWorkerSummary;
+        const known = new Set(this.worldPlans.map(p => p.key));
+        for (const cell of result.cells || []) {
+          if (!known.has(cell.key) && this.worldPlans.length < 48) {
+            this.worldPlans.push({ ...cell, status: 'PLANNED' });
+            known.add(cell.key);
+          }
+        }
+        if (this.panel?.classList.contains('open')) this.renderPanel();
+      };
+      this.worker.onerror = e => { this.workerStatus = 'ERROR'; this.log('error', 'AI worker unavailable', e.message || 'worker error'); };
+    } catch (e) {
+      this.workerStatus = 'FALLBACK';
+      this.log('warn', 'AI worker could not start; local runtime remains active.', e.message);
+    }
+  }
+  sendWorkerTick(now) {
+    if (!this.worker || now - this.lastWorkerAt < 1000) return;
+    this.lastWorkerAt = now;
+    const raw = this.getPlayer?.();
+    const p = raw?.position || raw || { x: 0, z: 0 };
+    const traffic = (this.getTraffic?.() || []).slice(0, 200).map((entry, i) => {
+      const obj = entry?.group || entry;
+      return { id: i, x: obj?.position?.x || 0, z: obj?.position?.z || 0, stalled: (entry?.stallTicks || 0) >= 4 };
+    });
+    try {
+      this.worker.postMessage({ type: 'TICK', seq: ++this.workerSeq, player: { x: p.x || 0, z: p.z || 0 }, fps: this.fps || 60, traffic });
+    } catch (e) { this.log('warn', 'Could not send simulation snapshot to AI worker.', e.message); }
   }
   makePanel() {
     const style = document.createElement('style');
@@ -85,6 +131,7 @@ export class CoastlineAIRuntime {
       this.lastHealthAt = now;
       this.healthSweep();
       this.inspectTraffic();
+      this.sendWorkerTick(now);
       this.planWorldGrowth();
       this.renderPanel();
     }
@@ -165,7 +212,7 @@ export class CoastlineAIRuntime {
     let gpu = 'unavailable';
     try { gpu = info?.getParameter(info.RENDERER) || 'browser-managed'; } catch {}
     return JSON.stringify({
-      build: this.buildId, stage: this.stage, uptimeSeconds: Math.round((performance.now() - this.startedAt) / 1000),
+      build: this.buildId, stage: this.stage, workerStatus: this.workerStatus, adaptiveBudget: this.budget, worldSummary: this.lastWorkerSummary, uptimeSeconds: Math.round((performance.now() - this.startedAt) / 1000),
       fps: Math.round(this.fps), averageFrameMs: Math.round(this.frameMs * 10) / 10,
       mode: this.getMode?.() || 'unknown', traffic: (this.getTraffic?.() || []).length,
       npcCount: (this.getNPCs?.() || []).length, sceneChildren: this.scene?.children?.length || 0,
@@ -178,7 +225,7 @@ export class CoastlineAIRuntime {
     if (!this.panel) return;
     const player = this.getPlayer?.();
     const rows = [
-      ['BUILD', this.buildId], ['RUNTIME', this.stage], ['FPS', this.fps ? Math.round(this.fps) : 'sampling…'],
+      ['BUILD', this.buildId], ['RUNTIME', this.stage], ['AI WORKER', this.workerStatus], ['QUALITY BUDGET', this.budget.quality], ['AI TICK TARGET', this.budget.aiHz + ' Hz'], ['DISTRICT CELLS', this.lastWorkerSummary.cells], ['FPS', this.fps ? Math.round(this.fps) : 'sampling…'],
       ['FRAME', this.frameMs ? this.frameMs.toFixed(1) + ' ms' : 'sampling…'],
       ['MODE', this.getMode?.() || 'unknown'], ['TRAFFIC', (this.getTraffic?.() || []).length],
       ['NPCs', (this.getNPCs?.() || []).length], ['DISTRICT PLANS', this.worldPlans.length],
