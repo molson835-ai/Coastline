@@ -20,7 +20,7 @@ const sun=new THREE.DirectionalLight(0xffe0b2,3.0);sun.position.set(-280,420,180
 const mat=(color,roughness=.85,metalness=0)=>new THREE.MeshStandardMaterial({color,roughness,metalness});
 const grass=mat(0x647e58),asphalt=mat(0x303a43),line=mat(0xe5d8a6),sidewalk=mat(0xaaa99d),glass=mat(0x4c8294,.35,.35),white=mat(0xe5e5df,.3,.25),dark=mat(0x141b22,.5,.2);
 const groundGeo=new THREE.PlaneGeometry(1500,1500,120,120);groundGeo.rotateX(-Math.PI/2);
-const pos=groundGeo.attributes.position;for(let i=0;i<pos.count;i++){const x=pos.getX(i),z=pos.getZ(i);let y=world.groundY(x,z);if(world.isRoadCorridor(x,z,8))y=Math.min(y,world.roadSurfaceY-.32);pos.setY(i,y)}groundGeo.computeVertexNormals();
+const pos=groundGeo.attributes.position;for(let i=0;i<pos.count;i++){const x=pos.getX(i),z=pos.getZ(i);pos.setY(i,world.groundY(x,z))}groundGeo.computeVertexNormals();
 const ground=new THREE.Mesh(groundGeo,grass);ground.receiveShadow=true;scene.add(ground);
 function box(w,h,d,material,x,y,z,shadow=true){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material);m.position.set(x,y,z);m.castShadow=shadow;m.receiveShadow=true;scene.add(m);return m}
 for(let p=-700;p<=700;p+=world.roadSpacing){
