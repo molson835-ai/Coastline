@@ -97,7 +97,7 @@ jobs:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           existing=$(gh issue list --state open --search '"Gameplay watchdog failure" in:title' --json number --jq '.[0].number // empty')
-          body="The automated browser smoke test failed.\n\nRun details: ${RUN_URL}\n\nInspect the attached `coastline-gameplay-report` artifact for traces, screenshots, and logs.\n\nThis issue is updated by the scheduled watchdog; it does not automatically modify or deploy game code."
+          body="The automated browser smoke test failed.\n\nRun details: ${RUN_URL}\n\nInspect the attached coastline-gameplay-report artifact for traces, screenshots, and logs.\n\nThis issue is updated by the scheduled watchdog; it does not automatically modify or deploy game code."
           if [ -n "$existing" ]; then
             gh issue comment "$existing" --body "$body"
           else
