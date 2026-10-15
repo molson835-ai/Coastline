@@ -8,6 +8,12 @@ test('mobile controls change with gameplay mode and audio toggle responds', asyn
 
   const footControls = page.locator('[data-foot-only]');
   await expect(footControls).toHaveCount(3);
+  const worldLook = await page.evaluate(() => ({ residential: window.__coastlineTest.rowhomeState(), cinematic: window.__coastlineTest.cinematicState() }));
+  expect(worldLook.residential.count).toBeGreaterThanOrEqual(70);
+  expect(worldLook.residential.storefronts).toBeGreaterThanOrEqual(10);
+  expect(worldLook.cinematic.environmentMap).toBe(true);
+  expect(worldLook.cinematic.toneMapping).toBe(true);
+  expect(worldLook.cinematic.bloomStrength).toBeGreaterThan(0.25);
 
   await page.evaluate(() => {
     const api = window.__coastlineTest;
