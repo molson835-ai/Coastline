@@ -2,7 +2,7 @@ const { test, expect } = require('@playwright/test');
 
 test('driving cannot push a vehicle through a building boundary', async ({ page }) => {
   await page.goto('/game-v3.html', { waitUntil: 'domcontentloaded' });
-  await expect(page.locator('canvas')).toBeAttached({ timeout: 30000 });
+  await expect(page.locator('canvas').first()).toBeAttached({ timeout: 30000 });
   await page.waitForFunction(() => Boolean(window.__coastlineTest), null, { timeout: 30000 });
 
   // The generated building at (-500, -500) has a 70-unit depth.

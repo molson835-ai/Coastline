@@ -5,7 +5,7 @@ test('performance telemetry is available and includes renderer and entity counte
   page.on('pageerror', error => pageErrors.push(error.message));
 
   await page.goto('/game-v3.html', { waitUntil: 'domcontentloaded' });
-  await expect(page.locator('canvas')).toBeAttached({ timeout: 30000 });
+  await expect(page.locator('canvas').first()).toBeAttached({ timeout: 30000 });
   await page.waitForFunction(() => {
     const perf = window.__coastlineTest?.state?.().performance;
     return perf && Number.isFinite(perf.loadingMs) && Number.isFinite(perf.averageFrameMs);

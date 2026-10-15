@@ -1,6 +1,13 @@
 // Deterministic, bounded decision helpers for Coastline's living-world simulation.
 // These functions choose high-level intent only; movement, collision, and world state
 // remain authoritative in the game simulation.
+import { REALISM_PROFILES, realismLibraryRules } from './realism-library.js';
+import './presentation-runtime.js';
+import {
+  createEncounterDirector, createWorldMemory, advanceMystery, chooseRumor, replayabilityRules,
+} from './replayability-engine.js';
+import { createNpcAgency, NPC_ROLES, NPC_STORY_ARCS } from './npc-agency-engine.js';
+
 function stableInt(value) {
   if (typeof value === 'number' && Number.isFinite(value)) return value | 0;
   const s = String(value ?? '0'); let h = 2166136261;
@@ -11,6 +18,14 @@ function unitHash(a, b = 0, c = 0) {
   let x = (Math.imul(stableInt(a) ^ 0x45d9f3b, 0x45d9f3b) ^ Math.imul(stableInt(b) + 0x27d4eb2d, 0x165667b1) ^ Math.imul(stableInt(c) + 0x3449f5, 0x1b873593)) | 0;
   x ^= x >>> 16; x = Math.imul(x, 0x7feb352d); x ^= x >>> 15; x = Math.imul(x, 0x846ca68b); x ^= x >>> 16;
   return (x >>> 0) / 4294967296;
+}
+
+// Cache only same-origin game assets. This reduces repeat-download data without
+// putting a second scheduler or simulation loop into the hot path.
+if (typeof window !== 'undefined' && 'serviceWorker' in navigator && location.protocol !== 'file:') {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./coastline-sw.js', { scope: './' }).catch(() => {});
+  }, { once: true });
 }
 
 const residentActivities = Object.freeze(['walk', 'phone', 'coffee', 'wait', 'jog', 'look around']);
@@ -37,8 +52,6 @@ export function chooseWildlifeBehavior({ id = 0, daylight = 0.7, weather = 'clea
   return 'roam';
 }
 
-// Lightweight local avoidance primitive for agents that do not yet have a full navmesh.
-// Returns a normalized steering vector; it never teleports an actor or overrides physics.
 export function separationSteering({ x = 0, z = 0, neighbors = [], radius = 2.2, strength = 1 } = {}) {
   let sx = 0, sz = 0, count = 0, r2 = radius * radius;
   for (const n of neighbors || []) {
@@ -52,15 +65,38 @@ export function separationSteering({ x = 0, z = 0, neighbors = [], radius = 2.2,
   return { x: (sx / len) * strength, z: (sz / len) * strength };
 }
 
+// A single adapter surface for the game shell to connect event triggers, clues, and save data.
+// It does not persist automatically; the host chooses when and where to save snapshot().
+export function createLivingWorldReplayability({ seed = 'coastline', initialMemory = {} } = {}) {
+  const memory = createWorldMemory(initialMemory);
+  const encounters = createEncounterDirector({ seed });
+  return Object.freeze({
+    memory,
+    encounters,
+    nextRumor: options => chooseRumor({ seed, ...options }),
+    nextMysteryStage: (mystery, completed) => advanceMystery(mystery, completed),
+    snapshot: () => memory.snapshot(),
+    rules: replayabilityRules,
+  });
+}
+
+export { createNpcAgency, NPC_ROLES, NPC_STORY_ARCS };
+
 export function livingWorldRules() {
   return {
-    version: 2,
+    version: 6,
+    npcAgency: 'bounded deterministic roles, needs, event reactions, persistent memories, and personal story arcs',
     residentDecision: 'seeded identity + time/weather-aware activity selection',
     wildlifeDecision: 'threat-first flee, then weather/daylight-aware intent',
     localAvoidance: 'bounded separation steering',
+    replayability: replayabilityRules(),
     decisionsPerRenderFrame: false,
     movementAuthority: 'game simulation',
     collisionAuthority: 'game physics',
+    assetCaching: 'same-origin service-worker cache with network refresh',
+    visualGrammar: realismLibraryRules().philosophy,
+    realismProfiles: Object.keys(REALISM_PROFILES),
+    presentationRuntime: 'event-driven HUD polish and mission fade',
     activities: [...residentActivities],
     wildlifeBehaviors: ['flee', 'shelter', 'rest', 'forage', 'roam']
   };

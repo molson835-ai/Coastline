@@ -33,13 +33,19 @@ test('buildings, benches, low walls, bicycles, motorcycles and aircraft are inte
 
   await page.evaluate(() => window.__coastlineTest.exitBuilding());
   await expect.poll(async () => page.evaluate(() => window.__coastlineTest.state().mode)).toBe('walk');
-  await page.evaluate(() => { const api = window.__coastlineTest; const s = api.state(); api.setWalkPosition(s.x, s.z, s.heading); });
+  // Start the traversal check in known open ground, independent of the hotel exit placement.
+  await page.evaluate(() => window.__coastlineTest.setWalkPosition(0, 0, 0));
+  expect(await page.evaluate(() => window.__coastlineTest.state().mode)).toBe('walk');
 
   await page.evaluate(() => window.__coastlineTest.keyDown('space'));
-  await page.waitForTimeout(250);
-  const jumpHeight = await page.evaluate(() => window.__coastlineTest.state().jumpHeight);
-  await page.evaluate(() => window.__coastlineTest.keyUp('space'));
-  expect(jumpHeight).toBeGreaterThan(0);
+  try {
+    await expect.poll(async () => page.evaluate(() => window.__coastlineTest.state().jumpHeight), { timeout: 1500 }).toBeGreaterThan(0);
+  } catch (error) {
+    const debug = await page.evaluate(() => window.__coastlineTest.state());
+    throw new Error(`${error.message}\\nJump diagnostics: ${JSON.stringify({ mode: debug.mode, jumpHeight: debug.jumpHeight, jumpVelocity: debug.jumpVelocity, paused: debug.paused, spacePressed: debug.spacePressed, sitting: debug.sitting, errors: debug.errors })}`);
+  } finally {
+    await page.evaluate(() => window.__coastlineTest.keyUp('space'));
+  }
 
   await page.evaluate(() => window.__coastlineTest.enterRideable('aircraft'));
   await page.evaluate(() => window.__coastlineTest.keyDown('space'));

@@ -1,0 +1,47 @@
+name: Coastline itch.io HTML package
+
+on:
+  push:
+    branches:
+      - main
+      - codex/replayability-exploration-systems
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package-html5:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Prepare and validate the game files
+        run: node scripts/build-itch.mjs
+      - name: Create HTML5 upload ZIP
+        run: cd dist/itch-html && zip -qr ../Coastline-itch-html.zip .
+      - name: Install browser-test dependencies
+        run: |
+          npm install
+          npx playwright install --with-deps chromium
+      - name: Serve the actual package root
+        run: |
+          npx http-server dist/itch-html -p 4174 -c-1 > /tmp/coastline-itch-server.log 2>&1 &
+          for i in {1..30}; do
+            curl -fsS http://127.0.0.1:4174/ >/dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/coastline-itch-server.log
+          exit 1
+      - name: Smoke-test packaged index.html in Chromium
+        env:
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:4174
+        run: npx playwright test tests/itch-package.spec.cjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Coastline-itch-html
+          path: dist/Coastline-itch-html.zip
+          if-no-files-found: error
+          retention-days: 14

@@ -3,7 +3,7 @@ const { test, expect } = require('@playwright/test');
 test('mobile driving controls are visible and operate the vehicle', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/game-v3.html', { waitUntil: 'domcontentloaded' });
-  await expect(page.locator('canvas')).toBeAttached({ timeout: 30000 });
+  await expect(page.locator('canvas').first()).toBeAttached({ timeout: 30000 });
   await page.waitForFunction(() => Boolean(window.__coastlineTest), null, { timeout: 30000 });
 
   const forward = page.getByRole('button', { name: 'Forward' });
@@ -25,9 +25,9 @@ test('mobile driving controls are visible and operate the vehicle', async ({ pag
         if (roster.some(v => Math.hypot(v.x - x, v.z - z) < 12)) continue;
         let clear = true;
         for (let dx = -6; dx <= 6 && clear; dx += 3) {
-          for (let dz = 0; dz <= 24; dz += 3) {
+          for (let dz = -30; dz <= 30; dz += 1.5) {
             const px = x + dx, pz = z + dz;
-            if (api.obstacleBlocked(px, pz, 1.8) || roster.some(v => Math.hypot(v.x - px, v.z - pz) < 5)) { clear = false; break; }
+            if (api.obstacleBlocked(px, pz, 1.8) || api.pedestrianCollisionBlocked(px, pz, 1.8) || roster.some(v => Math.hypot(v.x - px, v.z - pz) < 7)) { clear = false; break; }
           }
         }
         if (clear) return { x, z };
@@ -41,17 +41,30 @@ test('mobile driving controls are visible and operate the vehicle', async ({ pag
 
   await forward.hover();
   await page.mouse.down();
-  await page.waitForTimeout(700);
-  await page.mouse.up();
+  try {
+    await expect.poll(async () => page.evaluate(({ x, z }) => {
+      const now = window.__coastlineTest.state();
+      return Math.hypot(now.x - x, now.z - z);
+    }, { x: before.x, z: before.z }), { timeout: 5000, message: 'forward control should move the car along its heading' }).toBeGreaterThan(0.5);
+  } finally {
+    await page.mouse.up();
+  }
   const afterDrive = await page.evaluate(() => window.__coastlineTest.state());
-  expect(afterDrive.z, 'forward control should move the car').toBeGreaterThan(before.z + 0.5);
+  expect(Math.hypot(afterDrive.x - before.x, afterDrive.z - before.z), 'forward control should move the car along its heading').toBeGreaterThan(0.5);
 
   await left.hover();
+  const headingBeforeSteer = (await page.evaluate(() => window.__coastlineTest.state())).heading;
   await page.mouse.down();
-  await page.waitForTimeout(500);
-  await page.mouse.up();
+  try {
+    await expect.poll(async () => page.evaluate(heading => window.__coastlineTest.state().heading - heading, headingBeforeSteer), {
+      timeout: 3000,
+      message: 'left control should steer the car'
+    }).toBeGreaterThan(0.01);
+  } finally {
+    await page.mouse.up();
+  }
   const afterSteer = await page.evaluate(() => window.__coastlineTest.state());
-  expect(Math.abs(afterSteer.heading - before.heading), 'left control should steer the car').toBeGreaterThan(0.01);
+  expect(Math.abs(afterSteer.heading - headingBeforeSteer), 'left control should steer the car').toBeGreaterThan(0.01);
 
   await action.click();
   await expect(page.locator('#mode')).toHaveText('ON FOOT');

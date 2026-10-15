@@ -74,6 +74,45 @@ export function simulationLOD(distance, { full = 80, active = 220, proxy = 520 }
 
 export function tickRateForLOD(lod) { return [30, 10, 3, 0][clamp(lod, 0, 3)]; }
 
+// Rendering can use a slightly wider envelope than AI simulation. This keeps
+// visual continuity while allowing expensive animation/AI work to fall off sooner.
+export function renderLOD(distance, { full = 90, reduced = 240, impostor = 600 } = {}) {
+  if (distance <= full) return 0;
+  if (distance <= reduced) return 1;
+  if (distance <= impostor) return 2;
+  return 3;
+}
+
+// Deterministic, frame-budget-friendly scheduler. Actors are staggered by id so
+// thousands of agents do not wake on the same frame. LOD controls cadence; a
+// caller can additionally cap the number of selected actors per simulation step.
+export function createSimulationScheduler({ maxActorsPerStep = 48 } = {}) {
+  const lastTick = new Map();
+  const cadence = [1 / 30, 1 / 10, 1 / 3, Infinity];
+  const hash = id => {
+    const s = String(id ?? '0'); let h = 2166136261;
+    for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+    return (h >>> 0) / 4294967296;
+  };
+  const select = (actors = [], now = 0) => {
+    const ready = [];
+    for (const actor of actors) {
+      const lod = clamp(actor.lod ?? 3, 0, 3), period = cadence[lod];
+      if (!Number.isFinite(period)) continue;
+      const id = actor.id ?? ready.length;
+      const previous = lastTick.get(id);
+      if (previous == null || now - previous >= period) ready.push({ actor, lod, previous });
+    }
+    // Prioritize never-ticked and longest-waiting actors so the work cap cannot starve the tail.
+    ready.sort((a, b) => (a.lod - b.lod) || ((a.previous == null ? -Infinity : a.previous) - (b.previous == null ? -Infinity : b.previous)) || (hash(a.actor.id) - hash(b.actor.id)));
+    const selected = ready.slice(0, Math.max(0, maxActorsPerStep));
+    for (const item of selected) lastTick.set(item.actor.id, now);
+    return selected;
+  };
+  const reset = id => id == null ? lastTick.clear() : lastTick.delete(id);
+  return Object.freeze({ select, reset, size: () => lastTick.size, maxActorsPerStep });
+}
+
 export function createWorldRuntime({ worldModel, chunkSize = 200 } = {}) {
   if (!worldModel) throw new Error('createWorldRuntime requires worldModel');
   const entities = new Map(), spatial = createSpatialHash(32), chunks = new Map();
@@ -142,5 +181,6 @@ export function createWorldArchitecture(worldModel) {
   const runtime = createWorldRuntime({ worldModel });
   const parking = createParkingRegistry(worldModel);
   const events = createWorldEventBus();
-  return Object.freeze({ worldModel, runtime, parking, events, materials: MATERIALS, simulationLOD, tickRateForLOD, collisionResponse, applyImpact });
+  const scheduler = createSimulationScheduler();
+  return Object.freeze({ worldModel, runtime, parking, events, scheduler, materials: MATERIALS, simulationLOD, renderLOD, tickRateForLOD, collisionResponse, applyImpact });
 }

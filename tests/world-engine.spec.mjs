@@ -88,3 +88,21 @@ test('AI simulation LOD reduces work with distance', () => {
   assert.equal(engine.simulationLOD(800), 3);
   assert.equal(engine.tickRateForLOD(3), 0);
 });
+
+test('render LOD preserves visuals farther than full simulation', () => {
+  assert.deepEqual([engine.renderLOD(20), engine.renderLOD(150), engine.renderLOD(400), engine.renderLOD(800)], [0, 1, 2, 3]);
+  assert.equal(engine.renderLOD(100), 1);
+  assert.equal(engine.simulationLOD(100), 1);
+});
+
+test('simulation scheduler staggers actors and caps per-step work', () => {
+  const scheduler = engine.createSimulationScheduler({ maxActorsPerStep: 2 });
+  const actors = Array.from({ length: 8 }, (_, i) => ({ id: `npc-${i}`, lod: 0 }));
+  const first = scheduler.select(actors, 1);
+  assert.equal(first.length, 2);
+  const second = scheduler.select(actors, 1.01);
+  assert.ok(second.length <= 2);
+  assert.ok(second.every(item => item.actor && Number.isInteger(item.lod)));
+  assert.equal(scheduler.size(), first.length + second.length);
+  assert.equal(scheduler.select([{ id: 'far', lod: 3 }], 10).length, 0);
+});
