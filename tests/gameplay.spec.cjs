@@ -83,7 +83,7 @@ test('vehicle steering follows left/right input and reverse builds usable negati
   const leftTurn = await page.evaluate(() => window.__coastlineTest.state());
   expect(leftTurn.heading, 'A should steer left while driving forward').toBeLessThan(movingForward.heading);
 
-  await page.evaluate(() => window.__coastlineTest.setVehiclePosition(0, 0, 0));
+  await page.evaluate(() => window.__coastlineTest.setVehiclePosition(0, 60, 0));
   await page.evaluate(() => window.__coastlineTest.keyDown('w'));
   await page.waitForTimeout(700);
   await page.evaluate(() => window.__coastlineTest.keyUp('w'));
@@ -93,7 +93,7 @@ test('vehicle steering follows left/right input and reverse builds usable negati
   const rightTurn = await page.evaluate(() => window.__coastlineTest.state());
   expect(rightTurn.heading, 'D should steer right while driving forward').toBeGreaterThan(0);
 
-  await page.evaluate(() => window.__coastlineTest.setVehiclePosition(0, 0, 0));
+  await page.evaluate(() => window.__coastlineTest.setVehiclePosition(0, 60, 0));
   await page.evaluate(() => window.__coastlineTest.keyDown('s'));
   await page.waitForTimeout(1000);
   await page.evaluate(() => window.__coastlineTest.keyUp('s'));
