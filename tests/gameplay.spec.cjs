@@ -69,13 +69,13 @@ test('vehicle steering follows left/right input and reverse builds usable negati
   await page.goto('/game-v3.html?beta=vehicle-controls-regression', { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => Boolean(window.__coastlineTest), null, { timeout: 20000 });
 
-  await page.evaluate(() => window.__coastlineTest.setVehiclePosition(0, 0, 0));
+  await page.evaluate(() => window.__coastlineTest.setVehiclePosition(0, 60, 0));
   await page.evaluate(() => window.__coastlineTest.keyDown('w'));
   await page.waitForTimeout(700);
   await page.evaluate(() => window.__coastlineTest.keyUp('w'));
   const movingForward = await page.evaluate(() => window.__coastlineTest.state());
   expect(movingForward.vehicleSpeed, 'W should accelerate the car forward').toBeGreaterThan(2);
-  expect(Math.hypot(movingForward.x, movingForward.z), 'W should move the car').toBeGreaterThan(0.5);
+  expect(Math.hypot(movingForward.x, movingForward.z - 60), 'W should move the car').toBeGreaterThan(0.5);
 
   await page.evaluate(() => window.__coastlineTest.keyDown('a'));
   await page.waitForTimeout(500);
