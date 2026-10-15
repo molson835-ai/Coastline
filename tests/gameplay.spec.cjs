@@ -69,7 +69,23 @@ test('vehicle steering follows left/right input and reverse builds usable negati
   await page.goto('/game-v3.html?beta=vehicle-controls-regression', { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => Boolean(window.__coastlineTest), null, { timeout: 20000 });
 
-  await page.evaluate(() => window.__coastlineTest.setVehiclePosition(0, 60, 0));
+  const roadStart = await page.evaluate(() => {
+    const api = window.__coastlineTest;
+    const candidates = [];
+    for (let x = -600; x <= 600; x += 200) {
+      for (let z = -600; z <= 580; z += 20) candidates.push({ x, z });
+    }
+    const roster = api.vehicleRoster();
+    const clear = p => !api.buildingBlocked(p.x, p.z, 2)
+      && !api.buildingBlocked(p.x, p.z + 12, 2)
+      && !roster.some(v => Math.hypot(v.x - p.x, v.z - p.z) < 18
+        || Math.hypot(v.x - p.x, v.z - (p.z + 12)) < 8);
+    const spot = candidates.find(p => clear(p) && api.worldModel?.isRoadCorridor(p.x, p.z));
+    if (!spot) throw new Error('Could not locate an unobstructed road segment for vehicle controls regression');
+    return spot;
+  });
+  const resetCar = () => page.evaluate(({ x, z }) => window.__coastlineTest.setVehiclePosition(x, z, 0), roadStart);
+  await resetCar();
   await page.evaluate(() => window.__coastlineTest.keyDown('w'));
   await page.waitForTimeout(700);
   await page.evaluate(() => window.__coastlineTest.keyUp('w'));
@@ -83,7 +99,7 @@ test('vehicle steering follows left/right input and reverse builds usable negati
   const leftTurn = await page.evaluate(() => window.__coastlineTest.state());
   expect(leftTurn.heading, 'A should steer left while driving forward').toBeLessThan(movingForward.heading);
 
-  await page.evaluate(() => window.__coastlineTest.setVehiclePosition(0, 60, 0));
+  await resetCar();
   await page.evaluate(() => window.__coastlineTest.keyDown('w'));
   await page.waitForTimeout(700);
   await page.evaluate(() => window.__coastlineTest.keyUp('w'));
@@ -93,7 +109,7 @@ test('vehicle steering follows left/right input and reverse builds usable negati
   const rightTurn = await page.evaluate(() => window.__coastlineTest.state());
   expect(rightTurn.heading, 'D should steer right while driving forward').toBeGreaterThan(0);
 
-  await page.evaluate(() => window.__coastlineTest.setVehiclePosition(0, 60, 0));
+  await resetCar();
   await page.evaluate(() => window.__coastlineTest.keyDown('s'));
   await page.waitForTimeout(1000);
   await page.evaluate(() => window.__coastlineTest.keyUp('s'));
