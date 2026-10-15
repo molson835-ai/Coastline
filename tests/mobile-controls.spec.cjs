@@ -42,10 +42,10 @@ test('mobile driving controls are visible and operate the vehicle', async ({ pag
   await forward.hover();
   await page.mouse.down();
   try {
-    await expect.poll(async () => page.evaluate(() => {
+    await expect.poll(async () => page.evaluate(({ x, z }) => {
       const now = window.__coastlineTest.state();
-      return Math.hypot(now.x - before.x, now.z - before.z);
-    }), { timeout: 5000, message: 'forward control should move the car along its heading' }).toBeGreaterThan(0.5);
+      return Math.hypot(now.x - x, now.z - z);
+    }, { x: before.x, z: before.z }), { timeout: 5000, message: 'forward control should move the car along its heading' }).toBeGreaterThan(0.5);
   } finally {
     await page.mouse.up();
   }
@@ -56,7 +56,7 @@ test('mobile driving controls are visible and operate the vehicle', async ({ pag
   const headingBeforeSteer = (await page.evaluate(() => window.__coastlineTest.state())).heading;
   await page.mouse.down();
   try {
-    await expect.poll(async () => page.evaluate(() => window.__coastlineTest.state().heading - headingBeforeSteer), {
+    await expect.poll(async () => page.evaluate(heading => window.__coastlineTest.state().heading - heading, headingBeforeSteer), {
       timeout: 3000,
       message: 'left control should steer the car'
     }).toBeGreaterThan(0.01);
