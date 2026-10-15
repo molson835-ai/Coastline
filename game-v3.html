@@ -136,16 +136,26 @@ function createInterior(b){
   const lintel=new THREE.Mesh(new THREE.BoxGeometry(4.8,2.45,.35),wall);lintel.position.set(0,4.05,10);g.add(lintel);
   const ceiling=new THREE.Mesh(new THREE.BoxGeometry(22,.18,20),ceilingMat);ceiling.position.y=5.25;g.add(ceiling);
   for(const x of [-7,7]){const win=new THREE.Mesh(new THREE.BoxGeometry(2.8,1.7,.09),glass);win.position.set(x,3.15,-9.78);g.add(win)}
-  const desk=new THREE.Mesh(new THREE.BoxGeometry(4,.85,1.25),trim);desk.position.set(0,.52,-5.8);g.add(desk);
-  const top=new THREE.Mesh(new THREE.BoxGeometry(4.2,.12,1.4),M(0x9b7757,.75));top.position.set(0,1,-5.8);g.add(top);
-  for(const x of [-5.5,5.5]){const sofa=new THREE.Mesh(new THREE.BoxGeometry(2.6,.7,1.1),seatMat);sofa.position.set(x,.45,-1.5);g.add(sofa);const backrest=new THREE.Mesh(new THREE.BoxGeometry(2.6,.9,.25),seatMat);backrest.position.set(x,.85,-2);g.add(backrest)}
-  for(const x of [-4,4]){const plantPot=new THREE.Mesh(new THREE.CylinderGeometry(.35,.28,.55,8),trim);plantPot.position.set(x,.35,6);g.add(plantPot);const leaves=new THREE.Mesh(new THREE.SphereGeometry(.75,7,6),M(0x376a43,.96));leaves.position.set(x,1.15,6);g.add(leaves)}
+  const name=b.name.toLowerCase();
+  const addFurniture=(geometry,material,x,y,z,rotation=0)=>{const mesh=new THREE.Mesh(geometry,material);mesh.position.set(x,y,z);mesh.rotation.y=rotation;mesh.castShadow=true;mesh.receiveShadow=true;g.add(mesh);return mesh};
+  const screenMat=M(0x152e3b,.22,.18),upholstery=M(/hotel|apartment|condominium/.test(name)?0x426c72:0x7c6552,.9);
+  if(/hotel|apartment|condominium/.test(name)){for(const x of [-5,4.5]){addFurniture(new THREE.BoxGeometry(3.1,.38,4.2),trim,x,.28,-5.2);addFurniture(new THREE.BoxGeometry(2.9,.3,3.7),M(0xd6d3c8,.95),x,.58,-5.2);addFurniture(new THREE.BoxGeometry(2.8,.2,.8),M(0xf0e8d9,.95),x,.82,-6.55);addFurniture(new THREE.BoxGeometry(3.2,1.6,.22),upholstery,x,1.05,-7.25);addFurniture(new THREE.BoxGeometry(.8,.65,.8),trim,x+2,.33,-6.6);addFurniture(new THREE.CylinderGeometry(.08,.08,.5,8),metal,x+2,.9,-6.6);addFurniture(new THREE.SphereGeometry(.12,8,6),M(0xffcf80,.4),x+2,1.18,-6.6)}}
+  else if(/hospital|clinic/.test(name)){for(const x of [-5,4.5]){addFurniture(new THREE.BoxGeometry(3.4,.3,5.1),metal,x,.35,-4.8);addFurniture(new THREE.BoxGeometry(3.2,.22,4.8),M(0xd9e0df,.9),x,.58,-4.8);addFurniture(new THREE.BoxGeometry(1.1,.22,1.1),M(0xf2f2e9,.95),x,.82,-6.5);addFurniture(new THREE.BoxGeometry(.12,1.1,.12),metal,x-1.35,1,-3.3);addFurniture(new THREE.BoxGeometry(.12,1.1,.12),metal,x+1.35,1,-3.3);addFurniture(new THREE.BoxGeometry(1.8,1.2,.12),M(0x9ab3b9,.45),x+2.6,1.2,-7.4)}}
+  else if(/market|mall|pharmacy|grocery|diner|restaurant|arcade|movie theater|music venue/.test(name)){addFurniture(new THREE.BoxGeometry(10,1.05,1.3),trim,0,.55,-7.8);addFurniture(new THREE.BoxGeometry(10.2,.12,1.5),M(0xb68c60,.65),0,1.12,-7.8);addFurniture(new THREE.BoxGeometry(1.8,1.7,.12),screenMat,0,2.05,-7.55);for(const x of [-7.4,-3.8,3.8,7.4]){addFurniture(new THREE.BoxGeometry(1.5,3.1,5.8),trim,x,1.55,-2.5);for(let y=.6;y<3;y+=.65)addFurniture(new THREE.BoxGeometry(1.58,.06,5.9),M(0xc0b6a4,.92),x,y,-2.5)}}
+  else if(/auto works|warehouse|fire station|police|transit center/.test(name)){for(const x of [-6,0,6]){addFurniture(new THREE.BoxGeometry(3.4,1.1,1.3),metal,x,.55,-6.8);addFurniture(new THREE.BoxGeometry(3.2,.12,1.2),M(0x9a8063,.7),x,1.12,-6.8);addFurniture(new THREE.BoxGeometry(2.7,1.4,.12),screenMat,x,2,-7.42)}for(const x of [-7,7])addFurniture(new THREE.BoxGeometry(2.1,3.4,4),trim,x,1.7,1.5)}
+  else{addFurniture(new THREE.BoxGeometry(4,.85,1.25),trim,0,.52,-5.8);addFurniture(new THREE.BoxGeometry(4.2,.12,1.4),M(0x9b7757,.75),0,1,-5.8);for(const x of [-5.5,5.5]){addFurniture(new THREE.BoxGeometry(2.6,.7,1.1),upholstery,x,.45,-1.5);addFurniture(new THREE.BoxGeometry(2.6,.9,.25),upholstery,x,.85,-2);addFurniture(new THREE.BoxGeometry(1.7,1.2,.12),screenMat,x,2.05,-7.3)}}
+  for(const x of [-8.5,8.5]){addFurniture(new THREE.CylinderGeometry(.35,.28,.55,8),trim,x,.35,6);addFurniture(new THREE.SphereGeometry(.75,7,6),M(0x376a43,.96),x,1.15,6)}
   const mat=new THREE.Mesh(new THREE.BoxGeometry(3.2,.08,2),M(0x9a8063,.98));mat.position.set(0,.15,2);g.add(mat);
   // A compact, genuinely walkable staircase and upper landing in every building interior.
   const stairMat=M(0x78644f,.94);
   for(let i=0;i<8;i++){const step=new THREE.Mesh(new THREE.BoxGeometry(.82,.3*(i+1),1.25),stairMat);step.position.set(-7.35+i*.75,.15*(i+1),-5.2);g.add(step)}
-  const landing=new THREE.Mesh(new THREE.BoxGeometry(10,.22,4.2),floorMat);landing.position.set(3,2.45,-5.2);g.add(landing);
-  for(const x of [-1.9,7.9]){const rail=new THREE.Mesh(new THREE.BoxGeometry(.12,.8,4.1),trim);rail.position.set(x,2.95,-5.2);g.add(rail)}
+  const landing=new THREE.Mesh(new THREE.BoxGeometry(11,.22,8.2),floorMat);landing.position.set(4.1,2.45,-5.2);g.add(landing);
+  // The staircase now arrives at a furnished mezzanine with a guarded edge rather than a dead-end slab.
+  for(const x of [-1.35,4.2,8.0]){const rail=new THREE.Mesh(new THREE.BoxGeometry(.12,.85,.12),trim);rail.position.set(x,2.92,-1.25);g.add(rail)}
+  const upperBack=new THREE.Mesh(new THREE.BoxGeometry(10.8,2.3,.18),wall);upperBack.position.set(4.1,3.7,-9.15);g.add(upperBack);
+  const upperDesk=new THREE.Mesh(new THREE.BoxGeometry(2.5,.75,1.05),trim);upperDesk.position.set(4.4,3.0,-7.2);g.add(upperDesk);
+  const upperTop=new THREE.Mesh(new THREE.BoxGeometry(2.65,.1,1.15),M(0x9b7757,.75));upperTop.position.set(4.4,3.42,-7.2);g.add(upperTop);
+  for(const x of [1.2,7.2]){const lamp=new THREE.PointLight(0xffd9a3,1.35,20,2);lamp.position.set(x,4.85,-4.8);g.add(lamp);const shade=new THREE.Mesh(new THREE.CylinderGeometry(.18,.32,.16,10),M(0xf0d8aa,.75));shade.position.set(x,5.05,-4.8);g.add(shade)}
   g.visible=false;scene.add(g);return g;
 }
 for(const b of buildings)b.interior=createInterior(b);
