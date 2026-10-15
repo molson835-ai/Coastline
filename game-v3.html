@@ -167,7 +167,7 @@ function buildRowhomeDistrict(){
   const rows=[[-300,-300],[-100,-300],[100,-300],[300,-300],[-300,300],[-100,300],[100,300],[300,300]];
   const homes=[];
   for(const [cx,cz] of rows)for(const side of [-1,1])for(const offset of [-28,-14,0,14,28]){
-    const x=cx+offset,z=cz+side*76;
+    const x=cx+offset,z=cz+side*65;
     homes.push({x,z,y:groundY(x,z),rotation:side<0?Math.PI:0,storefront:homes.length%5===0,color:[0xb66d5c,0xd0b78f,0x6f8790,0x9d866d,0x7d777b,0xc2b6a3,0x6f7f69][homes.length%7]});
   }
   const box=(w,h,d)=>new THREE.BoxGeometry(w,h,d);
