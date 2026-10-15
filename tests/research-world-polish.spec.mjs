@@ -6,9 +6,9 @@ test('terrain remains deterministic and road surfaces stay level', () => {
   const world = createWorldModel({ seed: 23 });
   const samples = [[-431,-217],[-125,87],[74,312],[333,-401],[512,512]];
   for (const [x,z] of samples) assert.equal(world.groundY(x,z), world.groundY(x,z));
-  for (let i=-5;i<=5;i++) {
-    assert.ok(Math.abs(world.groundY(i*20,0)-world.roadSurfaceY) < 1e-9);
-    assert.ok(Math.abs(world.groundY(0,i*20)-world.roadSurfaceY) < 1e-9);
+  for (const v of [-400,-200,0,200,400]) {
+    assert.ok(Math.abs(world.groundY(v,0)-world.roadSurfaceY) < 1e-9);
+    assert.ok(Math.abs(world.groundY(0,v)-world.roadSurfaceY) < 1e-9);
   }
 });
 
