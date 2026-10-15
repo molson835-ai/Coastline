@@ -18,7 +18,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: npm run package:itch
+      - name: Prepare and validate the game files
+        run: node scripts/build-itch.mjs
+      - name: Create HTML5 upload ZIP
+        run: cd dist/itch-html && zip -qr ../Coastline-itch-html.zip .
       - uses: actions/upload-artifact@v4
         with:
           name: Coastline-itch-html
