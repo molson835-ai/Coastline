@@ -26,8 +26,12 @@ let THREE,createWorldModel,CoastlineAIRuntime,CoastlineLiveOps;
 try{
  const threeModule=await importFirst(['https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js','https://unpkg.com/three@0.170.0/build/three.module.js']);
  THREE=threeModule;
- document.getElementById('loadDetail').textContent='LOADING WORLD SYSTEMS';
- [{createWorldModel},{CoastlineAIRuntime},{CoastlineLiveOps}]=await Promise.all([import('./world-model.js'),import('./coastline-ai-runtime.js'),import('./coastline-live-ops.js')]);
+ document.getElementById('loadDetail').textContent='LOADING WORLD MODEL';document.getElementById('loadNote').textContent='Graphics library ready. Loading world data…';
+ const worldModule=await importWithTimeout('./world-model.js',7000);createWorldModel=worldModule.createWorldModel;
+ document.getElementById('loadDetail').textContent='LOADING AI RUNTIME';document.getElementById('loadNote').textContent='World data ready. Loading runtime systems…';
+ const aiModule=await importWithTimeout('./coastline-ai-runtime.js',7000);CoastlineAIRuntime=aiModule.CoastlineAIRuntime;
+ document.getElementById('loadDetail').textContent='LOADING LIVE WORLD SYSTEMS';document.getElementById('loadNote').textContent='Runtime ready. Loading live activities…';
+ const liveModule=await importWithTimeout('./coastline-live-ops.js',7000);CoastlineLiveOps=liveModule.CoastlineLiveOps;
 }catch(error){
  const l=document.getElementById('load'),t=document.getElementById('loadText'),d=document.getElementById('loadDetail'),n=document.getElementById('loadNote');
  if(l)l.classList.add('failed');if(t)t.textContent='STARTUP ISSUE';if(d)d.textContent='MODULE LOAD FAILED';if(n)n.textContent='Coastline could not load a required game module: '+String(error&&error.message||error).slice(0,180)+' — check the connection and reload.';
