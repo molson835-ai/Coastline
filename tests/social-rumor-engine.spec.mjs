@@ -41,6 +41,15 @@ test('social memory survives a snapshot restore and the transfer budget is respe
   assert.equal(restored.step({ time: 100, maxTransfers: 1 }).transfers <= 1, true);
 });
 
+test('evicting an old rumor clears knowledge for the evicted topic only', () => {
+  const world = createSocialRumorEngine({ people, maxRumors: 1 });
+  world.observe({ topic: 'signalOutage', personId: 'mara', time: 1 });
+  world.observe({ topic: 'wildlifeCrossing', personId: 'diner', time: 2 });
+  assert.equal(world.rumors().length, 1);
+  assert.equal(world.knowledge('mara').signalOutage, undefined);
+  assert.ok(world.knowledge('diner').wildlifeCrossing);
+});
+
 test('invalid sources and topics are safely ignored', () => {
   const world = createSocialRumorEngine({ people });
   assert.equal(world.observe({ topic: 'unknown', personId: 'mara' }), null);
