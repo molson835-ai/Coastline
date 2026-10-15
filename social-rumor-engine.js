@@ -16,6 +16,9 @@ export const RUMOR_TOPICS = Object.freeze({
   strangeHeadlights: Object.freeze({ title: 'Headlights after dark', trueClaim: 'A driver reported headlights following them along the creek road.', distortedClaim: 'An unmarked car is watching people near the creek.', category: 'mystery' }),
   wildlifeCrossing: Object.freeze({ title: 'Wildlife near the road', trueClaim: 'A deer crossed near the wooded road.', distortedClaim: 'Something large was moving beside the road at night.', category: 'wildlife' }),
   emergencyCall: Object.freeze({ title: 'Late-night emergency call', trueClaim: 'An ambulance answered a late-night call.', distortedClaim: 'Something serious happened on the east side.', category: 'emergency' }),
+  recklessDriving: Object.freeze({ title: 'Reckless driving report', trueClaim: 'A driver was seen driving dangerously nearby.', distortedClaim: 'A dangerous driver has been racing through the area.', category: 'conduct' }),
+  helpfulDriver: Object.freeze({ title: 'A neighbor helped out', trueClaim: 'A driver stopped to help someone in the area.', distortedClaim: 'A helpful driver has been looking out for people nearby.', category: 'conduct' }),
+  propertyDamage: Object.freeze({ title: 'Public property damage', trueClaim: 'Someone damaged public property in the area.', distortedClaim: 'Someone has been vandalizing things around town.', category: 'conduct' }),
 });
 function normalizePerson(person = {}) {
   return {
