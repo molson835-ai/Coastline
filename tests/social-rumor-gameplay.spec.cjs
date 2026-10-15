@@ -6,7 +6,6 @@ test('witnessed player conduct creates persistent local rumors that NPCs can rep
   await page.goto('/game-v3.html', { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => Boolean(window.__coastlineTest), null, { timeout: 30000 });
 
-  const api = window.__coastlineTest;
   await page.evaluate(() => {
     window.__coastlineTest.setWalkPosition(0, 0, 0);
     window.__coastlineTest.setPedestrianPosition(0, 2, 0);
