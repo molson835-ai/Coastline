@@ -41,6 +41,7 @@ test('mobile controls change with gameplay mode and audio toggle responds', asyn
   expect(cityAudio.region).toBe('city');
   expect(countrysideAudio.region).toBe('countryside');
   expect(cityAudio.ambientLevel, 'city ambience should be denser than countryside ambience').toBeGreaterThan(countrysideAudio.ambientLevel);
+  expect(cityAudio.ambientCutoff, 'city ambience should sound more enclosed than open countryside').toBeLessThan(countrysideAudio.ambientCutoff);
 
   expect(runtimeErrors).toEqual([]);
   expect(await page.evaluate(() => window.__coastlineTest.state().errors)).toEqual([]);
