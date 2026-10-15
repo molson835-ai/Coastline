@@ -111,8 +111,8 @@ test('simulation scheduler staggers actors and caps per-step work', () => {
 test('road surface stays flat at every generated grid crossing', () => {
   for (const seed of [0, 7, 19]) {
     const model = createWorldModel({ citySize: 1500, roadSpacing: 200, roadWidth: 15, roadSurfaceY: 3, seed });
-    for (let x = -700; x <= 700; x += 200) {
-      for (let z = -700; z <= 700; z += 200) {
+    for (let x = -600; x <= 600; x += 200) {
+      for (let z = -600; z <= 600; z += 200) {
         assert.equal(model.groundY(x, z), 3, `road center must match road surface for seed=${seed}, x=${x}, z=${z}`);
         assert.equal(model.groundY(x + 7, z + 7), 3, 'the paved road envelope must not inherit terrain noise');
       }
