@@ -207,7 +207,7 @@ export class CoastlineAIRuntime {
   districtType(seed) {
     return ['WATERFRONT', 'DOWNTOWN', 'RESIDENTIAL', 'INDUSTRIAL', 'PARKLAND', 'RETAIL'][seed % 6];
   }
-  report() {
+  npcCount() { const value = this.getNPCs?.(); return Array.isArray(value) ? value.length : (Number(value) || 0); }\n  report() {
     const info = this.renderer?.getContext?.();
     let gpu = 'unavailable';
     try { gpu = info?.getParameter(info.RENDERER) || 'browser-managed'; } catch {}
@@ -215,7 +215,7 @@ export class CoastlineAIRuntime {
       build: this.buildId, stage: this.stage, workerStatus: this.workerStatus, adaptiveBudget: this.budget, worldSummary: this.lastWorkerSummary, uptimeSeconds: Math.round((performance.now() - this.startedAt) / 1000),
       fps: Math.round(this.fps), averageFrameMs: Math.round(this.frameMs * 10) / 10,
       mode: this.getMode?.() || 'unknown', traffic: (this.getTraffic?.() || []).length,
-      npcCount: (this.getNPCs?.() || []).length, sceneChildren: this.scene?.children?.length || 0,
+      npcCount: this.npcCount(), sceneChildren: this.scene?.children?.length || 0,
       districtPlans: this.worldPlans, repairs: this.counts.repairs, warnings: this.counts.warnings,
       checks: this.counts.checks, webglContextLost: !!info?.isContextLost?.(), renderer: gpu,
       recentEvents: this.events.slice(0, 20)
@@ -228,7 +228,7 @@ export class CoastlineAIRuntime {
       ['BUILD', this.buildId], ['RUNTIME', this.stage], ['AI WORKER', this.workerStatus], ['QUALITY BUDGET', this.budget.quality], ['AI TICK TARGET', this.budget.aiHz + ' Hz'], ['DISTRICT CELLS', this.lastWorkerSummary.cells], ['FPS', this.fps ? Math.round(this.fps) : 'sampling…'],
       ['FRAME', this.frameMs ? this.frameMs.toFixed(1) + ' ms' : 'sampling…'],
       ['MODE', this.getMode?.() || 'unknown'], ['TRAFFIC', (this.getTraffic?.() || []).length],
-      ['NPCs', (this.getNPCs?.() || []).length], ['DISTRICT PLANS', this.worldPlans.length],
+      ['NPCs', this.npcCount()], ['DISTRICT PLANS', this.worldPlans.length],
       ['HEALTH CHECKS', this.counts.checks], ['SAFE REPAIRS', this.counts.repairs], ['WARNINGS', this.counts.warnings],
       ['PLAYER', player && this.finiteVector(player.position) ? [player.position.x, player.position.y, player.position.z].map(n => n.toFixed(1)).join(', ') : 'unavailable']
     ];
