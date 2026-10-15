@@ -33,7 +33,7 @@ await writeFile(path.join(output, 'coastline-sw.js'), sw);
 const packaged = new Set([...files, 'index.html']);
 for (const file of files.filter(name => name.endsWith('.js') || name.endsWith('.html'))) {
   const source = await readFile(path.join(output, file), 'utf8');
-  for (const match of source.matchAll(/(?:from\\s*|import\\s*)['"](.+?)['"]/g)) {
+  for (const match of source.matchAll(/(?:from\s*|import\s*)['"](.+?)['"]/g)) {
     const specifier = match[1];
     if (specifier.startsWith('./') && !packaged.has(specifier.slice(2))) {
       throw new Error(file + ' imports missing packaged dependency: ' + specifier);
@@ -42,7 +42,7 @@ for (const file of files.filter(name => name.endsWith('.js') || name.endsWith('.
 }
 const packagedIndex = await readFile(path.join(output, 'index.html'), 'utf8');
 if (packagedIndex !== html) throw new Error('Packaged index.html does not match the game entry point.');
-for (const match of sw.matchAll(/['"]\\.\\/([^'"]+)['"]/g)) {
+for (const match of sw.matchAll(/['"]\.\/([^'"]+)['"]/g)) {
   if (!packaged.has(match[1])) throw new Error('Service worker references missing packaged file: ' + match[1]);
 }
 console.log('Prepared and validated dist/itch-html with ' + (files.length + 1) + ' files.');
