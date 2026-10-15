@@ -14,12 +14,16 @@ test('packaged itch.io root entry boots with local gameplay modules', async ({ p
       state: api.state(),
       livingWorld: api.livingWorldState(),
       npcSlice: api.npcWorldSliceState(),
-      reputation: api.playerReputationState()
+      reputation: api.playerReputationState(),
+      socialRumors: api.socialRumorState(),
+      socialRumorRules: api.socialRumorRules()
     };
   });
   expect(systems.state.errors).toEqual([]);
   expect(systems.livingWorld.rules).toBeTruthy();
   expect(systems.npcSlice).toBeTruthy();
   expect(systems.reputation).toBeTruthy();
+  expect(systems.socialRumors.people.length).toBeGreaterThan(50);
+  expect(systems.socialRumorRules.noGlobalOmniscience).toBe(true);
   expect(pageErrors).toEqual([]);
 });
