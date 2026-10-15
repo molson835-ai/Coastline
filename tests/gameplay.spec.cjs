@@ -1,5 +1,17 @@
 const { test, expect } = require('@playwright/test');
 
+test('public beta launcher opens the feature-rich open-world runtime', async ({ page }) => {
+  const pageErrors = [];
+  page.on('pageerror', error => pageErrors.push(error.message));
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await page.waitForURL(url => url.pathname.endsWith('/game-v3.html') && url.searchParams.get('beta') === '20261015full18', { timeout: 15000 });
+  await expect(page.locator('canvas').first()).toBeAttached({ timeout: 20000 });
+  await expect(page.locator('#mode')).toHaveText('DRIVING');
+  await expect(page.locator('#coastMap')).toBeVisible();
+  expect(pageErrors, 'uncaught errors while launching the public beta').toEqual([]);
+});
+
+
 test('Coastline boots, exits a vehicle, shows the avatar, and supports walking turns', async ({ page }) => {
   const pageErrors = [];
   const consoleErrors = [];
