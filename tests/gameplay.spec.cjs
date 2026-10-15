@@ -69,23 +69,48 @@ test('vehicle steering follows left/right input and reverse builds usable negati
   await page.goto('/game-v3.html?beta=vehicle-controls-regression', { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => Boolean(window.__coastlineTest), null, { timeout: 20000 });
 
-  await page.evaluate(() => window.__coastlineTest.setVehiclePosition(0, 0, 0));
+  // Find a genuinely clear, straight road lane instead of assuming the default
+  // spawn is free of traffic, buildings, or roadside props.
+  const roadStart = await page.evaluate(() => {
+    const api = window.__coastlineTest;
+    const roster = api.vehicleRoster();
+    for (let x = -600; x <= 600; x += 200) {
+      for (let z = -600; z <= 580; z += 20) {
+        const p = { x, z };
+        const clear = !api.buildingBlocked(x, z, 2)
+          && !api.buildingBlocked(x, z + 12, 2)
+          && !roster.some(v => Math.hypot(v.x - x, v.z - z) < 20
+            || Math.hypot(v.x - x, v.z - (z + 12)) < 10);
+        if (clear && api.worldModel.isRoadCorridor(x, z)
+          && api.worldModel.isRoadCorridor(x, z + 12)) return p;
+      }
+    }
+    throw new Error('Could not locate a clear straight road lane for controls regression');
+  });
+  const resetCar = () => page.evaluate(({ x, z }) => window.__coastlineTest.setVehiclePosition(x, z, 0), roadStart);
+
+  await resetCar();
   await page.evaluate(() => window.__coastlineTest.keyDown('w'));
-  await page.waitForTimeout(700);
+  await page.waitForTimeout(350);
   await page.evaluate(() => window.__coastlineTest.keyUp('w'));
   const movingForward = await page.evaluate(() => window.__coastlineTest.state());
   expect(movingForward.vehicleSpeed, 'W should accelerate the car forward').toBeGreaterThan(2);
-  expect(Math.hypot(movingForward.x, movingForward.z), 'W should move the car').toBeGreaterThan(0.5);
+  expect(Math.hypot(movingForward.x - roadStart.x, movingForward.z - roadStart.z), 'W should move the car along the clear road').toBeGreaterThan(0.5);
 
+  await resetCar();
+  await page.evaluate(() => window.__coastlineTest.keyDown('w'));
+  await page.waitForTimeout(350);
+  await page.evaluate(() => window.__coastlineTest.keyUp('w'));
+  const beforeLeft = await page.evaluate(() => window.__coastlineTest.state());
   await page.evaluate(() => window.__coastlineTest.keyDown('a'));
   await page.waitForTimeout(500);
   await page.evaluate(() => window.__coastlineTest.keyUp('a'));
   const leftTurn = await page.evaluate(() => window.__coastlineTest.state());
-  expect(leftTurn.heading, 'A should steer left while driving forward').toBeLessThan(movingForward.heading);
+  expect(leftTurn.heading, 'A should steer left while driving forward').toBeLessThan(beforeLeft.heading);
 
-  await page.evaluate(() => window.__coastlineTest.setVehiclePosition(0, 0, 0));
+  await resetCar();
   await page.evaluate(() => window.__coastlineTest.keyDown('w'));
-  await page.waitForTimeout(700);
+  await page.waitForTimeout(350);
   await page.evaluate(() => window.__coastlineTest.keyUp('w'));
   await page.evaluate(() => window.__coastlineTest.keyDown('d'));
   await page.waitForTimeout(500);
@@ -93,11 +118,33 @@ test('vehicle steering follows left/right input and reverse builds usable negati
   const rightTurn = await page.evaluate(() => window.__coastlineTest.state());
   expect(rightTurn.heading, 'D should steer right while driving forward').toBeGreaterThan(0);
 
-  await page.evaluate(() => window.__coastlineTest.setVehiclePosition(0, 0, 0));
+  await resetCar();
   await page.evaluate(() => window.__coastlineTest.keyDown('s'));
-  await page.waitForTimeout(1000);
+  await page.waitForTimeout(500);
   await page.evaluate(() => window.__coastlineTest.keyUp('s'));
   const reversing = await page.evaluate(() => window.__coastlineTest.state());
   expect(reversing.vehicleSpeed, 'S should build useful reverse speed').toBeLessThan(-4);
   expect(errors, 'vehicle controls should not introduce runtime errors').toEqual([]);
+});
+
+test('landmark discoveries award cash once and persist across reloads', async ({ page }) => {
+  await page.goto('/game-v3.html?beta=landmark-discovery-regression', { waitUntil: 'domcontentloaded' });
+  await page.waitForFunction(() => Boolean(window.__coastlineTest), null, { timeout: 20000 });
+  await page.evaluate(() => localStorage.removeItem('coastline-discovered-landmarks-v1'));
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await page.waitForFunction(() => Boolean(window.__coastlineTest), null, { timeout: 20000 });
+  const before = await page.evaluate(() => ({ cash: window.__coastlineTest.state().cashBalance, landmark: window.__coastlineTest.landmarkRoster()[0] }));
+  await page.evaluate(({ x, z }) => {
+    const api = window.__coastlineTest;
+    api.setWalkPosition(x, z, 0);
+    api.checkLandmarkDiscovery();
+  }, before.landmark);
+  const after = await page.evaluate(() => ({ cash: window.__coastlineTest.state().cashBalance, state: window.__coastlineTest.landmarkDiscoveryState() }));
+  expect(after.cash).toBe(before.cash + 150);
+  expect(after.state.discovered).toContain(before.landmark.id);
+  await page.evaluate(() => window.__coastlineTest.checkLandmarkDiscovery());
+  expect(await page.evaluate(() => window.__coastlineTest.state().cashBalance)).toBe(after.cash);
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await page.waitForFunction(() => Boolean(window.__coastlineTest), null, { timeout: 20000 });
+  expect(await page.evaluate(() => window.__coastlineTest.landmarkDiscoveryState().discovered)).toContain(before.landmark.id);
 });
