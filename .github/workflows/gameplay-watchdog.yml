@@ -66,7 +66,7 @@ jobs:
         run: |
           npx http-server . -p 4173 -c-1 > /tmp/coastline-server.log 2>&1 &
           for i in {1..30}; do
-            curl -fsS http://127.0.0.1:4173/game-v3.html >/dev/null && exit 0
+            curl -fsS http://127.0.0.1:4173/index.html >/dev/null && exit 0
             sleep 1
           done
           cat /tmp/coastline-server.log
