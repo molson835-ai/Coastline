@@ -1,1 +1,47 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Coastline Beta</title><style>html,body{height:100%;margin:0;background:#071722;color:white;font-family:system-ui;display:grid;place-items:center}a{color:#8debf5}</style></head><body><div>Restoring full Coastline Beta…<a id="enter" href="coastline-cinematic-v2.html?beta=20261015restore17">Enter game</a></div><script>(async()=>{try{if('serviceWorker' in navigator){const regs=await navigator.serviceWorker.getRegistrations();await Promise.all(regs.map(r=>r.unregister()))}if('caches' in window){const keys=await caches.keys();await Promise.all(keys.map(k=>caches.delete(k)))}}catch(e){console.warn('Coastline cache reset skipped:',e)}location.replace('coastline-cinematic-v2.html?beta=20261015restore17')})()</script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#071722">
+  <title>Coastline Beta</title>
+  <style>
+    html,body{min-height:100%;margin:0;background:#071722;color:#f2fbff;font-family:system-ui,sans-serif}
+    body{display:grid;place-items:center;padding:24px;box-sizing:border-box}
+    main{width:min(560px,100%);padding:24px;box-sizing:border-box;border:1px solid #ffffff24;border-radius:18px;background:#0a202b}
+    h1{margin:0 0 8px;letter-spacing:.16em;font-size:24px}
+    p{color:#bad4dc;line-height:1.5}
+    a{color:#8debf5}
+    .primary{display:inline-block;margin:10px 0;padding:12px 16px;border-radius:10px;background:#167e99;color:white;text-decoration:none;font-weight:800}
+    .small{font-size:12px;color:#91adb6}
+  </style>
+</head>
+<body>
+  <main>
+    <h1>COASTLINE</h1>
+    <p id="status">Starting the full open-world beta, including driving, on-foot exploration, rideable vehicles, interiors, traffic, missions, and living-world systems…</p>
+    <a class="primary" id="enter" href="./game-v3.html?beta=20261015full18">Enter full beta</a>
+    <p class="small">If automatic launch does not begin, use Enter full beta. The earlier visual-only build remains available <a href="./coastline-visual.html">here</a> as a fallback.</p>
+  </main>
+  <script>
+    (async()=>{
+      const target='./game-v3.html?beta=20261015full18';
+      try{
+        if('serviceWorker' in navigator){
+          const regs=await navigator.serviceWorker.getRegistrations();
+          await Promise.all(regs.map(reg=>reg.unregister()));
+        }
+        if('caches' in window){
+          const keys=await caches.keys();
+          await Promise.all(keys.map(key=>caches.delete(key)));
+        }
+      }catch(error){
+        console.warn('Coastline cache refresh was skipped:',error);
+      }
+      document.getElementById('status').textContent='Opening the full Coastline open-world beta…';
+      location.replace(target);
+    })();
+  </script>
+</body>
+</html>
