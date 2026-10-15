@@ -40,6 +40,9 @@ test('buildings, benches, low walls, bicycles, motorcycles and aircraft are inte
   await page.evaluate(() => window.__coastlineTest.keyDown('space'));
   try {
     await expect.poll(async () => page.evaluate(() => window.__coastlineTest.state().jumpHeight), { timeout: 1500 }).toBeGreaterThan(0);
+  } catch (error) {
+    const debug = await page.evaluate(() => window.__coastlineTest.state());
+    throw new Error(`${error.message}\\nJump diagnostics: ${JSON.stringify({ mode: debug.mode, jumpHeight: debug.jumpHeight, jumpVelocity: debug.jumpVelocity, paused: debug.paused, spacePressed: debug.spacePressed, sitting: debug.sitting, errors: debug.errors })}`);
   } finally {
     await page.evaluate(() => window.__coastlineTest.keyUp('space'));
   }
