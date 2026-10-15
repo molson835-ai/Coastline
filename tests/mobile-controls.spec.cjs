@@ -7,13 +7,13 @@ test('mobile driving controls are visible and operate the vehicle', async ({ pag
   await page.waitForFunction(() => Boolean(window.__coastlineTest), null, { timeout: 30000 });
 
   const forward = page.getByRole('button', { name: 'Forward' });
-  const left = page.getByRole('button', { name: 'Steer left' });
+  const left = page.getByRole('button', { name: 'Steer or turn left' });
   const action = page.locator('#actionButton');
 
   await expect(forward).toBeVisible();
   await expect(page.getByRole('button', { name: 'Reverse' })).toBeVisible();
   await expect(left).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Steer right' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Steer or turn right' })).toBeVisible();
   await expect(action).toBeVisible();
 
   // Find an open stretch away from other vehicles and solid world props so this test measures controls, not spawn placement.

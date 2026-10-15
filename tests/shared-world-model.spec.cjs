@@ -7,6 +7,7 @@ test('shared world model provides deterministic terrain, road corridors, and reg
     const world = window.__coastlineTest.worldModel;
     return {
       sameGround: world.groundY(123, 237) === world.groundY(123, 237),
+      buildingPadHeights: [[-540,-540],[-500,-500],[-460,-460],[-440,-500]].map(([x,z]) => world.groundY(x,z)),
       roadCenterHeight: world.groundY(200, 237),
       roadCorridor: world.isRoadCorridor(200, 237),
       offRoadCorridor: world.isRoadCorridor(123, 237),
@@ -20,6 +21,7 @@ test('shared world model provides deterministic terrain, road corridors, and reg
     };
   });
   expect(result.sameGround).toBe(true);
+  expect(Math.max(...result.buildingPadHeights) - Math.min(...result.buildingPadHeights)).toBeLessThan(0.001);
   expect(result.roadCenterHeight).toBeCloseTo(3, 3);
   expect(result.roadCorridor).toBe(true);
   expect(result.offRoadCorridor).toBe(false);
