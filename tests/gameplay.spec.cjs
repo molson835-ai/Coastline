@@ -4,7 +4,7 @@ test('public beta launcher opens the feature-rich open-world runtime', async ({ 
   const pageErrors = [];
   page.on('pageerror', error => pageErrors.push(error.message));
   await page.goto('/', { waitUntil: 'domcontentloaded' });
-  await page.waitForURL(url => url.pathname.endsWith('/game-v3.html') && url.searchParams.get('beta') === '20261015full18', { timeout: 15000 });
+  await page.waitForURL(url => url.pathname.endsWith('/game-v3.html') && url.searchParams.get('beta') === '20261015full19', { timeout: 15000 });
   await expect(page.locator('canvas').first()).toBeAttached({ timeout: 20000 });
   await expect(page.locator('#mode')).toHaveText('DRIVING');
   await expect(page.locator('#coastMap')).toBeVisible();
@@ -75,12 +75,23 @@ test('vehicle steering follows left/right input and reverse builds usable negati
   await page.evaluate(() => window.__coastlineTest.keyUp('w'));
   const movingForward = await page.evaluate(() => window.__coastlineTest.state());
   expect(movingForward.vehicleSpeed, 'W should accelerate the car forward').toBeGreaterThan(2);
+  expect(Math.hypot(movingForward.x, movingForward.z), 'W should move the car').toBeGreaterThan(0.5);
 
   await page.evaluate(() => window.__coastlineTest.keyDown('a'));
   await page.waitForTimeout(500);
   await page.evaluate(() => window.__coastlineTest.keyUp('a'));
   const leftTurn = await page.evaluate(() => window.__coastlineTest.state());
   expect(leftTurn.heading, 'A should steer left while driving forward').toBeLessThan(movingForward.heading);
+
+  await page.evaluate(() => window.__coastlineTest.setVehiclePosition(0, 0, 0));
+  await page.evaluate(() => window.__coastlineTest.keyDown('w'));
+  await page.waitForTimeout(700);
+  await page.evaluate(() => window.__coastlineTest.keyUp('w'));
+  await page.evaluate(() => window.__coastlineTest.keyDown('d'));
+  await page.waitForTimeout(500);
+  await page.evaluate(() => window.__coastlineTest.keyUp('d'));
+  const rightTurn = await page.evaluate(() => window.__coastlineTest.state());
+  expect(rightTurn.heading, 'D should steer right while driving forward').toBeGreaterThan(0);
 
   await page.evaluate(() => window.__coastlineTest.setVehiclePosition(0, 0, 0));
   await page.evaluate(() => window.__coastlineTest.keyDown('s'));
