@@ -57,7 +57,7 @@ export function createSocialRumorEngine({ seed = 'coastline-rumors-v1', people =
     const rumor = { id: rumorId, topic, sourceId: source.id, location: String(location), claim: String(claim), evidence, confidence: clamp(confidence, 0, 1), createdAt: Number(time) || 0, lastSpreadAt: Number(time) || 0, history: [{ personId: source.id, time: Number(time) || 0, confidence: clamp(confidence, 0, 1), claim: String(claim), evidence }] };
     rumors.push(rumor); seen.add(rumorId);
     source.knowledge[topic] = { rumorId, confidence: rumor.confidence, claim: rumor.claim, learnedAt: rumor.createdAt, sourceId: source.id };
-    if (rumors.length > maxRumors) { const removed = rumors.shift(); seen.delete(removed.id); for (const p of roster.values()) if (p.knowledge[topic]?.rumorId === removed.id) delete p.knowledge[topic]; }
+    if (rumors.length > maxRumors) { const removed = rumors.shift(); seen.delete(removed.id); for (const p of roster.values()) if (p.knowledge[removed.topic]?.rumorId === removed.id) delete p.knowledge[removed.topic]; }
     return { ...rumor, history: rumor.history.map(x => ({ ...x })) };
   }
   return Object.freeze({
