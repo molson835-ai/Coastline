@@ -15,6 +15,7 @@ export class CoastlineLiveOps {
     this.lastHudAt = 0;
     this.dayKey = this.getDayKey();
     this.events = this.makeRotation(this.dayKey);
+    this.loadProgress();
     this.makeUI();
     this.bindKeys();
     this.onNotice('LIVE WORLD DIRECTOR ONLINE · FRESH ACTIVITIES ROTATE DAILY');
@@ -22,6 +23,31 @@ export class CoastlineLiveOps {
   getDayKey() {
     const d = new Date();
     return d.getUTCFullYear() * 1000 + Math.floor((Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) - Date.UTC(d.getUTCFullYear(), 0, 1)) / 86400000);
+  }
+  loadProgress() {
+    try {
+      const raw = localStorage.getItem('coastline-live-ops-v1');
+      if (!raw) return;
+      const saved = JSON.parse(raw);
+      if (!saved || saved.version !== 1) return;
+      this.credits = Number.isFinite(saved.credits) ? Math.max(0, Math.floor(saved.credits)) : 0;
+      this.xp = Number.isFinite(saved.xp) ? Math.max(0, Math.floor(saved.xp)) : 0;
+      this.completed = new Set(Array.isArray(saved.completed) ? saved.completed.filter(k => typeof k === 'string').slice(-500) : []);
+    } catch (_) {
+      // Private browsing or storage restrictions must never prevent the game from starting.
+    }
+  }
+  saveProgress() {
+    try {
+      localStorage.setItem('coastline-live-ops-v1', JSON.stringify({
+        version: 1,
+        credits: this.credits,
+        xp: this.xp,
+        completed: Array.from(this.completed).slice(-500)
+      }));
+    } catch (_) {
+      // Progress still works for the current session if storage is unavailable.
+    }
   }
   makeRotation(day) {
     const catalog = [
@@ -133,6 +159,7 @@ export class CoastlineLiveOps {
     const e = this.active;
     if (!e) return;
     this.completed.add(e.key); this.credits += e.reward; this.xp += e.xp;
+    this.saveProgress();
     this.onNotice('ACTIVITY COMPLETE · +' + e.reward + ' CREDITS · +' + e.xp + ' XP');
     this.active = null; this.lastPosition = null; this.hud.style.display = 'none'; this.render();
   }
