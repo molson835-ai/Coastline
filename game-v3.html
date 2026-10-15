@@ -178,7 +178,7 @@ function buildRowhomeDistrict(){
     -7.25,0,6.8, 0,2.45,6.8, 7.25,0,6.8,
     -7.25,0,-6.8, 0,2.45,-6.8, 7.25,0,-6.8
   ],3));
-  roofGeo.setIndex([0,1,2,0,2,3,4,6,5,4,7,6,8,9,10,11,13,12]);roofGeo.computeVertexNormals();
+  roofGeo.setIndex([0,2,1,0,3,2,4,5,6,4,6,7,8,10,9,11,12,13]);roofGeo.computeVertexNormals();
   const roof=make(roofGeo,M(0x303c4a,.86),homes.length);
   const door=make(box(1.35,2.35,.1),M(0x50372a,.75),homes.length);
   const windows=make(box(2.25,1.35,.08),new THREE.MeshStandardMaterial({color:0x2c4a59,roughness:.18,metalness:.12}),homes.length*4);
