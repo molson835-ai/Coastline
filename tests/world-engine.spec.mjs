@@ -106,3 +106,42 @@ test('simulation scheduler staggers actors and caps per-step work', () => {
   assert.equal(scheduler.size(), first.length + second.length);
   assert.equal(scheduler.select([{ id: 'far', lod: 3 }], 10).length, 0);
 });
+
+
+test('road surface stays flat at every generated grid crossing', () => {
+  for (const seed of [0, 7, 19]) {
+    const model = createWorldModel({ citySize: 1500, roadSpacing: 200, roadWidth: 15, roadSurfaceY: 3, seed });
+    for (let x = -700; x <= 700; x += 200) {
+      for (let z = -700; z <= 700; z += 200) {
+        assert.equal(model.groundY(x, z), 3, `road center must match road surface for seed=${seed}, x=${x}, z=${z}`);
+        assert.equal(model.groundY(x + 7, z + 7), 3, 'the paved road envelope must not inherit terrain noise');
+      }
+    }
+  }
+});
+
+test('terrain heights and normals remain finite and continuous around road edges', () => {
+  const model = createWorldModel({ citySize: 1500, roadSpacing: 200, roadWidth: 15, roadSurfaceY: 3, seed: 41 });
+  for (let x = -740; x <= 740; x += 13) {
+    for (const z of [-613, -211, -8, 17, 199, 407, 721]) {
+      const y = model.groundY(x, z);
+      const normal = model.groundNormal(x, z);
+      assert.ok(Number.isFinite(y), `non-finite terrain height at ${x},${z}`);
+      assert.ok([normal.x, normal.y, normal.z].every(Number.isFinite), `non-finite normal at ${x},${z}`);
+      assert.ok(normal.y > 0 && normal.y <= 1, `invalid terrain normal at ${x},${z}`);
+      const next = model.groundY(x + 0.25, z);
+      assert.ok(Math.abs(next - y) < 0.5, `terrain discontinuity at ${x},${z}: ${y} -> ${next}`);
+    }
+  }
+});
+
+test('world regions, roads and terrain are deterministic for a fixed seed', () => {
+  const a = createWorldModel({ seed: 2026 });
+  const b = createWorldModel({ seed: 2026 });
+  for (const [x, z] of [[0, 0], [199, 201], [-412, 80], [610, -580], [720, 700]]) {
+    assert.equal(a.groundY(x, z), b.groundY(x, z));
+    assert.deepEqual(a.groundNormal(x, z), b.groundNormal(x, z));
+    assert.equal(a.regionAt(x, z), b.regionAt(x, z));
+    assert.equal(a.isRoadCorridor(x, z), b.isRoadCorridor(x, z));
+  }
+});
