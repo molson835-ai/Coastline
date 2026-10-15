@@ -207,7 +207,8 @@ export class CoastlineAIRuntime {
   districtType(seed) {
     return ['WATERFRONT', 'DOWNTOWN', 'RESIDENTIAL', 'INDUSTRIAL', 'PARKLAND', 'RETAIL'][seed % 6];
   }
-  npcCount() { const value = this.getNPCs?.(); return Array.isArray(value) ? value.length : (Number(value) || 0); }\n  report() {
+  npcCount() { const value = this.getNPCs?.(); return Array.isArray(value) ? value.length : (Number(value) || 0); }
+  report() {
     const info = this.renderer?.getContext?.();
     let gpu = 'unavailable';
     try { gpu = info?.getParameter(info.RENDERER) || 'browser-managed'; } catch {}
