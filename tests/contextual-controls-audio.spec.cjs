@@ -33,6 +33,15 @@ test('mobile controls change with gameplay mode and audio toggle responds', asyn
   await audioToggle.click();
   await expect(audioToggle).toHaveText('SOUND ON');
 
+  // Ambient sound should follow the world instead of being one identical loop everywhere.
+  await page.evaluate(() => window.__coastlineTest.setWalkPosition(0, 0, 0));
+  const cityAudio = await page.evaluate(() => window.__coastlineTest.audioState());
+  await page.evaluate(() => window.__coastlineTest.setWalkPosition(400, 300, 0));
+  const countrysideAudio = await page.evaluate(() => window.__coastlineTest.audioState());
+  expect(cityAudio.region).toBe('city');
+  expect(countrysideAudio.region).toBe('countryside');
+  expect(cityAudio.ambientLevel, 'city ambience should be denser than countryside ambience').toBeGreaterThan(countrysideAudio.ambientLevel);
+
   expect(runtimeErrors).toEqual([]);
   expect(await page.evaluate(() => window.__coastlineTest.state().errors)).toEqual([]);
 });
