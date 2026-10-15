@@ -31,7 +31,7 @@ for(let i=0;i<86;i++){const x=(i*137)%1024,w=8+(i*17)%28,h=16+(i*31)%94;reflecti
 const envTexture=new THREE.CanvasTexture(reflectionCanvas);envTexture.mapping=THREE.EquirectangularReflectionMapping;envTexture.colorSpace=THREE.SRGBColorSpace;scene.environment=envTexture;scene.environmentIntensity=.72;
 const composer=new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene,camera));
-const bloomPass=new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),.22,.28,.82);
+const bloomPass=new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),.29,.32,.78);
 composer.addPass(bloomPass);
 composer.addPass(new OutputPass());
 if(lowPowerDevice)bloomPass.enabled=false;
