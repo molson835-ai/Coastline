@@ -22,9 +22,12 @@ for (const file of files) await copyFile(path.join(root, file), path.join(output
 const html = await readFile(path.join(root, 'game-v3.html'), 'utf8');
 await writeFile(path.join(output, 'index.html'), html);
 let sw = await readFile(path.join(output, 'coastline-sw.js'), 'utf8');
-sw = sw.replace('coastline-static-v7', 'coastline-static-v8');
-sw = sw.replace("const CORE=['./','./game-v3.html'", "const CORE=['./','./index.html','./game-v3.html'");
-if (!sw.includes("'./index.html'") || !sw.includes('coastline-static-v8')) {
+// The website cache may have advanced independently. Give the standalone package
+// its own version and cache only files that are actually shipped in this package.
+sw = sw.replace(/const CACHE_NAME='[^']+';/, "const CACHE_NAME='coastline-itch-static-v1';");
+const packagedCore = ['./', './index.html', ...files.map(file => './' + file)];
+sw = sw.replace(/const CORE=\[[^\]]*\];/, "const CORE=[" + packagedCore.map(file => "'" + file + "'").join(',') + "];");
+if (!sw.includes("'./index.html'") || !sw.includes('coastline-itch-static-v1')) {
   throw new Error('Unable to configure service-worker cache for the packaged entry point.');
 }
 await writeFile(path.join(output, 'coastline-sw.js'), sw);
