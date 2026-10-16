@@ -1,0 +1,12 @@
+COASTLINE ANDROID MINIMAL TEST
+
+This branch is intentionally tiny. It contains only the files needed to prove that the Godot Android editor can recognize and open a project.
+
+Required project root files:
+- project.godot
+- main.tscn
+- scripts/main.gd
+
+Do NOT rename project.godot or add an extension such as .txt.
+
+If Godot can open this project and displays 'COASTLINE - Godot Android test OK', the Android editor/import path is working and we can replace this smoke test with the full Coastline scene.
