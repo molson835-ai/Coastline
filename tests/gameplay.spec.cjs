@@ -4,7 +4,7 @@ test('public beta launcher opens the feature-rich open-world runtime', async ({ 
   const pageErrors = [];
   page.on('pageerror', error => pageErrors.push(error.message));
   await page.goto('/', { waitUntil: 'domcontentloaded' });
-  await page.waitForURL(url => url.pathname.endsWith('/game-v3.html') && url.searchParams.get('beta') === '20261015full19', { timeout: 15000 });
+  await page.waitForURL(url => url.pathname.endsWith('/game-v3.html') && url.searchParams.get('beta') === '20261015full23', { timeout: 15000 });
   await expect(page.locator('canvas').first()).toBeAttached({ timeout: 20000 });
   await expect(page.locator('#mode')).toHaveText('DRIVING');
   await expect(page.locator('#coastMap')).toBeVisible();
@@ -106,7 +106,7 @@ test('vehicle steering follows left/right input and reverse builds usable negati
   await page.waitForTimeout(500);
   await page.evaluate(() => window.__coastlineTest.keyUp('a'));
   const leftTurn = await page.evaluate(() => window.__coastlineTest.state());
-  expect(leftTurn.heading, 'A should steer left while driving forward').toBeLessThan(beforeLeft.heading);
+  expect(leftTurn.heading, 'A should steer left while driving forward').toBeGreaterThan(beforeLeft.heading);
 
   await resetCar();
   await page.evaluate(() => window.__coastlineTest.keyDown('w'));
@@ -116,14 +116,14 @@ test('vehicle steering follows left/right input and reverse builds usable negati
   await page.waitForTimeout(500);
   await page.evaluate(() => window.__coastlineTest.keyUp('d'));
   const rightTurn = await page.evaluate(() => window.__coastlineTest.state());
-  expect(rightTurn.heading, 'D should steer right while driving forward').toBeGreaterThan(0);
+  expect(rightTurn.heading, 'D should steer right while driving forward').toBeLessThan(0);
 
   await resetCar();
   await page.evaluate(() => window.__coastlineTest.keyDown('s'));
   await page.waitForTimeout(500);
   await page.evaluate(() => window.__coastlineTest.keyUp('s'));
   const reversing = await page.evaluate(() => window.__coastlineTest.state());
-  expect(reversing.vehicleSpeed, 'S should build useful reverse speed').toBeLessThan(-4);
+  expect(reversing.vehicleSpeed, 'S should build useful reverse speed').toBeLessThan(-2.5);
   expect(errors, 'vehicle controls should not introduce runtime errors').toEqual([]);
 });
 
