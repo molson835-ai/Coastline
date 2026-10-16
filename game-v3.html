@@ -462,9 +462,9 @@ $("sendAiDiag").addEventListener("click",async()=>{
   const response=await fetch(COASTLINE_AI_ENDPOINT,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(payload),mode:"cors",credentials:"omit"});
   const data=await response.json();
   if(!response.ok||!data.ok)throw new Error("AI endpoint returned HTTP "+response.status);
-  const findingText=(data.findings||[]).map(f=>f.severity.toUpperCase()+" · "+f.area+": "+f.finding).join("\\n");
-  const modelText=data.modelResponse?"\\nAI development director: "+String(data.modelResponse).slice(0,1600):"\\nModel response unavailable; deterministic findings returned.";
-  status.textContent="Diagnosis received · "+(data.model||"fallback rules")+"\\n"+findingText+modelText+"\\nNo code was changed or deployed by this report.";
+  const findingText=(data.findings||[]).map(f=>f.severity.toUpperCase()+" · "+f.area+": "+f.finding).join("\n");
+  const modelText=data.modelResponse?"\nAI development director: "+String(data.modelResponse).slice(0,1600):"\nModel response unavailable; deterministic findings returned.";
+  status.textContent="Diagnosis received · "+(data.model||"fallback rules")+"\n"+findingText+modelText+"\nNo code was changed or deployed by this report.";
  }catch(error){status.textContent="Could not reach Coastline AI: "+String(error.message||error)+". You can still copy the local report. No game code was changed."}
  finally{button.disabled=false;button.textContent="SEND PERFORMANCE DATA TO COASTLINE AI"}
 });
