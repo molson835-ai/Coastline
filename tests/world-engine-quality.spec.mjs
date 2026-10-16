@@ -29,7 +29,7 @@ test('camera smoothing is time-based instead of a per-frame fixed lerp', () => {
 test('sunset keeps local visibility and distant fog under control', () => {
   assert.match(html, /renderer\.toneMappingExposure=1\.22/);
   assert.match(html, /sun\.intensity=\.42\+daylight\*1\.8\+sunset\*\.42/);
-  assert.match(html, /intensity=\.72\+daylight\*1\.05\+sunset\*\.28/);
+  assert.match(html, /intensity=\.95\+daylight\*1\.05\+sunset\*\.28/);
   assert.match(html, /scene\.fog\.density=fogBase\+\(1-daylight\)\*\.00012/);
 });
 
