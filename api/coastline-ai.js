@@ -1,0 +1,101 @@
+export const config = { runtime: 'nodejs' };
+
+const MODEL = process.env.COASTLINE_AI_MODEL || 'reflection/beam-free';
+const MAX_BODY = 64 * 1024;
+const CONTROL_TOKEN = process.env.COASTLINE_AI_CONTROL_TOKEN || '';
+
+const json = (status, body) => new Response(JSON.stringify(body), {
+  status,
+  headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' }
+});
+
+function safeText(value, max = 6000) {
+  return typeof value === 'string' ? value.slice(0, max) : '';
+}
+
+function summarizeTelemetry(t = {}) {
+  return {
+    fps: Number(t.fps) || 0,
+    frameMs: Number(t.frameMs) || 0,
+    slowFrames: Number(t.slowFrames) || 0,
+    farViewScale: Number(t.farViewScale) || 1,
+    traffic: Number(t.traffic) || 0,
+    npcs: Number(t.npcs) || 0,
+    sceneChildren: Number(t.sceneChildren) || 0,
+    mode: safeText(t.mode, 80),
+    highSpeed: !!t.highSpeed,
+    notes: safeText(t.notes, 1200)
+  };
+}
+
+function deterministicDiagnosis(t) {
+  const findings = [];
+  if (t.frameMs >= 28 || (t.fps > 0 && t.fps < 36)) {
+    findings.push({ area: 'performance', severity: 'high', finding: 'Frame budget is above the 60 FPS target; prioritize CPU/GPU work before adding visual density.' });
+  }
+  if (t.highSpeed && (t.frameMs >= 24 || (t.fps > 0 && t.fps < 42))) {
+    findings.push({ area: 'high-speed', severity: 'high', finding: 'High-speed frame pacing remains constrained; inspect collision, traffic/NPC simulation, and distant rendering workload.' });
+  }
+  if (t.traffic > 40) findings.push({ area: 'traffic', severity: 'medium', finding: 'Traffic population is large enough to justify distance-based simulation throttling.' });
+  if (t.npcs > 60) findings.push({ area: 'npc', severity: 'medium', finding: 'NPC population is large enough to justify near/mid/far simulation tiers.' });
+  if (t.sceneChildren > 2500) findings.push({ area: 'rendering', severity: 'medium', finding: 'Scene graph is large; investigate visibility, instancing, batching, and LOD before increasing geometry.' });
+  if (!findings.length) findings.push({ area: 'health', severity: 'low', finding: 'No immediate threshold violation; continue collecting telemetry before changing the visual budget.' });
+  return findings;
+}
+
+async function askModel(t, context = '') {
+  const key = process.env.AI_GATEWAY_API_KEY;
+  if (!key) return null;
+  const prompt = `You are the Coastline Development Director. You improve an original family-friendly open-world driving game.\n\nRules: never suggest copying proprietary game code; prefer architecture patterns and original implementations. Protect the stable beta. Prioritize frame time, regression safety, and small reversible changes. Do not claim a fix is validated unless a build/test/benchmark actually ran.\n\nTelemetry:\n${JSON.stringify(t)}\n\nRepository context:\n${safeText(context, 5000)}\n\nReturn concise JSON with keys: priority, diagnosis, actions, validation. actions must be an array of 1-4 concrete engineering actions. validation must be an array of tests/benchmarks required before promotion.`;
+  const response = await fetch('https://ai-gateway.vercel.sh/v1/chat/completions', {
+    method: 'POST',
+    headers: { authorization: `Bearer ${key}`, 'content-type': 'application/json' },
+    body: JSON.stringify({
+      model: MODEL,
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.1,
+      max_tokens: 900
+    })
+  });
+  if (!response.ok) throw new Error(`AI Gateway ${response.status}`);
+  const data = await response.json();
+  return data?.choices?.[0]?.message?.content || null;
+}
+
+export default async function handler(req) {
+  if (req.method === 'GET') {
+    return json(200, {
+      service: 'Coastline AI Control Plane',
+      version: '0.1.0',
+      mode: process.env.AI_GATEWAY_API_KEY ? 'model-enabled' : 'deterministic-fallback',
+      model: MODEL,
+      capabilities: ['telemetry-diagnosis', 'engineering-planning', 'validation-gates'],
+      mutationPolicy: 'proposal-only until branch/build/test tooling is explicitly enabled'
+    });
+  }
+  if (req.method !== 'POST') return json(405, { error: 'Method not allowed' });
+  if (CONTROL_TOKEN) {
+    const auth = req.headers.get('authorization') || '';
+    if (auth !== `Bearer ${CONTROL_TOKEN}`) return json(401, { error: 'Unauthorized' });
+  }
+  const length = Number(req.headers.get('content-length') || 0);
+  if (length > MAX_BODY) return json(413, { error: 'Payload too large' });
+  let body;
+  try { body = await req.json(); } catch { return json(400, { error: 'Invalid JSON' }); }
+  const telemetry = summarizeTelemetry(body.telemetry || body);
+  const findings = deterministicDiagnosis(telemetry);
+  let model = null;
+  try { model = await askModel(telemetry, body.context); }
+  catch (error) { model = null; }
+  return json(200, {
+    ok: true,
+    service: 'coastline-ai-control-plane',
+    version: '0.1.0',
+    model: model ? MODEL : null,
+    findings,
+    modelResponse: model,
+    next: findings.some(f => f.severity === 'high') ? 'performance-investigation' : 'continue-observation',
+    safeMode: true,
+    timestamp: new Date().toISOString()
+  });
+}
