@@ -42,5 +42,7 @@ jobs:
           exit 1
       - name: Syntax-check AI control plane
         run: node --check api/coastline-ai.js
+      - name: Syntax-check AI correction worker
+        run: node --check scripts/coastline-ai-correction.mjs
       - name: Run engine, systems, and gameplay tests
         run: npm test
