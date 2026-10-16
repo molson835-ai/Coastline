@@ -12,14 +12,19 @@
     .card{background:#06141ddd;border:1px solid #ffffff25;border-radius:14px;padding:10px 12px;backdrop-filter:blur(8px)}
     .brand{font-weight:900;letter-spacing:.18em}.sub{font-size:9px;color:#9fd5df;letter-spacing:.08em;margin-top:3px}
     #status{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#06141de8;border:1px solid #ffffff25;border-radius:12px;padding:9px 13px;font-size:11px;color:#d7f7fb;pointer-events:none;white-space:nowrap}
+    #mission{position:fixed;top:76px;left:12px;max-width:min(320px,calc(100vw - 24px));padding:10px 12px;background:#06141ddd;border:1px solid #ffffff25;border-radius:12px;color:#d7f7fb;font-size:11px;line-height:1.55;white-space:pre-line;pointer-events:none;text-shadow:0 1px 3px #000}
+    #toast{position:fixed;left:50%;bottom:62px;transform:translate(-50%,8px);opacity:0;background:#06141df2;border:1px solid #7be7e755;border-radius:12px;padding:10px 14px;color:#fff;font-size:12px;max-width:calc(100vw - 32px);text-align:center;pointer-events:none;transition:opacity .2s ease,transform .2s ease}
+    #toast.visible{opacity:1;transform:translate(-50%,0)}
     #touch{display:none;position:fixed;inset:auto 12px 14px;justify-content:space-between;pointer-events:none}
     .cluster{display:grid;grid-template-columns:repeat(3,52px);gap:6px;pointer-events:auto}.cluster button{width:52px;height:52px;border:1px solid #ffffff45;border-radius:14px;background:#06141de8;color:#fff;font-weight:900;font-size:18px;touch-action:none}
-    @media(max-width:760px){#touch{display:flex}.sub{display:none}.card{padding:8px 10px}#status{bottom:82px;font-size:10px}}
+    @media(max-width:760px){#touch{display:flex}.sub{display:none}.card{padding:8px 10px}#status{bottom:82px;font-size:10px}#mission{top:62px;font-size:10px;max-width:235px}#toast{bottom:138px;font-size:11px}}
   </style>
 </head>
 <body>
   <canvas id="renderCanvas"></canvas>
   <div id="hud"><div class="card"><div class="brand">COASTLINE</div><div class="sub">BABYLON FOUNDATION · WEBGL / WEBGPU</div></div><div class="card" id="fps">FPS —</div></div>
+  <div id="mission">DISCOVERIES  0 / 5\nExplore the street grid and collect glowing markers</div>
+  <div id="toast" role="status" aria-live="polite"></div>
   <div id="status">Booting Babylon foundation…</div>
   <div id="touch"><div class="cluster"><button data-key="a">◀</button><button data-key="w">▲</button><button data-key="d">▶</button><button data-key="s">▼</button></div><div class="cluster"><button data-key="space">JUMP</button></div></div>
   <script src="https://cdn.babylonjs.com/babylon.js"></script>
