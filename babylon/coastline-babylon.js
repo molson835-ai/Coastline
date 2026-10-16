@@ -207,7 +207,7 @@
   let discoveries = 0;
   let toastUntil = 0;
   const showToast = message => { toast.textContent = message; toast.classList.add('visible'); toastUntil = performance.now() + 3200; };
-  const updateMission = () => { mission.textContent = 'DISCOVERIES  ' + discoveries + ' / ' + pickups.length + '\\nExplore the street grid and collect glowing markers'; };
+  const updateMission = () => { mission.textContent = 'DISCOVERIES  ' + discoveries + ' / ' + pickups.length + '\nExplore the street grid and collect glowing markers'; };
   updateMission();
 
   const motion = { speed: 0, heading: 0, x: car.position.x, z: car.position.z };
