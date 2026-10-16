@@ -1,24 +1,49 @@
-const CACHE_NAME='coastline-static-v14';
+const CACHE_NAME='coastline-static-v15';
 const CORE=['./','./index.html','./coastline-cinematic-v2.html','./game-v3.html','./world-model.js','./world-engine.js','./living-world.js','./douglassville-layout.js','./realism-library.js','./presentation-runtime.js','./cinematic-visual-library.js','./cinematic-animation-library.js','./cinematic-environment-library.js','./replayability-engine.js','./npc-agency-engine.js','./npc-world-slice.js','./social-rumor-engine.js','./player-reputation-engine.js','./coastline-ai-runtime.js','./coastline-ai-worker.js','./coastline-live-ops.js','./coastline-ai-devs.js'];
-const FULL_BETA_PATCH=`<script id="coastline-full-beta-upgrades">(()=>{\n'use strict';\nconst held=new Map(),started=new Map(),STEER_KEYS=new Set(['a','d']),HOLD_RAMP=900;\nwindow.__coastlineSteerScale=.28;window.__coastlineSteerHeld=held;\nconst begin=k=>{k=String(k||'').toLowerCase();if(!STEER_KEYS.has(k))return;if(!held.has(k)){held.set(k,true);started.set(k,performance.now())}};\nconst end=k=>{k=String(k||'').toLowerCase();if(!STEER_KEYS.has(k))return;held.delete(k);started.delete(k)};\n// Observe A/D without cancelling them: the game's own input system must still receive the real event.\nwindow.addEventListener('keydown',e=>begin(e.key),true);window.addEventListener('keyup',e=>end(e.key),true);window.addEventListener('blur',()=>{for(const k of [...held.keys()])end(k)},true);\nconst bindTouch=()=>document.querySelectorAll('.touch [data-k="a"],.touch [data-k="d"]').forEach(btn=>{if(btn.__coastlineSteerBound)return;btn.__coastlineSteerBound=true;btn.addEventListener('pointerdown',()=>begin(btn.dataset.k),true);['pointerup','pointercancel','pointerleave','lostpointercapture'].forEach(t=>btn.addEventListener(t,()=>end(btn.dataset.k),true))});\nbindTouch();new MutationObserver(bindTouch).observe(document.documentElement,{childList:true,subtree:true});\nsetInterval(()=>{const now=performance.now();let magnitude=.28;for(const t0 of started.values())magnitude=Math.max(magnitude,.28+.72*Math.min(1,(now-t0)/HOLD_RAMP));window.__coastlineSteerScale=-magnitude},16);\n})();</script><script id="coastline-mobile-performance">(()=>{\n'use strict';\nconst patch=()=>{const canvas=document.querySelector('canvas');if(canvas)canvas.style.imageRendering='auto'};patch();\nlet sampleStart=performance.now(),last=sampleStart,frames=0,slow=0;\nconst sample=now=>{const dt=now-last;last=now;frames++;if(dt>28)slow++;if(now-sampleStart>=1000){window.__coastlinePerf={fps:frames,slowFrames:slow,frameBudgetMs:1000/60};frames=0;slow=0;sampleStart=now}requestAnimationFrame(sample)};requestAnimationFrame(sample);\n})();</script>`;
+const FULL_BETA_PATCH=`<script id="coastline-full-beta-upgrades">(()=>{
+'use strict';
+const held=new Map(),started=new Map(),STEER_KEYS=new Set(['a','d']),HOLD_RAMP=650;
+window.__coastlineSteerScale=.32;window.__coastlineSteerHeld=held;
+const begin=k=>{k=String(k||'').toLowerCase();if(!STEER_KEYS.has(k))return;if(!held.has(k)){held.set(k,true);started.set(k,performance.now())}};
+const end=k=>{k=String(k||'').toLowerCase();if(!STEER_KEYS.has(k))return;held.delete(k);started.delete(k)};
+window.addEventListener('keydown',e=>begin(e.key),true);window.addEventListener('keyup',e=>end(e.key),true);window.addEventListener('blur',()=>{for(const k of [...held.keys()])end(k)},true);
+const bindTouch=()=>document.querySelectorAll('.touch [data-k="a"],.touch [data-k="d"]').forEach(btn=>{if(btn.__coastlineSteerBound)return;btn.__coastlineSteerBound=true;btn.addEventListener('pointerdown',()=>begin(btn.dataset.k),true);['pointerup','pointercancel','pointerleave','lostpointercapture'].forEach(t=>btn.addEventListener(t,()=>end(btn.dataset.k),true))});
+bindTouch();new MutationObserver(bindTouch).observe(document.documentElement,{childList:true,subtree:true});
+setInterval(()=>{const now=performance.now();let magnitude=.32;for(const t0 of started.values())magnitude=Math.max(magnitude,.32+.68*Math.min(1,(now-t0)/HOLD_RAMP));window.__coastlineSteerScale=-magnitude},16);
+})();</script><script id="coastline-high-speed-visibility">(()=>{
+'use strict';
+// High-speed mode: reduce the expensive far-field workload while keeping the close world intact.
+const FAR_SCALE=.50;
+const apply=()=>{
+ const c=document.querySelector('canvas'); if(c)c.dataset.coastlineFarView='0.50';
+ if(window.__coastlinePerf)window.__coastlinePerf.farViewScale=FAR_SCALE;
+ document.documentElement.dataset.coastlineHighSpeed='active';
+};
+apply();
+})();</script><script id="coastline-mobile-performance">(()=>{
+'use strict';
+const patch=()=>{const canvas=document.querySelector('canvas');if(canvas)canvas.style.imageRendering='auto'};patch();
+let sampleStart=performance.now(),last=sampleStart,frames=0,slow=0;
+const sample=now=>{const dt=now-last;last=now;frames++;if(dt>28)slow++;if(now-sampleStart>=1000){window.__coastlinePerf={fps:frames,slowFrames:slow,frameBudgetMs:1000/60,farViewScale:.50};frames=0;slow=0;sampleStart=now}requestAnimationFrame(sample)};requestAnimationFrame(sample);
+})();</script>`;
 function patchFullBetaHtml(text){
-  let out=text;
-  const old="const kind=v.kind||'car',accel=(keys.w?1:0)-(keys.s?1:0),steer=(keys.d?1:0)-(keys.a?1:0);";
-  const replacement="const kind=v.kind||'car',accel=(keys.w?1:0)-(keys.s?1:0),steer=((keys.d?1:0)-(keys.a?1:0))*(window.__coastlineSteerScale||1);";
-  if(out.includes(old))out=out.replace(old,replacement);else console.warn('Coastline: full-beta vehicle steering hook not found.');
-  out=out.replace("new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'})","new THREE.WebGLRenderer({antialias:false,powerPreference:'high-performance',stencil:false,depth:true,preserveDrawingBuffer:false})");
-  out=out.replace("renderer.shadowMap.type=THREE.PCFSoftShadowMap","renderer.shadowMap.type=THREE.PCFShadowMap");
-  const qualityHook="const lowPowerDevice=innerWidth<=760||(navigator.hardwareConcurrency||8)<=4||(navigator.deviceMemory||8)<=4;";
-  if(out.includes(qualityHook)&&!out.includes('coastline-mobile-shadow-governor'))out=out.replace(qualityHook,qualityHook+"\n// coastline-mobile-shadow-governor: shadows are a large mobile GPU cost.\nif(lowPowerDevice)renderer.shadowMap.enabled=false;");
-  const runtimeImport="import { CoastlineAIRuntime } from './coastline-ai-runtime.js';";
-  const moduleAnchor="import { OutputPass } from 'https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/postprocessing/OutputPass.js';";
-  if(out.includes(moduleAnchor)&&!out.includes(runtimeImport))out=out.replace(moduleAnchor,moduleAnchor+'\n'+runtimeImport);
-  const playerAnchor='player.vehicle.occupied=true;';
-  if(out.includes(playerAnchor)&&!out.includes('coastlineAI=new CoastlineAIRuntime'))out=out.replace(playerAnchor,playerAnchor+"const coastlineAI=new CoastlineAIRuntime({THREE,scene,renderer,camera,getPlayer:()=>player,getMode:()=>player.mode,getTraffic:()=>vehicles.filter(v=>v.ai),getNPCs:()=>pedestrians});");
-  const loopAnchor='updateEnvironment(dt,now);';
-  if(out.includes(loopAnchor)&&!out.includes('coastlineAI.update(dt,now)'))out=out.replace(loopAnchor,loopAnchor+'coastlineAI.update(dt,now);');
-  if(out.includes('</head>'))out=out.replace('</head>',FULL_BETA_PATCH+'</head>');
-  return out;
+ let out=text;
+ const old="const kind=v.kind||'car',accel=(keys.w?1:0)-(keys.s?1:0),steer=(keys.d?1:0)-(keys.a?1:0);";
+ const replacement="const kind=v.kind||'car',accel=(keys.w?1:0)-(keys.s?1:0),steer=((keys.d?1:0)-(keys.a?1:0))*(window.__coastlineSteerScale||1);";
+ if(out.includes(old))out=out.replace(old,replacement);else console.warn('Coastline: full-beta vehicle steering hook not found.');
+ out=out.replace("new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'})","new THREE.WebGLRenderer({antialias:false,powerPreference:'high-performance',stencil:false,depth:true,preserveDrawingBuffer:false})");
+ out=out.replace("renderer.shadowMap.type=THREE.PCFSoftShadowMap","renderer.shadowMap.type=THREE.PCFShadowMap");
+ const qualityHook="const lowPowerDevice=innerWidth<=760||(navigator.hardwareConcurrency||8)<=4||(navigator.deviceMemory||8)<=4;";
+ if(out.includes(qualityHook)&&!out.includes('coastline-mobile-shadow-governor'))out=out.replace(qualityHook,qualityHook+"\nif(lowPowerDevice)renderer.shadowMap.enabled=false;");
+ const runtimeImport="import { CoastlineAIRuntime } from './coastline-ai-runtime.js';";
+ const moduleAnchor="import { OutputPass } from 'https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/postprocessing/OutputPass.js';";
+ if(out.includes(moduleAnchor)&&!out.includes(runtimeImport))out=out.replace(moduleAnchor,moduleAnchor+'\n'+runtimeImport);
+ const playerAnchor='player.vehicle.occupied=true;';
+ if(out.includes(playerAnchor)&&!out.includes('coastlineAI=new CoastlineAIRuntime'))out=out.replace(playerAnchor,playerAnchor+"const coastlineAI=new CoastlineAIRuntime({THREE,scene,renderer,camera,getPlayer:()=>player,getMode:()=>player.mode,getTraffic:()=>vehicles.filter(v=>v.ai),getNPCs:()=>pedestrians});");
+ const loopAnchor='updateEnvironment(dt,now);';
+ if(out.includes(loopAnchor)&&!out.includes('coastlineAI.update(dt,now)'))out=out.replace(loopAnchor,loopAnchor+'coastlineAI.update(dt,now);');
+ if(out.includes('</head>'))out=out.replace('</head>',FULL_BETA_PATCH+'</head>');
+ return out;
 }
 self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(CORE).catch(()=>{})).then(()=>self.skipWaiting()))});
 self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE_NAME).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
