@@ -319,7 +319,7 @@
   });
 
   window.__coastlineBabylonTest = {
-    state: () => ({ x: motion.x, z: motion.z, speed: motion.speed, heading: motion.heading, meshCount: scene.meshes.length, fps: engine.getFps(), discoveries, remainingDiscoveries: pickups.filter(p => !p.found).length, buildingColliders: solidBounds.filter(b => b.kind === 'building').length, treeColliders: solidBounds.filter(b => b.kind === 'tree').length }),
+    state: () => ({ x: motion.x, z: motion.z, speed: motion.speed, heading: motion.heading, meshCount: scene.meshes.length, fps: engine.getFps(), discoveries, remainingDiscoveries: pickups.filter(p => !p.found).length, buildingColliders: solidBounds.filter(b => b.kind === 'building').length, treeColliders: solidBounds.filter(b => b.kind === 'tree').length, wheelSpin: wheels.map(w => w.mesh.rotation.x) }),
     keyDown: key => press(String(key).toLowerCase()),
     keyUp: key => release(String(key).toLowerCase()),
     setPosition: (x, z, heading = 0) => { car.position.x = x; car.position.z = z; motion.x = x; motion.z = z; motion.heading = heading; motion.speed = 0; car.rotation.y = heading; },
