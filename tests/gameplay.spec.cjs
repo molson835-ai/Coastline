@@ -77,10 +77,12 @@ test('vehicle steering follows left/right input and reverse builds usable negati
     for (let x = -600; x <= 600; x += 200) {
       for (let z = -600; z <= 580; z += 20) {
         const p = { x, z };
-        const clear = !api.buildingBlocked(x, z, 2)
-          && !api.buildingBlocked(x, z + 12, 2)
-          && !roster.some(v => Math.hypot(v.x - x, v.z - z) < 20
-            || Math.hypot(v.x - x, v.z - (z + 12)) < 10);
+        let clear = true;
+        for (let step = 0; step <= 12 && clear; step += 2) {
+          const laneZ = z + step;
+          if (api.buildingBlocked(x, laneZ, 2)
+            || roster.some(v => Math.hypot(v.x - x, v.z - laneZ) < 10)) clear = false;
+        }
         if (clear && api.worldModel.isRoadCorridor(x, z)
           && api.worldModel.isRoadCorridor(x, z + 12)) return p;
       }

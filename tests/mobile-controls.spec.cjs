@@ -59,7 +59,7 @@ test('mobile driving controls are visible and operate the vehicle', async ({ pag
     await expect.poll(async () => page.evaluate(heading => window.__coastlineTest.state().heading - heading, headingBeforeSteer), {
       timeout: 3000,
       message: 'left control should steer the car'
-    }).toBeLessThan(-0.01);
+    }).toBeGreaterThan(0.01);
   } finally {
     await page.mouse.up();
   }

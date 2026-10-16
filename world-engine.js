@@ -151,10 +151,10 @@ export function createWorldRuntime({ worldModel, chunkSize = 200 } = {}) {
 
 export function createParkingRegistry(worldModel, { spacing = 8 } = {}) {
   const occupied = new Set();
-  const key = (road, side, slot) => `${road}:${side}:${slot}`;
+  const key = (road, side, slot, x, z) => `${road}:${side}:${slot}:${Math.round(x * 10)}:${Math.round(z * 10)}`;
   const makeSpot = (x, z, side, slot) => {
     const p = worldModel.parking(x, z, side, slot, spacing);
-    return { id: key(p.roadId, side, slot), x: p.x, z: p.z, axis: p.axis, side, slot, roadId: p.roadId, rotation: p.rotation };
+    return { id: key(p.roadId, side, slot, p.x, p.z), x: p.x, z: p.z, axis: p.axis, side, slot, roadId: p.roadId, rotation: p.rotation };
   };
   const reserve = id => { if (occupied.has(id)) return false; occupied.add(id); return true; };
   const release = id => occupied.delete(id);
