@@ -6,7 +6,7 @@
   const fps = document.getElementById('fps');
   const mission = document.getElementById('mission');
   const toast = document.getElementById('toast');
-  if (!B || !canvas || !status || !fps) {
+  if (!B || !canvas || !status || !fps || !window.CoastlineWorldFactory) {
     if (status) status.textContent = 'Unable to start: required Babylon components did not load.';
     return;
   }
@@ -84,6 +84,9 @@
   });
 
   const solidBounds = [];
+  const requestedSeed = Number(new URLSearchParams(location.search).get('seed'));
+  const worldFactory = window.CoastlineWorldFactory.create(Number.isFinite(requestedSeed) && requestedSeed !== 0 ? requestedSeed : 1701);
+  const rand = worldFactory.rand;
   function box(name, w, h, d, x, y, z, mat, parent) {
     const mesh = B.MeshBuilder.CreateBox(name, { width: w, height: h, depth: d }, scene);
     mesh.position.set(x, y, z);
@@ -93,7 +96,7 @@
   }
 
   // A connected street grid: every block has multiple routes and every junction aligns.
-  for (let p = -90; p <= 90; p += 30) {
+  for (const p of worldFactory.roadCoordinates) {
     box('road-east-west', 240, 0.08, 7, 0, 0.04, p, roadMat);
     box('sidewalk-east-west', 240, 0.14, 1.8, 0, 0.07, p + 4.4, sidewalkMat);
     box('sidewalk-east-west', 240, 0.14, 1.8, 0, 0.07, p - 4.4, sidewalkMat);
@@ -106,11 +109,9 @@
     }
   }
 
-  let seed = 1701;
-  const rand = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
   // Blocks sit between roads rather than on the road centerlines.
-  for (let bx = -105; bx <= 105; bx += 30) {
-    for (let bz = -105; bz <= 105; bz += 30) {
+  for (const bx of worldFactory.blockCenters) {
+    for (const bz of worldFactory.blockCenters) {
       const count = 1 + Math.floor(rand() * (lowPower ? 2 : 3));
       for (let i = 0; i < count; i++) {
         const w = 5 + rand() * 6, d = 5 + rand() * 6, h = 5 + rand() * 15;
@@ -234,7 +235,7 @@
   const pickupMat = new B.StandardMaterial('discoveryGlow', scene);
   pickupMat.diffuseColor = new B.Color3(0.1, 0.9, 0.95);
   pickupMat.emissiveColor = new B.Color3(0.05, 0.8, 0.95);
-  const pickupPositions = [[30, 0, 0], [60, 0, 30], [-30, 0, 60], [-60, 0, 0], [0, 0, -60]];
+  const pickupPositions = worldFactory.pickupPositions.map(p => [p.x, p.y, p.z]);
   const saveKey = 'coastline.babylon.save.v1';
   let savedDiscoveries = [];
   try {
@@ -319,7 +320,7 @@
   });
 
   window.__coastlineBabylonTest = {
-    state: () => ({ x: motion.x, z: motion.z, speed: motion.speed, heading: motion.heading, meshCount: scene.meshes.length, fps: engine.getFps(), discoveries, remainingDiscoveries: pickups.filter(p => !p.found).length, buildingColliders: solidBounds.filter(b => b.kind === 'building').length, treeColliders: solidBounds.filter(b => b.kind === 'tree').length, wheelSpin: wheels.map(w => w.mesh.rotation.x) }),
+    state: () => ({ seed: worldFactory.seed, roadCoordinates: worldFactory.roadCoordinates.slice(), chunkSize: worldFactory.chunkSize, x: motion.x, z: motion.z, speed: motion.speed, heading: motion.heading, meshCount: scene.meshes.length, fps: engine.getFps(), discoveries, remainingDiscoveries: pickups.filter(p => !p.found).length, buildingColliders: solidBounds.filter(b => b.kind === 'building').length, treeColliders: solidBounds.filter(b => b.kind === 'tree').length, wheelSpin: wheels.map(w => w.mesh.rotation.x) }),
     keyDown: key => press(String(key).toLowerCase()),
     keyUp: key => release(String(key).toLowerCase()),
     setPosition: (x, z, heading = 0) => { car.position.x = x; car.position.z = z; motion.x = x; motion.z = z; motion.heading = heading; motion.speed = 0; car.rotation.y = heading; },
