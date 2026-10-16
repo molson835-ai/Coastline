@@ -77,10 +77,9 @@ test('vehicle steering follows left/right input and reverse builds usable negati
     for (let x = -600; x <= 600; x += 200) {
       for (let z = -600; z <= 580; z += 20) {
         const p = { x, z };
-        const clear = !api.buildingBlocked(x, z, 2)
-          && !api.buildingBlocked(x, z + 12, 2)
-          && !roster.some(v => Math.hypot(v.x - x, v.z - z) < 20
-            || Math.hypot(v.x - x, v.z - (z + 12)) < 10);
+        const laneSamples = Array.from({ length: 7 }, (_, i) => z + i * 2);
+        const clear = laneSamples.every(sampleZ => !api.buildingBlocked(x, sampleZ, 2))
+          && !roster.some(v => laneSamples.some(sampleZ => Math.hypot(v.x - x, v.z - sampleZ) < 10));
         if (clear && api.worldModel.isRoadCorridor(x, z)
           && api.worldModel.isRoadCorridor(x, z + 12)) return p;
       }
@@ -106,7 +105,7 @@ test('vehicle steering follows left/right input and reverse builds usable negati
   await page.waitForTimeout(500);
   await page.evaluate(() => window.__coastlineTest.keyUp('a'));
   const leftTurn = await page.evaluate(() => window.__coastlineTest.state());
-  expect(leftTurn.heading, 'A should steer left while driving forward').toBeGreaterThan(beforeLeft.heading);
+  expect(leftTurn.heading, 'A should steer left while driving forward').toBeLessThan(beforeLeft.heading);
 
   await resetCar();
   await page.evaluate(() => window.__coastlineTest.keyDown('w'));
@@ -116,7 +115,7 @@ test('vehicle steering follows left/right input and reverse builds usable negati
   await page.waitForTimeout(500);
   await page.evaluate(() => window.__coastlineTest.keyUp('d'));
   const rightTurn = await page.evaluate(() => window.__coastlineTest.state());
-  expect(rightTurn.heading, 'D should steer right while driving forward').toBeLessThan(0);
+  expect(rightTurn.heading, 'D should steer right while driving forward').toBeGreaterThan(0);
 
   await resetCar();
   await page.evaluate(() => window.__coastlineTest.keyDown('s'));

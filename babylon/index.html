@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <meta name="theme-color" content="#08151d">
+  <title>Coastline — Babylon Foundation</title>
+  <style>
+    html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#08151d;color:#fff;font-family:system-ui,sans-serif}
+    #renderCanvas{width:100%;height:100%;display:block;touch-action:none}
+    #hud{position:fixed;inset:0;pointer-events:none;padding:12px;box-sizing:border-box;display:flex;justify-content:space-between;align-items:flex-start;text-shadow:0 2px 7px #000}
+    .card{background:#06141ddd;border:1px solid #ffffff25;border-radius:14px;padding:10px 12px;backdrop-filter:blur(8px)}
+    .brand{font-weight:900;letter-spacing:.18em}.sub{font-size:9px;color:#9fd5df;letter-spacing:.08em;margin-top:3px}
+    #status{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#06141de8;border:1px solid #ffffff25;border-radius:12px;padding:9px 13px;font-size:11px;color:#d7f7fb;pointer-events:none;white-space:nowrap}
+    #touch{display:none;position:fixed;inset:auto 12px 14px;justify-content:space-between;pointer-events:none}
+    .cluster{display:grid;grid-template-columns:repeat(3,52px);gap:6px;pointer-events:auto}.cluster button{width:52px;height:52px;border:1px solid #ffffff45;border-radius:14px;background:#06141de8;color:#fff;font-weight:900;font-size:18px;touch-action:none}
+    @media(max-width:760px){#touch{display:flex}.sub{display:none}.card{padding:8px 10px}#status{bottom:82px;font-size:10px}}
+  </style>
+</head>
+<body>
+  <canvas id="renderCanvas"></canvas>
+  <div id="hud"><div class="card"><div class="brand">COASTLINE</div><div class="sub">BABYLON FOUNDATION · WEBGL / WEBGPU</div></div><div class="card" id="fps">FPS —</div></div>
+  <div id="status">Booting Babylon foundation…</div>
+  <div id="touch"><div class="cluster"><button data-key="a">◀</button><button data-key="w">▲</button><button data-key="d">▶</button><button data-key="s">▼</button></div><div class="cluster"><button data-key="space">JUMP</button></div></div>
+  <script src="https://cdn.babylonjs.com/babylon.js"></script>
+  <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+  <script src="./coastline-babylon.js"></script>
+</body>
+</html>
