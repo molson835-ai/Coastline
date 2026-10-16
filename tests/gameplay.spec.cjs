@@ -68,6 +68,8 @@ test('vehicle steering follows left/right input and reverse builds usable negati
   page.on('pageerror', error => errors.push(error.message));
   await page.goto('/game-v3.html?beta=vehicle-controls-regression', { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => Boolean(window.__coastlineTest), null, { timeout: 20000 });
+  // Keep moving AI traffic from entering the test lane mid-assertion; parked cars and static collision checks remain enabled.
+  await page.evaluate(() => window.__coastlineTest.setTrafficEnabledForTest(false));
 
   // Find a genuinely clear, straight road lane instead of assuming the default
   // spawn is free of traffic, buildings, or roadside props.
