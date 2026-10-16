@@ -23,6 +23,7 @@ const STEERING_RATE := 1.35
 func _ready() -> void:
 	_make_environment()
 	_make_world()
+	_make_coastal_slice()
 	_make_car()
 	_make_camera()
 	_make_ui()
@@ -108,6 +109,67 @@ func _make_world() -> void:
 			_make_building(center + Vector3(7.0, 0, 7.5), Vector2(10, 10), 4.0 + float(posmod(bx * 5 - bz * 2 + 30, 5)) * 1.1, palettes[posmod(bx + bz * 3 + 18, palettes.size())])
 	for p in [Vector3(-13,0,-18), Vector3(14,0,-19), Vector3(-18,0,14), Vector3(19,0,16), Vector3(-13,0,43), Vector3(16,0,43), Vector3(43,0,-14), Vector3(44,0,14), Vector3(-44,0,-14), Vector3(-43,0,17)]:
 		_make_tree(p)
+
+
+# A deliberately small first art-directed region: one coastal edge, beach,
+# shoreline rocks and palms. Keep the water beyond the playable ground so the
+# slice feels like a place rather than an endless green test grid.
+func _make_coastal_slice() -> void:
+	var sand := _material(Color(0.76, 0.66, 0.46), 0.96)
+	var wet_sand := _material(Color(0.57, 0.52, 0.40), 0.82)
+	var ocean_mat := _material(Color(0.035, 0.29, 0.39), 0.22)
+	ocean_mat.metallic = 0.08
+	# The existing terrain ends at z=75; the beach fills its final 17 metres.
+	_box(self, "CoastalDrySand", Vector3(0, -0.012, 66.5), Vector3(150, 0.035, 17), sand)
+	_box(self, "WetShoreline", Vector3(0, -0.006, 74.2), Vector3(150, 0.025, 1.6), wet_sand)
+	# Flat, inexpensive water is intentional for the first mobile performance pass.
+	_box(self, "Ocean", Vector3(0, -0.025, 155), Vector3(320, 0.035, 162), ocean_mat)
+	var rock_mats := [
+		_material(Color(0.36, 0.39, 0.37), 0.95),
+		_material(Color(0.47, 0.45, 0.40), 0.92)
+	]
+	for i in range(19):
+		var x := -68.0 + float(i) * 7.5
+		var rock := MeshInstance3D.new()
+		rock.name = "ShoreRock"
+		var mesh := SphereMesh.new()
+		mesh.radius = 0.7 + float((i * 7) % 5) * 0.16
+		mesh.height = mesh.radius * 1.25
+		rock.mesh = mesh
+		rock.material_override = rock_mats[i % rock_mats.size()]
+		rock.scale = Vector3(1.35, 0.72, 0.9)
+		rock.position = Vector3(x, 0.15, 73.3 - float(i % 3) * 0.55)
+		add_child(rock)
+	# A handful of palms give the beach a readable silhouette without a heavy
+	# imported foliage pack. These are art placeholders to be replaced by licensed assets.
+	for p in [Vector3(-48,0,62), Vector3(-25,0,60), Vector3(24,0,61), Vector3(48,0,63)]:
+		_make_palm(p)
+
+func _make_palm(pos: Vector3) -> void:
+	var trunk_mat := _material(Color(0.42, 0.29, 0.16), 0.92)
+	var leaf_mat := _material(Color(0.12, 0.31, 0.19), 0.86)
+	var trunk := MeshInstance3D.new()
+	var trunk_mesh := CylinderMesh.new()
+	trunk_mesh.top_radius = 0.12
+	trunk_mesh.bottom_radius = 0.22
+	trunk_mesh.height = 4.1
+	trunk.mesh = trunk_mesh
+	trunk.material_override = trunk_mat
+	trunk.position = pos + Vector3(0, 2.05, 0)
+	trunk.rotation_degrees.z = -5.0
+	add_child(trunk)
+	for i in range(6):
+		var angle := TAU * float(i) / 6.0
+		var frond := MeshInstance3D.new()
+		var frond_mesh := CylinderMesh.new()
+		frond_mesh.top_radius = 0.025
+		frond_mesh.bottom_radius = 0.13
+		frond_mesh.height = 2.6
+		frond.mesh = frond_mesh
+		frond.material_override = leaf_mat
+		frond.position = pos + Vector3(cos(angle) * 0.95, 4.05, sin(angle) * 0.95)
+		frond.rotation = Vector3(0.25, angle, 1.05)
+		add_child(frond)
 
 func _make_building(center: Vector3, footprint: Vector2, height: float, facade: Material) -> void:
 	var root := Node3D.new()
