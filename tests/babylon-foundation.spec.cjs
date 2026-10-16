@@ -21,6 +21,7 @@ test('Babylon preview boots and exposes a working mobile-safe driving loop', asy
   const forward = await page.evaluate(() => window.__coastlineBabylonTest.state());
   expect(forward.speed, 'forward input should build usable speed').toBeGreaterThan(2);
   expect(Math.hypot(forward.x - before.x, forward.z - before.z), 'car should move').toBeGreaterThan(0.5);
+  expect(forward.wheelSpin.some((spin, i) => spin !== before.wheelSpin[i]), 'wheels should visibly rotate while driving').toBe(true);
 
   await page.evaluate(() => window.__coastlineBabylonTest.keyDown('a'));
   await page.waitForTimeout(500);
