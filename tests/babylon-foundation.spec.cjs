@@ -76,3 +76,28 @@ test('touch controls are visible and pointer-safe on a phone viewport', async ({
   const state = await page.evaluate(() => window.__coastlineBabylonTest.state());
   expect(state.speed).toBeGreaterThan(0);
 });
+
+test('world factory is deterministic and exposes renderer-independent layout data', async ({ page }) => {
+  await page.goto('/babylon/', { waitUntil: 'domcontentloaded' });
+  await page.waitForFunction(() => Boolean(window.CoastlineWorldFactory && window.__coastlineBabylonTest), null, { timeout: 20000 });
+  const result = await page.evaluate(() => {
+    const a = window.CoastlineWorldFactory.create(12345);
+    const b = window.CoastlineWorldFactory.create(12345);
+    const c = window.CoastlineWorldFactory.create(54321);
+    const sequence = factory => [factory.rand(), factory.rand(), factory.rand(), factory.rand()];
+    return {
+      sameSeed: JSON.stringify(sequence(a)) === JSON.stringify(sequence(b)),
+      differentSeed: JSON.stringify(sequence(window.CoastlineWorldFactory.create(12345))) !== JSON.stringify(sequence(c)),
+      roads: a.roadCoordinates,
+      blocks: a.blockCenters,
+      pickups: a.pickupPositions,
+      gameSeed: window.__coastlineBabylonTest.state().seed
+    };
+  });
+  expect(result.sameSeed, 'the same seed must reproduce the same random sequence').toBe(true);
+  expect(result.differentSeed, 'different seeds should produce different random sequences').toBe(true);
+  expect(result.roads).toEqual([-90, -60, -30, 0, 30, 60, 90]);
+  expect(result.blocks).toEqual([-105, -75, -45, -15, 15, 45, 75, 105]);
+  expect(result.pickups).toHaveLength(5);
+  expect(result.gameSeed).toBe(1701);
+});
