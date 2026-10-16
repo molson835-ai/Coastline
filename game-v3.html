@@ -191,7 +191,8 @@ function createInterior(b){
   const upperBack=new THREE.Mesh(new THREE.BoxGeometry(10.8,2.3,.18),wall);upperBack.position.set(4.1,3.7,-9.15);g.add(upperBack);
   const upperDesk=new THREE.Mesh(new THREE.BoxGeometry(2.5,.75,1.05),trim);upperDesk.position.set(4.4,3.0,-7.2);g.add(upperDesk);
   const upperTop=new THREE.Mesh(new THREE.BoxGeometry(2.65,.1,1.15),M(0x9b7757,.75));upperTop.position.set(4.4,3.42,-7.2);g.add(upperTop);
-  for(const x of [1.2,7.2]){const lamp=new THREE.PointLight(0xffd9a3,1.35,20,2);lamp.position.set(x,4.85,-4.8);g.add(lamp);const shade=new THREE.Mesh(new THREE.CylinderGeometry(.18,.32,.16,10),M(0xf0d8aa,.75));shade.position.set(x,5.05,-4.8);g.add(shade)}\n  }
+  for(const x of [1.2,7.2]){const lamp=new THREE.PointLight(0xffd9a3,1.35,20,2);lamp.position.set(x,4.85,-4.8);g.add(lamp);const shade=new THREE.Mesh(new THREE.CylinderGeometry(.18,.32,.16,10),M(0xf0d8aa,.75));shade.position.set(x,5.05,-4.8);g.add(shade)}
+  }
   g.visible=false;scene.add(g);return g;
 }
 // Instanced row-home districts bring real residential scale to the blocks without adding hundreds of draw calls.
