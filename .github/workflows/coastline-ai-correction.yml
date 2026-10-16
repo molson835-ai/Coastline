@@ -1,0 +1,68 @@
+name: Coastline AI correction pipeline
+
+on:
+  repository_dispatch:
+    types: [coastline-telemetry]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: coastline-ai-correction
+  cancel-in-progress: false
+
+jobs:
+  propose-and-test:
+    if: contains(github.event.client_payload.findings.*.severity, 'high')
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Check out performance development branch
+        uses: actions/checkout@v4
+        with:
+          ref: feat/full-game-performance-ai-devs
+          fetch-depth: 0
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install
+      - name: Generate bounded AI patch
+        env:
+          AI_GATEWAY_API_KEY: ${{ secrets.AI_GATEWAY_API_KEY }}
+          COASTLINE_AI_MODEL: reflection/beam-free
+        run: node scripts/coastline-ai-correction.mjs
+      - name: Validate patch format and allowed paths
+        id: patch
+        run: |
+          if [ ! -s coastline-ai.patch ]; then echo 'changed=false' >> "$GITHUB_OUTPUT"; exit 0; fi
+          git apply --check coastline-ai.patch
+          git apply coastline-ai.patch
+          changed=$(git diff --name-only)
+          printf '%s\\n' "$changed"
+          if printf '%s\\n' "$changed" | grep -Ev '^(world-engine.js|npc-world-slice.js|living-world.js|tests/world-engine.spec.mjs)$'; then
+            echo 'AI patch touched a path outside the allowlist.' >&2
+            exit 1
+          fi
+          if [ -z "$changed" ]; then echo 'changed=false' >> "$GITHUB_OUTPUT"; else echo 'changed=true' >> "$GITHUB_OUTPUT"; fi
+      - name: Run engine and systems tests
+        if: steps.patch.outputs.changed == 'true'
+        run: npm run test:engine && npm run test:systems
+      - name: Create isolated branch and draft pull request
+        if: steps.patch.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          branch="ai/coastline-telemetry-${GITHUB_RUN_ID}"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git checkout -b "$branch"
+          git add world-engine.js npc-world-slice.js living-world.js tests/world-engine.spec.mjs
+          git commit -m 'AI-proposed Coastline performance correction'
+          git push origin "$branch"
+          gh pr create --draft --base feat/full-game-performance-ai-devs --head "$branch" --title 'AI-proposed Coastline performance correction' --body "Automated from a high-severity, player-submitted Coastline telemetry report. The AI patch was restricted to approved engine modules and tests. Engine and systems tests passed before this draft PR was created. Review and run full browser/performance validation before promotion."
+      - name: Report no safe patch
+        if: steps.patch.outputs.changed != 'true'
+        run: echo 'No patch was applied or deployed. Either the model declined, or no valid patch was generated.'
