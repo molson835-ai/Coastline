@@ -48,6 +48,21 @@ test('car cannot pass through procedural building collision bounds', async ({ pa
     .toBeLessThan(target.x - target.hw + 0.2);
 });
 
+test('discovery progress survives a page reload', async ({ page }) => {
+  await page.goto('/babylon/', { waitUntil: 'domcontentloaded' });
+  await page.waitForFunction(() => Boolean(window.__coastlineBabylonTest), null, { timeout: 20000 });
+  await page.evaluate(() => window.__coastlineBabylonTest.setPosition(30, 0, 0));
+  await page.waitForFunction(() => {
+    try { return JSON.parse(localStorage.getItem('coastline.babylon.save.v1') || '{}').discoveries?.includes(0); }
+    catch (_) { return false; }
+  }, null, { timeout: 5000 });
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await page.waitForFunction(() => Boolean(window.__coastlineBabylonTest), null, { timeout: 20000 });
+  const state = await page.evaluate(() => window.__coastlineBabylonTest.state());
+  expect(state.discoveries, 'the collected discovery should be restored after reload').toBe(1);
+  expect(state.remainingDiscoveries).toBe(4);
+});
+
 test('touch controls are visible and pointer-safe on a phone viewport', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/babylon/', { waitUntil: 'domcontentloaded' });
