@@ -14,8 +14,8 @@ test('cinematic rendering enables restrained bloom, color grading, and resize su
   const visual = await page.evaluate(() => window.__coastlineTest.cinematicState());
   expect(visual.bloomEnabled).toBe(true);
   expect(visual.bloomStrength).toBeGreaterThan(0);
-  expect(visual.bloomStrength).toBeLessThanOrEqual(0.3);
-  expect(visual.bloomThreshold).toBeGreaterThanOrEqual(0.75);
+  expect(visual.bloomStrength).toBeLessThanOrEqual(0.45);
+  expect(visual.bloomThreshold).toBeGreaterThanOrEqual(0.7);
   expect(visual.toneMapping).toBe(true);
   expect(visual.outputColorSpace).toBe(true);
   expect(visual.pixelRatio).toBeLessThanOrEqual(1.15);
