@@ -4,7 +4,7 @@ test('public beta boots the full Coastline world and exposes its advanced system
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.goto('/', { waitUntil: 'domcontentloaded' });
-  await expect(page).toHaveURL(/game-v3\.html\?beta=20261015full25/);
+  await expect(page).toHaveURL(/game-v3\.html\?beta=20261015full26/);
   await page.waitForFunction(() => Boolean(window.__coastlineTest), null, { timeout: 30000 });
   await expect(page.locator('canvas').first()).toBeAttached({ timeout: 30000 });
   await expect(page.locator('canvas').first()).toBeVisible();
