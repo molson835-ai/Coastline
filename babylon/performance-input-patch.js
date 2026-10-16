@@ -1,9 +1,10 @@
 (() => {
   'use strict';
 
-  // Input correction is installed before the game script so the original
-  // keyboard listener receives the corrected direction without changing the
-  // driving physics implementation.
+  // Steering input is corrected before the game listener receives it.
+  // Held steering is then ramped from a gentle initial input toward full lock,
+  // approximating the continued steering-wheel rotation a driver makes while
+  // committing to a turn. Throttle/brake keys remain untouched.
   const remap = key => {
     const k = String(key || '').toLowerCase();
     if (k === 'a') return 'd';
@@ -13,33 +14,83 @@
     return k;
   };
 
-  const forwardKeyboard = event => {
-    if (!event || event.__coastlineRemapped || !event.key) return;
-    const mapped = remap(event.key);
-    if (mapped === event.key.toLowerCase()) return;
-    event.stopImmediatePropagation();
-    const synthetic = new KeyboardEvent(event.type, {
-      key: mapped,
-      code: event.code,
-      location: event.location,
-      ctrlKey: event.ctrlKey,
-      shiftKey: event.shiftKey,
-      altKey: event.altKey,
-      metaKey: event.metaKey,
-      repeat: event.repeat,
+  const steeringKeys = new Set(['a', 'd', 'arrowleft', 'arrowright']);
+  const held = new Map();
+  const activeSynthetic = new Set();
+  const rampStart = new Map();
+  const CYCLE_MS = 34;
+  const RAMP_MS = 900;
+  const MIN_DUTY = 0.30;
+
+  const makeEvent = (type, key) => {
+    const synthetic = new KeyboardEvent(type, {
+      key,
+      code: key.startsWith('arrow') ? key.replace('arrow', 'Arrow') : ('Key' + key.toUpperCase()),
       bubbles: true,
       cancelable: true
     });
-    Object.defineProperty(synthetic, '__coastlineRemapped', { value: true });
-    window.dispatchEvent(synthetic);
+    Object.defineProperty(synthetic, '__coastlineProgressiveSteering', { value: true });
+    return synthetic;
   };
-  window.addEventListener('keydown', forwardKeyboard, true);
-  window.addEventListener('keyup', forwardKeyboard, true);
+
+  const emit = (type, key) => window.dispatchEvent(makeEvent(type, key));
+
+  // Capture the user's steering intent before the original game listener.
+  // We synthesize corrected key events on our own schedule so a held key can
+  // represent increasing wheel rotation instead of a permanently binary input.
+  window.addEventListener('keydown', event => {
+    if (!event || event.__coastlineProgressiveSteering || !event.key) return;
+    const raw = event.key.toLowerCase();
+    if (!steeringKeys.has(raw)) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    const mapped = remap(raw);
+    held.set(raw, mapped);
+    if (!rampStart.has(raw)) rampStart.set(raw, performance.now());
+  }, true);
+
+  window.addEventListener('keyup', event => {
+    if (!event || event.__coastlineProgressiveSteering || !event.key) return;
+    const raw = event.key.toLowerCase();
+    if (!steeringKeys.has(raw)) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    const mapped = held.get(raw) || remap(raw);
+    held.delete(raw);
+    rampStart.delete(raw);
+    if (activeSynthetic.has(raw)) {
+      emit('keyup', mapped);
+      activeSynthetic.delete(raw);
+    }
+  }, true);
+
+  // Keep the game-level key state synchronized with a time-based steering ramp.
+  // The ramp is deliberately short enough to feel responsive, but long enough
+  // that a quick lane correction stays gentle while a committed corner builds
+  // toward full steering authority.
+  setInterval(() => {
+    const now = performance.now();
+    for (const [raw, mapped] of held) {
+      const elapsed = Math.max(0, now - (rampStart.get(raw) || now));
+      const t = Math.min(1, elapsed / RAMP_MS);
+      const duty = MIN_DUTY + (1 - MIN_DUTY) * t;
+      const phase = (now % CYCLE_MS) / CYCLE_MS;
+      const shouldBeDown = phase < duty;
+      const isDown = activeSynthetic.has(raw);
+      if (shouldBeDown && !isDown) {
+        emit('keydown', mapped);
+        activeSynthetic.add(raw);
+      } else if (!shouldBeDown && isDown) {
+        emit('keyup', mapped);
+        activeSynthetic.delete(raw);
+      }
+    }
+  }, 8);
 
   // Adaptive internal resolution: preserve visual quality when the device has
   // headroom, but automatically trade a small amount of resolution for stable
-  // frame pacing when rendering becomes GPU-bound. This is intentionally
-  // conservative so the game never drops to a visibly poor resolution.
+  // frame pacing when rendering becomes GPU-bound. This remains conservative
+  // so performance improves without permanently making the game look worse.
   const Engine = window.BABYLON && window.BABYLON.Engine;
   if (!Engine) return;
   const originalSetScaling = Engine.prototype.setHardwareScalingLevel;
