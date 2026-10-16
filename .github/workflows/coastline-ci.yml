@@ -31,6 +31,15 @@ jobs:
         run: npm install
       - name: Install Chromium for browser tests
         run: npx playwright install --with-deps chromium
+      - name: Start local static server for browser tests
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/coastline-static-server.log 2>&1 &
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:4173/game-v3.html > /dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/coastline-static-server.log
+          exit 1
       - name: Syntax-check AI control plane
         run: node --check api/coastline-ai.js
       - name: Run engine, systems, and gameplay tests
