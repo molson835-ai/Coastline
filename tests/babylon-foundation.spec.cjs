@@ -44,7 +44,7 @@ test('car cannot pass through procedural building collision bounds', async ({ pa
   await page.evaluate(() => window.__coastlineBabylonTest.keyUp('w'));
   const after = await page.evaluate(() => window.__coastlineBabylonTest.state());
   expect(after.x, 'car should stop at the building boundary rather than tunnel through it')
-    .toBeLessThan(target.x + target.hw);
+    .toBeLessThan(target.x - target.hw + 0.2);
 });
 
 test('touch controls are visible and pointer-safe on a phone viewport', async ({ page }) => {
