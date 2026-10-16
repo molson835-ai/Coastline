@@ -1,22 +1,19 @@
-; Coastline Godot prototype — simplified import layout.
+; Coastline Android Minimal Test
+; Godot 4.x Compatibility renderer
 config_version=5
 
 [application]
-config/name="Coastline Godot Prototype"
+config/name="Coastline Android Minimal"
 run/main_scene="res://main.tscn"
-config/features=PackedStringArray("4.6", "GL Compatibility")
 
 [display]
 window/size/viewport_width=960
 window/size/viewport_height=540
 window/handheld/orientation=1
-window/stretch/mode="canvas_items"
 
 [rendering]
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
-textures/default_filters/use_nearest_mipmap_filter=false
-environment/defaults/default_clear_color=Color(0.42, 0.68, 0.86, 1)
 
 [physics]
 3d/default_gravity=9.8
