@@ -4,6 +4,8 @@
   const canvas = document.getElementById('renderCanvas');
   const status = document.getElementById('status');
   const fps = document.getElementById('fps');
+  const mission = document.getElementById('mission');
+  const toast = document.getElementById('toast');
   if (!B || !canvas || !status || !fps) {
     if (status) status.textContent = 'Unable to start: required Babylon components did not load.';
     return;
@@ -41,7 +43,10 @@
   });
   engine.setHardwareScalingLevel(lowPower ? 1.25 : 1);
   const scene = new B.Scene(engine);
-  scene.clearColor = new B.Color4(0.48, 0.69, 0.79, 1);
+  scene.clearColor = new B.Color4(0.62, 0.78, 0.84, 1);
+  scene.fogMode = B.Scene.FOGMODE_EXP2;
+  scene.fogDensity = lowPower ? 0.0011 : 0.00075;
+  scene.fogColor = new B.Color3(0.62, 0.78, 0.84);
   scene.skipPointerMovePicking = true;
 
   const camera = new B.FollowCamera('playerCamera', new B.Vector3(0, 5, -11), scene);
@@ -78,6 +83,7 @@
     return m;
   });
 
+  const solidBounds = [];
   function box(name, w, h, d, x, y, z, mat, parent) {
     const mesh = B.MeshBuilder.CreateBox(name, { width: w, height: h, depth: d }, scene);
     mesh.position.set(x, y, z);
@@ -86,17 +92,17 @@
     return mesh;
   }
 
-  // Each road spans one complete grid cell, eliminating gaps at intersections.
+  // A connected street grid: every block has multiple routes and every junction aligns.
   for (let p = -90; p <= 90; p += 30) {
-    box('road-east-west', 30, 0.08, 7, p, 0.04, 0, roadMat);
-    box('sidewalk-east-west', 30, 0.14, 1.8, p, 0.07, 4.4, sidewalkMat);
-    box('sidewalk-east-west', 30, 0.14, 1.8, p, 0.07, -4.4, sidewalkMat);
-    box('road-north-south', 7, 0.08, 30, 0, 0.04, p, roadMat);
-    box('sidewalk-north-south', 1.8, 0.14, 30, 4.4, 0.07, p, sidewalkMat);
-    box('sidewalk-north-south', 1.8, 0.14, 30, -4.4, 0.07, p, sidewalkMat);
-    for (let k = -10; k <= 10; k += 5) {
-      box('lane-dash', 2.4, 0.018, 0.12, p + k, 0.09, 0, lineMat);
-      box('lane-dash', 0.12, 0.018, 2.4, 0, 0.09, p + k, lineMat);
+    box('road-east-west', 240, 0.08, 7, 0, 0.04, p, roadMat);
+    box('sidewalk-east-west', 240, 0.14, 1.8, 0, 0.07, p + 4.4, sidewalkMat);
+    box('sidewalk-east-west', 240, 0.14, 1.8, 0, 0.07, p - 4.4, sidewalkMat);
+    box('road-north-south', 7, 0.08, 240, p, 0.04, 0, roadMat);
+    box('sidewalk-north-south', 1.8, 0.14, 240, p + 4.4, 0.07, 0, sidewalkMat);
+    box('sidewalk-north-south', 1.8, 0.14, 240, p - 4.4, 0.07, 0, sidewalkMat);
+    for (let k = -110; k <= 110; k += 10) {
+      box('lane-dash', 2.4, 0.018, 0.12, k, 0.09, p, lineMat);
+      box('lane-dash', 0.12, 0.018, 2.4, p, 0.09, k, lineMat);
     }
   }
 
@@ -110,6 +116,7 @@
         const w = 5 + rand() * 6, d = 5 + rand() * 6, h = 5 + rand() * 15;
         const x = bx + (rand() - 0.5) * 12, z = bz + (rand() - 0.5) * 12;
         box('building', w, h, d, x, h / 2, z, buildingMats[Math.floor(rand() * buildingMats.length)]);
+        solidBounds.push({ x, z, hw: w / 2 + 0.65, hd: d / 2 + 0.65 });
       }
     }
   }
@@ -125,10 +132,11 @@
   const crownBase = B.MeshBuilder.CreateIcoSphere('treeCrownSource', { radius: 1.15, subdivisions: 1 }, scene);
   crownBase.material = leavesMat;
   crownBase.isVisible = false;
-  const treeCount = lowPower ? 45 : 130;
+  const treeCount = lowPower ? 35 : 100;
   for (let i = 0; i < treeCount; i++) {
     const x = (rand() - 0.5) * 220, z = (rand() - 0.5) * 220;
-    if (Math.abs(x) < 10 || Math.abs(z) < 10) continue;
+    if (Math.abs(x - Math.round(x / 30) * 30) < 6 || Math.abs(z - Math.round(z / 30) * 30) < 6) continue;
+    if (solidBounds.some(b => Math.abs(x - b.x) < b.hw + 1.4 && Math.abs(z - b.z) < b.hd + 1.4)) continue;
     const scale = 0.7 + rand() * 0.8;
     const trunk = trunkBase.createInstance('treeTrunk' + i);
     trunk.position.set(x, 0.75 * scale, z);
@@ -182,8 +190,25 @@
     hub.parent = car;
     hub.material = rimMat;
   }
-  car.position.set(0, 0, 12);
+  car.position.set(0, 0, 0);
   camera.lockedTarget = car;
+
+  // Tiny optional free-roam loop proves pickups/objectives without locking the player into a mission.
+  const pickupMat = new B.StandardMaterial('discoveryGlow', scene);
+  pickupMat.diffuseColor = new B.Color3(0.1, 0.9, 0.95);
+  pickupMat.emissiveColor = new B.Color3(0.05, 0.8, 0.95);
+  const pickupPositions = [[30, 0, 0], [60, 0, 30], [-30, 0, 60], [-60, 0, 0], [0, 0, -60]];
+  const pickups = pickupPositions.map((p, i) => {
+    const orb = B.MeshBuilder.CreateSphere('discovery-' + i, { diameter: 1.15, segments: lowPower ? 8 : 12 }, scene);
+    orb.position.set(p[0], 1.35, p[2]);
+    orb.material = pickupMat;
+    return { mesh: orb, x: p[0], z: p[2], found: false, phase: i * 0.9 };
+  });
+  let discoveries = 0;
+  let toastUntil = 0;
+  const showToast = message => { toast.textContent = message; toast.classList.add('visible'); toastUntil = performance.now() + 3200; };
+  const updateMission = () => { mission.textContent = 'DISCOVERIES  ' + discoveries + ' / ' + pickups.length + '\\nExplore the street grid and collect glowing markers'; };
+  updateMission();
 
   const motion = { speed: 0, heading: 0, x: car.position.x, z: car.position.z };
   let jumpVelocity = 0;
@@ -202,12 +227,32 @@
     const grip = Math.min(1, Math.abs(motion.speed) / 2.5);
     motion.heading += steer * grip * (motion.speed >= 0 ? 1 : -1) * 1.8 * dt;
     car.rotation.y = motion.heading;
-    car.position.x += Math.sin(motion.heading) * motion.speed * dt;
-    car.position.z += Math.cos(motion.heading) * motion.speed * dt;
+    const nextX = Math.max(-114, Math.min(114, car.position.x + Math.sin(motion.heading) * motion.speed * dt));
+    const nextZ = Math.max(-114, Math.min(114, car.position.z + Math.cos(motion.heading) * motion.speed * dt));
+    const blocked = solidBounds.some(b => Math.abs(nextX - b.x) < b.hw && Math.abs(nextZ - b.z) < b.hd);
+    if (blocked) {
+      motion.speed *= -0.14;
+      showToast('Obstacle hit · steer back onto the road');
+    } else {
+      car.position.x = nextX;
+      car.position.z = nextZ;
+    }
 
-    // Keep the prototype inside its streamed demo district.
-    car.position.x = Math.max(-114, Math.min(114, car.position.x));
-    car.position.z = Math.max(-114, Math.min(114, car.position.z));
+    // Discoveries are non-blocking: free driving always remains available.
+    const now = performance.now();
+    for (const item of pickups) {
+      if (item.found) continue;
+      item.mesh.rotation.y += dt * 1.2;
+      item.mesh.position.y = 1.35 + Math.sin(now * 0.002 + item.phase) * 0.18;
+      if (Math.hypot(car.position.x - item.x, car.position.z - item.z) < 3.2) {
+        item.found = true;
+        item.mesh.dispose();
+        discoveries++;
+        updateMission();
+        showToast(discoveries === pickups.length ? 'All discoveries found · keep exploring!' : 'Discovery found · ' + discoveries + ' / ' + pickups.length);
+      }
+    }
+    if (now > toastUntil) toast.classList.remove('visible');
     if (keys.has('space') && car.position.y <= 0.01 && jumpVelocity <= 0) jumpVelocity = 4.2;
     jumpVelocity -= 11 * dt;
     car.position.y = Math.max(0, car.position.y + jumpVelocity * dt);
@@ -219,7 +264,7 @@
   });
 
   window.__coastlineBabylonTest = {
-    state: () => ({ x: motion.x, z: motion.z, speed: motion.speed, heading: motion.heading, meshCount: scene.meshes.length, fps: engine.getFps() }),
+    state: () => ({ x: motion.x, z: motion.z, speed: motion.speed, heading: motion.heading, meshCount: scene.meshes.length, fps: engine.getFps(), discoveries, remainingDiscoveries: pickups.filter(p => !p.found).length, buildingColliders: solidBounds.length }),
     keyDown: key => press(String(key).toLowerCase()),
     keyUp: key => release(String(key).toLowerCase())
   };
