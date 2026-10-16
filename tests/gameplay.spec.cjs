@@ -74,12 +74,14 @@ test('vehicle steering follows left/right input and reverse builds usable negati
   const roadStart = await page.evaluate(() => {
     const api = window.__coastlineTest;
     const roster = api.vehicleRoster();
+    const parked = api.parkedCarPositions();
     for (let x = -600; x <= 600; x += 200) {
       for (let z = -600; z <= 580; z += 20) {
         const p = { x, z };
         const laneSamples = Array.from({ length: 7 }, (_, i) => z + i * 2);
         const clear = laneSamples.every(sampleZ => !api.buildingBlocked(x, sampleZ, 2))
-          && !roster.some(v => laneSamples.some(sampleZ => Math.hypot(v.x - x, v.z - sampleZ) < 10));
+          && !roster.some(v => laneSamples.some(sampleZ => Math.hypot(v.x - x, v.z - sampleZ) < 10))
+          && !parked.some(v => laneSamples.some(sampleZ => Math.hypot(v.x - x, v.z - sampleZ) < 5));
         if (clear && api.worldModel.isRoadCorridor(x, z)
           && api.worldModel.isRoadCorridor(x, z + 12)) return p;
       }
