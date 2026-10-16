@@ -146,6 +146,41 @@
     crown.scaling.setAll(scale);
   }
 
+  // Procedural roadside greenery and worn-earth patches add breakup to the large grass planes.
+  const bushMat = new B.StandardMaterial('bushGreen', scene);
+  bushMat.diffuseColor = new B.Color3(0.12, 0.27, 0.11);
+  const bushSource = B.MeshBuilder.CreateIcoSphere('bushSource', { radius: 0.8, subdivisions: 1 }, scene);
+  bushSource.material = bushMat;
+  bushSource.isVisible = false;
+  const dirtMat = new B.StandardMaterial('wornEarth', scene);
+  dirtMat.diffuseColor = new B.Color3(0.27, 0.22, 0.15);
+  dirtMat.roughness = 1;
+  const dirtSource = B.MeshBuilder.CreateSphere('dirtPatchSource', { diameter: 1, segments: 8 }, scene);
+  dirtSource.material = dirtMat;
+  dirtSource.isVisible = false;
+  const clearGround = (x, z, roadClearance = 5.6) => {
+    if (Math.abs(x - Math.round(x / 30) * 30) < roadClearance || Math.abs(z - Math.round(z / 30) * 30) < roadClearance) return false;
+    return !solidBounds.some(b => Math.abs(x - b.x) < b.hw + 1 && Math.abs(z - b.z) < b.hd + 1);
+  };
+  const bushCount = lowPower ? 55 : 145;
+  for (let i = 0; i < bushCount; i++) {
+    const x = (rand() - 0.5) * 220, z = (rand() - 0.5) * 220;
+    if (!clearGround(x, z)) continue;
+    const bush = bushSource.createInstance('bush' + i);
+    const s = 0.55 + rand() * 0.9;
+    bush.position.set(x, 0.38 * s, z);
+    bush.scaling.set(s * 1.25, s * 0.75, s);
+  }
+  const dirtCount = lowPower ? 24 : 70;
+  for (let i = 0; i < dirtCount; i++) {
+    const x = (rand() - 0.5) * 220, z = (rand() - 0.5) * 220;
+    if (!clearGround(x, z, 5.1)) continue;
+    const patch = dirtSource.createInstance('dirtPatch' + i);
+    const s = 0.7 + rand() * 1.9;
+    patch.position.set(x, 0.018, z);
+    patch.scaling.set(s * 1.7, 0.025, s);
+  }
+
   // Stylized but layered car prototype: body, glass, lamps, wheels and wheel hubs.
   const car = new B.TransformNode('playerCar', scene);
   const bodyMat = new B.PBRMaterial('carPaint', scene);
@@ -232,7 +267,7 @@
     const blocked = solidBounds.some(b => Math.abs(nextX - b.x) < b.hw && Math.abs(nextZ - b.z) < b.hd);
     if (blocked) {
       motion.speed *= -0.14;
-      showToast('Obstacle hit · steer back onto the road');
+      if (performance.now() > toastUntil) showToast('Obstacle hit · steer back onto the road');
     } else {
       car.position.x = nextX;
       car.position.z = nextZ;
