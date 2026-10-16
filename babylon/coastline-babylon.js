@@ -301,7 +301,9 @@
   window.__coastlineBabylonTest = {
     state: () => ({ x: motion.x, z: motion.z, speed: motion.speed, heading: motion.heading, meshCount: scene.meshes.length, fps: engine.getFps(), discoveries, remainingDiscoveries: pickups.filter(p => !p.found).length, buildingColliders: solidBounds.length }),
     keyDown: key => press(String(key).toLowerCase()),
-    keyUp: key => release(String(key).toLowerCase())
+    keyUp: key => release(String(key).toLowerCase()),
+    setPosition: (x, z, heading = 0) => { car.position.x = x; car.position.z = z; motion.x = x; motion.z = z; motion.heading = heading; motion.speed = 0; car.rotation.y = heading; },
+    colliders: () => solidBounds.map(b => ({ ...b }))
   };
   addEventListener('blur', () => keys.clear());
   addEventListener('resize', () => engine.resize());
