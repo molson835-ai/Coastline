@@ -87,11 +87,18 @@
   const requestedSeed = Number(new URLSearchParams(location.search).get('seed'));
   const worldFactory = window.CoastlineWorldFactory.create(Number.isFinite(requestedSeed) && requestedSeed !== 0 ? requestedSeed : 1701);
   const rand = worldFactory.rand;
+  // Batch static world geometry by material to cut hundreds of mobile draw calls.
+  const staticMeshBuckets = new Map();
   function box(name, w, h, d, x, y, z, mat, parent) {
     const mesh = B.MeshBuilder.CreateBox(name, { width: w, height: h, depth: d }, scene);
     mesh.position.set(x, y, z);
     mesh.material = mat;
-    if (parent) mesh.parent = parent;
+    if (parent) {
+      mesh.parent = parent;
+    } else {
+      if (!staticMeshBuckets.has(mat)) staticMeshBuckets.set(mat, []);
+      staticMeshBuckets.get(mat).push(mesh);
+    }
     return mesh;
   }
 
@@ -183,6 +190,24 @@
     patch.position.set(x, 0.018, z);
     patch.scaling.set(s * 1.7, 0.025, s);
   }
+
+  // Merge roads, sidewalks, lane markings, and buildings into one static mesh per material.
+  // Collision bounds remain separate data, so batching does not remove gameplay collision.
+  for (const [material, meshes] of staticMeshBuckets) {
+    if (meshes.length === 1) {
+      meshes[0].isPickable = false;
+      meshes[0].freezeWorldMatrix();
+      continue;
+    }
+    const merged = B.Mesh.MergeMeshes(meshes, true, true, undefined, false, false);
+    if (merged) {
+      merged.name = 'static-batch-' + material.name;
+      merged.material = material;
+      merged.isPickable = false;
+      merged.freezeWorldMatrix();
+    }
+  }
+  staticMeshBuckets.clear();
 
   // Stylized but layered car prototype: body, glass, lamps, wheels and wheel hubs.
   const car = new B.TransformNode('playerCar', scene);
