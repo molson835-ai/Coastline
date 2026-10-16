@@ -61,6 +61,38 @@ const ALLOWED_ORIGINS = new Set([
   'http://localhost:3000',
   'http://127.0.0.1:3000'
 ]);
+async function dispatchCorrection({ telemetry, findings, modelResponse }) {
+  const token = process.env.COASTLINE_GITHUB_TOKEN;
+  if (!token) return { status: 'not-configured', detail: 'COASTLINE_GITHUB_TOKEN is not set' };
+  if (!findings.some((finding) => finding.severity === 'high')) {
+    return { status: 'not-needed', detail: 'No high-severity finding triggered the correction workflow' };
+  }
+  try {
+    const response = await fetch('https://api.github.com/repos/molson835-ai/Coastline/dispatches', {
+      method: 'POST',
+      headers: {
+        authorization: 'Bearer ' + token,
+        accept: 'application/vnd.github+json',
+        'content-type': 'application/json',
+        'x-github-api-version': '2022-11-28'
+      },
+      body: JSON.stringify({
+        event_type: 'coastline-telemetry',
+        client_payload: {
+          telemetry,
+          findings,
+          modelResponse: safeText(modelResponse, 3500),
+          submittedAt: new Date().toISOString(),
+          source: 'player-requested-game-diagnostics'
+        }
+      })
+    });
+    if (!response.ok) return { status: 'dispatch-failed', httpStatus: response.status };
+    return { status: 'queued', workflow: 'Coastline AI correction pipeline' };
+  } catch (_) {
+    return { status: 'dispatch-failed', detail: 'GitHub dispatch request failed' };
+  }
+}
 function applyCors(req, res) {
   const origin = req.headers.origin || '';
   const isCoastlinePreview = /^https:\/\/coastline-babylon-beta-[a-z0-9-]+-molson835-3446\.vercel\.app$/.test(origin);
@@ -79,7 +111,7 @@ export default async function handler(req, res) {
   if (req.method === 'GET') {
     return send(res, 200, {
       service: 'Coastline AI Control Plane',
-      version: '0.2.0',
+      version: '0.3.0',
       mode: process.env.AI_GATEWAY_API_KEY ? 'model-enabled' : 'deterministic-fallback',
       model: MODEL,
       capabilities: ['telemetry-diagnosis', 'engineering-planning', 'validation-gates'],
@@ -102,13 +134,15 @@ export default async function handler(req, res) {
   const findings = deterministicDiagnosis(telemetry);
   let model = null;
   try { model = await askModel(telemetry, body.context); } catch (_) { model = null; }
+  const automation = await dispatchCorrection({ telemetry, findings, modelResponse: model });
   return send(res, 200, {
     ok: true,
     service: 'coastline-ai-control-plane',
-    version: '0.2.0',
+    version: '0.3.0',
     model: model ? MODEL : null,
     findings,
     modelResponse: model,
+    automation,
     next: findings.some(f => f.severity === 'high') ? 'performance-investigation' : 'continue-observation',
     safeMode: true,
     timestamp: new Date().toISOString()
