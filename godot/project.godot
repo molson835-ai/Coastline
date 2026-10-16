@@ -1,0 +1,19 @@
+; Coastline Drive - Godot 4 foundation
+; Separate native-engine prototype. The existing web beta remains untouched.
+config_version=5
+
+[application]
+config/name="Coastline Drive"
+run/main_scene="res://scenes/main.tscn"
+config/description="A family-friendly coastal open-world driving prototype."
+
+[display]
+window/size/viewport_width=1280
+window/size/viewport_height=720
+
+[rendering]
+renderer/rendering_method="mobile"
+renderer/rendering_method.mobile="mobile"
+renderer/rendering_method.web="gl_compatibility"
+textures/default_filters/use_nearest_mipmap_filter=false
+environment/defaults/default_clear_color=Color(0.47, 0.68, 0.84, 1)
