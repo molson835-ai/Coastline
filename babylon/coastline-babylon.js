@@ -220,7 +220,7 @@
     wheel.position.set(x, 0.43, z);
     wheel.parent = car;
     wheel.material = tireMat;
-    wheels.push(wheel);
+    wheels.push({ mesh: wheel, front: z > 0 });
     const hub = B.MeshBuilder.CreateCylinder('wheelHub', { diameter: 0.30, height: 0.255, tessellation: 12 }, scene);
     hub.rotation.z = Math.PI / 2;
     hub.position.set(x * 1.01, 0.43, z);
@@ -276,6 +276,11 @@
     const grip = Math.min(1, Math.abs(motion.speed) / 2.5);
     motion.heading += steer * grip * (motion.speed >= 0 ? 1 : -1) * 1.8 * dt;
     car.rotation.y = motion.heading;
+    car.rotation.z = -steer * Math.min(1, Math.abs(motion.speed) / 18) * 0.025;
+    for (const wheel of wheels) {
+      wheel.mesh.rotation.x += motion.speed * dt / 0.31;
+      wheel.mesh.rotation.y = wheel.front ? steer * 0.22 : 0;
+    }
     const nextX = Math.max(-114, Math.min(114, car.position.x + Math.sin(motion.heading) * motion.speed * dt));
     const nextZ = Math.max(-114, Math.min(114, car.position.z + Math.cos(motion.heading) * motion.speed * dt));
     const blocked = solidBounds.some(b => Math.abs(nextX - b.x) < b.hw && Math.abs(nextZ - b.z) < b.hd);
