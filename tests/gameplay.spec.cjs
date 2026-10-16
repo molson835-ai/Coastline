@@ -4,7 +4,7 @@ test('public beta launcher opens the feature-rich open-world runtime', async ({ 
   const pageErrors = [];
   page.on('pageerror', error => pageErrors.push(error.message));
   await page.goto('/', { waitUntil: 'domcontentloaded' });
-  await page.waitForURL(url => url.pathname.endsWith('/game-v3.html') && url.searchParams.get('beta') === '20261015full23', { timeout: 15000 });
+  await page.waitForURL(url => url.pathname.endsWith('/game-v3.html') && url.searchParams.get('beta') === '20261015full24', { timeout: 15000 });
   await expect(page.locator('canvas').first()).toBeAttached({ timeout: 20000 });
   await expect(page.locator('#mode')).toHaveText('DRIVING');
   await expect(page.locator('#coastMap')).toBeVisible();
