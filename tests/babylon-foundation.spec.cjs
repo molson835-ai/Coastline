@@ -30,6 +30,23 @@ test('Babylon preview boots and exposes a working mobile-safe driving loop', asy
   expect(pageErrors, 'Babylon should not throw runtime errors').toEqual([]);
 });
 
+test('car cannot pass through procedural building collision bounds', async ({ page }) => {
+  await page.goto('/babylon/', { waitUntil: 'domcontentloaded' });
+  await page.waitForFunction(() => Boolean(window.__coastlineBabylonTest), null, { timeout: 20000 });
+  const target = await page.evaluate(() => {
+    const api = window.__coastlineBabylonTest;
+    const b = api.colliders()[0];
+    api.setPosition(b.x - b.hw - 0.7, b.z, Math.PI / 2);
+    api.keyDown('w');
+    return b;
+  });
+  await page.waitForTimeout(700);
+  await page.evaluate(() => window.__coastlineBabylonTest.keyUp('w'));
+  const after = await page.evaluate(() => window.__coastlineBabylonTest.state());
+  expect(after.x, 'car should stop at the building boundary rather than tunnel through it')
+    .toBeLessThan(target.x + target.hw);
+});
+
 test('touch controls are visible and pointer-safe on a phone viewport', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/babylon/', { waitUntil: 'domcontentloaded' });
