@@ -18,7 +18,7 @@ func _process(delta: float) -> void:
         follow_camera.global_position = follow_camera.global_position.lerp(vehicle.global_position + offset, 1.0 - exp(-5.0 * delta))
         follow_camera.look_at(vehicle.global_position + Vector3(0.0, 1.0, 0.0), Vector3.UP)
     if is_instance_valid(status_label) and is_instance_valid(vehicle):
-        status_label.text = "COASTLINE DRIVE  |  %03d km/h\nWASD / arrows • controller" % int(absf(vehicle.speed) * 3.6)
+        status_label.text = "COASTLINE DRIVE  |  %03d km/h\nWASD / arrows • controller" % int(absf(float(vehicle.get("speed"))) * 3.6)
 
 func _build_environment() -> void:
     var world := WorldEnvironment.new()
