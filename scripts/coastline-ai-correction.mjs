@@ -29,8 +29,8 @@ const prompt = [
   'Deterministic findings: ' + JSON.stringify(findings),
   'Previous AI diagnosis: ' + String(payload.modelResponse || '').slice(0, 2500),
   'Source excerpts (truncated per file):',
-  ...Object.entries(source).map(([path, content]) => '\\n--- ' + path + ' ---\\n' + content)
-].join('\\n');
+  ...Object.entries(source).map(([path, content]) => '\n--- ' + path + ' ---\n' + content)
+].join('\n');
 const response = await fetch('https://ai-gateway.vercel.sh/v1/chat/completions', {
   method: 'POST',
   headers: { authorization: 'Bearer ' + key, 'content-type': 'application/json' },
@@ -44,9 +44,9 @@ const response = await fetch('https://ai-gateway.vercel.sh/v1/chat/completions',
 if (!response.ok) throw new Error('AI Gateway request failed with HTTP ' + response.status + '; no source files were changed.');
 const data = await response.json();
 let patch = data?.choices?.[0]?.message?.content || '';
-patch = patch.trim().replace(/^```(?:diff|patch)?\\s*/i, '').replace(/\\s*```$/, '').trim();
+patch = patch.trim().replace(/^```(?:diff|patch)?\s*/i, '').replace(/\s*```$/, '').trim();
 if (patch === 'NO_SAFE_PATCH') { console.log('AI declined to create a patch because the evidence was insufficient.'); process.exit(0); }
 if (!patch.startsWith('diff --git ')) throw new Error('AI response was not a unified diff; refusing to apply it.');
 if (patch.length > 24000) throw new Error('AI patch exceeded the 24 KB safety limit.');
-await writeFile('coastline-ai.patch', patch + '\\n', 'utf8');
+await writeFile('coastline-ai.patch', patch + '\n', 'utf8');
 console.log('Prepared a ' + patch.length + '-character patch for allowlist validation and tests.');
