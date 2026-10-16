@@ -55,11 +55,31 @@ async function askModel(t, context = '') {
   return data?.choices?.[0]?.message?.content || null;
 }
 
+const ALLOWED_ORIGINS = new Set([
+  'https://molson835-ai.github.io',
+  'https://coastlinecreator.itch.io',
+  'http://localhost:3000',
+  'http://127.0.0.1:3000'
+]);
+function applyCors(req, res) {
+  const origin = req.headers.origin || '';
+  const isCoastlinePreview = /^https:\/\/coastline-babylon-beta-[a-z0-9-]+-molson835-3446\.vercel\.app$/.test(origin);
+  if (ALLOWED_ORIGINS.has(origin) || isCoastlinePreview) {
+    res.setHeader('access-control-allow-origin', origin);
+    res.setHeader('vary', 'Origin');
+    res.setHeader('access-control-allow-methods', 'GET, POST, OPTIONS');
+    res.setHeader('access-control-allow-headers', 'Content-Type, Authorization');
+    res.setHeader('access-control-max-age', '600');
+  }
+}
+
 export default async function handler(req, res) {
+  applyCors(req, res);
+  if (req.method === 'OPTIONS') { res.statusCode = 204; return res.end(); }
   if (req.method === 'GET') {
     return send(res, 200, {
       service: 'Coastline AI Control Plane',
-      version: '0.1.1',
+      version: '0.2.0',
       mode: process.env.AI_GATEWAY_API_KEY ? 'model-enabled' : 'deterministic-fallback',
       model: MODEL,
       capabilities: ['telemetry-diagnosis', 'engineering-planning', 'validation-gates'],
@@ -85,7 +105,7 @@ export default async function handler(req, res) {
   return send(res, 200, {
     ok: true,
     service: 'coastline-ai-control-plane',
-    version: '0.1.1',
+    version: '0.2.0',
     model: model ? MODEL : null,
     findings,
     modelResponse: model,
