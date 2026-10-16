@@ -116,7 +116,7 @@
         const w = 5 + rand() * 6, d = 5 + rand() * 6, h = 5 + rand() * 15;
         const x = bx + (rand() - 0.5) * 12, z = bz + (rand() - 0.5) * 12;
         box('building', w, h, d, x, h / 2, z, buildingMats[Math.floor(rand() * buildingMats.length)]);
-        solidBounds.push({ x, z, hw: w / 2 + 0.65, hd: d / 2 + 0.65 });
+        solidBounds.push({ x, z, hw: w / 2 + 0.65, hd: d / 2 + 0.65, kind: 'building' });
       }
     }
   }
@@ -144,6 +144,8 @@
     const crown = crownBase.createInstance('treeCrown' + i);
     crown.position.set(x, 2.1 * scale, z);
     crown.scaling.setAll(scale);
+    // Tree trunks are world obstacles too; skip street/building zones above to preserve clear routes.
+    solidBounds.push({ x, z, hw: 0.42 * scale, hd: 0.42 * scale, kind: 'tree' });
   }
 
   // Procedural roadside greenery and worn-earth patches add breakup to the large grass planes.
