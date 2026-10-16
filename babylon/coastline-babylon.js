@@ -235,13 +235,25 @@
   pickupMat.diffuseColor = new B.Color3(0.1, 0.9, 0.95);
   pickupMat.emissiveColor = new B.Color3(0.05, 0.8, 0.95);
   const pickupPositions = [[30, 0, 0], [60, 0, 30], [-30, 0, 60], [-60, 0, 0], [0, 0, -60]];
+  const saveKey = 'coastline.babylon.save.v1';
+  let savedDiscoveries = [];
+  try {
+    const saved = JSON.parse(localStorage.getItem(saveKey) || '{}');
+    if (saved && Array.isArray(saved.discoveries)) savedDiscoveries = saved.discoveries.filter(i => Number.isInteger(i) && i >= 0 && i < pickupPositions.length);
+  } catch (_) { /* Private browsing or storage restrictions must never prevent the game from starting. */ }
   const pickups = pickupPositions.map((p, i) => {
     const orb = B.MeshBuilder.CreateSphere('discovery-' + i, { diameter: 1.15, segments: lowPower ? 8 : 12 }, scene);
     orb.position.set(p[0], 1.35, p[2]);
     orb.material = pickupMat;
-    return { mesh: orb, x: p[0], z: p[2], found: false, phase: i * 0.9 };
+    const found = savedDiscoveries.includes(i);
+    orb.setEnabled(!found);
+    return { mesh: orb, x: p[0], z: p[2], found, phase: i * 0.9 };
   });
-  let discoveries = 0;
+  let discoveries = pickups.filter(p => p.found).length;
+  const saveProgress = () => {
+    try { localStorage.setItem(saveKey, JSON.stringify({ version: 1, discoveries: pickups.map((p, i) => p.found ? i : -1).filter(i => i >= 0) })); }
+    catch (_) { /* Gameplay remains available when saving is blocked. */ }
+  };
   let toastUntil = 0;
   const showToast = message => { toast.textContent = message; toast.classList.add('visible'); toastUntil = performance.now() + 3200; };
   const updateMission = () => { mission.textContent = 'DISCOVERIES  ' + discoveries + ' / ' + pickups.length + '\nExplore the street grid and collect glowing markers'; };
@@ -283,8 +295,9 @@
       item.mesh.position.y = 1.35 + Math.sin(now * 0.002 + item.phase) * 0.18;
       if (Math.hypot(car.position.x - item.x, car.position.z - item.z) < 3.2) {
         item.found = true;
-        item.mesh.dispose();
+        item.mesh.setEnabled(false);
         discoveries++;
+        saveProgress();
         updateMission();
         showToast(discoveries === pickups.length ? 'All discoveries found · keep exploring!' : 'Discovery found · ' + discoveries + ' / ' + pickups.length);
       }
