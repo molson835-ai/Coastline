@@ -4,10 +4,12 @@ const MODEL = process.env.COASTLINE_AI_MODEL || 'reflection/beam-free';
 const MAX_BODY = 64 * 1024;
 const CONTROL_TOKEN = process.env.COASTLINE_AI_CONTROL_TOKEN || '';
 
-const json = (status, body) => new Response(JSON.stringify(body), {
-  status,
-  headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' }
-});
+function send(res, status, body) {
+  res.statusCode = status;
+  res.setHeader('content-type', 'application/json; charset=utf-8');
+  res.setHeader('cache-control', 'no-store');
+  res.end(JSON.stringify(body));
+}
 
 function safeText(value, max = 6000) {
   return typeof value === 'string' ? value.slice(0, max) : '';
@@ -30,12 +32,8 @@ function summarizeTelemetry(t = {}) {
 
 function deterministicDiagnosis(t) {
   const findings = [];
-  if (t.frameMs >= 28 || (t.fps > 0 && t.fps < 36)) {
-    findings.push({ area: 'performance', severity: 'high', finding: 'Frame budget is above the 60 FPS target; prioritize CPU/GPU work before adding visual density.' });
-  }
-  if (t.highSpeed && (t.frameMs >= 24 || (t.fps > 0 && t.fps < 42))) {
-    findings.push({ area: 'high-speed', severity: 'high', finding: 'High-speed frame pacing remains constrained; inspect collision, traffic/NPC simulation, and distant rendering workload.' });
-  }
+  if (t.frameMs >= 28 || (t.fps > 0 && t.fps < 36)) findings.push({ area: 'performance', severity: 'high', finding: 'Frame budget is above the 60 FPS target; prioritize CPU/GPU work before adding visual density.' });
+  if (t.highSpeed && (t.frameMs >= 24 || (t.fps > 0 && t.fps < 42))) findings.push({ area: 'high-speed', severity: 'high', finding: 'High-speed frame pacing remains constrained; inspect collision, traffic/NPC simulation, and distant rendering workload.' });
   if (t.traffic > 40) findings.push({ area: 'traffic', severity: 'medium', finding: 'Traffic population is large enough to justify distance-based simulation throttling.' });
   if (t.npcs > 60) findings.push({ area: 'npc', severity: 'medium', finding: 'NPC population is large enough to justify near/mid/far simulation tiers.' });
   if (t.sceneChildren > 2500) findings.push({ area: 'rendering', severity: 'medium', finding: 'Scene graph is large; investigate visibility, instancing, batching, and LOD before increasing geometry.' });
@@ -50,47 +48,44 @@ async function askModel(t, context = '') {
   const response = await fetch('https://ai-gateway.vercel.sh/v1/chat/completions', {
     method: 'POST',
     headers: { authorization: `Bearer ${key}`, 'content-type': 'application/json' },
-    body: JSON.stringify({
-      model: MODEL,
-      messages: [{ role: 'user', content: prompt }],
-      temperature: 0.1,
-      max_tokens: 900
-    })
+    body: JSON.stringify({ model: MODEL, messages: [{ role: 'user', content: prompt }], temperature: 0.1, max_tokens: 900 })
   });
   if (!response.ok) throw new Error(`AI Gateway ${response.status}`);
   const data = await response.json();
   return data?.choices?.[0]?.message?.content || null;
 }
 
-export default async function handler(req) {
+export default async function handler(req, res) {
   if (req.method === 'GET') {
-    return json(200, {
+    return send(res, 200, {
       service: 'Coastline AI Control Plane',
-      version: '0.1.0',
+      version: '0.1.1',
       mode: process.env.AI_GATEWAY_API_KEY ? 'model-enabled' : 'deterministic-fallback',
       model: MODEL,
       capabilities: ['telemetry-diagnosis', 'engineering-planning', 'validation-gates'],
       mutationPolicy: 'proposal-only until branch/build/test tooling is explicitly enabled'
     });
   }
-  if (req.method !== 'POST') return json(405, { error: 'Method not allowed' });
+  if (req.method !== 'POST') return send(res, 405, { error: 'Method not allowed' });
   if (CONTROL_TOKEN) {
-    const auth = req.headers.get('authorization') || '';
-    if (auth !== `Bearer ${CONTROL_TOKEN}`) return json(401, { error: 'Unauthorized' });
+    const auth = req.headers.authorization || '';
+    if (auth !== `Bearer ${CONTROL_TOKEN}`) return send(res, 401, { error: 'Unauthorized' });
   }
-  const length = Number(req.headers.get('content-length') || 0);
-  if (length > MAX_BODY) return json(413, { error: 'Payload too large' });
-  let body;
-  try { body = await req.json(); } catch { return json(400, { error: 'Invalid JSON' }); }
+  const length = Number(req.headers['content-length'] || 0);
+  if (length > MAX_BODY) return send(res, 413, { error: 'Payload too large' });
+  let body = req.body;
+  if (typeof body === 'string') {
+    try { body = JSON.parse(body); } catch { return send(res, 400, { error: 'Invalid JSON' }); }
+  }
+  body = body || {};
   const telemetry = summarizeTelemetry(body.telemetry || body);
   const findings = deterministicDiagnosis(telemetry);
   let model = null;
-  try { model = await askModel(telemetry, body.context); }
-  catch (error) { model = null; }
-  return json(200, {
+  try { model = await askModel(telemetry, body.context); } catch (_) { model = null; }
+  return send(res, 200, {
     ok: true,
     service: 'coastline-ai-control-plane',
-    version: '0.1.0',
+    version: '0.1.1',
     model: model ? MODEL : null,
     findings,
     modelResponse: model,
