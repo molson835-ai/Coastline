@@ -11,6 +11,7 @@ test('Babylon preview boots and exposes a working mobile-safe driving loop', asy
   await page.waitForFunction(() => Boolean(window.__coastlineBabylonTest), null, { timeout: 20000 });
   const before = await page.evaluate(() => window.__coastlineBabylonTest.state());
   expect(before.buildingColliders, 'procedural buildings should participate in collision checks').toBeGreaterThan(10);
+  expect(before.treeColliders, 'tree trunks should participate in collision checks').toBeGreaterThan(5);
   expect(before.remainingDiscoveries, 'free-roam discoveries should be initialized').toBe(5);
   await expect(page.locator('#mission')).toContainText('DISCOVERIES');
   await expect(page.locator('#toast')).toBeAttached();
