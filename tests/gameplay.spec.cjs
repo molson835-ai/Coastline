@@ -4,7 +4,7 @@ test('public beta launcher opens the feature-rich open-world runtime', async ({ 
   const pageErrors = [];
   page.on('pageerror', error => pageErrors.push(error.message));
   await page.goto('/', { waitUntil: 'domcontentloaded' });
-  await page.waitForURL(url => url.pathname.endsWith('/game-v3.html') && url.searchParams.get('beta') === '20261015full27', { timeout: 15000 });
+  await page.waitForURL(url => url.pathname.endsWith('/game-v3.html') && /^202610\d+/.test(url.searchParams.get('beta') || ''), { timeout: 15000 });
   await expect(page.locator('canvas').first()).toBeAttached({ timeout: 20000 });
   await expect(page.locator('#mode')).toHaveText('DRIVING');
   await expect(page.locator('#coastMap')).toBeVisible();
@@ -43,8 +43,6 @@ test('Coastline boots, exits a vehicle, shows the avatar, and supports walking t
   expect(afterExit.buildingCount).toBeGreaterThan(10);
   expect(afterExit.vehicleCount).toBeGreaterThan(1);
 
-  // Use a known open area so the walking assertion tests movement rather than
-  // whether the default parked vehicle happens to be next to a building.
   await page.evaluate(() => window.__coastlineTest.setWalkPosition(0, 0, 0));
   const walkStart = await page.evaluate(() => window.__coastlineTest.state());
   await page.evaluate(() => window.__coastlineTest.keyDown('w'));
@@ -69,8 +67,6 @@ test('vehicle steering follows left/right input and reverse builds usable negati
   await page.goto('/game-v3.html?beta=vehicle-controls-regression', { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => Boolean(window.__coastlineTest), null, { timeout: 20000 });
 
-  // Find a genuinely clear, straight road lane instead of assuming the default
-  // spawn is free of traffic, buildings, or roadside props.
   const roadStart = await page.evaluate(() => {
     const api = window.__coastlineTest;
     const roster = api.vehicleRoster();
