@@ -1,14 +1,14 @@
 (()=>{
 'use strict';
-const TAG='CoastlineRuntimeV4';
+const TAG='CoastlineRuntimeV5';
 const state=window.__coastlineRuntime={tag:TAG,ready:false,scene:null,camera:null,renderer:null,composer:null,lastFrame:performance.now(),frameMs:16,slowSamples:0,fastSamples:0,far:480,quality:.88,errors:0,tuned:new WeakSet(),loading:true,renderCount:0};
 const bootAt=performance.now();
-const loader=document.createElement('div');loader.id='coastlineWorldLoader';loader.style.cssText='position:fixed;inset:0;z-index:9998;display:grid;place-items:center;background:linear-gradient(180deg,#07131d,#0b2630);color:#eefcff;font:14px/1.5 system-ui,sans-serif;transition:opacity .65s ease;pointer-events:auto';loader.innerHTML='<div style="width:min(520px,86vw);text-align:center"><div style="font-size:11px;letter-spacing:.24em;color:#91eef8;font-weight:900">COASTLINE · WORLD BUILD</div><div id="coastlineLoadTitle" style="font-size:28px;font-weight:900;margin:10px 0">Building the city</div><div id="coastlineLoadSub" style="color:#a9c9d0">Streaming roads, buildings, lighting and living-world systems…</div><div style="height:6px;margin:20px 0 8px;border-radius:99px;background:#ffffff16;overflow:hidden"><div id="coastlineLoadBar" style="height:100%;width:8%;border-radius:99px;background:#79e3ef;transition:width .45s ease"></div></div><div id="coastlineLoadHint" style="font-size:11px;color:#7898a1">Building nearby systems first; distant simulation stays deferred.</div></div>';
+const loader=document.createElement('div');loader.id='coastlineWorldLoader';loader.style.cssText='position:fixed;inset:0;z-index:9998;display:grid;place-items:center;background:linear-gradient(180deg,#07131d,#0b2630);color:#eefcff;font:14px/1.5 system-ui,sans-serif;transition:opacity .65s ease;pointer-events:auto';loader.innerHTML='<div style="width:min(520px,86vw);text-align:center"><div style="font-size:11px;letter-spacing:.24em;color:#91eef8;font-weight:900">COASTLINE · WORLD BUILD</div><div id="coastlineLoadTitle" style="font-size:28px;font-weight:900;margin:10px 0">Building the city</div><div id="coastlineLoadSub" style="color:#a9c9d0">Streaming roads, buildings, lighting and living-world systems…</div><div style="height:6px;margin:20px 0 8px;border-radius:99px;background:#ffffff16;overflow:hidden"><div id="coastlineLoadBar" style="height:100%;width:8%;border-radius:99px;background:#79e3ef;transition:width .45s ease"></div></div><div id="coastlineLoadHint" style="font-size:11px;color:#7898a1">Nearby world first; background simulation continues after entry.</div></div>';
 document.documentElement.appendChild(loader);
 const loadTitle=document.getElementById('coastlineLoadTitle'),loadSub=document.getElementById('coastlineLoadSub'),loadBar=document.getElementById('coastlineLoadBar'),loadHint=document.getElementById('coastlineLoadHint');
 let loaderStage=0;const stages=[['Building the city','Streaming nearby roads, buildings, terrain and districts…',22],['Lighting the world','Stabilizing cinematic lighting, reflections and shadows…',48],['Warming the renderer','Compiling the visual pipeline and performance budget…',72],['Starting living-world systems','Traffic and NPC simulation are activated progressively around the player…',88]];
 const stageTimer=setInterval(()=>{if(!state.loading){clearInterval(stageTimer);return}loaderStage=Math.min(stages.length-1,loaderStage+1);const s=stages[loaderStage];loadTitle.textContent=s[0];loadSub.textContent=s[1];loadBar.style.width=s[2]+'%'},2200);
-function hideLoader(reason='ready'){if(!state.loading)return;state.loading=false;clearInterval(stageTimer);loadBar.style.width='100%';loadHint.textContent=reason==='recovery'?'World renderer online · background systems continue progressively':'World ready';setTimeout(()=>{loader.style.opacity='0';setTimeout(()=>loader.remove(),700)},180)}
+function hideLoader(reason='ready'){if(!state.loading)return;state.loading=false;clearInterval(stageTimer);loadBar.style.width='100%';loadHint.textContent=reason==='recovery'?'World renderer online · background systems continue progressively':'World ready · background systems continue progressively';setTimeout(()=>{loader.style.opacity='0';setTimeout(()=>loader.remove(),700)},80)}
 const steerHeld=new Set();
 const mapKey=k=>k==='a'?'d':k==='d'?'a':k;
 const synth=(type,key)=>{const e=new KeyboardEvent(type,{key,bubbles:true,cancelable:true});Object.defineProperty(e,'__coastlineRuntimeSynthetic',{value:true});window.dispatchEvent(e)};
@@ -33,13 +33,15 @@ function tuneScene(scene,camera){
   try{const THREE=window.THREE;if(THREE){const fill=new THREE.HemisphereLight(0xb9d8ff,0x18202a,0.52);fill.name='__coastlineCinematicFill';scene.add(fill);const sun=new THREE.DirectionalLight(0xffd0a0,.85);sun.name='__coastlineCinematicSun';sun.position.set(-140,220,90);sun.castShadow=true;const sm=innerWidth<=760?1024:1536;sun.shadow.mapSize.set(sm,sm);sun.shadow.camera.near=10;sun.shadow.camera.far=650;sun.shadow.camera.left=-240;sun.shadow.camera.right=240;sun.shadow.camera.top=240;sun.shadow.camera.bottom=-240;scene.add(sun)}}catch{}
   state.ready=true;
 }
+function hasRenderableSurface(){return !!document.querySelector('canvas') || state.renderCount>0 || !!state.renderer}
 function qualityTick(){
   const now=performance.now(),dt=now-state.lastFrame;state.lastFrame=now;state.frameMs=state.frameMs*.9+dt*.1;
   if(dt>40)state.slowSamples++;else state.slowSamples=Math.max(0,state.slowSamples-1);
   if(dt<19)state.fastSamples++;else state.fastSamples=Math.max(0,state.fastSamples-1);
-  /* Do not require an ideal FPS before releasing the loading screen. A slow but rendered world is playable; it should not look crashed. */
-  if(state.loading&&state.renderCount>=4&&now-bootAt>5000)hideLoader('ready');
-  if(state.loading&&state.renderer&&now-bootAt>18000&&state.errors<3)hideLoader('recovery');
+  // Fail-open startup: the loader is a progress UI, never a hard dependency for entering the game.
+  if(state.loading&&state.renderCount>=4&&now-bootAt>3500)hideLoader('ready');
+  if(state.loading&&hasRenderableSurface()&&now-bootAt>7000)hideLoader('recovery');
+  if(state.loading&&now-bootAt>12000)hideLoader('recovery');
   if(state.renderer&&now-(state.lastQuality||0)>2500){state.lastQuality=now;if(state.slowSamples>=8){state.quality=Math.max(.62,state.quality-.08);state.far=Math.max(380,state.far-40);state.slowSamples=0;applyQuality()}else if(state.fastSamples>=80){state.quality=Math.min(.92,state.quality+.03);state.far=Math.min(540,state.far+25);state.fastSamples=0;applyQuality()}}
   requestAnimationFrame(qualityTick);
 }
