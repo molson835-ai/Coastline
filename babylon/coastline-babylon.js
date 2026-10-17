@@ -4,7 +4,9 @@
   const canvas = document.getElementById('renderCanvas');
   const status = document.getElementById('status');
   const fps = document.getElementById('fps');
-  if (!B || !canvas || !status || !fps) {
+  const mission = document.getElementById('mission');
+  const toast = document.getElementById('toast');
+  if (!B || !canvas || !status || !fps || !window.CoastlineWorldFactory) {
     if (status) status.textContent = 'Unable to start: required Babylon components did not load.';
     return;
   }
@@ -41,7 +43,10 @@
   });
   engine.setHardwareScalingLevel(lowPower ? 1.25 : 1);
   const scene = new B.Scene(engine);
-  scene.clearColor = new B.Color4(0.48, 0.69, 0.79, 1);
+  scene.clearColor = new B.Color4(0.62, 0.78, 0.84, 1);
+  scene.fogMode = B.Scene.FOGMODE_EXP2;
+  scene.fogDensity = lowPower ? 0.0011 : 0.00075;
+  scene.fogColor = new B.Color3(0.62, 0.78, 0.84);
   scene.skipPointerMovePicking = true;
 
   const camera = new B.FollowCamera('playerCamera', new B.Vector3(0, 5, -11), scene);
@@ -78,6 +83,10 @@
     return m;
   });
 
+  const solidBounds = [];
+  const requestedSeed = Number(new URLSearchParams(location.search).get('seed'));
+  const worldFactory = window.CoastlineWorldFactory.create(Number.isFinite(requestedSeed) && requestedSeed !== 0 ? requestedSeed : 1701);
+  const rand = worldFactory.rand;
   function box(name, w, h, d, x, y, z, mat, parent) {
     const mesh = B.MeshBuilder.CreateBox(name, { width: w, height: h, depth: d }, scene);
     mesh.position.set(x, y, z);
@@ -86,30 +95,29 @@
     return mesh;
   }
 
-  // Each road spans one complete grid cell, eliminating gaps at intersections.
-  for (let p = -90; p <= 90; p += 30) {
-    box('road-east-west', 30, 0.08, 7, p, 0.04, 0, roadMat);
-    box('sidewalk-east-west', 30, 0.14, 1.8, p, 0.07, 4.4, sidewalkMat);
-    box('sidewalk-east-west', 30, 0.14, 1.8, p, 0.07, -4.4, sidewalkMat);
-    box('road-north-south', 7, 0.08, 30, 0, 0.04, p, roadMat);
-    box('sidewalk-north-south', 1.8, 0.14, 30, 4.4, 0.07, p, sidewalkMat);
-    box('sidewalk-north-south', 1.8, 0.14, 30, -4.4, 0.07, p, sidewalkMat);
-    for (let k = -10; k <= 10; k += 5) {
-      box('lane-dash', 2.4, 0.018, 0.12, p + k, 0.09, 0, lineMat);
-      box('lane-dash', 0.12, 0.018, 2.4, 0, 0.09, p + k, lineMat);
+  // A connected street grid: every block has multiple routes and every junction aligns.
+  for (const p of worldFactory.roadCoordinates) {
+    box('road-east-west', 240, 0.08, 7, 0, 0.04, p, roadMat);
+    box('sidewalk-east-west', 240, 0.14, 1.8, 0, 0.07, p + 4.4, sidewalkMat);
+    box('sidewalk-east-west', 240, 0.14, 1.8, 0, 0.07, p - 4.4, sidewalkMat);
+    box('road-north-south', 7, 0.08, 240, p, 0.04, 0, roadMat);
+    box('sidewalk-north-south', 1.8, 0.14, 240, p + 4.4, 0.07, 0, sidewalkMat);
+    box('sidewalk-north-south', 1.8, 0.14, 240, p - 4.4, 0.07, 0, sidewalkMat);
+    for (let k = -110; k <= 110; k += 10) {
+      box('lane-dash', 2.4, 0.018, 0.12, k, 0.09, p, lineMat);
+      box('lane-dash', 0.12, 0.018, 2.4, p, 0.09, k, lineMat);
     }
   }
 
-  let seed = 1701;
-  const rand = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
   // Blocks sit between roads rather than on the road centerlines.
-  for (let bx = -105; bx <= 105; bx += 30) {
-    for (let bz = -105; bz <= 105; bz += 30) {
+  for (const bx of worldFactory.blockCenters) {
+    for (const bz of worldFactory.blockCenters) {
       const count = 1 + Math.floor(rand() * (lowPower ? 2 : 3));
       for (let i = 0; i < count; i++) {
         const w = 5 + rand() * 6, d = 5 + rand() * 6, h = 5 + rand() * 15;
         const x = bx + (rand() - 0.5) * 12, z = bz + (rand() - 0.5) * 12;
         box('building', w, h, d, x, h / 2, z, buildingMats[Math.floor(rand() * buildingMats.length)]);
+        solidBounds.push({ x, z, hw: w / 2 + 0.65, hd: d / 2 + 0.65, kind: 'building' });
       }
     }
   }
@@ -125,10 +133,11 @@
   const crownBase = B.MeshBuilder.CreateIcoSphere('treeCrownSource', { radius: 1.15, subdivisions: 1 }, scene);
   crownBase.material = leavesMat;
   crownBase.isVisible = false;
-  const treeCount = lowPower ? 45 : 130;
+  const treeCount = lowPower ? 35 : 100;
   for (let i = 0; i < treeCount; i++) {
     const x = (rand() - 0.5) * 220, z = (rand() - 0.5) * 220;
-    if (Math.abs(x) < 10 || Math.abs(z) < 10) continue;
+    if (Math.abs(x - Math.round(x / 30) * 30) < 6 || Math.abs(z - Math.round(z / 30) * 30) < 6) continue;
+    if (solidBounds.some(b => Math.abs(x - b.x) < b.hw + 1.4 && Math.abs(z - b.z) < b.hd + 1.4)) continue;
     const scale = 0.7 + rand() * 0.8;
     const trunk = trunkBase.createInstance('treeTrunk' + i);
     trunk.position.set(x, 0.75 * scale, z);
@@ -136,6 +145,43 @@
     const crown = crownBase.createInstance('treeCrown' + i);
     crown.position.set(x, 2.1 * scale, z);
     crown.scaling.setAll(scale);
+    // Tree trunks are world obstacles too; skip street/building zones above to preserve clear routes.
+    solidBounds.push({ x, z, hw: 0.42 * scale, hd: 0.42 * scale, kind: 'tree' });
+  }
+
+  // Procedural roadside greenery and worn-earth patches add breakup to the large grass planes.
+  const bushMat = new B.StandardMaterial('bushGreen', scene);
+  bushMat.diffuseColor = new B.Color3(0.12, 0.27, 0.11);
+  const bushSource = B.MeshBuilder.CreateIcoSphere('bushSource', { radius: 0.8, subdivisions: 1 }, scene);
+  bushSource.material = bushMat;
+  bushSource.isVisible = false;
+  const dirtMat = new B.StandardMaterial('wornEarth', scene);
+  dirtMat.diffuseColor = new B.Color3(0.27, 0.22, 0.15);
+  dirtMat.roughness = 1;
+  const dirtSource = B.MeshBuilder.CreateSphere('dirtPatchSource', { diameter: 1, segments: 8 }, scene);
+  dirtSource.material = dirtMat;
+  dirtSource.isVisible = false;
+  const clearGround = (x, z, roadClearance = 5.6) => {
+    if (Math.abs(x - Math.round(x / 30) * 30) < roadClearance || Math.abs(z - Math.round(z / 30) * 30) < roadClearance) return false;
+    return !solidBounds.some(b => Math.abs(x - b.x) < b.hw + 1 && Math.abs(z - b.z) < b.hd + 1);
+  };
+  const bushCount = lowPower ? 55 : 145;
+  for (let i = 0; i < bushCount; i++) {
+    const x = (rand() - 0.5) * 220, z = (rand() - 0.5) * 220;
+    if (!clearGround(x, z)) continue;
+    const bush = bushSource.createInstance('bush' + i);
+    const s = 0.55 + rand() * 0.9;
+    bush.position.set(x, 0.38 * s, z);
+    bush.scaling.set(s * 1.25, s * 0.75, s);
+  }
+  const dirtCount = lowPower ? 24 : 70;
+  for (let i = 0; i < dirtCount; i++) {
+    const x = (rand() - 0.5) * 220, z = (rand() - 0.5) * 220;
+    if (!clearGround(x, z, 5.1)) continue;
+    const patch = dirtSource.createInstance('dirtPatch' + i);
+    const s = 0.7 + rand() * 1.9;
+    patch.position.set(x, 0.018, z);
+    patch.scaling.set(s * 1.7, 0.025, s);
   }
 
   // Stylized but layered car prototype: body, glass, lamps, wheels and wheel hubs.
@@ -175,15 +221,44 @@
     wheel.position.set(x, 0.43, z);
     wheel.parent = car;
     wheel.material = tireMat;
-    wheels.push(wheel);
+    wheels.push({ mesh: wheel, front: z > 0 });
     const hub = B.MeshBuilder.CreateCylinder('wheelHub', { diameter: 0.30, height: 0.255, tessellation: 12 }, scene);
     hub.rotation.z = Math.PI / 2;
     hub.position.set(x * 1.01, 0.43, z);
     hub.parent = car;
     hub.material = rimMat;
   }
-  car.position.set(0, 0, 12);
+  car.position.set(0, 0, 0);
   camera.lockedTarget = car;
+
+  // Tiny optional free-roam loop proves pickups/objectives without locking the player into a mission.
+  const pickupMat = new B.StandardMaterial('discoveryGlow', scene);
+  pickupMat.diffuseColor = new B.Color3(0.1, 0.9, 0.95);
+  pickupMat.emissiveColor = new B.Color3(0.05, 0.8, 0.95);
+  const pickupPositions = worldFactory.pickupPositions.map(p => [p.x, p.y, p.z]);
+  const saveKey = 'coastline.babylon.save.v1';
+  let savedDiscoveries = [];
+  try {
+    const saved = JSON.parse(localStorage.getItem(saveKey) || '{}');
+    if (saved && Array.isArray(saved.discoveries)) savedDiscoveries = saved.discoveries.filter(i => Number.isInteger(i) && i >= 0 && i < pickupPositions.length);
+  } catch (_) { /* Private browsing or storage restrictions must never prevent the game from starting. */ }
+  const pickups = pickupPositions.map((p, i) => {
+    const orb = B.MeshBuilder.CreateSphere('discovery-' + i, { diameter: 1.15, segments: lowPower ? 8 : 12 }, scene);
+    orb.position.set(p[0], 1.35, p[2]);
+    orb.material = pickupMat;
+    const found = savedDiscoveries.includes(i);
+    orb.setEnabled(!found);
+    return { mesh: orb, x: p[0], z: p[2], found, phase: i * 0.9 };
+  });
+  let discoveries = pickups.filter(p => p.found).length;
+  const saveProgress = () => {
+    try { localStorage.setItem(saveKey, JSON.stringify({ version: 1, discoveries: pickups.map((p, i) => p.found ? i : -1).filter(i => i >= 0) })); }
+    catch (_) { /* Gameplay remains available when saving is blocked. */ }
+  };
+  let toastUntil = 0;
+  const showToast = message => { toast.textContent = message; toast.classList.add('visible'); toastUntil = performance.now() + 3200; };
+  const updateMission = () => { mission.textContent = 'DISCOVERIES  ' + discoveries + ' / ' + pickups.length + '\nExplore the street grid and collect glowing markers'; };
+  updateMission();
 
   const motion = { speed: 0, heading: 0, x: car.position.x, z: car.position.z };
   let jumpVelocity = 0;
@@ -202,12 +277,38 @@
     const grip = Math.min(1, Math.abs(motion.speed) / 2.5);
     motion.heading += steer * grip * (motion.speed >= 0 ? 1 : -1) * 1.8 * dt;
     car.rotation.y = motion.heading;
-    car.position.x += Math.sin(motion.heading) * motion.speed * dt;
-    car.position.z += Math.cos(motion.heading) * motion.speed * dt;
+    car.rotation.z = -steer * Math.min(1, Math.abs(motion.speed) / 18) * 0.025;
+    for (const wheel of wheels) {
+      wheel.mesh.rotation.x += motion.speed * dt / 0.31;
+      wheel.mesh.rotation.y = wheel.front ? steer * 0.22 : 0;
+    }
+    const nextX = Math.max(-114, Math.min(114, car.position.x + Math.sin(motion.heading) * motion.speed * dt));
+    const nextZ = Math.max(-114, Math.min(114, car.position.z + Math.cos(motion.heading) * motion.speed * dt));
+    const blocked = solidBounds.some(b => Math.abs(nextX - b.x) < b.hw && Math.abs(nextZ - b.z) < b.hd);
+    if (blocked) {
+      motion.speed *= -0.14;
+      if (performance.now() > toastUntil) showToast('Obstacle hit · steer back onto the road');
+    } else {
+      car.position.x = nextX;
+      car.position.z = nextZ;
+    }
 
-    // Keep the prototype inside its streamed demo district.
-    car.position.x = Math.max(-114, Math.min(114, car.position.x));
-    car.position.z = Math.max(-114, Math.min(114, car.position.z));
+    // Discoveries are non-blocking: free driving always remains available.
+    const now = performance.now();
+    for (const item of pickups) {
+      if (item.found) continue;
+      item.mesh.rotation.y += dt * 1.2;
+      item.mesh.position.y = 1.35 + Math.sin(now * 0.002 + item.phase) * 0.18;
+      if (Math.hypot(car.position.x - item.x, car.position.z - item.z) < 3.2) {
+        item.found = true;
+        item.mesh.setEnabled(false);
+        discoveries++;
+        saveProgress();
+        updateMission();
+        showToast(discoveries === pickups.length ? 'All discoveries found · keep exploring!' : 'Discovery found · ' + discoveries + ' / ' + pickups.length);
+      }
+    }
+    if (now > toastUntil) toast.classList.remove('visible');
     if (keys.has('space') && car.position.y <= 0.01 && jumpVelocity <= 0) jumpVelocity = 4.2;
     jumpVelocity -= 11 * dt;
     car.position.y = Math.max(0, car.position.y + jumpVelocity * dt);
@@ -219,9 +320,11 @@
   });
 
   window.__coastlineBabylonTest = {
-    state: () => ({ x: motion.x, z: motion.z, speed: motion.speed, heading: motion.heading, meshCount: scene.meshes.length, fps: engine.getFps() }),
+    state: () => ({ seed: worldFactory.seed, roadCoordinates: worldFactory.roadCoordinates.slice(), chunkSize: worldFactory.chunkSize, x: motion.x, z: motion.z, speed: motion.speed, heading: motion.heading, meshCount: scene.meshes.length, fps: engine.getFps(), discoveries, remainingDiscoveries: pickups.filter(p => !p.found).length, buildingColliders: solidBounds.filter(b => b.kind === 'building').length, treeColliders: solidBounds.filter(b => b.kind === 'tree').length, wheelSpin: wheels.map(w => w.mesh.rotation.x) }),
     keyDown: key => press(String(key).toLowerCase()),
-    keyUp: key => release(String(key).toLowerCase())
+    keyUp: key => release(String(key).toLowerCase()),
+    setPosition: (x, z, heading = 0) => { car.position.x = x; car.position.z = z; motion.x = x; motion.z = z; motion.heading = heading; motion.speed = 0; car.rotation.y = heading; },
+    colliders: () => solidBounds.map(b => ({ ...b }))
   };
   addEventListener('blur', () => keys.clear());
   addEventListener('resize', () => engine.resize());
