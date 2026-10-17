@@ -1,20 +1,18 @@
-const CACHE_NAME='coastline-static-v26';
+const CACHE_NAME='coastline-static-v27';
 const CORE=['./','./index.html','./coastline-cinematic-v2.html','./game-v3.html','./coastline-runtime-fix.js','./coastline-stability-v8.js','./world-model.js','./world-engine.js','./living-world.js','./douglassville-layout.js','./realism-library.js','./presentation-runtime.js','./cinematic-visual-library.js','./cinematic-animation-library.js','./cinematic-environment-library.js','./replayability-engine.js','./npc-agency-engine.js','./npc-world-slice.js','./social-rumor-engine.js','./player-reputation-engine.js','./coastline-ai-runtime.js','./coastline-live-ops.js'];
-const RUNTIME_PATCH='<script id="coastline-runtime-v24" src="./coastline-runtime-fix.js"></script><script id="coastline-stability-v8" src="./coastline-stability-v8.js"></script>';
+const RUNTIME_PATCH='<script id="coastline-runtime-v27" src="./coastline-runtime-fix.js"></script><script id="coastline-stability-v8" src="./coastline-stability-v8.js"></script>';
 function patchFullBetaHtml(text){
  let out=text;
- const safetyPatch='<script id="coastline-v26-input-safety">(()=>{const proto=Element.prototype,original=proto.setPointerCapture;if(original&&!proto.__coastlineSafePointerCapture){proto.setPointerCapture=function(pointerId){try{return original.call(this,pointerId)}catch(error){if(error?.name!==\'InvalidStateError\')throw error}};Object.defineProperty(proto,\'__coastlineSafePointerCapture\',{value:true})}})();</script>';
- if(out.includes('</head>')&&!out.includes('coastline-runtime-v24'))out=out.replace('</head>',RUNTIME_PATCH+safetyPatch+'</head>');
- else if(out.includes('</head>')&&!out.includes('coastline-v26-input-safety'))out=out.replace('</head>',safetyPatch+'</head>');
+ const safetyPatch='<script id="coastline-v27-input-safety">(()=>{const proto=Element.prototype,original=proto.setPointerCapture;if(original&&!proto.__coastlineSafePointerCapture){proto.setPointerCapture=function(pointerId){try{return original.call(this,pointerId)}catch(error){if(error?.name!==\'InvalidStateError\')throw error}};Object.defineProperty(proto,\'__coastlineSafePointerCapture\',{value:true})}})();</script>';
+ if(out.includes('</head>')&&!out.includes('coastline-runtime-v27'))out=out.replace('</head>',RUNTIME_PATCH+safetyPatch+'</head>');
+ else if(out.includes('</head>')&&!out.includes('coastline-v27-input-safety'))out=out.replace('</head>',safetyPatch+'</head>');
  out=out.replace('const worldArchitecture=createWorldArchitecture(worldModel);','const worldArchitecture=createWorldArchitecture(worldModel);window.__coastlineHooks={scene,camera,renderer,composer,worldArchitecture};');
  if(out.includes('function physicsStep()')&&!out.includes('coastlineSteerSince')){
    out=out.replace('function physicsStep(){','let coastlineSteerSince=0,coastlineSteerLast=0;\nfunction physicsStep(){');
    out=out.replace('steer=(left?1:0)-(right?1:0);','steer=(right?1:0)-(left?1:0);');
  }
- // Correct walking direction independently of vehicle steering: A/left must move left, D/right must move right.
  out=out.replace("const strafe=(keys['KeyD']?1:0)-(keys['KeyA']?1:0);","const strafe=(keys['KeyA']?1:0)-(keys['KeyD']?1:0);");
  out=out.replace("const moveX=Math.sin(player.heading)*forward+Math.cos(player.heading)*strafe;const moveZ=Math.cos(player.heading)*forward-Math.sin(player.heading)*strafe;","const moveX=Math.sin(player.heading)*forward+Math.cos(player.heading)*strafe;const moveZ=Math.cos(player.heading)*forward-Math.sin(player.heading)*strafe;");
- // Establish explicit road-marking depth offset and prevent coplanar flashing/z-fighting.
  out=out.replace(/r\.position\.y\+\.1/g,'r.position.y+.16').replace(/r\.position\.y\+\.095/g,'r.position.y+.145');
  out=out.replace('audioMaster.gain.value=audioEnabled ? .62 : 0','audioMaster.gain.value=audioEnabled ? .16 : 0');
  out=out.replace("new AC();audioMaster","new AC({latencyHint:'interactive',sampleRate:22050});audioMaster");
@@ -28,11 +26,8 @@ function patchFullBetaHtml(text){
  out=out.replace(/composer\.render\(\)/g,'coastlineRenderFrame()');
  out=out.replace('composer.setSize(innerWidth,innerHeight)','if(composer)composer.setSize(innerWidth,innerHeight)');
  out=out.replace('renderer.compile(scene,camera);','if(!lowPowerDevice)renderer.compile(scene,camera);');
- // Do not tint the ground purple during dusk. Preserve the cinematic sky but make terrain lighting neutral.
  out=out.replace("scene.children.find(o=>o.isHemisphereLight).color.set(daylight>.45?0xc8dcff:0xffa9bb);","const coastlineHemisphere=scene.children.find(o=>o.isHemisphereLight);coastlineHemisphere.color.set(daylight>.45?0xc8dcff:0xffa9bb);coastlineHemisphere.groundColor.set(daylight>.45?0x526b57:(sunset>.2?0x5d6863:0x26342f));");
  out=out.replace("const fogBase=environment.weather==='fog'?.00165:environment.weather==='rain'?.00105:environment.weather==='cloudy'?.00082:.00042;scene.fog.density=fogBase+(1-daylight)*.00012;scene.fog.color.set(environment.weather==='fog'?0xaab8c3:environment.weather==='rain'?0x718596:daylight>.55?0xa8c7d5:sunset>.2?0xdca2a5:0x3a465c);","const fogBase=environment.weather==='fog'?.00165:environment.weather==='rain'?.00105:environment.weather==='cloudy'?.00082:.00042;const coastlineSunsetFogSeparation=environment.weather==='clear'?THREE.MathUtils.clamp(1-sunset*.62,.38,1):1;scene.fog.density=(fogBase+(1-daylight)*.00012)*coastlineSunsetFogSeparation;scene.fog.color.set(environment.weather==='fog'?0xaab8c3:environment.weather==='rain'?0x718596:sunset>.2?0x8f9fa1:daylight>.55?0xa8c7d5:0x3a465c);");
- // v26: explicitly separate sky from world ground on mobile. Keep the sky visible, but prevent the ground/grass material from inheriting a purple dusk color.
- out=out.replace("renderer.setClearColor", "renderer.setClearColor");
  return out;
 }
 self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(CORE).catch(()=>{})).then(()=>self.skipWaiting()))});
