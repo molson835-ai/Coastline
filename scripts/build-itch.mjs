@@ -11,7 +11,8 @@ const files = [
   'cinematic-visual-library.js', 'cinematic-animation-library.js',
   'cinematic-environment-library.js', 'replayability-engine.js',
   'npc-agency-engine.js', 'npc-world-slice.js', 'social-rumor-engine.js',
-  'player-reputation-engine.js', 'coastline-sw.js'
+  'player-reputation-engine.js', 'coastline-runtime-fix.js',
+  'coastline-stability-v8.js', 'coastline-sw.js'
 ];
 for (const file of files) {
   if (!existsSync(path.join(root, file))) throw new Error('Missing runtime file: ' + file);
