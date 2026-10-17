@@ -1,10 +1,9 @@
-const CACHE_NAME='coastline-static-v20';
+const CACHE_NAME='coastline-static-v21';
 const CORE=['./','./index.html','./coastline-cinematic-v2.html','./game-v3.html','./coastline-runtime-fix.js','./coastline-stability-v8.js','./world-model.js','./world-engine.js','./living-world.js','./douglassville-layout.js','./realism-library.js','./presentation-runtime.js','./cinematic-visual-library.js','./cinematic-animation-library.js','./cinematic-environment-library.js','./replayability-engine.js','./npc-agency-engine.js','./npc-world-slice.js','./social-rumor-engine.js','./player-reputation-engine.js','./coastline-ai-runtime.js','./coastline-live-ops.js'];
-const RUNTIME_PATCH='<script id="coastline-runtime-v20" src="./coastline-runtime-fix.js"></script><script id="coastline-stability-v8" src="./coastline-stability-v8.js"></script>';
+const RUNTIME_PATCH='<script id="coastline-runtime-v21" src="./coastline-runtime-fix.js"></script><script id="coastline-stability-v8" src="./coastline-stability-v8.js"></script>';
 function patchFullBetaHtml(text){
  let out=text;
- if(out.includes('</head>')&&!out.includes('coastline-runtime-v20'))out=out.replace('</head>',RUNTIME_PATCH+'</head>');
- // Give the low-overhead governor direct references to the actual renderer created by game-v3.
+ if(out.includes('</head>')&&!out.includes('coastline-runtime-v21'))out=out.replace('</head>',RUNTIME_PATCH+'</head>');
  out=out.replace('const worldArchitecture=createWorldArchitecture(worldModel);','const worldArchitecture=createWorldArchitecture(worldModel);window.__coastlineHooks={scene,camera,renderer,composer,worldArchitecture};');
  if(out.includes('function physicsStep()')&&!out.includes('coastlineSteerSince')){
    out=out.replace('function physicsStep(){','let coastlineSteerSince=0,coastlineSteerLast=0;\nfunction physicsStep(){');
@@ -22,7 +21,6 @@ function patchFullBetaHtml(text){
  out=out.replace('if(lowPowerDevice){bloomPass.enabled=false;composer.render=()=>renderer.render(scene,camera);}else if','if(lowPowerDevice){}else if');
  out=out.replace('if(lowPowerDevice)bloomPass.enabled=false;','if(lowPowerDevice){}');
  out=out.replace(/composer\.render\(\)/g,'coastlineRenderFrame()');
- out=out.replace('function loop(now){requestAnimationFrame(loop);if(document.hidden){','function loop(now){requestAnimationFrame(loop);if(lowPowerDevice&&now-(window.__coastlineLastDraw||0)<33)return;window.__coastlineLastDraw=now;if(document.hidden){');
  out=out.replace('renderer.compile(scene,camera);','if(!lowPowerDevice)renderer.compile(scene,camera);');
  return out;
 }
