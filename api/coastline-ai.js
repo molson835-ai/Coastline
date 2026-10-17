@@ -62,19 +62,25 @@ function deterministicDiagnosis(t) {
 }
 
 async function askModel(t, context = '') {
-  const key = process.env.AI_GATEWAY_API_KEY;
-  if (!key) return null;
+  const credentials = [process.env.AI_GATEWAY_API_KEY, process.env.VERCEL_OIDC_TOKEN].filter(Boolean);
+  if (!credentials.length) return null;
   const prompt = `You are the Coastline Development Director. You improve an original family-friendly open-world driving game.\n\nRules: never suggest copying proprietary game code; prefer architecture patterns and original implementations. Protect the stable beta. Prioritize frame time, regression safety, and small reversible changes. Do not claim a fix is validated unless a build/test/benchmark actually ran.\n\nTelemetry:\n${JSON.stringify(t)}\n\nRepository context:\n${safeText(context, 5000)}\n\nReturn concise JSON with keys: priority, diagnosis, actions, validation. actions must be an array of 1-4 concrete engineering actions. validation must be an array of tests/benchmarks required before promotion.`;
-  const response = await fetch('https://ai-gateway.vercel.sh/v1/chat/completions', {
-    method: 'POST',
-    headers: { authorization: `Bearer ${key}`, 'content-type': 'application/json' },
-    body: JSON.stringify({ model: MODEL, messages: [{ role: 'user', content: prompt }], temperature: 0.1, max_tokens: 900 })
-  });
-  if (!response.ok) throw new Error(`AI Gateway ${response.status}`);
-  const data = await response.json();
-  const content = data?.choices?.[0]?.message?.content;
-  if (typeof content === 'string' && content.trim()) return content.trim();
-  throw new Error('AI Gateway returned no chat completion content');
+  for (let index = 0; index < credentials.length; index += 1) {
+    const response = await fetch('https://ai-gateway.vercel.sh/v1/chat/completions', {
+      method: 'POST',
+      headers: { authorization: 'Bearer ' + credentials[index], 'content-type': 'application/json' },
+      body: JSON.stringify({ model: MODEL, messages: [{ role: 'user', content: prompt }], temperature: 0.1, max_tokens: 900 })
+    });
+    if (!response.ok) {
+      if ((response.status === 401 || response.status === 403) && index < credentials.length - 1) continue;
+      throw new Error('AI Gateway ' + response.status);
+    }
+    const data = await response.json();
+    const content = data?.choices?.[0]?.message?.content;
+    if (typeof content === 'string' && content.trim()) return content.trim();
+    throw new Error('AI Gateway returned no chat completion content');
+  }
+  throw new Error('AI Gateway authentication failed');
 }
 
 const ALLOWED_ORIGINS = new Set([
@@ -134,7 +140,7 @@ export default async function handler(req, res) {
     return send(res, 200, {
       service: 'Coastline AI Control Plane',
       version: '0.3.2',
-      mode: process.env.AI_GATEWAY_API_KEY ? 'model-configured' : 'deterministic-fallback',
+      mode: (process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN) ? 'model-configured' : 'deterministic-fallback',
       model: MODEL,
       capabilities: ['telemetry-diagnosis', 'engineering-planning', 'validation-gates'],
       mutationPolicy: 'proposal-only until branch/build/test tooling is explicitly enabled'
