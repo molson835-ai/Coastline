@@ -1,4 +1,4 @@
-const CACHE_NAME='coastline-static-v32';
+const CACHE_NAME='coastline-static-v33';
 const CORE=['./game-v3.html','./coastline-runtime-fix.js','./coastline-stability-v8.js','./coastline-visual-v32.js'];
 const RUNTIME_PATCH='<script id="coastline-runtime-v32" src="./coastline-runtime-fix.js"></script><script id="coastline-stability-v8" src="./coastline-stability-v8.js"></script><script id="coastline-visual-v32" src="./coastline-visual-v32.js"></script>';
 function patch(text){
