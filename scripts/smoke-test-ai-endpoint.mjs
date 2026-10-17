@@ -8,5 +8,5 @@ const response = await fetch(endpoint, {
 const data = await response.json();
 if (!response.ok || data.ok !== true) throw new Error('AI endpoint returned HTTP ' + response.status + ': ' + JSON.stringify(data));
 if (response.headers.get('access-control-allow-origin') !== origin) throw new Error('AI endpoint CORS allowlist did not authorize the game origin.');
-if (!data.model || typeof data.modelResponse !== 'string' || !data.modelResponse.length) throw new Error('AI Gateway did not return an actual model response.');
+if (!data.model || typeof data.modelResponse !== 'string' || !data.modelResponse.length) throw new Error('AI Gateway did not return an actual model response; modelStatus=' + data.modelStatus + '; modelError=' + data.modelError + '; automation=' + data.automation?.status);
 console.log(JSON.stringify({ ok: true, status: response.status, model: data.model, findingCount: (data.findings || []).length, automationStatus: data.automation?.status, cors: 'passed' }));
