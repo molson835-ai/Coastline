@@ -4,6 +4,26 @@ const MODEL = process.env.COASTLINE_AI_MODEL || 'reflection/beam-free';
 const MAX_BODY = 64 * 1024;
 const CONTROL_TOKEN = process.env.COASTLINE_AI_CONTROL_TOKEN || '';
 
+const RATE_LIMIT_WINDOW_MS = 60_000;
+const RATE_LIMIT_MAX = 12;
+const rateBuckets = new Map();
+
+function checkRateLimit(req) {
+  const forwarded = req.headers['x-forwarded-for'];
+  const ip = (typeof forwarded === 'string' ? forwarded.split(',')[0].trim() : '') || req.headers['x-real-ip'] || 'unknown';
+  const now = Date.now();
+  let bucket = rateBuckets.get(ip);
+  if (!bucket || now - bucket.start >= RATE_LIMIT_WINDOW_MS) {
+    bucket = { start: now, count: 0 };
+    rateBuckets.set(ip, bucket);
+  }
+  bucket.count += 1;
+  if (rateBuckets.size > 2000) {
+    for (const [key, value] of rateBuckets) if (now - value.start >= RATE_LIMIT_WINDOW_MS) rateBuckets.delete(key);
+  }
+  return { ok: bucket.count <= RATE_LIMIT_MAX, retryAfter: Math.max(1, Math.ceil((bucket.start + RATE_LIMIT_WINDOW_MS - now) / 1000)) };
+}
+
 function send(res, status, body) {
   res.statusCode = status;
   res.setHeader('content-type', 'application/json; charset=utf-8');
@@ -111,7 +131,7 @@ export default async function handler(req, res) {
   if (req.method === 'GET') {
     return send(res, 200, {
       service: 'Coastline AI Control Plane',
-      version: '0.3.0',
+      version: '0.3.1',
       mode: process.env.AI_GATEWAY_API_KEY ? 'model-enabled' : 'deterministic-fallback',
       model: MODEL,
       capabilities: ['telemetry-diagnosis', 'engineering-planning', 'validation-gates'],
@@ -119,6 +139,8 @@ export default async function handler(req, res) {
     });
   }
   if (req.method !== 'POST') return send(res, 405, { error: 'Method not allowed' });
+  const rateLimit = checkRateLimit(req);
+  if (!rateLimit.ok) { res.setHeader('retry-after', String(rateLimit.retryAfter)); return send(res, 429, { error: 'Rate limit exceeded; retry shortly.' }); }
   if (CONTROL_TOKEN) {
     const auth = req.headers.authorization || '';
     if (auth !== `Bearer ${CONTROL_TOKEN}`) return send(res, 401, { error: 'Unauthorized' });
