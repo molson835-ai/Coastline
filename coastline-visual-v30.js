@@ -20,9 +20,9 @@
       }else if(isLongRoad){o.userData.coastlineRoadLayer=true;o.userData.coastlineAlwaysVisible=true;o.renderOrder=Math.max(o.renderOrder||0,8);roads++;}
       if(isRoadLine){o.userData.coastlineRoadLayer=true;o.userData.coastlineAlwaysVisible=true;o.renderOrder=22;lines++;mats.forEach(m=>{if(!m)return;m.polygonOffset=true;m.polygonOffsetFactor=-3;m.polygonOffsetUnits=-3;m.depthWrite=false;m.roughness=.9;});}
     });
-    if(scene.background?.isColor)scene.background.setHex(0x30475a);
-    if(scene.fog?.color)scene.fog.color.setHex(0x8fa3ad);
-    scene.userData.coastlineVisualV30={terrain,roads,lines};
+    if(scene.background?.isColor)scene.background.setHex(0x657a83);
+    if(scene.fog?.color)scene.fog.color.setHex(0x657a83);
+    scene.userData.coastlineVisualV31={terrain,roads,lines};
     applied=true;return true;
   }
   const timer=setInterval(()=>{
