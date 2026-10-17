@@ -1,9 +1,9 @@
-const CACHE_NAME='coastline-static-v23';
+const CACHE_NAME='coastline-static-v24';
 const CORE=['./','./index.html','./coastline-cinematic-v2.html','./game-v3.html','./coastline-runtime-fix.js','./coastline-stability-v8.js','./world-model.js','./world-engine.js','./living-world.js','./douglassville-layout.js','./realism-library.js','./presentation-runtime.js','./cinematic-visual-library.js','./cinematic-animation-library.js','./cinematic-environment-library.js','./replayability-engine.js','./npc-agency-engine.js','./npc-world-slice.js','./social-rumor-engine.js','./player-reputation-engine.js','./coastline-ai-runtime.js','./coastline-live-ops.js'];
-const RUNTIME_PATCH='<script id="coastline-runtime-v23" src="./coastline-runtime-fix.js"></script><script id="coastline-stability-v8" src="./coastline-stability-v8.js"></script>';
+const RUNTIME_PATCH='<script id="coastline-runtime-v24" src="./coastline-runtime-fix.js"></script><script id="coastline-stability-v8" src="./coastline-stability-v8.js"></script>';
 function patchFullBetaHtml(text){
  let out=text;
- if(out.includes('</head>')&&!out.includes('coastline-runtime-v23'))out=out.replace('</head>',RUNTIME_PATCH+'</head>');
+ if(out.includes('</head>')&&!out.includes('coastline-runtime-v24'))out=out.replace('</head>',RUNTIME_PATCH+'</head>');
  out=out.replace('const worldArchitecture=createWorldArchitecture(worldModel);','const worldArchitecture=createWorldArchitecture(worldModel);window.__coastlineHooks={scene,camera,renderer,composer,worldArchitecture};');
  if(out.includes('function physicsStep()')&&!out.includes('coastlineSteerSince')){
    out=out.replace('function physicsStep(){','let coastlineSteerSince=0,coastlineSteerLast=0;\nfunction physicsStep(){');
