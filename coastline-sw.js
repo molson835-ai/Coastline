@@ -1,20 +1,15 @@
-const CACHE_NAME='coastline-static-v14';
-const CORE=['./','./index.html','./coastline-cinematic-v2.html','./game-v3.html','./coastline-runtime-fix.js','./world-model.js','./world-engine.js','./living-world.js','./douglassville-layout.js','./realism-library.js','./presentation-runtime.js','./cinematic-visual-library.js','./cinematic-animation-library.js','./cinematic-environment-library.js','./replayability-engine.js','./npc-agency-engine.js','./npc-world-slice.js','./social-rumor-engine.js','./player-reputation-engine.js','./coastline-ai-runtime.js','./coastline-live-ops.js'];
-const RUNTIME_PATCH='<script id="coastline-runtime-v14" src="./coastline-runtime-fix.js"></script>';
+const CACHE_NAME='coastline-static-v15';
+const CORE=['./','./index.html','./coastline-cinematic-v2.html','./game-v3.html','./coastline-runtime-fix.js','./coastline-stability-v8.js','./world-model.js','./world-engine.js','./living-world.js','./douglassville-layout.js','./realism-library.js','./presentation-runtime.js','./cinematic-visual-library.js','./cinematic-animation-library.js','./cinematic-environment-library.js','./replayability-engine.js','./npc-agency-engine.js','./npc-world-slice.js','./social-rumor-engine.js','./player-reputation-engine.js','./coastline-ai-runtime.js','./coastline-live-ops.js'];
+const RUNTIME_PATCH='<script id="coastline-runtime-v15" src="./coastline-runtime-fix.js"></script><script id="coastline-stability-v8" src="./coastline-stability-v8.js"></script>';
 function patchFullBetaHtml(text){
  let out=text;
- // Runtime governor is loaded before the game module so it can protect the renderer and audio context.
- if(out.includes('</head>')&&!out.includes('coastline-runtime-v14'))out=out.replace('</head>',RUNTIME_PATCH+'</head>');
- // Vehicle steering: native A/D direction, with progressive steering angle while held instead of a fixed snap.
+ if(out.includes('</head>')&&!out.includes('coastline-runtime-v15'))out=out.replace('</head>',RUNTIME_PATCH+'</head>');
  if(out.includes('function physicsStep()')&&!out.includes('coastlineSteerSince')){
    out=out.replace('function physicsStep(){','let coastlineSteerSince=0,coastlineSteerLast=0;\nfunction physicsStep(){');
    out=out.replace('steer=(left?1:0)-(right?1:0),angle=steer*.5;','steer=(left?1:0)-(right?1:0);if(steer!==coastlineSteerLast){coastlineSteerSince=performance.now();coastlineSteerLast=steer}const steerHeldSeconds=steer?Math.max(0,(performance.now()-coastlineSteerSince)/1000):0,angle=steer*Math.min(.62,.16+steerHeldSeconds*.58);');
  }
- // Building bases must never float above the guaranteed playable ground plane.
  out=out.replace('b.position.set(x,y+h/2-.1,z);','y=Math.max(y,3.02);b.position.set(x,y+h/2-.1,z);');
- // Lift painted road markings away from the asphalt depth plane to eliminate flicker/z-fighting.
  out=out.replace(/r\.position\.y\+\.1/g,'r.position.y+.16').replace(/r\.position\.y\+\.095/g,'r.position.y+.145');
- // Reduce the initial audio bus level; the runtime governor can temporarily suspend audio only if frame time becomes unsafe.
  out=out.replace('audioMaster.gain.value=audioEnabled ? .62 : 0','audioMaster.gain.value=audioEnabled ? .34 : 0');
  return out;
 }
