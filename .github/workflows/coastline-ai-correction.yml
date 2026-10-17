@@ -47,32 +47,12 @@ jobs:
           git apply --check coastline-ai.patch
           git apply coastline-ai.patch
           changed=$(git diff --name-only)
-          printf '%s\\n' "$changed"
-          if printf '%s\\n' "$changed" | grep -Ev '^(world-engine.js|npc-world-slice.js|living-world.js|tests/world-engine.spec.mjs)$'; then
+          printf '%s\n' "$changed"
+          if printf '%s\n' "$changed" | grep -Ev '^(world-engine.js|npc-world-slice.js|living-world.js|tests/world-engine.spec.mjs)$'; then
             echo 'AI patch touched a path outside the allowlist.' >&2
             exit 1
           fi
-          if ! printf '%s\\n' "$changed" | grep -Eq '^(world-engine.js|npc-world-slice.js|living-world.js)      - name: Run engine and systems tests
-        if: steps.patch.outputs.changed == 'true'
-        working-directory: worktree
-        run: npm run test:engine && npm run test:systems
-      - name: Create isolated branch and draft pull request
-        if: steps.patch.outputs.changed == 'true'
-        working-directory: worktree
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          branch="ai/coastline-telemetry-${GITHUB_RUN_ID}"
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git checkout -b "$branch"
-          git add world-engine.js npc-world-slice.js living-world.js tests/world-engine.spec.mjs
-          git commit -m 'AI-proposed Coastline performance correction'
-          git push origin "$branch"
-          gh pr create --repo molson835-ai/Coastline --draft --base feat/full-game-performance-ai-devs --head "$branch" --title 'AI-proposed Coastline performance correction' --body "Automated from a high-severity, player-submitted Coastline telemetry report. The AI patch was restricted to approved engine modules and tests. Engine and systems tests passed before this draft PR was created. Review and run full browser/performance validation before promotion."
-      - name: Report no safe patch
-        if: steps.patch.outputs.changed != 'true'
-        run: echo 'No patch was applied or deployed. Either the model declined, or no valid patch was generated.'; then
+          if ! printf '%s\n' "$changed" | grep -Eq '^(world-engine.js|npc-world-slice.js|living-world.js)$'; then
             echo 'AI patch must change at least one approved runtime module, not only tests.' >&2
             exit 1
           fi
