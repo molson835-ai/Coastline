@@ -1,0 +1,53 @@
+name: Coastline CI
+
+on:
+  pull_request:
+    branches: [main, feat/full-game-performance-ai-devs]
+  push:
+    branches:
+      - main
+      - 'feat/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: coastline-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Engine, systems, and gameplay regression checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install
+      - name: Install Chromium for browser tests
+        run: npx playwright install --with-deps chromium
+      - name: Start local static server for browser tests
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/coastline-static-server.log 2>&1 &
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:4173/game-v3.html > /dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/coastline-static-server.log
+          exit 1
+      - name: Syntax-check AI control plane
+        run: node --check api/coastline-ai.js
+      - name: Syntax-check AI correction worker
+        run: node --check scripts/coastline-ai-correction.mjs
+      - name: Run engine, systems, and gameplay tests
+        run: npm test
+      - name: Smoke-test production Coastline AI POST and CORS (informational until Mistral key is configured)
+        continue-on-error: true
+        env:
+          COASTLINE_AI_ENDPOINT: https://coastline-babylon-beta.vercel.app/api/coastline-ai
+        run: node scripts/smoke-test-ai-endpoint.mjs
