@@ -1,15 +1,16 @@
-const CACHE_NAME='coastline-static-v30';
-const CORE=['./','./index.html','./coastline-cinematic-v2.html','./game-v3.html','./coastline-runtime-fix.js','./coastline-stability-v8.js','./world-model.js','./world-engine.js','./living-world.js','./douglassville-layout.js','./realism-library.js','./presentation-runtime.js','./cinematic-visual-library.js','./cinematic-animation-library.js','./cinematic-environment-library.js','./replayability-engine.js','./npc-agency-engine.js','./npc-world-slice.js','./social-rumor-engine.js','./player-reputation-engine.js','./coastline-ai-runtime.js','./coastline-live-ops.js'];
-const RUNTIME_PATCH='<script id="coastline-runtime-v30" src="./coastline-runtime-fix.js"></script><script id="coastline-stability-v8" src="./coastline-stability-v8.js"></script>';
+const CACHE_NAME='coastline-static-v31';
+const CORE=['./','./index.html','./coastline-cinematic-v2.html','./game-v3.html','./coastline-runtime-fix.js','./coastline-stability-v8.js','./vehicle-dynamics.js','./world-model.js','./world-engine.js','./living-world.js','./douglassville-layout.js','./realism-library.js','./presentation-runtime.js','./cinematic-visual-library.js','./cinematic-animation-library.js','./cinematic-environment-library.js','./replayability-engine.js','./npc-agency-engine.js','./npc-world-slice.js','./social-rumor-engine.js','./player-reputation-engine.js','./coastline-ai-runtime.js','./coastline-live-ops.js'];
+const RUNTIME_PATCH='<script id="coastline-runtime-v31" src="./coastline-runtime-fix.js"></script><script id="coastline-stability-v8" src="./coastline-stability-v8.js"></script>';
 function patchFullBetaHtml(text){
  let out=text;
- const safetyPatch='<script id="coastline-v30-input-safety">(()=>{const proto=Element.prototype,original=proto.setPointerCapture;if(original&&!proto.__coastlineSafePointerCapture){proto.setPointerCapture=function(pointerId){try{return original.call(this,pointerId)}catch(error){if(error?.name!==\'InvalidStateError\')throw error}};Object.defineProperty(proto,\'__coastlineSafePointerCapture\',{value:true})}})();</script>';
- if(out.includes('</head>')&&!out.includes('coastline-runtime-v30'))out=out.replace('</head>',RUNTIME_PATCH+safetyPatch+'</head>');
- else if(out.includes('</head>')&&!out.includes('coastline-v30-input-safety'))out=out.replace('</head>',safetyPatch+'</head>');
+ const safetyPatch='<style id="coastline-v31-ui-safety">#coastMap{display:block!important;visibility:visible!important;opacity:1!important}</style><script id="coastline-v31-input-safety">(()=>{const proto=Element.prototype,original=proto.setPointerCapture;if(original&&!proto.__coastlineSafePointerCapture){proto.setPointerCapture=function(pointerId){try{return original.call(this,pointerId)}catch(error){if(error?.name!==\'InvalidStateError\')throw error}};Object.defineProperty(proto,\'__coastlineSafePointerCapture\',{value:true})}})();</script>';
+ if(out.includes('</head>')&&!out.includes('coastline-runtime-v31'))out=out.replace('</head>',RUNTIME_PATCH+safetyPatch+'</head>');
+ else if(out.includes('</head>')&&!out.includes('coastline-v31-ui-safety'))out=out.replace('</head>',safetyPatch+'</head>');
  out=out.replace('const worldArchitecture=createWorldArchitecture(worldModel);','const worldArchitecture=createWorldArchitecture(worldModel);window.__coastlineHooks={scene,camera,renderer,composer,worldArchitecture};');
  out=out.replace("const strafe=(keys['KeyD']?1:0)-(keys['KeyA']?1:0);","const strafe=(keys['KeyA']?1:0)-(keys['KeyD']?1:0);");
  out=out.replace("steer=(left?1:0)-(right?1:0);","steer=(right?1:0)-(left?1:0);");
  out=out.replace("accelRate=(kind==='bicycle'?9:kind==='motorcycle'?18:kind==='aircraft'?22:7.8)*upgrade","accelRate=(kind==='bicycle'?9:kind==='motorcycle'?18:kind==='aircraft'?22:18)*upgrade");
+ out=out.replace(/accelRate=\(kind==='bicycle'\?9:kind==='motorcycle'\?18:kind==='aircraft'\?22:7\.8\)\*upgrade/g,"accelRate=(kind==='bicycle'?9:kind==='motorcycle'?18:kind==='aircraft'?22:18)*upgrade");
  out=out.replace(/r\.position\.y\+\.1/g,'r.position.y+.16').replace(/r\.position\.y\+\.095/g,'r.position.y+.145');
  out=out.replace('audioMaster.gain.value=audioEnabled ? .62 : 0','audioMaster.gain.value=audioEnabled ? .16 : 0');
  out=out.replace("new AC();audioMaster","new AC({latencyHint:'interactive',sampleRate:22050});audioMaster");
