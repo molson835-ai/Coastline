@@ -65,9 +65,6 @@ function enhanceMaterials(scene){
 }
 
 function addHumanDetail(scene){
-  const candidates=[];
-  scene.traverse(o=>{ if(o.isMesh && o.material?.color && o.position.y>0.35 && o.position.y<2.5) candidates.push(o); });
-  // Add subtle anatomy/wardrobe accents only around small human-scale clusters.
   const groups=[];
   scene.traverse(o=>{if(o.isGroup){let n=0,box=0;o.traverse(q=>{if(q.isMesh){n++;if(q.geometry?.type==='BoxGeometry')box++;}});if(n>=4&&n<=30&&box>=2)groups.push(o);}});
   for(const g of groups.slice(0,32)){
@@ -91,7 +88,6 @@ function roundSmallBoxes(scene){
     if(!o.isMesh||o.userData[TAG]||!o.geometry||o.geometry.type!=='BoxGeometry')return;
     const p=o.parent; if(!p)return;
     const b=new THREE.Box3().setFromObject(o),s=b.getSize(new THREE.Vector3());
-    // Only bevel hero-scale objects; avoid changing large buildings/terrain topology.
     if(Math.max(s.x,s.y,s.z)>5 || Math.min(s.x,s.y,s.z)<.035)return;
     const r=Math.min(.055,Math.min(s.x,s.y,s.z)*.12);
     if(r<=.008)return;
@@ -101,7 +97,6 @@ function roundSmallBoxes(scene){
     const clone=o.clone(); clone.geometry=g; clone.position.set(worldCenter.x,worldCenter.y,worldCenter.z); clone.rotation.set(0,0,0); clone.scale.set(1,1,1);
     if(o.material)clone.material=o.material;
     clone.userData[TAG]=true;
-    // Preserve local parent-space transform for objects without rotated parents.
     if(!p.rotation.x&&!p.rotation.z){p.add(clone);o.visible=false;}
   });
 }
@@ -127,10 +122,28 @@ function facadeDetail(scene){
   });
 }
 
+function removeReservedAircraft(scene){
+  // Flight is intentionally disabled until the dedicated aero/flight stack is ready.
+  // The current prototype aircraft is a ground-style rideable with no real lift model;
+  // hiding/removing that prototype prevents a misleading, broken flight experience.
+  let removed=0;
+  scene.traverse(o=>{
+    if(!o.isGroup||o.userData.__coastlineAircraftRemoved)return;
+    const p=o.position;
+    if(Math.abs(p.x-600)<3 && Math.abs(p.z-650)<3){
+      o.userData.__coastlineAircraftRemoved=true;
+      o.visible=false;
+      if(o.parent)o.parent.remove(o);
+      removed++;
+    }
+  });
+  window.__coastlineFlightState={version:1,prototypeAircraftRemoved:true,removedCount:removed,status:'flight-reserved'};
+}
+
 function install(scene,camera,renderer,composer){
   if(!scene||installedScenes.has(scene))return;
   installedScenes.add(scene); scene.userData[TAG]={max:true};
-  enhanceMaterials(scene); roundSmallBoxes(scene); facadeDetail(scene); addHumanDetail(scene);
+  enhanceMaterials(scene); roundSmallBoxes(scene); facadeDetail(scene); addHumanDetail(scene); removeReservedAircraft(scene);
   if(composer){
     try{
       const ssao=new SSAOPass(scene,camera,Math.min(innerWidth,1280),Math.min(innerHeight,720));
@@ -138,7 +151,6 @@ function install(scene,camera,renderer,composer){
       composer.passes.splice(1,0,ssao);
     }catch(e){console.warn('Coastline MAX SSAO skipped',e);}
   }
-  // High-end reflection/lighting settings without touching vehicle physics.
   renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.3;
   scene.traverse(o=>{if(o.isMesh&&o.material?.isMeshPhysicalMaterial){o.material.envMapIntensity=Math.max(o.material.envMapIntensity||0,1.05);}});
   window.__coastlineMaxVisuals={version:1,scene,camera,renderer,composer};
