@@ -1,9 +1,9 @@
-const CACHE_NAME='coastline-static-v31';
-const CORE=['./game-v3.html','./coastline-runtime-fix.js','./coastline-stability-v8.js','./coastline-visual-v31.js'];
-const RUNTIME_PATCH='<script id="coastline-runtime-v31" src="./coastline-runtime-fix.js"></script><script id="coastline-stability-v8" src="./coastline-stability-v8.js"></script><script id="coastline-visual-v31" src="./coastline-visual-v31.js"></script>';
+const CACHE_NAME='coastline-static-v32';
+const CORE=['./game-v3.html','./coastline-runtime-fix.js','./coastline-stability-v8.js','./coastline-visual-v32.js'];
+const RUNTIME_PATCH='<script id="coastline-runtime-v32" src="./coastline-runtime-fix.js"></script><script id="coastline-stability-v8" src="./coastline-stability-v8.js"></script><script id="coastline-visual-v32" src="./coastline-visual-v32.js"></script>';
 function patch(text){
  let out=text;
- if(out.includes('</head>')&&!out.includes('coastline-runtime-v31'))out=out.replace('</head>',RUNTIME_PATCH+'</head>');
+ if(out.includes('</head>')&&!out.includes('coastline-runtime-v32'))out=out.replace('</head>',RUNTIME_PATCH+'</head>');
  out=out.replace('const worldArchitecture=createWorldArchitecture(worldModel);','const worldArchitecture=createWorldArchitecture(worldModel);window.__coastlineHooks={scene,camera,renderer,composer,worldArchitecture};');
  out=out.replace("const strafe=(keys['KeyD']?1:0)-(keys['KeyA']?1:0);","const strafe=(keys['KeyA']?1:0)-(keys['KeyD']?1:0);");
  out=out.replace("steer=(left?1:0)-(right?1:0);","steer=(right?1:0)-(left?1:0);");
