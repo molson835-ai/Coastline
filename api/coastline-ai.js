@@ -72,7 +72,9 @@ async function askModel(t, context = '') {
   });
   if (!response.ok) throw new Error(`AI Gateway ${response.status}`);
   const data = await response.json();
-  return data?.choices?.[0]?.message?.content || null;
+  const content = data?.choices?.[0]?.message?.content;
+  if (typeof content === 'string' && content.trim()) return content.trim();
+  throw new Error('AI Gateway returned no chat completion content');
 }
 
 const ALLOWED_ORIGINS = new Set([
@@ -131,8 +133,8 @@ export default async function handler(req, res) {
   if (req.method === 'GET') {
     return send(res, 200, {
       service: 'Coastline AI Control Plane',
-      version: '0.3.1',
-      mode: process.env.AI_GATEWAY_API_KEY ? 'model-enabled' : 'deterministic-fallback',
+      version: '0.3.2',
+      mode: process.env.AI_GATEWAY_API_KEY ? 'model-configured' : 'deterministic-fallback',
       model: MODEL,
       capabilities: ['telemetry-diagnosis', 'engineering-planning', 'validation-gates'],
       mutationPolicy: 'proposal-only until branch/build/test tooling is explicitly enabled'
@@ -155,13 +157,17 @@ export default async function handler(req, res) {
   const telemetry = summarizeTelemetry(body.telemetry || body);
   const findings = deterministicDiagnosis(telemetry);
   let model = null;
-  try { model = await askModel(telemetry, body.context); } catch (_) { model = null; }
+  let modelError = null;
+  try { model = await askModel(telemetry, body.context); }
+  catch (error) { model = null; modelError = safeText(error?.message || 'AI Gateway request failed', 120); }
   const automation = await dispatchCorrection({ telemetry, findings, modelResponse: model });
   return send(res, 200, {
     ok: true,
     service: 'coastline-ai-control-plane',
     version: '0.3.0',
     model: model ? MODEL : null,
+    modelStatus: model ? 'ok' : 'unavailable',
+    modelError,
     findings,
     modelResponse: model,
     automation,
