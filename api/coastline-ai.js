@@ -1,6 +1,8 @@
 export const config = { runtime: 'nodejs' };
 
 const MODEL = process.env.COASTLINE_AI_MODEL || 'reflection/beam-free';
+const MISTRAL_MODEL = process.env.MISTRAL_MODEL || 'mistral-small-latest';
+const ALLOWED_PATCH_PATHS = new Set(['world-engine.js', 'npc-world-slice.js', 'living-world.js', 'tests/world-engine.spec.mjs']);
 const MAX_BODY = 64 * 1024;
 const CONTROL_TOKEN = process.env.COASTLINE_AI_CONTROL_TOKEN || '';
 
@@ -61,25 +63,47 @@ function deterministicDiagnosis(t) {
   return findings;
 }
 
-async function askModel(t, context = '') {
+function activeModel() { return process.env.MISTRAL_API_KEY ? MISTRAL_MODEL : MODEL; }
+function activeModelMode() {
+  if (process.env.MISTRAL_API_KEY) return 'mistral-configured';
+  if (process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN) return 'model-configured';
+  return 'deterministic-fallback';
+}
+
+async function callChatCompletion(messages, maxTokens = 900) {
+  if (process.env.MISTRAL_API_KEY) {
+    const response = await fetch('https://api.mistral.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: { authorization: 'Bearer ' + process.env.MISTRAL_API_KEY, 'content-type': 'application/json' },
+      body: JSON.stringify({ model: MISTRAL_MODEL, messages, temperature: 0.1, max_tokens: maxTokens })
+    });
+    if (!response.ok) {
+      let message = '';
+      try { const body = await response.json(); message = safeText(body?.message || body?.error?.message || body?.error?.type || '', 100); } catch (_) {}
+      throw new Error('Mistral API ' + response.status + (message ? ': ' + message : ''));
+    }
+    const data = await response.json();
+    const content = data?.choices?.[0]?.message?.content;
+    if (typeof content === 'string' && content.trim()) return content.trim();
+    throw new Error('Mistral API returned no chat completion content');
+  }
   const credentials = [
     process.env.AI_GATEWAY_API_KEY ? { label: 'api-key', value: process.env.AI_GATEWAY_API_KEY } : null,
     process.env.VERCEL_OIDC_TOKEN ? { label: 'vercel-oidc', value: process.env.VERCEL_OIDC_TOKEN } : null
   ].filter(Boolean);
-  if (!credentials.length) return null;
-  const prompt = `You are the Coastline Development Director. You improve an original family-friendly open-world driving game.\n\nRules: never suggest copying proprietary game code; prefer architecture patterns and original implementations. Protect the stable beta. Prioritize frame time, regression safety, and small reversible changes. Do not claim a fix is validated unless a build/test/benchmark actually ran.\n\nTelemetry:\n${JSON.stringify(t)}\n\nRepository context:\n${safeText(context, 5000)}\n\nReturn concise JSON with keys: priority, diagnosis, actions, validation. actions must be an array of 1-4 concrete engineering actions. validation must be an array of tests/benchmarks required before promotion.`;
+  if (!credentials.length) throw new Error('No AI provider credential configured');
   let lastFailure = 'AI Gateway authentication failed';
   for (let index = 0; index < credentials.length; index += 1) {
     const credential = credentials[index];
     const response = await fetch('https://ai-gateway.vercel.sh/v1/chat/completions', {
       method: 'POST',
       headers: { authorization: 'Bearer ' + credential.value, 'content-type': 'application/json' },
-      body: JSON.stringify({ model: MODEL, messages: [{ role: 'user', content: prompt }], temperature: 0.1, max_tokens: 900 })
+      body: JSON.stringify({ model: activeModel(), messages, temperature: 0.1, max_tokens: maxTokens })
     });
     if (!response.ok) {
-      let providerMessage = '';
-      try { const body = await response.json(); providerMessage = safeText(body?.error?.message || body?.error?.type || '', 100); } catch (_) {}
-      lastFailure = 'AI Gateway ' + response.status + ' using ' + credential.label + (providerMessage ? ': ' + providerMessage : '');
+      let message = '';
+      try { const body = await response.json(); message = safeText(body?.error?.message || body?.error?.type || '', 100); } catch (_) {}
+      lastFailure = 'AI Gateway ' + response.status + ' using ' + credential.label + (message ? ': ' + message : '');
       if ((response.status === 401 || response.status === 403) && index < credentials.length - 1) continue;
       throw new Error(lastFailure);
     }
@@ -91,18 +115,55 @@ async function askModel(t, context = '') {
   throw new Error(lastFailure);
 }
 
+async function askModel(t, context = '') {
+  const prompt = `You are the Coastline Development Director. You improve an original family-friendly open-world driving game.\n\nRules: never suggest copying proprietary game code; prefer architecture patterns and original implementations. Protect the stable beta. Prioritize frame time, regression safety, and small reversible changes. Do not claim a fix is validated unless a build/test/benchmark actually ran.\n\nTelemetry:\n${JSON.stringify(t)}\n\nRepository context:\n${safeText(context, 5000)}\n\nReturn concise JSON with keys: priority, diagnosis, actions, validation. actions must be an array of 1-4 concrete engineering actions. validation must be an array of tests/benchmarks required before promotion.`;
+  return callChatCompletion([{ role: 'user', content: prompt }], 900);
+}
+
+async function generateCorrectionPatch(telemetry, findings, modelResponse) {
+  const paths = ['world-engine.js', 'npc-world-slice.js', 'living-world.js', 'tests/world-engine.spec.mjs'];
+  const source = {};
+  for (const path of paths) {
+    const url = 'https://raw.githubusercontent.com/molson835-ai/Coastline/feat/full-game-performance-ai-devs/' + path;
+    const response = await fetch(url);
+    if (!response.ok) throw new Error('Could not load approved source file ' + path + ' (' + response.status + ')');
+    source[path] = (await response.text()).slice(0, 12000);
+  }
+  const prompt = [
+    'You are the Coastline correction engineer. Return ONLY a valid unified git diff, no Markdown fences or commentary.',
+    'Only modify these exact paths: ' + paths.join(', ') + '.',
+    'Do not modify dependencies, workflows, secrets, API credentials, or the stable production branch.',
+    'Use the telemetry and findings to make one small, reversible, evidence-based runtime improvement. If evidence is insufficient, return exactly NO_SAFE_PATCH.',
+    'The patch must change at least one runtime module, not only tests. Preserve public exports and behavior.',
+    'Telemetry: ' + JSON.stringify(telemetry),
+    'Findings: ' + JSON.stringify(findings),
+    'Previous diagnosis: ' + safeText(modelResponse, 2500),
+    'Source excerpts:',
+    ...Object.entries(source).map(([path, content]) => '\n--- ' + path + ' ---\n' + content)
+  ].join('\n');
+  let patch = (await callChatCompletion([{ role: 'user', content: prompt }], 2500)).trim();
+  patch = patch.replace(/^```(?:diff|patch)?\s*/i, '').replace(/\s*```$/, '').trim();
+  if (patch === 'NO_SAFE_PATCH') return null;
+  if (!patch.startsWith('diff --git ') || patch.length > 24000) throw new Error('Model returned an invalid or oversized patch');
+  const files = [...patch.matchAll(/^diff --git a\/([^\s]+) b\/([^\s]+)$/gm)];
+  if (!files.length || files.some((match) => match[1] !== match[2] || !ALLOWED_PATCH_PATHS.has(match[1]))) throw new Error('Model patch referenced a path outside the allowlist');
+  if (!files.some((match) => ['world-engine.js', 'npc-world-slice.js', 'living-world.js'].includes(match[1]))) throw new Error('Model patch did not change an approved runtime module');
+  return patch;
+}
+
 const ALLOWED_ORIGINS = new Set([
   'https://molson835-ai.github.io',
   'https://coastlinecreator.itch.io',
   'http://localhost:3000',
   'http://127.0.0.1:3000'
 ]);
-async function dispatchCorrection({ telemetry, findings, modelResponse }) {
+async function dispatchCorrection({ telemetry, findings, modelResponse, patch }) {
   const token = process.env.COASTLINE_GITHUB_TOKEN;
   if (!token) return { status: 'not-configured', detail: 'COASTLINE_GITHUB_TOKEN is not set' };
   if (!findings.some((finding) => finding.severity === 'high')) {
     return { status: 'not-needed', detail: 'No high-severity finding triggered the correction workflow' };
   }
+  if (!patch) return { status: 'no-safe-patch', detail: 'No validated patch was produced; no workflow was dispatched' };
   try {
     const response = await fetch('https://api.github.com/repos/molson835-ai/Coastline/dispatches', {
       method: 'POST',
@@ -118,6 +179,7 @@ async function dispatchCorrection({ telemetry, findings, modelResponse }) {
           telemetry,
           findings,
           modelResponse: safeText(modelResponse, 3500),
+          patch: safeText(patch, 24000),
           submittedAt: new Date().toISOString(),
           source: 'player-requested-game-diagnostics'
         }
@@ -147,8 +209,8 @@ export default async function handler(req, res) {
   if (req.method === 'GET') {
     return send(res, 200, {
       service: 'Coastline AI Control Plane',
-      version: '0.3.3',
-      mode: (process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN) ? 'model-configured' : 'deterministic-fallback',
+      version: '0.4.0',
+      mode: activeModelMode(),
       model: MODEL,
       capabilities: ['telemetry-diagnosis', 'engineering-planning', 'validation-gates'],
       mutationPolicy: 'proposal-only until branch/build/test tooling is explicitly enabled'
@@ -172,16 +234,24 @@ export default async function handler(req, res) {
   const findings = deterministicDiagnosis(telemetry);
   let model = null;
   let modelError = null;
+  let correctionPatch = null;
+  let patchError = null;
   try { model = await askModel(telemetry, body.context); }
-  catch (error) { model = null; modelError = safeText(error?.message || 'AI Gateway request failed', 120); }
-  const automation = await dispatchCorrection({ telemetry, findings, modelResponse: model });
+  catch (error) { model = null; modelError = safeText(error?.message || 'Model request failed', 140); }
+  if (process.env.COASTLINE_GITHUB_TOKEN && findings.some((finding) => finding.severity === 'high') && model) {
+    try { correctionPatch = await generateCorrectionPatch(telemetry, findings, model); }
+    catch (error) { patchError = safeText(error?.message || 'Patch generation failed', 140); }
+  }
+  const automation = await dispatchCorrection({ telemetry, findings, modelResponse: model, patch: correctionPatch });
   return send(res, 200, {
     ok: true,
     service: 'coastline-ai-control-plane',
-    version: '0.3.0',
-    model: model ? MODEL : null,
+    version: '0.4.0',
+    model: model ? activeModel() : null,
     modelStatus: model ? 'ok' : 'unavailable',
     modelError,
+    patchReady: !!correctionPatch,
+    patchError,
     findings,
     modelResponse: model,
     automation,
