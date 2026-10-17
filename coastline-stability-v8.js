@@ -1,33 +1,27 @@
 (()=>{
 'use strict';
-const TAG='CoastlineStabilityV8';
+const TAG='CoastlineStabilityV9';
 const R=window.__coastlineRuntime||{};
 R.stabilityTag=TAG;
 R.contextLossCount=R.contextLossCount||0;
 R.steeringNormalized=true;
 
-// The previous crash signature is consistent with the browser refusing another WebGL
-// context after a renderer crash/reload cycle. Always release Coastline's GPU context
-// when the page is hidden/unloaded so the next beta launch starts cleanly.
+// Release only the renderer/context that Coastline created. Do not call getContext()
+// during cleanup: doing so can allocate a fresh WebGL context on an otherwise empty canvas.
 function releaseGraphics(){
   try{
     const renderer=window.__coastlineRuntime?.renderer;
     if(renderer){
+      try{renderer.setAnimationLoop?.(null)}catch{}
       try{renderer.renderLists?.dispose?.()}catch{}
       try{renderer.dispose?.()}catch{}
       try{renderer.forceContextLoss?.()}catch{}
     }
-    document.querySelectorAll('canvas').forEach(canvas=>{
-      try{const gl=canvas.getContext('webgl2')||canvas.getContext('webgl')||canvas.getContext('experimental-webgl');gl?.getExtension('WEBGL_lose_context')?.loseContext()}catch{}
-    });
   }catch{}
 }
 window.addEventListener('pagehide',releaseGraphics,{capture:true});
 window.addEventListener('beforeunload',releaseGraphics,{capture:true});
 
-// Normalize vehicle steering at the input boundary. The current game build's native
-// A/D interpretation has regressed intermittently; this keeps left/right semantics
-// stable without changing the physics implementation.
 const held=new Set();
 const opposite=k=>k==='a'?'d':k==='d'?'a':k;
 function synthetic(type,key){
@@ -53,8 +47,6 @@ window.addEventListener('keyup',e=>{
 },true);
 window.addEventListener('blur',()=>{for(const k of [...held]){held.delete(k);synthetic('keyup',opposite(k));}},true);
 
-// Touch controls use the same normalized keyboard path. Stop the original touch
-// handler from firing so a single press cannot produce opposite steering twice.
 function normalizeTouch(e){
   const b=e.target?.closest?.('[data-k]');
   if(!b)return;
@@ -67,14 +59,12 @@ function normalizeTouch(e){
 }
 for(const type of ['pointerdown','pointerup','pointercancel','touchstart','touchend'])window.addEventListener(type,normalizeTouch,true);
 
-// If WebGL context creation fails, expose a useful diagnostic instead of allowing
-// an unhandled constructor exception to collapse into a blank page.
 window.addEventListener('error',e=>{
   if(String(e.message||'').includes('Error creating WebGL context')){
     R.contextLossCount=(R.contextLossCount||0)+1;
-    console.warn(TAG,'WebGL context unavailable; prior context was released on page exit.',e.error||e.message);
+    console.warn(TAG,'WebGL context unavailable; renderer cleanup was attempted before unload.',e.error||e.message);
   }
 },true);
-
+window.addEventListener('webglcontextlost',()=>{R.contextLossCount=(R.contextLossCount||0)+1},{capture:true});
 window.__coastlineStabilitySnapshot=()=>({tag:TAG,contextLossCount:R.contextLossCount||0,steeringNormalized:true});
 })();
