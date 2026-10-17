@@ -33,11 +33,8 @@ jobs:
       - name: Install game test dependencies
         working-directory: worktree
         run: npm install
-      - name: Generate bounded AI patch
+      - name: Load backend-generated AI patch
         working-directory: worktree
-        env:
-          AI_GATEWAY_API_KEY: ${{ secrets.AI_GATEWAY_API_KEY }}
-          COASTLINE_AI_MODEL: reflection/beam-free
         run: node ../scripts/coastline-ai-correction.mjs
       - name: Validate patch format and allowed paths
         id: patch
