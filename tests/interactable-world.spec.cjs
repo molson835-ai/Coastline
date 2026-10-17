@@ -33,25 +33,22 @@ test('buildings, benches, low walls, bicycles, motorcycles and aircraft are inte
 
   await page.evaluate(() => window.__coastlineTest.exitBuilding());
   await expect.poll(async () => page.evaluate(() => window.__coastlineTest.state().mode)).toBe('walk');
-  // Start the traversal check in known open ground, independent of the hotel exit placement.
   await page.evaluate(() => window.__coastlineTest.setWalkPosition(0, 0, 0));
   expect(await page.evaluate(() => window.__coastlineTest.state().mode)).toBe('walk');
 
-  const beforeJump = await page.evaluate(() => window.__coastlineTest.state());
-  await page.evaluate(() => window.__coastlineTest.keyDown('space'));
-  try {
-    // Detect the actual takeoff impulse as well as rendered height. On heavily loaded CI
-    // frames, jumpHeight can briefly sample as zero even after upward velocity has begun.
-    await expect.poll(async () => page.evaluate(() => {
-      const state = window.__coastlineTest.state();
-      return state.jumpHeight > 0 || state.jumpVelocity > 0;
-    }), { timeout: 3000, message: 'jump should produce positive height or upward velocity' }).toBe(true);
-  } catch (error) {
-    const debug = await page.evaluate(() => window.__coastlineTest.state());
-    throw new Error(`${error.message}\\nJump diagnostics: ${JSON.stringify({ mode: debug.mode, jumpHeight: debug.jumpHeight, jumpVelocity: debug.jumpVelocity, paused: debug.paused, spacePressed: debug.spacePressed, sitting: debug.sitting, errors: debug.errors })}`);
-  } finally {
-    await page.evaluate(() => window.__coastlineTest.keyUp('space'));
-  }
+  // Sample the takeoff state immediately after the input edge. The jump impulse is
+  // intentionally short, so waiting for a later rendered frame can miss it on a
+  // heavily loaded CI runner even though the jump was correctly triggered.
+  const jump = await page.evaluate(() => {
+    const api = window.__coastlineTest;
+    api.keyDown('space');
+    const state = api.state();
+    api.keyUp('space');
+    return { jumpHeight: state.jumpHeight, jumpVelocity: state.jumpVelocity, mode: state.mode, errors: state.errors };
+  });
+  expect(jump.mode).toBe('walk');
+  expect(jump.jumpHeight > 0 || jump.jumpVelocity > 0, 'jump should produce positive height or upward velocity').toBe(true);
+  expect(jump.errors).toEqual([]);
 
   await page.evaluate(() => window.__coastlineTest.enterRideable('aircraft'));
   await page.evaluate(() => window.__coastlineTest.keyDown('space'));
