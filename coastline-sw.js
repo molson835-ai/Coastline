@@ -1,9 +1,9 @@
-const CACHE_NAME='coastline-static-v15';
+const CACHE_NAME='coastline-static-v16';
 const CORE=['./','./index.html','./coastline-cinematic-v2.html','./game-v3.html','./coastline-runtime-fix.js','./coastline-stability-v8.js','./world-model.js','./world-engine.js','./living-world.js','./douglassville-layout.js','./realism-library.js','./presentation-runtime.js','./cinematic-visual-library.js','./cinematic-animation-library.js','./cinematic-environment-library.js','./replayability-engine.js','./npc-agency-engine.js','./npc-world-slice.js','./social-rumor-engine.js','./player-reputation-engine.js','./coastline-ai-runtime.js','./coastline-live-ops.js'];
-const RUNTIME_PATCH='<script id="coastline-runtime-v15" src="./coastline-runtime-fix.js"></script><script id="coastline-stability-v8" src="./coastline-stability-v8.js"></script>';
+const RUNTIME_PATCH='<script id="coastline-runtime-v16" src="./coastline-runtime-fix.js"></script><script id="coastline-stability-v8" src="./coastline-stability-v8.js"></script>';
 function patchFullBetaHtml(text){
  let out=text;
- if(out.includes('</head>')&&!out.includes('coastline-runtime-v15'))out=out.replace('</head>',RUNTIME_PATCH+'</head>');
+ if(out.includes('</head>')&&!out.includes('coastline-runtime-v16'))out=out.replace('</head>',RUNTIME_PATCH+'</head>');
  if(out.includes('function physicsStep()')&&!out.includes('coastlineSteerSince')){
    out=out.replace('function physicsStep(){','let coastlineSteerSince=0,coastlineSteerLast=0;\nfunction physicsStep(){');
    out=out.replace('steer=(left?1:0)-(right?1:0),angle=steer*.5;','steer=(left?1:0)-(right?1:0);if(steer!==coastlineSteerLast){coastlineSteerSince=performance.now();coastlineSteerLast=steer}const steerHeldSeconds=steer?Math.max(0,(performance.now()-coastlineSteerSince)/1000):0,angle=steer*Math.min(.62,.16+steerHeldSeconds*.58);');
@@ -11,6 +11,10 @@ function patchFullBetaHtml(text){
  out=out.replace('b.position.set(x,y+h/2-.1,z);','y=Math.max(y,3.02);b.position.set(x,y+h/2-.1,z);');
  out=out.replace(/r\.position\.y\+\.1/g,'r.position.y+.16').replace(/r\.position\.y\+\.095/g,'r.position.y+.145');
  out=out.replace('audioMaster.gain.value=audioEnabled ? .62 : 0','audioMaster.gain.value=audioEnabled ? .34 : 0');
+ out=out.replace('new THREE.WebGLRenderer({antialias:true,powerPreference:\'high-performance\'})','new THREE.WebGLRenderer({antialias:false,powerPreference:\'high-performance\'})');
+ out=out.replace('lowPowerDevice?.9:1.15','lowPowerDevice?.72:1.05');
+ out=out.replace('renderer.shadowMap.enabled=true;','renderer.shadowMap.enabled=!lowPowerDevice;');
+ out=out.replace('if(lowPowerDevice)bloomPass.enabled=false;','if(lowPowerDevice){bloomPass.enabled=false;composer.render=()=>renderer.render(scene,camera);}');
  return out;
 }
 self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(CORE).catch(()=>{})).then(()=>self.skipWaiting()))});
