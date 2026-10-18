@@ -1,0 +1,9 @@
+.git/**
+**/.git/**
+node_modules/**
+**/node_modules/**
+.github/**
+docs/**
+tests/**
+.wrangler/**
+.vercel/**

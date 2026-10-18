@@ -1,6 +1,9 @@
 // A first visible, causal NPC slice: a public-works technician repairs a traffic signal.
 import { createNpcAgency } from './npc-agency-engine.js';
 import { createSocialRumorEngine } from './social-rumor-engine.js';
+import { installVehicleVisualEnhancer } from './vehicle-visual-enhancer.js';
+
+installVehicleVisualEnhancer();
 
 export function createNpcWorldSlice({ THREE, scene, groundY, trafficSignalHeads, toast, getPlayer }) {
   const target = [...trafficSignalHeads].sort((a, b) => Math.hypot(a.x - 10.5, a.z - 10.5) - Math.hypot(b.x - 10.5, b.z - 10.5))[0];
