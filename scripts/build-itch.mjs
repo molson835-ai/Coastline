@@ -8,7 +8,7 @@ const output = path.join(root, 'dist', 'itch-html');
 const files = [
   'game-v3.html', 'vehicle-visual-enhancer.js', 'cinematic-world-upgrade.js',
   'car-customization.js', 'coastline-render-config.js', 'coastline-fidelity-budget.js',
-  'coastline-world-streaming.js', 'world-model.js', 'world-engine.js', 'living-world.js',
+  'coastline-world-streaming.js', 'coastline-instancing.js', 'world-model.js', 'world-engine.js', 'living-world.js',
   'douglassville-layout.js', 'realism-library.js', 'presentation-runtime.js',
   'cinematic-visual-library.js', 'cinematic-animation-library.js',
   'cinematic-environment-library.js', 'replayability-engine.js',
@@ -16,19 +16,17 @@ const files = [
   'player-reputation-engine.js', 'coastline-runtime-fix.js',
   'coastline-stability-v8.js', 'coastline-sw.js'
 ];
-for (const file of files) {
-  if (!existsSync(path.join(root, file))) throw new Error('Missing runtime file: ' + file);
-}
+for (const file of files) if (!existsSync(path.join(root, file))) throw new Error('Missing runtime file: ' + file);
 await rm(output, { recursive: true, force: true });
 await mkdir(output, { recursive: true });
 for (const file of files) await copyFile(path.join(root, file), path.join(output, file));
 const html = await readFile(path.join(root, 'game-v3.html'), 'utf8');
 await writeFile(path.join(output, 'index.html'), html);
 let sw = await readFile(path.join(output, 'coastline-sw.js'), 'utf8');
-sw = sw.replace(/const CACHE_NAME='[^']+';/, "const CACHE_NAME='coastline-itch-static-v2';");
+sw = sw.replace(/const CACHE_NAME='[^']+';/, "const CACHE_NAME='coastline-itch-static-v3';");
 const packagedCore = ['./', './index.html', ...files.map(file => './' + file)];
 sw = sw.replace(/const CORE=\[[^\]]*\];/, "const CORE=[" + packagedCore.map(file => "'" + file + "'").join(',') + "];");
-if (!sw.includes("'./index.html'") || !sw.includes('coastline-itch-static-v2')) throw new Error('Unable to configure packaged service-worker cache.');
+if (!sw.includes("'./index.html'") || !sw.includes('coastline-itch-static-v3')) throw new Error('Unable to configure packaged service-worker cache.');
 await writeFile(path.join(output, 'coastline-sw.js'), sw);
 const packaged = new Set([...files, 'index.html']);
 for (const file of files.filter(name => name.endsWith('.js') || name.endsWith('.html'))) {
