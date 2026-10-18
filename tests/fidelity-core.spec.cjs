@@ -11,6 +11,12 @@ const assert=require('node:assert/strict');
   assert.equal(constrained.profile,'constrained');
   assert.ok(full.pixelRatioMax>constrained.pixelRatioMax);
   assert.ok(full.maxVisibleWorldCells>constrained.maxVisibleWorldCells);
+  assert.equal(full.shadowMapSize,2048);
+  assert.equal(constrained.shadowMapSize,1024);
+  assert.equal(full.antialias,true);
+  assert.equal(constrained.antialias,false);
+  assert.equal(full.shadows,true);
+  assert.equal(constrained.shadows,false);
 
   const budget=createFidelityBudget(constrained);
   assert.ok(budget.gpu.drawCalls>0);
