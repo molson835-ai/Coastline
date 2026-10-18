@@ -9,7 +9,7 @@ permissions:
 
 jobs:
   max-graphics:
-    if: !contains(github.event.head_commit.message, '[max-graphics-applied]')
+    if: ${{ !contains(github.event.head_commit.message, '[max-graphics-applied]') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -23,17 +23,16 @@ jobs:
           replacements={
             "let currentPixelRatio=Math.min(devicePixelRatio||1,lowPowerDevice?.9:1.15);":"let currentPixelRatio=Math.min(Math.max(devicePixelRatio||1,1.5),2.0);",
             "if(lowPowerDevice)bloomPass.enabled=false;":"if(lowPowerDevice)bloomPass.enabled=true;",
-            "if(avg>23){qualityRecoveryAt=0;if(currentPixelRatio>.7){currentPixelRatio=Math.max(.7,currentPixelRatio-.1);changed=true}if(avg>26&&bloomPass.enabled){bloomPass.enabled=false;slowQualityMode=true}if(avg>31&&renderer.shadowMap.enabled){renderer.shadowMap.enabled=false;slowQualityMode=true}}else if(avg<17){":"if(avg>999){qualityRecoveryAt=0}else if(avg<17){",
+            "if(avg>23){qualityRecoveryAt=now;":"if(avg>999){qualityRecoveryAt=0;",
             "lowPowerDevice?1024:2048":"4096",
             "terrainSegments=lowPowerDevice?176:256":"terrainSegments=384",
             "lowPowerDevice?2:8":"16",
             "lowPowerDevice?192:384":"512",
-            "Math.min(lowPowerDevice?2:8,renderer.capabilities.getMaxAnisotropy())":"renderer.capabilities.getMaxAnisotropy()",
-            "Math.min(8,parkingLotZones.length)":"Math.min(8,parkingLotZones.length)"
+            "Math.min(lowPowerDevice?2:8,renderer.capabilities.getMaxAnisotropy())":"renderer.capabilities.getMaxAnisotropy()"
           }
           for a,b in replacements.items():
             if a not in s:
-              print('MISSING:',a[:100])
+              print('MISSING:',a[:120])
             s=s.replace(a,b)
           p.write_text(s)
           PY
@@ -42,5 +41,7 @@ jobs:
           git config user.name 'coastline-graphics-bot'
           git config user.email 'coastline-graphics-bot@users.noreply.github.com'
           git add game-v3.html
-          git diff --cached --quiet || git commit -m 'Max out Coastline graphics rendering [max-graphics-applied]'
-          git push
+          if ! git diff --cached --quiet; then
+            git commit -m 'Max out Coastline graphics rendering [max-graphics-applied]'
+            git push
+          fi
