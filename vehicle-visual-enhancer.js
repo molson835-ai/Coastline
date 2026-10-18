@@ -83,7 +83,7 @@ function makeHeroModelReadablyDifferent(model){
   }
  });
 }
-function enhanceCar(group){
+export function enhanceCar(group){
  if(!group||group[enhanced])return;group[enhanced]=true;
  // Repaint the actual starter car's existing body material first; never guess by first vehicle created.
  group.traverse(o=>{if(!o.isMesh||!o.material)return;const list=Array.isArray(o.material)?o.material:[o.material];for(const m of list){if(m?.isMeshPhysicalMaterial&&Math.abs((m.roughness??0)-.23)<.08&&Math.abs((m.metalness??0)-.48)<.15&&(m.clearcoat??0)>.7){m.color?.set(0x9b1224);m.needsUpdate=true;}}});
