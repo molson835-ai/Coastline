@@ -29,8 +29,6 @@ const asphaltTex=detailTexture('asphalt');
 
 function physicalMaterial(src, opts={}){
   if(!src || !src.isMaterial) return src;
-  // Never replace shader/custom materials: game-v3's sky dome uses shader uniforms
-  // (uDaylight/uSunset) that must remain intact for the environment loop.
   if(src.isShaderMaterial || src.isRawShaderMaterial || src.userData?.coastlinePreserveMaterial || src.uniforms) return src;
   if(sourceMaterialCache.has(src)) return sourceMaterialCache.get(src);
   const color=src.color?.clone?.()||new THREE.Color(0xffffff);
@@ -59,11 +57,18 @@ function physicalMaterial(src, opts={}){
 function enhanceMaterials(scene){
   scene.traverse(o=>{
     if(!o.isMesh || !o.material) return;
-    const materials=Array.isArray(o.material)?o.material:o.material?[o.material]:[];
+    const materials=Array.isArray(o.material)?o.material:[o.material];
     const asphaltLike=/road|asphalt|ground|terrain|sidewalk|curb|dirt/i.test(`${o.name} ${materials.map(m=>m.name).join(' ')}`);
     const out=materials.map(m=>physicalMaterial(m,{asphalt:asphaltLike,envMapIntensity:asphaltLike?.7:undefined}));
     o.material=Array.isArray(o.material)?out:out[0];
-    if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}
+    o.castShadow=true;o.receiveShadow=true;
+    // Buildings are world-defining silhouettes. Keep their render visibility deterministic;
+    // detail objects below must never make the parent silhouette appear/disappear.
+    const box=o.geometry?.type==='BoxGeometry';
+    if(box){
+      const size=new THREE.Box3().setFromObject(o).getSize(new THREE.Vector3());
+      if(size.y>=3.5 && Math.max(size.x,size.z)>=2.5)o.frustumCulled=false;
+    }
   });
 }
 
@@ -94,13 +99,21 @@ function roundSmallBoxes(scene){
     if(Math.max(s.x,s.y,s.z)>5 || Math.min(s.x,s.y,s.z)<.035)return;
     const r=Math.min(.055,Math.min(s.x,s.y,s.z)*.12);
     if(r<=.008)return;
+    // Previous MAX pass placed world-space coordinates directly into transformed parents,
+    // which could move/vanish detail clones and make building parts pop. Convert the world
+    // center back into the parent's local space and preserve the original local rotation.
     const g=new RoundedBoxGeometry(s.x,s.y,s.z,r,2);
-    g.translate(-s.x/2,-s.y/2,-s.z/2);
     const worldCenter=b.getCenter(new THREE.Vector3());
-    const clone=o.clone(); clone.geometry=g; clone.position.set(worldCenter.x,worldCenter.y,worldCenter.z); clone.rotation.set(0,0,0); clone.scale.set(1,1,1);
-    if(o.material)clone.material=o.material;
+    const localCenter=p.worldToLocal(worldCenter.clone());
+    const clone=o.clone();
+    clone.geometry=g;
+    clone.position.copy(localCenter);
+    clone.rotation.copy(o.rotation);
+    clone.scale.copy(o.scale);
     clone.userData[TAG]=true;
-    if(!p.rotation.x&&!p.rotation.z){p.add(clone);o.visible=false;}
+    if(o.material)clone.material=o.material;
+    p.add(clone);
+    o.visible=false;
   });
 }
 
@@ -119,8 +132,13 @@ function facadeDetail(scene){
     const rows=Math.min(5,Math.max(2,Math.floor(s.y/2.7))), cols=Math.min(6,Math.max(2,Math.floor(s.x/2.6)));
     for(let ry=0;ry<rows;ry++)for(let cx=0;cx<cols;cx++){
       const w=Math.max(.35,(s.x/cols)*.58),h=Math.max(.42,(s.y/rows)*.48);
-      const win=new THREE.Mesh(new THREE.BoxGeometry(w,h,.045),windowMat);win.position.set(center.x-s.x/2+(cx+.5)*s.x/cols,center.y-s.y/2+(ry+.5)*s.y/rows,faceZ);parent.add(win);
-      const sill=new THREE.Mesh(new THREE.BoxGeometry(w+.06,.045,.075),frameMat);sill.position.set(win.position.x,win.position.y-h/2-.035,faceZ-.02);parent.add(sill);count++;
+      const win=new THREE.Mesh(new THREE.BoxGeometry(w,h,.045),windowMat);
+      const worldPos=new THREE.Vector3(center.x-s.x/2+(cx+.5)*s.x/cols,center.y-s.y/2+(ry+.5)*s.y/rows,faceZ);
+      win.position.copy(parent.worldToLocal(worldPos));
+      parent.add(win);
+      const sill=new THREE.Mesh(new THREE.BoxGeometry(w+.06,.045,.075),frameMat);
+      sill.position.set(win.position.x,win.position.y-h/2-.035,win.position.z-.02);
+      parent.add(sill);count++;
     }
   });
 }
@@ -153,7 +171,7 @@ function install(scene,camera,renderer,composer){
   }
   renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.3;
   scene.traverse(o=>{if(o.isMesh&&o.material?.isMeshPhysicalMaterial){o.material.envMapIntensity=Math.max(o.material.envMapIntensity||0,1.05);}});
-  window.__coastlineMaxVisuals={version:2,scene,camera,renderer,composer};
+  window.__coastlineMaxVisuals={version:3,scene,camera,renderer,composer};
 }
 
 function wait(){
