@@ -6,7 +6,7 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js';
 import { RoundedBoxGeometry } from 'https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/loaders/GLTFLoader.js';
-const installed=Symbol('coastlineHeroVisualsInstalled'),enhanced=Symbol('coastlineHeroVisualsEnhanced');
+const installed=Symbol('coastlineHeroVisualsInstalled'),enhanced=Symbol('coastlineHeroVisualsEnhanced');let heroClaimed=false;
 const mat=(color,roughness,metalness,extra={})=>new THREE.MeshStandardMaterial({color,roughness,metalness,...extra});
 const physical=(color,roughness,metalness,extra={})=>new THREE.MeshPhysicalMaterial({color,roughness,metalness,clearcoat:.72,clearcoatRoughness:.13,...extra});
 function add(group,geometry,material,x=0,y=0,z=0,rx=0,ry=0,rz=0){const mesh=new THREE.Mesh(geometry,material);mesh.position.set(x,y,z);mesh.rotation.set(rx,ry,rz);mesh.castShadow=true;mesh.receiveShadow=true;group.add(mesh);return mesh;}
@@ -104,6 +104,6 @@ function enhanceCar(group){
  detail.traverse(o=>{if(o.isMesh){o.userData.coastlineHeroDetail=true;o.castShadow=true;o.receiveShadow=true;}});
  group.userData.coastlineHeroVisuals='v6-loading-crimson';group.userData.coastlineHeroProof='CRIMSON-REPLACEMENT-V6';loadRealHero(detail,group);
 }
-function looksLikePlayerCar(child){const p=child?.geometry?.parameters;if(!p)return false;const w=Number(p.width),h=Number(p.height),d=Number(p.depth);return(Math.abs(w-2.12)<.03&&Math.abs(h-.62)<.03&&Math.abs(d-4.35)<.05)||(Math.abs(w-2.05)<.03&&Math.abs(h-.62)<.03&&Math.abs(d-4.35)<.05);}
-export function installVehicleVisualEnhancer(){if(globalThis[installed])return;globalThis[installed]=true;const originalAdd=THREE.Group.prototype.add;THREE.Group.prototype.add=function(...objects){const result=originalAdd.apply(this,objects);if(!this[enhanced]&&objects.some(looksLikePlayerCar))enhanceCar(this);return result;};globalThis.__coastlineHeroVehicleVisuals={version:6,enhanceCar,installed:true};}
+function looksLikePlayerCar(child){const p=child?.geometry?.parameters;if(!p)return false;const w=Number(p.width),h=Number(p.height),d=Number(p.depth);return(Math.abs(w-2.05)<.03&&Math.abs(h-.55)<.03&&Math.abs(d-4.25)<.05)||(Math.abs(w-2.12)<.03&&Math.abs(h-.62)<.03&&Math.abs(d-4.35)<.05);}
+export function installVehicleVisualEnhancer(){if(globalThis[installed])return;globalThis[installed]=true;const originalAdd=THREE.Group.prototype.add;THREE.Group.prototype.add=function(...objects){const result=originalAdd.apply(this,objects);if(!heroClaimed&&!this[enhanced]&&objects.some(looksLikePlayerCar)){heroClaimed=true;this.userData.coastlineHeroTarget='starter-player-car';enhanceCar(this);}return result;};globalThis.__coastlineHeroVehicleVisuals={version:6,enhanceCar,installed:true};}
 installVehicleVisualEnhancer();
