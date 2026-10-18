@@ -6,7 +6,8 @@ import { fileURLToPath } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const output = path.join(root, 'dist', 'itch-html');
 const files = [
-  'game-v3.html', 'world-model.js', 'world-engine.js', 'living-world.js',
+  'game-v3.html', 'vehicle-visual-enhancer.js', 'cinematic-world-upgrade.js',
+  'car-customization.js', 'world-model.js', 'world-engine.js', 'living-world.js',
   'douglassville-layout.js', 'realism-library.js', 'presentation-runtime.js',
   'cinematic-visual-library.js', 'cinematic-animation-library.js',
   'cinematic-environment-library.js', 'replayability-engine.js',
