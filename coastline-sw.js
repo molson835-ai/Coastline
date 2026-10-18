@@ -11,7 +11,6 @@ function patchFullBetaHtml(text){
  out=out.replace(/r\.position\.y\+\.1/g,'r.position.y+.16').replace(/r\.position\.y\+\.095/g,'r.position.y+.145');
  out=out.replace('audioMaster.gain.value=audioEnabled ? .62 : 0','audioMaster.gain.value=audioEnabled ? .16 : 0');
  out=out.replace('composer.setSize(innerWidth,innerHeight)','if(composer)composer.setSize(innerWidth,innerHeight)');
- out=out.replace('renderer.compile(scene,camera);','if(!lowPowerDevice)renderer.compile(scene,camera);');
  out=out.replace('r.position.set(x,3.04,0);r.receiveShadow=true;scene.add(r);','r.position.set(x,3.04,0);r.receiveShadow=true;r.renderOrder=8;r.userData.coastlineRoadLayer=true;r.userData.coastlineAlwaysVisible=true;scene.add(r);');
  out=out.replace('l.position.set(x,r.position.y+.16,zz);scene.add(l)','l.position.set(x,r.position.y+.16,zz);l.renderOrder=20;l.userData.coastlineRoadLayer=true;l.userData.coastlineAlwaysVisible=true;scene.add(l)');
  out=out.replace('edge.position.set(x+side*(w/2-.55),r.position.y+.145,0);scene.add(edge)','edge.position.set(x+side*(w/2-.55),r.position.y+.145,0);edge.renderOrder=20;edge.userData.coastlineRoadLayer=true;edge.userData.coastlineAlwaysVisible=true;scene.add(edge)');
