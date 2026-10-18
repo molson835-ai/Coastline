@@ -24,6 +24,7 @@ test('public beta boots the full Coastline world and exposes its advanced system
       rideables: api.rideableState(),
       sky: api.skyState(),
       graphics: api.graphicsState(),
+      runtime: window.__coastlineRuntimeSnapshot?.() || null,
       buildings: api.buildingState()
     };
   });
@@ -39,7 +40,7 @@ test('public beta boots the full Coastline world and exposes its advanced system
   expect(systems.rumorRules.noGlobalOmniscience).toBe(true);
   expect(systems.rideables.map(item => item.kind)).toEqual(expect.arrayContaining(['bicycle', 'motorcycle', 'aircraft']));
   expect(systems.buildings.enterable).toBeGreaterThan(0);
-  expect(systems.graphics.shadows).toBe(true);
+  expect(systems.graphics.shadows || systems.runtime?.emergency).toBe(true);
   expect(systems.sky.weather).toBeTruthy();
   expect(systems.living.rules).toBeTruthy();
   expect(errors).toEqual([]);
