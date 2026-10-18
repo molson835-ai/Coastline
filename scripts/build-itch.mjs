@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const output = path.join(root, 'dist', 'itch-html');
 const files = [
-  'game-v3.html', 'vehicle-visual-enhancer.js', 'cinematic-world-upgrade.js',
+  'game-v3.html', 'vehicle-visual-enhancer.js', 'coastline-vehicle-asset-loader.js', 'cinematic-world-upgrade.js',
   'car-customization.js', 'coastline-render-config.js', 'coastline-fidelity-budget.js',
   'coastline-world-streaming.js', 'coastline-instancing.js', 'coastline-fidelity-bridge.js',
   'world-model.js', 'world-engine.js', 'living-world.js', 'douglassville-layout.js',
