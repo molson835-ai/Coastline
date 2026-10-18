@@ -1,0 +1,48 @@
+name: Coastline steering regression fix
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  fix-steering:
+    if: ${{ !contains(github.event.head_commit.message, 'Fix Coastline steering mapping') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Correct physical steering mapping
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('coastline-sw.js')
+          s = p.read_text()
+          old1 = "const strafe=(keys['KeyD']?1:0)-(keys['KeyA']?1:0);"
+          new1 = "const strafe=(keys['KeyA']?1:0)-(keys['KeyD']?1:0);"
+          old2 = "steer=(left?1:0)-(right?1:0);"
+          new2 = "steer=(right?1:0)-(left?1:0);"
+          if old1 not in s and old2 not in s:
+              print('Steering mapping already corrected or not present; no changes needed.')
+              raise SystemExit(0)
+          s = s.replace(old1, new1).replace(old2, new2)
+          s = s.replace("const CACHE_NAME='coastline-static-v44';", "const CACHE_NAME='coastline-static-v45';")
+          p.write_text(s)
+          PY
+
+      - name: Commit and push
+        shell: bash
+        run: |
+          if git diff --quiet; then
+            echo 'No steering changes required.'
+            exit 0
+          fi
+          git config user.name 'coastline-steering-bot'
+          git config user.email 'coastline-steering-bot@users.noreply.github.com'
+          git add coastline-sw.js
+          git commit -m 'Fix Coastline steering mapping'
+          git push
