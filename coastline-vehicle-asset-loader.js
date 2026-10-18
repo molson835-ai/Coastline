@@ -1,0 +1,73 @@
+// Coastline Hero Vehicle Asset Loader v1
+// Primary path: an authored local GLB/glTF asset. Fallback: the existing procedural hero.
+// The loader is deliberately non-blocking: gameplay starts immediately and the authored asset
+// replaces the fallback only after it has loaded and passed basic scene validation.
+import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/loaders/GLTFLoader.js';
+
+const DEFAULT_URL='./assets/vehicles/coastline-hero.glb';
+let loader;
+let attempted=false;
+
+function getLoader(){return loader||(loader=new GLTFLoader());}
+function valid(root){
+  if(!root?.isObject3D)return false;
+  let meshes=0;
+  root.traverse(o=>{if(o.isMesh)meshes++;});
+  return meshes>=3;
+}
+function normalize(root){
+  const box=new THREE.Box3().setFromObject(root);
+  const size=box.getSize(new THREE.Vector3());
+  if(!size.x||!size.y||!size.z)return root;
+  const targetLength=4.765;
+  const scale=targetLength/Math.max(size.x,size.z);
+  root.scale.setScalar(scale);
+  root.updateMatrixWorld(true);
+  const b2=new THREE.Box3().setFromObject(root);
+  const center=b2.getCenter(new THREE.Vector3());
+  root.position.x-=center.x;
+  root.position.z-=center.z;
+  root.position.y-=b2.min.y;
+  root.traverse(o=>{
+    if(!o.isMesh)return;
+    o.castShadow=true;o.receiveShadow=true;o.frustumCulled=true;
+    const mats=Array.isArray(o.material)?o.material:[o.material];
+    for(const m of mats){
+      if(!m)continue;
+      if('envMapIntensity'in m)m.envMapIntensity=Math.max(m.envMapIntensity||1,1.35);
+      if('roughness'in m)m.roughness=Math.min(Math.max(m.roughness??.5,.06),.92);
+      if('metalness'in m)m.metalness=Math.min(Math.max(m.metalness??0,0),1);
+      if('clearcoat'in m&&m.clearcoat===0)m.clearcoat=.45;
+      if(m.map)m.map.colorSpace='srgb';
+    }
+  });
+  return root;
+}
+
+export async function loadCoastlineHeroVehicle({THREE,THREE_NS=THREE,group,url=DEFAULT_URL}={}){
+  if(!THREE_NS||!group)return {loaded:false,reason:'invalid-input'};
+  if(attempted)return {loaded:false,reason:'already-attempted'};
+  attempted=true;
+  // The module uses the runtime THREE namespace without making it a global dependency.
+  globalThis.THREE=globalThis.THREE||THREE_NS;
+  try{
+    const gltf=await getLoader().loadAsync(url);
+    const root=gltf?.scene;
+    if(!valid(root))throw new Error('Hero GLB loaded but contained too few render meshes');
+    normalize(root);
+    const old=group.userData.coastlineHeroProceduralRoot;
+    if(old?.parent)old.parent.remove(old);
+    root.name='coastline-authored-hero-vehicle';
+    root.userData.coastlineAuthoredHero=true;
+    root.userData.coastlineHeroAssetUrl=url;
+    group.add(root);
+    const result={version:1,loaded:true,source:'authored-glb',url,meshes:countMeshes(root)};
+    globalThis.__coastlineHeroVehicleAsset=result;
+    return result;
+  }catch(error){
+    const result={version:1,loaded:false,source:'procedural-fallback',url,error:String(error?.message||error)};
+    globalThis.__coastlineHeroVehicleAsset=result;
+    return result;
+  }
+}
+function countMeshes(root){let n=0;root.traverse(o=>{if(o.isMesh)n++;});return n;}
