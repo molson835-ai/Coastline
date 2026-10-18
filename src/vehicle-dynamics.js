@@ -24,9 +24,11 @@ export const DEFAULT_VEHICLE = Object.freeze({
   wheelbase: 2.85,
   track: 1.62,
   cgHeight: 0.58,
-  maxSteer: 0.58,
-  steeringRate: 2.8,
-  steeringReturn: 4.5,
+  // More natural road-car steering: the previous high-speed clamp made the
+  // vehicle feel artificially locked as speed increased.
+  maxSteer: 0.72,
+  steeringRate: 3.8,
+  steeringReturn: 5.5,
   enginePeakTorque: 285,
   engineRedline: 6500,
   idleRpm: 850,
@@ -134,7 +136,10 @@ export class CoastlineVehicleDynamics {
 
     const speedAbs = Math.abs(this.speed);
     const speedNorm = clamp(speedAbs / 30, 0, 1);
-    const steerLimit = lerp(cfg.maxSteer, cfg.maxSteer * 0.25, speedNorm);
+    // Preserve substantially more steering authority at speed. This keeps
+    // progressive steering controllable instead of forcing a near-straight
+    // steering lock at highway speed.
+    const steerLimit = lerp(cfg.maxSteer, cfg.maxSteer * 0.72, speedNorm);
     const targetSteer = steering * steerLimit * (1 - this.damage.steering * 0.55);
     const steerRate = Math.abs(targetSteer) > Math.abs(this.steer) ? cfg.steeringRate : cfg.steeringReturn;
     this.steer += clamp(targetSteer - this.steer, -steerRate * dt, steerRate * dt);
@@ -187,7 +192,7 @@ export class CoastlineVehicleDynamics {
     this.heading += this.yawRate * dt;
 
     // Wheel telemetry: lightweight but useful for visuals, sound and damage.
-    const loadTransfer = clamp((Math.abs(this.yawRate) * this.cfg.mass * this.cfg.cgHeight) / (cfg.track * cfg.mass * 9.81), -0.42, 0.42);
+    const loadTransfer = clamp((Math.abs(this.yawRate) * this.cfg.mass * this.cfg.cgHeight) / (cfg.track * this.cfg.mass * 9.81), -0.42, 0.42);
     const longitudinalTransfer = clamp(acceleration * cfg.cgHeight / cfg.wheelbase / 9.81, -0.35, 0.35);
     const frontLoad = cfg.mass * 9.81 * 0.53 * (1 - longitudinalTransfer) / 2;
     const rearLoad = cfg.mass * 9.81 * 0.47 * (1 + longitudinalTransfer) / 2;
