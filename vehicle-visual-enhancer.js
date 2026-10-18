@@ -1,21 +1,138 @@
-// Coastline vehicle realism pass v12.
-// Visual-only: preserves vehicle transforms, controls, physics and collision.
+// Coastline Hero Vehicle v20 — high-resolution 2008-era American muscle coupe study.
+// Built from measured public dimensions and period design cues; no external 3D asset dependency.
+// Performance-safe: one hero mesh, compact UV set, procedural texture maps, no global renderer changes.
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js';
-import { RoundedBoxGeometry } from 'https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/geometries/RoundedBoxGeometry.js';
-const installed=Symbol('coastlineVehicleRealismInstalled'),enhanced=Symbol('coastlineVehicleRealismEnhanced');let vehicleSerial=0;
-const physical=(color,roughness=.24,metalness=.35,extra={})=>new THREE.MeshPhysicalMaterial({color,roughness,metalness,clearcoat:.8,clearcoatRoughness:.1,...extra});
-const rounded=(w,h,d,r=.06)=>new RoundedBoxGeometry(w,h,d,6,r);
-const add=(g,geo,mat,x=0,y=0,z=0,rx=0,ry=0,rz=0)=>{const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);m.rotation.set(rx,ry,rz);m.castShadow=true;m.receiveShadow=true;g.add(m);return m;};
-function materials(color){const paint=physical(color,.16,.72,{clearcoat:.94,clearcoatRoughness:.075,envMapIntensity:1.75}),paint2=physical(new THREE.Color(color).multiplyScalar(.78),.20,.66,{clearcoat:.9,clearcoatRoughness:.09,envMapIntensity:1.6}),black=physical(0x090c10,.29,.78,{clearcoat:.45,clearcoatRoughness:.14}),chrome=physical(0xb9c2c8,.13,.96,{envMapIntensity:2}),rubber=new THREE.MeshStandardMaterial({color:0x07090b,roughness:.92,metalness:.01}),rim=physical(0x9da5ab,.17,.95,{envMapIntensity:2}),glass=new THREE.MeshPhysicalMaterial({color:0x07151b,roughness:.035,metalness:.05,transmission:.12,transparent:true,opacity:.92,ior:1.5,clearcoat:.98,clearcoatRoughness:.035,envMapIntensity:2}),head=new THREE.MeshPhysicalMaterial({color:0xe9f7ff,roughness:.035,metalness:.08,transmission:.08,clearcoat:.9,emissive:0xaadfff,emissiveIntensity:3.2}),tail=new THREE.MeshPhysicalMaterial({color:0x8e1119,roughness:.12,metalness:.12,clearcoat:.8,emissive:0x4e0307,emissiveIntensity:2.4}),amber=new THREE.MeshStandardMaterial({color:0xffa31a,roughness:.2,emissive:0x6d2500,emissiveIntensity:1.8}),brake=physical(0x8f1219,.2,.55,{emissive:0x350205,emissiveIntensity:1.1});return{paint,paint2,black,chrome,rubber,rim,glass,head,tail,amber,brake};}
-function shellGeometry(w,l,h,style){const seg=16,rings=style==='suv'||style==='pickup'?11:12,pos=[],ringData=[];for(let i=0;i<rings;i++){const t=i/(rings-1),z=-l/2+t*l,end=Math.abs(t-.5)*2,taper=.88+.12*(1-end*.65),shoulder=style==='coupe'?(1-.12*Math.abs(t-.5)*2):1,ww=w*.5*taper*shoulder,hh=h*(.42+.06*(1-end)),cy=.66;ringData.push({z,ww,hh,cy});}for(const r of ringData)for(let j=0;j<seg;j++){const a=j/seg*Math.PI*2,ca=Math.cos(a),sa=Math.sin(a);pos.push(r.ww*ca,r.cy+r.hh*sa*.72,r.z);}const idx=[];for(let i=0;i<rings-1;i++)for(let j=0;j<seg;j++){const a=i*seg+j,b=i*seg+(j+1)%seg,c=(i+1)*seg+(j+1)%seg,d=(i+1)*seg+j;idx.push(a,b,d,b,c,d);}const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setIndex(idx);g.computeVertexNormals();return g;}
-function wheel(g,m,x,z,r=.39,w=.23){add(g,new THREE.CylinderGeometry(r,r,w,40,1),m.rubber,x,.45,z,0,0,Math.PI/2);add(g,new THREE.TorusGeometry(r*.78,.032,12,40),m.rim,x,.45,z,0,Math.PI/2,0);add(g,new THREE.CylinderGeometry(r*.59,r*.59,w*1.05,36),m.rim,x,.45,z,0,0,Math.PI/2);add(g,new THREE.CylinderGeometry(r*.33,r*.33,w*1.08,28),m.brake,x,.45,z,0,0,Math.PI/2);add(g,new THREE.CylinderGeometry(r*.14,r*.14,w*1.12,24),m.chrome,x,.45,z,0,0,Math.PI/2);}
-function lightBar(g,m,w,l,front){const z=(front?1:-1)*(l/2+.025);add(g,rounded(w*.72,.13,.10,.035),m.black,0,.69,z);if(front){add(g,rounded(w*.53,.065,.035,.012),m.head,0,.76,z+.045);for(const x of[-w*.34,w*.34])add(g,rounded(w*.16,.07,.045,.012),m.head,x,.74,z+.05);add(g,rounded(w*.34,.065,.025,.008),m.chrome,0,.68,z+.055);}else{add(g,rounded(w*.56,.065,.035,.012),m.tail,0,.76,z-.045);for(const x of[-w*.32,w*.32])add(g,rounded(w*.11,.07,.045,.012),m.amber,x,.74,z-.05);}}
-function cabin(g,m,w,l,style){const roofD=style==='pickup'?1.18:style==='hatch'?1.55:style==='suv'?1.82:style==='coupe'?1.70:1.82,roofW=style==='suv'?w*.72:style==='pickup'?w*.70:w*.69,z=style==='pickup'?.02:-.12;add(g,rounded(roofW,.58,roofD,.13),m.glass,0,1.12,z);add(g,rounded(roofW*.98,.065,roofD*.94,.035),m.paint2,0,1.43,z);for(const x of[-roofW*.50,roofW*.50])add(g,rounded(.055,.50,roofD*.86,.016),m.black,x,1.13,z);add(g,rounded(roofW+.05,.045,.10,.016),m.black,0,1.39,z-roofD/2);add(g,rounded(roofW+.04,.07,.10,.02),m.paint2,0,.83,z-roofD/2);}
-function details(g,m,w,l,style){for(const x of[-w*.53,w*.53]){add(g,rounded(.13,.085,.23,.035),m.paint2,x,1.03,.48);add(g,rounded(.075,.045,.12,.018),m.glass,x*1.01,1.035,.48);}for(const x of[-w*.51,w*.51])for(const z of[-.34,.36])add(g,rounded(.13,.032,.24,.012),m.chrome,x,.91,z);add(g,rounded(w*.91,.12,l*.82,.035),m.black,0,.48,0);add(g,rounded(w*.72,.08,.16,.02),m.chrome,0,.67,l/2+.07);const plate=new THREE.MeshStandardMaterial({color:0xe8e2d6,roughness:.55});add(g,rounded(w*.28,.065,.028,.008),plate,0,.67,l/2+.095);add(g,rounded(w*.28,.065,.028,.008),plate,0,.67,-l/2-.095);if(style!=='suv')for(const x of[-w*.24,w*.24])add(g,new THREE.CylinderGeometry(.042,.042,.12,18),m.chrome,x,.54,-l/2-.09,Math.PI/2,0,0);if(style==='pickup'){add(g,rounded(w*.91,.42,1.35,.08),m.black,0,.78,-1.30);add(g,rounded(w*.80,.055,1.12,.018),m.paint2,0,1.00,-1.30);add(g,rounded(w*.68,.065,.08,.015),m.chrome,0,1.04,-1.91);}if(style==='suv')add(g,rounded(w*.52,.055,.18,.018),m.black,0,1.49,.02);}
-function buildVehicle(group,color,style,index){const m=materials(color),spec={sedan:[1.90,4.72,1.44],suv:[1.98,4.82,1.70],coupe:[1.91,4.48,1.30],hatch:[1.88,4.18,1.54],pickup:[2.03,5.35,1.78]}[style],[w,l,h]=spec,d=new THREE.Group();d.name=`coastline-hero-vehicle-${style}-${index}`;group.add(d);group.children.forEach(c=>{if(c!==d&&c.isMesh)c.visible=false;});add(d,shellGeometry(w,l,h,style),m.paint,0,0,0);const hood=style==='pickup'?1.10:style==='suv'?1.32:1.40;add(d,rounded(w*.82,.13,hood,.07),m.paint2,0,.91,l/2-hood/2-.16);if(style!=='pickup')add(d,rounded(w*.77,.12,style==='hatch'?.72:.88,.065),m.paint2,0,.89,-l/2+.40);cabin(d,m,w,l,style);lightBar(d,m,w,l,true);lightBar(d,m,w,l,false);const wx=w*.53,wz=l*.36,wr=style==='suv'?.43:style==='pickup'?.42:style==='coupe'?.36:.38;for(const x of[-wx,wx])for(const z of[-wz,wz]){add(d,new THREE.TorusGeometry(wr,.045,14,48,Math.PI),m.paint2,x,.45,z,0,Math.PI/2,Math.PI/2);wheel(d,m,x,z,wr,.235);}details(d,m,w,l,style);d.traverse(o=>{if(o.isMesh){o.userData.coastlineVehicleDetail=true;o.castShadow=true;o.receiveShadow=true;o.frustumCulled=true;if(o.geometry.computeVertexNormals)o.geometry.computeVertexNormals();if(o.material?.envMapIntensity!==undefined)o.material.envMapIntensity=Math.max(1.5,o.material.envMapIntensity);}});group.userData.coastlineVehicleRealism={version:12,style,index,photorealTarget:true};}
-function readColor(group){let color=0x167e99;group.traverse(o=>{if(o.isMesh&&o.material&&!o.userData.coastlineVehicleDetail){const ms=Array.isArray(o.material)?o.material:[o.material];for(const x of ms)if(x?.color?.isColor&&x.metalness!==undefined)color=x.color.getHex();}});return color;}
-function isVehicleShape(o){const p=o?.geometry?.parameters;if(!p)return false;const a=Number(p.width)||0,b=Number(p.height)||0,c=Number(p.depth)||0;return(a>1.4&&a<2.6&&c>3.4&&c<6.2&&b>.35&&b<1.0)||(a>3.4&&c>1.4&&b>.35&&b<1.0);}
-function hookVehicleCreation(){const proto=THREE.Group.prototype;if(proto.__coastlineVehicleAddHook)return;proto.__coastlineVehicleAddHook=true;const original=proto.add;proto.add=function(...objects){const result=original.apply(this,objects);if(!this[enhanced]&&!this.userData?.coastlineVehicleDetail){const found=objects.some(o=>o?.isMesh&&isVehicleShape(o));if(found||/vehicle|car|traffic/i.test(this.name||'')){clearTimeout(this.__coastlineVehicleEnhanceTimer);this.__coastlineVehicleEnhanceTimer=setTimeout(()=>enhanceCar(this),0);}}return result;};}
-export function enhanceCar(group){if(!group||group[enhanced])return;group[enhanced]=true;const index=vehicleSerial++,styles=['sedan','suv','coupe','hatch','pickup'];buildVehicle(group,readColor(group),styles[index%styles.length],index);}
-export function installVehicleVisualEnhancer(){if(globalThis[installed])return;globalThis[installed]=true;hookVehicleCreation();globalThis.__coastlineHeroVehicleVisuals={version:12,enhanceCar,installed:true,allVehicles:true,styles:['sedan','suv','coupe','hatch','pickup'],photorealTarget:true};}
+
+const installed=Symbol('coastlineVehicleHero20Installed'),enhanced=Symbol('coastlineVehicleHero20Enhanced');
+let serial=0;
+
+const IN={L:187.6*0.0254,W:73.9*0.0254,H:55.4*0.0254,WB:107.1*0.0254,TRACK:62.5*0.0254};
+
+function matPaint(color){return new THREE.MeshPhysicalMaterial({color,metalness:.68,roughness:.18,clearcoat:.92,clearcoatRoughness:.065,envMapIntensity:1.45});}
+function matGlass(){return new THREE.MeshPhysicalMaterial({color:0x0a1217,metalness:.04,roughness:.045,transmission:.18,transparent:true,opacity:.94,ior:1.5,clearcoat:.9,clearcoatRoughness:.035,envMapIntensity:1.35});}
+function matRubber(){return new THREE.MeshStandardMaterial({color:0x080a0c,roughness:.88,metalness:.02});}
+function matChrome(){return new THREE.MeshPhysicalMaterial({color:0xbcc4c8,metalness:.96,roughness:.13,clearcoat:.25,envMapIntensity:1.8});}
+function matBlack(){return new THREE.MeshStandardMaterial({color:0x080b0d,metalness:.72,roughness:.28});}
+function matLamp(color,emissive,intensity){return new THREE.MeshPhysicalMaterial({color,roughness:.12,metalness:.06,clearcoat:.7,emissive,emissiveIntensity:intensity});}
+
+// Compact 1024px procedural UV textures: subtle clearcoat micro-variation and panel roughness.
+function textureMaps(THREE,color){
+ const c=document.createElement('canvas');c.width=c.height=1024;const x=c.getContext('2d');
+ const rgb=new THREE.Color(color);const r=Math.round(rgb.r*255),g=Math.round(rgb.g*255),b=Math.round(rgb.b*255);
+ x.fillStyle=`rgb(${r},${g},${b})`;x.fillRect(0,0,1024,1024);
+ for(let i=0;i<9000;i++){const p=.965+Math.random()*.035;x.fillStyle=`rgba(255,255,255,${(p-.965)*.75})`;x.fillRect(Math.random()*1024,Math.random()*1024,1,1);}
+ const map=new THREE.CanvasTexture(c);map.colorSpace=THREE.SRGBColorSpace;map.anisotropy=4;map.wrapS=map.wrapT=THREE.RepeatWrapping;
+ return map;
+}
+
+function loftBody(){
+ // 64 longitudinal sections x 32 perimeter points = 2048 vertices.
+ const segZ=64,segR=32,pos=[],uv=[],idx=[];
+ for(let i=0;i<=segZ;i++){
+  const t=i/segZ,z=-IN.L/2+t*IN.L;
+  const nose=(t<.15)?t/.15:1,rear=(t>.83)?(1-t)/.17:1;
+  const center=Math.max(.36,Math.min(.72,.57+.11*(1-nose)+.055*rear));
+  const width=(IN.W/2)*Math.sin(Math.PI*Math.min(1,t*1.12))*(.93+.07*rear);
+  const bodyH=.54+.16*(nose*.55+rear*.45);
+  for(let j=0;j<segR;j++){
+   const a=j/segR*Math.PI*2;
+   const ca=Math.cos(a),sa=Math.sin(a);
+   const side=Math.abs(ca);
+   const vertical=sa;
+   let x=width*ca;
+   let y=center+(bodyH*.5)*vertical;
+   // Flatten floor and shape belt/shoulders; hood is lower at front, deck slightly raised rear.
+   if(y<.37)y=.37+(y-.37)*.24;
+   const shoulder=1+.055*(1-Math.abs(vertical));
+   x*=shoulder;
+   if(t<.20)y-=.035*(1-t/.20);
+   if(t>.70)y+=.018*((t-.70)/.30);
+   pos.push(x,y,z);
+   uv.push(t,j/segR);
+  }
+ }
+ for(let i=0;i<segZ;i++)for(let j=0;j<segR;j++){const a=i*segR+j,b=i*segR+(j+1)%segR,c=(i+1)*segR+(j+1)%segR,d=(i+1)*segR+j;idx.push(a,b,d,b,c,d);}
+ const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));g.setIndex(idx);g.computeVertexNormals();return g;
+}
+
+function curvedCabin(){
+ // Fastback-style greenhouse with UVs, 24 sections, continuous surfaces.
+ const nz=24,nx=12,pos=[],uv=[],idx=[];
+ const z0=-.73,z1=.83;
+ for(let i=0;i<=nz;i++){
+  const t=i/nz,z=z0+(z1-z0)*t;
+  const roof=.98-.16*Math.sin(Math.PI*t);const half=IN.W*.34*(.98-.10*Math.sin(Math.PI*t));
+  const y=1.03+.38*Math.sin(Math.PI*t); 
+  for(let j=0;j<=nx;j++){const u=j/nx,x=-half+2*half*u;const crown=.05*Math.sin(Math.PI*u);pos.push(x,y+crown,z);uv.push(u,t);}
+ }
+ for(let i=0;i<nz;i++)for(let j=0;j<nx;j++){const a=i*(nx+1)+j,b=a+1,c=a+(nx+1)+1,d=a+(nx+1);idx.push(a,b,d,b,c,d);}
+ const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));g.setIndex(idx);g.computeVertexNormals();return g;
+}
+
+function mesh(g,geo,material,p=[0,0,0],r=[0,0,0]){const m=new THREE.Mesh(geo,material);m.position.set(...p);m.rotation.set(...r);m.castShadow=true;m.receiveShadow=true;m.frustumCulled=true;g.add(m);return m;}
+function roundedBox(w,h,d,r,mat){return new THREE.Mesh(new THREE.BoxGeometry(w,h,d,4,3,4),mat);}
+
+function addWheel(g,m,x,z,r=.225){
+ mesh(g,new THREE.CylinderGeometry(r,r,.20,48,2),m.rubber,[x,.43,z],[0,0,Math.PI/2]);
+ mesh(g,new THREE.TorusGeometry(r*.73,.025,12,48),m.rim,[x,.43,z],[0,Math.PI/2,0]);
+ mesh(g,new THREE.CylinderGeometry(r*.58,r*.58,.212,40,2),m.rim,[x,.43,z],[0,0,Math.PI/2]);
+ mesh(g,new THREE.CylinderGeometry(r*.30,r*.30,.22,32,2),m.brake,[x,.43,z],[0,0,Math.PI/2]);
+}
+
+function addFront(g,m){
+ // Shark-like 2005–09 Mustang front treatment: recessed grille + round projector lamps.
+ const z=IN.L/2+.008;
+ mesh(g,roundedBox(IN.W*.72,.25,.10,.035,m.black),m.black,[0,.66,z]);
+ mesh(g,roundedBox(IN.W*.57,.075,.025,.012,m.chrome),m.chrome,[0,.67,z+.06]);
+ for(const x of[-IN.W*.31,IN.W*.31]){
+  mesh(g,new THREE.CylinderGeometry(.085,.085,.045,40),m.head,[x,.78,z+.055],[Math.PI/2,0,0]);
+  mesh(g,new THREE.TorusGeometry(.105,.018,10,40),m.chrome,[x,.78,z+.082],[Math.PI/2,0,0]);
+ }
+ for(const x of[-IN.W*.23,IN.W*.23])mesh(g,new THREE.CylinderGeometry(.055,.055,.035,32),m.fog,[x,.58,z+.06],[Math.PI/2,0,0]);
+ // hood center crease / grille surround.
+ mesh(g,roundedBox(.055,.025,IN.L*.30,.01,m.black),m.black,[0,.93,.72]);
+}
+function addRear(g,m){
+ const z=-IN.L/2-.015;
+ mesh(g,roundedBox(IN.W*.73,.23,.09,.03,m.black),m.black,[0,.69,z]);
+ // Three-element taillamps on each side.
+ for(const x of[-IN.W*.29,IN.W*.29])for(let k=0;k<3;k++)mesh(g,roundedBox(.07,.105,.025,.012,m.tail),m.tail,[x+k*(x<0?-.07:.07),.75,z-.055]);
+ mesh(g,roundedBox(IN.W*.34,.055,.03,.01,m.chrome),m.chrome,[0,.64,z-.055]);
+}
+function addSideDetails(g,m){
+ // Door seams, handles, rocker and C-scoop cues. Thin geometry keeps the silhouette clean.
+ for(const x of[-IN.W*.505,IN.W*.505]){
+  mesh(g,new THREE.BoxGeometry(.012,.012,1.35),m.black,[x,.76,-.10]);
+  mesh(g,new THREE.BoxGeometry(.035,.018,.13),m.chrome,[x*1.005,1.00,.10]);
+  mesh(g,new THREE.BoxGeometry(.045,.09,.48),m.black,[x*1.004,.69,-.52]);
+ }
+ // C-scoop triangular impression using three connected bars.
+ for(const x of[-1,1]){
+  mesh(g,new THREE.BoxGeometry(.025,.12,.62),m.black,[x*.962,.91,-.70],[0,x*.32,0]);
+  mesh(g,new THREE.BoxGeometry(.025,.10,.42),m.black,[x*.962,.84,-.91],[0,-x*.32,0]);
+ }
+}
+function buildHero(group,color){
+ const g=new THREE.Group();g.name='coastline-2008-american-muscle-hero';group.add(g);
+ const paint=matPaint(color);paint.map=textureMaps(THREE,color);paint.needsUpdate=true;
+ const m={paint,glass:matGlass(),rubber:matRubber(),rim:matChrome(),chrome:matChrome(),black:matBlack(),head:matLamp(0xf4fbff,0xb7dcff,2.1),tail:matLamp(0xa4141d,0x6d0308,1.5),fog:matLamp(0xf6d8a0,0xa86d20,.8),brake:matLamp(0xb20f18,0x3d0206,.6)};
+ mesh(g,loftBody(),m.paint);
+ mesh(g,curvedCabin(),m.glass,[0,.05,-.02]);
+ // Roof skin and pillars.
+ mesh(g,roundedBox(IN.W*.70,.065,1.54,.035,m.paint),m.paint,[0,1.42,-.02]);
+ for(const x of[-1,1])for(const z of[-.74,.70])mesh(g,roundedBox(.045,.45,.055,.015,m.black),m.black,[x*IN.W*.335,1.22,z],[0,0,x*.08]);
+ addFront(g,m);addRear(g,m);addSideDetails(g,m);
+ const wx=IN.TRACK/2*.0254/0.0254; // normalize measured track back to meters below.
+ const wheelX=IN.TRACK/2, wheelZ=IN.WB/2;
+ for(const x of[-wheelX,wheelX])for(const z of[-wheelZ,wheelZ])addWheel(g,m,x,z,.225);
+ // Subtle underbody and rear diffuser.
+ mesh(g,roundedBox(IN.W*.72,.09,IN.L*.55,.025,m.black),m.black,[0,.38,-.05]);
+ g.traverse(o=>{if(o.isMesh){o.userData.coastlineHeroVehicle=true;o.castShadow=true;o.receiveShadow=true;o.frustumCulled=true;}});
+ group.userData.coastlineHeroVehicle={version:20,vehicle:'2008-era American muscle coupe',dimensions:{length:IN.L,width:IN.W,height:IN.H,wheelbase:IN.WB},uv:true,highResolutionGeometry:true,proceduralPBRTextures:true};
+}
+function readColor(group){let c=0x1a5d8f;group.traverse(o=>{const ms=o.isMesh?(Array.isArray(o.material)?o.material:[o.material]):[];for(const m of ms)if(m?.color?.isColor&&m.metalness!==undefined)c=m.color.getHex();});return c;}
+function looksLikeVehicle(o){const p=o?.geometry?.parameters;if(!p)return false;const a=Number(p.width)||0,b=Number(p.height)||0,c=Number(p.depth)||0;return a>1.4&&a<2.7&&c>3.4&&c<6.3&&b>.35&&b<1.1;}
+function hook(){const proto=THREE.Group.prototype;if(proto.__coastlineHero20Hook)return;proto.__coastlineHero20Hook=true;const original=proto.add;proto.add=function(...objects){const result=original.apply(this,objects);if(!this[enhanced]&&!this.userData?.coastlineHeroVehicle){if(objects.some(o=>o?.isMesh&&looksLikeVehicle(o))||/vehicle|car|traffic/i.test(this.name||'')){clearTimeout(this.__hero20Timer);this.__hero20Timer=setTimeout(()=>enhanceCar(this),0);}}return result;};}
+export function enhanceCar(group){if(!group||group[enhanced])return;group[enhanced]=true;buildHero(group,readColor(group));serial++;}
+export function installVehicleVisualEnhancer(){if(globalThis[installed])return;globalThis[installed]=true;hook();globalThis.__coastlineHeroVehicleVisuals={version:20,installed:true,highResolution:true,uvMapped:true,vehicleStudy:'2008-era American muscle coupe'};}
 installVehicleVisualEnhancer();
