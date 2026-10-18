@@ -29,6 +29,9 @@ const asphaltTex=detailTexture('asphalt');
 
 function physicalMaterial(src, opts={}){
   if(!src || !src.isMaterial) return src;
+  // Never replace shader/custom materials: game-v3's sky dome uses shader uniforms
+  // (uDaylight/uSunset) that must remain intact for the environment loop.
+  if(src.isShaderMaterial || src.isRawShaderMaterial || src.userData?.coastlinePreserveMaterial || src.uniforms) return src;
   if(sourceMaterialCache.has(src)) return sourceMaterialCache.get(src);
   const color=src.color?.clone?.()||new THREE.Color(0xffffff);
   const rough=THREE.MathUtils.clamp(src.roughness ?? .7,.22,.98);
@@ -123,9 +126,6 @@ function facadeDetail(scene){
 }
 
 function removeReservedAircraft(scene){
-  // Flight is intentionally disabled until the dedicated aero/flight stack is ready.
-  // The current prototype aircraft is a ground-style rideable with no real lift model;
-  // hiding/removing that prototype prevents a misleading, broken flight experience.
   let removed=0;
   scene.traverse(o=>{
     if(!o.isGroup||o.userData.__coastlineAircraftRemoved)return;
@@ -153,7 +153,7 @@ function install(scene,camera,renderer,composer){
   }
   renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.3;
   scene.traverse(o=>{if(o.isMesh&&o.material?.isMeshPhysicalMaterial){o.material.envMapIntensity=Math.max(o.material.envMapIntensity||0,1.05);}});
-  window.__coastlineMaxVisuals={version:1,scene,camera,renderer,composer};
+  window.__coastlineMaxVisuals={version:2,scene,camera,renderer,composer};
 }
 
 function wait(){
