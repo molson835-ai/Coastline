@@ -1,4 +1,5 @@
 const assert=require('node:assert/strict');
+const fs=require('node:fs');
 
 (async()=>{
   const {createCoastlineRenderConfig}=await import('../coastline-render-config.js');
@@ -38,6 +39,11 @@ const assert=require('node:assert/strict');
   assert.equal(lod.select(500),3);
   assert.equal(lod.visible(220),true);
   assert.equal(lod.visible(221),false);
+
+  const gameHtml=fs.readFileSync(new URL('../game-v3.html', 'file://' + __dirname + '/'), 'utf8');
+  assert.ok(gameHtml.includes('window.__coastlineTreeStats={version:1,trees:treeCount,drawBatches:treeBatches.size,instanced:true}'));
+  assert.ok(gameHtml.includes('new THREE.InstancedMesh(batch.geometry,batch.material,batch.matrices.length)'));
+  assert.ok(!gameHtml.includes('const seed=worldModel.hash(x,z,21),tree=new THREE.Group()'));
 
   console.log('fidelity core tests passed');
 })();
