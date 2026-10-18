@@ -36,15 +36,14 @@ test('buildings, benches, low walls, bicycles, motorcycles and aircraft are inte
   await page.evaluate(() => window.__coastlineTest.setWalkPosition(0, 0, 0));
   expect(await page.evaluate(() => window.__coastlineTest.state().mode)).toBe('walk');
 
-  // Sample the takeoff state immediately after the input edge. The jump impulse is
-  // intentionally short, so waiting for a later rendered frame can miss it on a
-  // heavily loaded CI runner even though the jump was correctly triggered.
   const jump = await page.evaluate(() => {
     const api = window.__coastlineTest;
     api.keyDown('space');
-    const state = api.state();
-    api.keyUp('space');
-    return { jumpHeight: state.jumpHeight, jumpVelocity: state.jumpVelocity, mode: state.mode, errors: state.errors };
+    return new Promise(resolve => requestAnimationFrame(() => {
+      const state = api.state();
+      api.keyUp('space');
+      resolve({ jumpHeight: state.jumpHeight, jumpVelocity: state.jumpVelocity, mode: state.mode, errors: state.errors });
+    }));
   });
   expect(jump.mode).toBe('walk');
   expect(jump.jumpHeight > 0 || jump.jumpVelocity > 0, 'jump should produce positive height or upward velocity').toBe(true);
