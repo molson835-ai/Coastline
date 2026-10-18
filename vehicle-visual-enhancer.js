@@ -1,6 +1,6 @@
 // Coastline hero-vehicle rendering pass.
 // Visual-only layer: preserves gameplay dimensions, input, physics and collision.
-// v4: replaces the primitive hero-car shell with a detailed CC0 GLB asset when available.
+// v5: actively installs the enhancer; v4 was imported by the runtime but never invoked.
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js';
 import { RoundedBoxGeometry } from 'https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/loaders/GLTFLoader.js';
@@ -29,24 +29,23 @@ async function loadRealHero(detail,group){
  try{
   const gltf=await loader.loadAsync('https://jaronkbragg7337.github.io/spectral-gt-rs/spectral_gt_rs_game_ready.glb');
   const model=gltf.scene; model.name='coastline-cc0-real-hero-car';
-  // Source vehicle is authored in meters with front aligned +X; our runtime vehicle faces +Z.
-  model.rotation.y=-Math.PI/2;
-  model.updateMatrixWorld(true);
+  model.rotation.y=-Math.PI/2; model.updateMatrixWorld(true);
   const box=new THREE.Box3().setFromObject(model), size=box.getSize(new THREE.Vector3()), center=box.getCenter(new THREE.Vector3());
   const targetLength=4.35, scale=targetLength/Math.max(size.z,size.x,0.001); model.scale.setScalar(scale); model.updateMatrixWorld(true);
   const b2=new THREE.Box3().setFromObject(model); model.position.y += .46-b2.min.y; model.position.x -= center.x*scale; model.position.z -= center.z*scale;
   model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;o.frustumCulled=true;o.userData.coastlineRealVehicle=true;if(o.material){const ms=Array.isArray(o.material)?o.material:[o.material];for(const m of ms){if('envMapIntensity' in m)m.envMapIntensity=Math.max(m.envMapIntensity||1,1.35);if('needsUpdate'in m)m.needsUpdate=true;}}}});
-  // Hide the primitive visual shell only after the detailed asset successfully loads.
-  detail.visible=false; group.add(model); group.userData.coastlineHeroVisuals='v4-cc0-glb';
+  detail.visible=false; group.add(model); group.userData.coastlineHeroVisuals='v5-cc0-glb';
   if(gltf.animations?.length){const mixer=new THREE.AnimationMixer(model);for(const clip of gltf.animations){if(/steering/i.test(clip.name))mixer.clipAction(clip).play();}const clock=new THREE.Clock();const tick=()=>{if(model.parent){mixer.update(Math.min(clock.getDelta(),.05));requestAnimationFrame(tick);}};tick();}
- }catch(err){console.warn('Coastline detailed hero vehicle failed; keeping procedural fallback',err);group.userData.coastlineHeroVisuals='v4-fallback';}
+ }catch(err){console.warn('Coastline detailed hero vehicle failed; keeping procedural fallback',err);group.userData.coastlineHeroVisuals='v5-fallback';}
 }
 function enhanceCar(group){
  if(!group||group[enhanced])return;group[enhanced]=true;
  const detail=new THREE.Group();detail.name='coastline-hero-vehicle-details';group.add(detail);
  addFallback(detail); detail.traverse(o=>{if(o.isMesh){o.userData.coastlineHeroDetail=true;o.castShadow=true;o.receiveShadow=true;}});
- group.userData.coastlineHeroVisuals='v4-loading-cc0';
+ group.userData.coastlineHeroVisuals='v5-loading-cc0';
  loadRealHero(detail,group);
 }
 function looksLikePlayerCar(child){const p=child?.geometry?.parameters;if(!p)return false;const w=Number(p.width),h=Number(p.height),d=Number(p.depth);return(Math.abs(w-2.12)<.03&&Math.abs(h-.62)<.03&&Math.abs(d-4.35)<.05)||(Math.abs(w-2.05)<.03&&Math.abs(h-.62)<.03&&Math.abs(d-4.35)<.05);}
-export function installVehicleVisualEnhancer(){if(globalThis[installed])return;globalThis[installed]=true;const originalAdd=THREE.Group.prototype.add;THREE.Group.prototype.add=function(...objects){const result=originalAdd.apply(this,objects);if(!this[enhanced]&&objects.some(looksLikePlayerCar))enhanceCar(this);return result;};globalThis.__coastlineHeroVehicleVisuals={version:4,enhanceCar};}
+export function installVehicleVisualEnhancer(){if(globalThis[installed])return;globalThis[installed]=true;const originalAdd=THREE.Group.prototype.add;THREE.Group.prototype.add=function(...objects){const result=originalAdd.apply(this,objects);if(!this[enhanced]&&objects.some(looksLikePlayerCar))enhanceCar(this);return result;};globalThis.__coastlineHeroVehicleVisuals={version:5,enhanceCar,installed:true};}
+// Critical: this module is injected by the service worker; importing it alone does not execute the exported installer.
+installVehicleVisualEnhancer();
