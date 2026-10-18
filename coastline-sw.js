@@ -1,4 +1,4 @@
-const CACHE_NAME='coastline-static-v44';
+const CACHE_NAME='coastline-static-v45';
 const CORE=['./','./index.html','./coastline-cinematic-v2.html','./game-v3.html','./vehicle-visual-enhancer.js','./cinematic-world-upgrade.js','./coastline-runtime-fix.js','./coastline-stability-v8.js','./vehicle-dynamics.js','./car-customization.js','./world-model.js','./world-engine.js','./living-world.js','./douglassville-layout.js','./realism-library.js','./presentation-runtime.js','./cinematic-visual-library.js','./cinematic-animation-library.js','./cinematic-environment-library.js','./replayability-engine.js','./npc-agency-engine.js','./npc-world-slice.js','./social-rumor-engine.js','./player-reputation-engine.js','./coastline-ai-runtime.js','./coastline-live-ops.js'];
 const RUNTIME_PATCH='<script id="coastline-runtime-v31" src="./coastline-runtime-fix.js"></script><script id="coastline-stability-v8" src="./coastline-stability-v8.js"></script><script id="coastline-garage-customization" type="module" src="./car-customization.js"></script>';
 function patchFullBetaHtml(text){
@@ -8,8 +8,8 @@ function patchFullBetaHtml(text){
  else if(out.includes('</head>')&&!out.includes('coastline-v31-ui-safety'))out=out.replace('</head>',safetyPatch+'</head>');
  out=out.replace('const worldArchitecture=createWorldArchitecture(worldModel);','const worldArchitecture=createWorldArchitecture(worldModel);window.__coastlineHooks={scene,camera,renderer,composer,worldArchitecture};');
  out=out.replace('const vehicles=[];','const vehicles=[];window.__coastlineVehicleRegistry=vehicles;');
- out=out.replace("const strafe=(keys['KeyD']?1:0)-(keys['KeyA']?1:0);","const strafe=(keys['KeyA']?1:0)-(keys['KeyD']?1:0);");
- out=out.replace("steer=(left?1:0)-(right?1:0);","steer=(right?1:0)-(left?1:0);");
+ out=out.replace("const strafe=(keys['KeyA']?1:0)-(keys['KeyD']?1:0);","const strafe=(keys['KeyA']?1:0)-(keys['KeyD']?1:0);");
+ out=out.replace("steer=(right?1:0)-(left?1:0);","steer=(right?1:0)-(left?1:0);");
  out=out.replace("accelRate=(kind==='bicycle'?9:kind==='motorcycle'?18:kind==='aircraft'?22:7.8)*upgrade","accelRate=(kind==='bicycle'?9:kind==='motorcycle'?18:kind==='aircraft'?22:18)*upgrade");
  out=out.replace(/accelRate=\(kind==='bicycle'\?9:kind==='motorcycle'\?18:kind==='aircraft'\?22:7\.8\)\*upgrade/g,"accelRate=(kind==='bicycle'?9:kind==='motorcycle'?18:kind==='aircraft'?22:18)*upgrade");
  out=out.replace(/r\.position\.y\+\.1/g,'r.position.y+.16').replace(/r\.position\.y\+\.095/g,'r.position.y+.145');
