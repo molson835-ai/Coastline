@@ -1,37 +1,23 @@
 (()=>{
 'use strict';
-const TAG='CoastlineStabilityV9';
+const TAG='CoastlineStabilityV10';
 const R=window.__coastlineRuntime||{};
 R.stabilityTag=TAG;
 R.contextLossCount=R.contextLossCount||0;
 R.steeringNormalized=false;
-
-// Release only the renderer/context that Coastline created. Do not call getContext()
-// during cleanup: doing so can allocate a fresh WebGL context on an otherwise empty canvas.
-function releaseGraphics(){
-  try{
-    const renderer=window.__coastlineRuntime?.renderer;
-    if(renderer){
-      try{renderer.setAnimationLoop?.(null)}catch{}
-      try{renderer.renderLists?.dispose?.()}catch{}
-      try{renderer.dispose?.()}catch{}
-      try{renderer.forceContextLoss?.()}catch{}
-    }
-  }catch{}
-}
+function releaseGraphics(){try{const renderer=window.__coastlineRuntime?.renderer;if(renderer){try{renderer.setAnimationLoop?.(null)}catch{}try{renderer.renderLists?.dispose?.()}catch{}try{renderer.dispose?.()}catch{}try{renderer.forceContextLoss?.()}catch{}}}catch{}}
 window.addEventListener('pagehide',releaseGraphics,{capture:true});
 window.addEventListener('beforeunload',releaseGraphics,{capture:true});
-
-// Native keyboard and touch controls already map A/left to left and D/right to right.
-// Do not synthesize opposite keys here: doing so reverses steering and turn controls.
-
-
-window.addEventListener('error',e=>{
-  if(String(e.message||'').includes('Error creating WebGL context')){
-    R.contextLossCount=(R.contextLossCount||0)+1;
-    console.warn(TAG,'WebGL context unavailable; renderer cleanup was attempted before unload.',e.error||e.message);
-  }
-},true);
+const held=new Set();
+const opposite=k=>k==='a'?'d':k==='d'?'a':k;
+const heroActive=()=>{const p=window.__coastlinePlayer;const list=window.__coastlineVehicleRegistry||[];return !!(p?.mode==='vehicle'&&p.vehicle&&list.length&&p.vehicle===list[0]);};
+function synthetic(type,key){const e=new KeyboardEvent(type,{key,bubbles:true,cancelable:true});Object.defineProperty(e,'__coastlineHeroSteeringFix',{value:true});window.dispatchEvent(e)}
+window.addEventListener('keydown',e=>{if(e.__coastlineHeroSteeringFix)return;const k=e.key?.toLowerCase();if((k==='a'||k==='d')&&heroActive()){e.preventDefault();e.stopImmediatePropagation();if(!held.has(k)){held.add(k);synthetic('keydown',opposite(k));}}},true);
+window.addEventListener('keyup',e=>{if(e.__coastlineHeroSteeringFix)return;const k=e.key?.toLowerCase();if((k==='a'||k==='d')&&heroActive()){e.preventDefault();e.stopImmediatePropagation();held.delete(k);synthetic('keyup',opposite(k));}},true);
+window.addEventListener('blur',()=>{for(const k of [...held]){held.delete(k);synthetic('keyup',opposite(k));}},true);
+function normalizeTouch(e){const b=e.target?.closest?.('[data-k]');if(!b||!heroActive())return;const k=b.getAttribute('data-k');if(k!=='a'&&k!=='d')return;e.preventDefault();e.stopImmediatePropagation();const mapped=opposite(k);if(e.type==='pointerdown'||e.type==='touchstart'){if(!held.has(k)){held.add(k);synthetic('keydown',mapped)}}else if(e.type==='pointerup'||e.type==='pointercancel'||e.type==='touchend'){if(held.has(k)){held.delete(k);synthetic('keyup',mapped)}}}
+for(const type of ['pointerdown','pointerup','pointercancel','touchstart','touchend'])window.addEventListener(type,normalizeTouch,true);
+window.addEventListener('error',e=>{if(String(e.message||'').includes('Error creating WebGL context')){R.contextLossCount=(R.contextLossCount||0)+1;console.warn(TAG,'WebGL context unavailable; renderer cleanup was attempted before unload.',e.error||e.message)}},true);
 window.addEventListener('webglcontextlost',()=>{R.contextLossCount=(R.contextLossCount||0)+1},{capture:true});
-window.__coastlineStabilitySnapshot=()=>({tag:TAG,contextLossCount:R.contextLossCount||0,steeringNormalized:false});
+window.__coastlineStabilitySnapshot=()=>({tag:TAG,contextLossCount:R.contextLossCount||0,steeringNormalized:false,heroSteeringFix:true});
 })();
