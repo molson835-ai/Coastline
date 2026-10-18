@@ -45,5 +45,19 @@ const fs=require('node:fs');
   assert.ok(gameHtml.includes('new THREE.InstancedMesh(batch.geometry,batch.material,batch.matrices.length)'));
   assert.ok(!gameHtml.includes('const seed=worldModel.hash(x,z,21),tree=new THREE.Group()'));
 
+  const enhancer=fs.readFileSync(new URL('../vehicle-visual-enhancer.js', 'file://' + __dirname + '/'), 'utf8');
+  const loader=fs.readFileSync(new URL('../coastline-vehicle-asset-loader.js', 'file://' + __dirname + '/'), 'utf8');
+  const cinematic=fs.readFileSync(new URL('../cinematic-world-upgrade.js', 'file://' + __dirname + '/'), 'utf8');
+  const itchBuild=fs.readFileSync(new URL('../scripts/build-itch.mjs', 'file://' + __dirname + '/'), 'utf8');
+  assert.ok(enhancer.includes("./coastline-vehicle-asset-loader.js"));
+  assert.ok(enhancer.includes("./assets/vehicles/coastline-hero.glb"));
+  assert.ok(enhancer.includes('authoredAssetPending:true'));
+  assert.ok(loader.includes("GLTFLoader"));
+  assert.ok(loader.includes("./assets/vehicles/coastline-hero.glb"));
+  assert.ok(loader.includes("source:'authored-glb'"));
+  assert.ok(cinematic.includes("quality:'CINEMATIC-DAYLIGHT'"));
+  assert.ok(cinematic.includes("lightRig:'key-fill-rim-hemi'"));
+  assert.ok(itchBuild.includes("'coastline-vehicle-asset-loader.js'"));
+
   console.log('fidelity core tests passed');
 })();
