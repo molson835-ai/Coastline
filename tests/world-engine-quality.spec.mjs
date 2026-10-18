@@ -30,7 +30,8 @@ test('sunset keeps local visibility and distant fog under control', () => {
   assert.match(html, /renderer\.toneMappingExposure=1\.22/);
   assert.match(html, /sun\.intensity=\.42\+daylight\*1\.8\+sunset\*\.42/);
   assert.match(html, /intensity=\.95\+daylight\*1\.05\+sunset\*\.28/);
-  assert.match(html, /scene\.fog\.density=fogBase\+\(1-daylight\)\*\.00012/);
+  assert.match(html, /scene\.fog\.density=\(fogBase\+\(1-daylight\)\*\.00012\)\*coastlineSunsetFogSeparation/);
+  assert.match(html, /coastlineSunsetFogSeparation=environment\.weather==='clear'\?THREE\.MathUtils\.clamp\(1-sunset\*\.62,\.38,1\):1/);
 });
 
 test('on-foot character has a basic rig, face detail, and gait animation', () => {
