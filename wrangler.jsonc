@@ -1,0 +1,10 @@
+{
+  "$schema": "https://developers.cloudflare.com/workers/wrangler/config-schema.json",
+  "name": "coastline",
+  "compatibility_date": "2026-10-17",
+  "workers_dev": true,
+  "preview_urls": true,
+  "assets": {
+    "directory": "."
+  }
+}
