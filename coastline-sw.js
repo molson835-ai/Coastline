@@ -1,9 +1,10 @@
-const CACHE_NAME='coastline-static-v51';
+const RELEASE_ID='20261019-fidelity-cache-1';
+const CACHE_NAME=`coastline-static-v-${RELEASE_ID}`;
 const CORE=['./','./index.html','./coastline-cinematic-v2.html','./game-v3.html','./vehicle-visual-enhancer.js','./cinematic-world-upgrade.js','./coastline-runtime-fix.js','./coastline-stability-v8.js','./car-customization.js','./world-model.js','./world-engine.js','./living-world.js','./douglassville-layout.js','./realism-library.js','./presentation-runtime.js','./cinematic-visual-library.js','./cinematic-animation-library.js','./cinematic-environment-library.js','./replayability-engine.js','./npc-agency-engine.js','./npc-world-slice.js','./social-rumor-engine.js','./player-reputation-engine.js','./coastline-ai-runtime.js','./coastline-live-ops.js','./coastline-render-config.js','./coastline-fidelity-budget.js','./coastline-world-streaming.js','./coastline-instancing.js','./coastline-fidelity-bridge.js'];
 
 // Delivery layer only: rendering configuration and runtime hooks belong to the app.
-// Network-first for HTML/JS prevents stale vehicle/engine modules from winning over a newer deployment.
-// The versioned cache remains an offline fallback, not the preferred source while online.
+// Executable code is network-first so a beta deployment is never intentionally
+// held behind an older service-worker cache while the origin is reachable.
 self.addEventListener('install',event=>{
   event.waitUntil(
     caches.open(CACHE_NAME)
@@ -22,7 +23,8 @@ self.addEventListener('activate',event=>{
 
 async function networkFirst(request,cachedFallback=true){
   try{
-    // Explicitly bypass the browser HTTP cache for executable app code.
+    // Bypass the browser HTTP cache for executable app code. The active deployment
+    // remains authoritative whenever the origin is reachable.
     const freshRequest=new Request(request,{cache:'no-store'});
     const response=await fetch(freshRequest);
     if(response.ok){
