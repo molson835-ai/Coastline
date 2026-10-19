@@ -7,7 +7,8 @@ const livingWorld = await readFile(new URL('../living-world.js', import.meta.url
 
 test('core sandbox delivery removes the map shell and activity triggers', () => {
   assert.match(sw, /applyCoreSandboxTransform/);
-  assert.match(sw, /html\.replace\(\/<div id="coastMap"/);\n  assert.match(sw, /id="mapCanvas"/);
+  assert.ok(sw.includes('html=html.replace(/<div id="coastMap"'));
+  assert.ok(sw.includes('id="mapCanvas"'));
   assert.match(sw, /function startMission\(\)\{return false\}/);
   assert.match(sw, /void 0;/);
   assert.match(sw, /function checkLandmarkDiscovery\(\)\{return 0\}/);
