@@ -5,6 +5,8 @@ const assert=require('node:assert/strict');
     createAdaptiveWorldBudget,
     evaluateWorldBudget
   }=await import('../coastline-adaptive-world-budget.js');
+  const {createWorldModel}=await import('../world-model.js');
+  const {createWorldArchitecture}=await import('../world-engine.js');
 
   const budget=createAdaptiveWorldBudget({heroDistance:24,nearDistance:80,midDistance:180,farDistance:360});
 
@@ -49,6 +51,12 @@ const assert=require('node:assert/strict');
   const invalid=evaluateWorldBudget({budget,distance:NaN,visible:true,category:'npc'});
   assert.equal(invalid.detailTier,'hero');
   assert.equal(invalid.simulationTier,'full');
+
+  const architecture=createWorldArchitecture(createWorldModel());
+  assert.equal(architecture.adaptiveBudget.heroDistance,24);
+  const criticalArchitectureDecision=architecture.evaluateWorldBudget({distance:900,visible:false,gameplayCritical:true,interactive:true,category:'garage'});
+  assert.equal(criticalArchitectureDecision.detailTier,'hero');
+  assert.equal(criticalArchitectureDecision.interactionRequired,true);
 
   console.log('adaptive world budget tests passed');
 })();
