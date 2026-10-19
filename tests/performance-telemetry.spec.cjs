@@ -12,8 +12,12 @@ test('performance telemetry is available and includes renderer and entity counte
   }, null, { timeout: 30000 });
   await page.waitForTimeout(1200);
 
-  const state = await page.evaluate(() => window.__coastlineTest.state());
-  const perf = state.performance;
+  const snapshot = await page.evaluate(() => ({
+    state: window.__coastlineTest.state(),
+    diagnostics: window.__coastlinePerformanceDiagnostics?.()
+  }));
+  const perf = snapshot.state.performance;
+  const diagnostics = snapshot.diagnostics;
 
   expect(Number.isFinite(perf.fps)).toBe(true);
   expect(perf.averageFrameMs).toBeGreaterThan(0);
@@ -23,12 +27,24 @@ test('performance telemetry is available and includes renderer and entity counte
   expect(perf.triangles).toBeGreaterThan(0);
   expect(perf.geometries).toBeGreaterThan(0);
   expect(perf.textures).toBeGreaterThanOrEqual(0);
-  expect(perf.entities.buildings).toBe(state.buildingCount);
-  expect(perf.entities.vehicles).toBe(state.vehicleCount);
-  expect(perf.entities.pedestrians).toBe(state.pedestrianCount);
+  expect(perf.entities.buildings).toBe(snapshot.state.buildingCount);
+  expect(perf.entities.vehicles).toBe(snapshot.state.vehicleCount);
+  expect(perf.entities.pedestrians).toBe(snapshot.state.pedestrianCount);
   expect(perf.entities.trees).toBeGreaterThan(0);
   expect(perf.deviceMemoryGb === null || Number.isFinite(perf.deviceMemoryGb)).toBe(true);
   expect(perf.jsHeapUsedMb === null || Number.isFinite(perf.jsHeapUsedMb)).toBe(true);
   expect(perf.jsHeapLimitMb === null || Number.isFinite(perf.jsHeapLimitMb)).toBe(true);
+  expect(diagnostics, 'diagnostic instrumentation should be exposed').toBeTruthy();
+  expect(Number.isFinite(diagnostics.effectivePixelRatio)).toBe(true);
+  expect(diagnostics.canvas.width).toBeGreaterThan(0);
+  expect(diagnostics.canvas.height).toBeGreaterThan(0);
+  expect(diagnostics.canvas.backingWidth).toBeGreaterThan(0);
+  expect(diagnostics.canvas.backingHeight).toBeGreaterThan(0);
+  expect(diagnostics.frameTimeBuckets.total).toBeGreaterThan(0);
+  expect(diagnostics.longTasks.count).toBeGreaterThanOrEqual(0);
+  expect(diagnostics.longTasks.totalMs).toBeGreaterThanOrEqual(0);
+  expect(diagnostics.longTasks.maxMs).toBeGreaterThanOrEqual(0);
+  expect(diagnostics.longTasks.count).toBeLessThan(100000);
+  expect(diagnostics.instrumentationVersion).toBeGreaterThanOrEqual(2);
   expect(pageErrors, 'performance instrumentation should not create runtime errors').toEqual([]);
 });

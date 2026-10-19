@@ -1,9 +1,11 @@
 const { test, expect } = require('@playwright/test');
 
-test('buildings, benches, low walls, bicycles, motorcycles and aircraft are interactable', async ({ page }) => {
+test('core sandbox keeps the garage and non-pedestrian rideables interactable', async ({ page }) => {
   const runtimeErrors = [];
   page.on('pageerror', error => runtimeErrors.push(error.message));
   await page.goto('/game-v3.html', { waitUntil: 'domcontentloaded' });
+  await page.waitForFunction(() => Boolean(window.__coastlineTest), null, { timeout: 30000 });
+  await page.reload({ waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => Boolean(window.__coastlineTest), null, { timeout: 30000 });
 
   const initial = await page.evaluate(() => {
@@ -11,34 +13,37 @@ test('buildings, benches, low walls, bicycles, motorcycles and aircraft are inte
     return {
       buildings: api.buildingState(),
       rideables: api.rideableState().map(v => v.kind),
-      errors: api.state().errors
+      errors: api.state().errors,
+      sandbox: window.__coastlineCoreSandbox || null,
+      mapPresent: Boolean(document.getElementById('coastMap'))
     };
   });
+
   expect(initial.buildings.count).toBeGreaterThan(10);
-  expect(initial.buildings.enterable).toBe(initial.buildings.count);
-  expect(initial.buildings.benchCount).toBeGreaterThanOrEqual(4);
-  expect(initial.buildings.lowWallCount).toBeGreaterThanOrEqual(4);
+  expect(initial.buildings.enterable).toBeLessThan(initial.buildings.count);
   expect(initial.rideables).toEqual(expect.arrayContaining(['bicycle', 'motorcycle', 'aircraft']));
+  expect(initial.sandbox?.pedestrianInteraction).toBe(false);
+  expect(initial.sandbox?.missions).toBe(false);
+  expect(initial.sandbox?.activities).toBe(false);
+  expect(initial.sandbox?.map).toBe(false);
+  expect(initial.mapPresent).toBe(false);
   expect(initial.errors).toEqual([]);
 
   const entered = await page.evaluate(() => {
     const api = window.__coastlineTest;
     api.exitVehicle();
-    return api.enterBuildingByName('Harbor Hotel');
+    return {
+      ordinary: api.enterBuildingByName('Harbor Hotel'),
+      garage: api.enterBuildingByName('Auto Works')
+    };
   });
-  expect(entered).toBe(true);
-  await expect.poll(async () => page.evaluate(() => window.__coastlineTest.buildingState().inside)).toBe('Harbor Hotel');
-  const stairHeight = await page.evaluate(() => window.__coastlineTest.interiorElevationAt(-497, -505.2));
-  expect(stairHeight).toBeGreaterThan(0);
+  expect(entered.ordinary).toBe(false);
+  expect(entered.garage).toBe(true);
+  await expect.poll(async () => page.evaluate(() => window.__coastlineTest.buildingState().inside)).toBe('Auto Works');
 
   await page.evaluate(() => window.__coastlineTest.exitBuilding());
   await expect.poll(async () => page.evaluate(() => window.__coastlineTest.state().mode)).toBe('walk');
-  await page.evaluate(() => window.__coastlineTest.setWalkPosition(0, 0, 0));
-  expect(await page.evaluate(() => window.__coastlineTest.state().mode)).toBe('walk');
 
-  // Sample the takeoff state immediately after the input edge. The jump impulse is
-  // intentionally short, so waiting for a later rendered frame can miss it on a
-  // heavily loaded CI runner even though the jump was correctly triggered.
   const jump = await page.evaluate(() => {
     const api = window.__coastlineTest;
     api.keyDown('space');
