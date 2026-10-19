@@ -19,6 +19,7 @@ test('performance telemetry is available and includes renderer and entity counte
   const perf = snapshot.state.performance;
   const diagnostics = snapshot.diagnostics;
 
+  expect(perf.schemaVersion).toBe(1);
   expect(Number.isFinite(perf.fps)).toBe(true);
   expect(perf.averageFrameMs).toBeGreaterThan(0);
   expect(perf.p95FrameMs).toBeGreaterThan(0);

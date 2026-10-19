@@ -53,6 +53,7 @@ const fs=require('node:fs');
   assert.equal(lod.visible(221),false);
 
   const gameHtml=fs.readFileSync(new URL('../game-v3.html', 'file://' + __dirname + '/'), 'utf8');
+  assert.ok(gameHtml.includes('return{schemaVersion:1,fps:diagState.fps'),'performance snapshots should expose a schema version');
   assert.ok(gameHtml.includes('categoryTimingCounts'),'category timing diagnostics should track sample counts');
   assert.ok(gameHtml.includes('v/Math.max(1,diagState.categoryTimingCounts[k])'),'reported category costs should be per-call averages, not unbounded cumulative totals');
   const adaptiveStart=gameHtml.indexOf('function updateAdaptiveQuality');

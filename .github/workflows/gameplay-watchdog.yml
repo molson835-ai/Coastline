@@ -59,6 +59,13 @@ jobs:
       - name: Run fidelity core tests
         run: npm run test:fidelity
 
+      - name: Build and verify itch package
+        run: |
+          npm run package:itch
+          test -f dist/itch-html/index.html
+          test -f dist/itch-html/coastline-world-streaming.js
+          test -f dist/itch-html/coastline-fidelity-budget.js
+
   browser-smoke-test:
     runs-on: ubuntu-latest
     timeout-minutes: 12

@@ -8,6 +8,7 @@ test('runtime exposes category-level frame costs without changing render quality
   await page.waitForTimeout(1800);
   const snapshot = await page.evaluate(() => window.__coastlineTest.state().performance);
   expect(snapshot).toBeTruthy();
+  expect(snapshot.schemaVersion).toBe(1);
   expect(snapshot.categoryTimingsMs).toBeTruthy();
   for (const category of ['world', 'traffic', 'pedestrians', 'collision', 'animation', 'audio', 'render']) {
     expect(snapshot.categoryTimingsMs[category], category + ' timing should be a finite non-negative number')
