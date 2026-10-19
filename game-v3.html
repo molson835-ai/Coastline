@@ -36,8 +36,8 @@
   panel.id='coastlineStartupWatchdog';
 })();
 </script>
-<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js"}}</script><script type="module">
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js';
+<script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.170.0/build/three.module.js"}}</script><script type="module">
+import * as THREE from 'https://unpkg.com/three@0.170.0/build/three.module.js';
 import { enhanceCar } from './vehicle-visual-enhancer.js';
 import { applyCinematicWorldUpgrade } from './cinematic-world-upgrade.js';
 import { createWorldModel } from './world-model.js';
@@ -48,10 +48,10 @@ import { createPlayerReputation } from './player-reputation-engine.js';
 import { createSocialRumorEngine } from './social-rumor-engine.js';
 import { createNpcWorldSlice } from './npc-world-slice.js';
 import { detectCoastlineDeviceProfile, createCoastlineRenderConfig } from './coastline-render-config.js';
-import { EffectComposer } from 'https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/postprocessing/EffectComposer.js';
-import { RenderPass } from 'https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/postprocessing/RenderPass.js';
-import { UnrealBloomPass } from 'https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/postprocessing/UnrealBloomPass.js';
-import { OutputPass } from 'https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/postprocessing/OutputPass.js';
+import { EffectComposer } from 'https://unpkg.com/three@0.170.0/examples/jsm/postprocessing/EffectComposer.js';
+import { RenderPass } from 'https://unpkg.com/three@0.170.0/examples/jsm/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'https://unpkg.com/three@0.170.0/examples/jsm/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'https://unpkg.com/three@0.170.0/examples/jsm/postprocessing/OutputPass.js';
 if('serviceWorker'in navigator&&location.protocol!=='file:')window.addEventListener('load',()=>{navigator.serviceWorker.register('./coastline-sw.js',{scope:'./'}).catch(()=>{})},{once:true});
 const coastlineDeviceProfile=detectCoastlineDeviceProfile();const coastlineRenderConfig=createCoastlineRenderConfig(coastlineDeviceProfile);const pageLoadStartedAt=performance.now();
 const $=id=>document.getElementById(id),scene=new THREE.Scene();const coastlineSkyCanvas=document.createElement('canvas');coastlineSkyCanvas.width=2;coastlineSkyCanvas.height=256;const coastlineSkyCtx=coastlineSkyCanvas.getContext('2d');const coastlineSkyGradient=coastlineSkyCtx.createLinearGradient(0,0,0,256);coastlineSkyGradient.addColorStop(0,'#18263d');coastlineSkyGradient.addColorStop(.34,'#514b69');coastlineSkyGradient.addColorStop(.58,'#c77f79');coastlineSkyGradient.addColorStop(.72,'#e7b18b');coastlineSkyGradient.addColorStop(.78,'#718b8d');coastlineSkyGradient.addColorStop(1,'#405a60');coastlineSkyCtx.fillStyle=coastlineSkyGradient;coastlineSkyCtx.fillRect(0,0,2,256);const coastlineSkyTexture=new THREE.CanvasTexture(coastlineSkyCanvas);coastlineSkyTexture.colorSpace=THREE.SRGBColorSpace;scene.background=coastlineSkyTexture;scene.fog=new THREE.FogExp2(0x718b8d,.00085);const camera=new THREE.PerspectiveCamera(66,innerWidth/innerHeight,.1,1400),renderer=new THREE.WebGLRenderer({antialias:coastlineRenderConfig.antialias,powerPreference:'high-performance'});const lowPowerDevice=coastlineDeviceProfile.constrained;renderer.info.autoReset=false;let currentPixelRatio=Math.min(devicePixelRatio||1,coastlineRenderConfig.pixelRatioMax);renderer.setPixelRatio(currentPixelRatio);renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=coastlineRenderConfig.shadows;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.22;
