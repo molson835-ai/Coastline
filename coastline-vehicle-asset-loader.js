@@ -33,10 +33,7 @@ function loadSource(url){
       const root=gltf?.scene;
       const shape=validate(root);
       return {root,meshes:shape.meshes,size:shape.size,url};
-    }).catch(error=>{
-      modelPromises.delete(url);
-      throw error;
-    }));
+    }).catch(error=>{ throw error; }));
   }
   return modelPromises.get(url);
 }
