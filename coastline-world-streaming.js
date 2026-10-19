@@ -34,3 +34,68 @@ export function createObjectLod(distanceBands=[40,100,220,500]) {
     visible(distance,maxDistance=distanceBands.at(-1)){return distance<=maxDistance;}
   };
 }
+
+/**
+ * Hide distant render objects without changing their simulation or collision state.
+ * A separate show/hide threshold prevents visible popping at cell boundaries.
+ */
+export function createDistanceVisibilityController({ showDistance=500, hideDistance=600 }={}) {
+  const show=Number.isFinite(showDistance)&&showDistance>=0?showDistance:500;
+  const hide=Number.isFinite(hideDistance)&&hideDistance>=show?hideDistance:NaN;
+  if(!Number.isFinite(hide))throw new Error('hideDistance must be greater than or equal to showDistance');
+  const records=new Map();
+  const restore=record=>{
+    if(record.culled&&record.object)record.object.visible=record.baseVisible;
+    record.culled=false;
+  };
+  return {
+    register(id,{object,getPosition,isCritical=()=>false}={}) {
+      if(id===undefined||id===null)throw new Error('id is required');
+      if(!object||typeof object!=='object')throw new Error('object is required');
+      if(typeof getPosition!=='function')throw new Error('getPosition must be a function');
+      if(records.has(id))restore(records.get(id));
+      records.set(id,{object,getPosition,isCritical,baseVisible:object.visible!==false,culled:false});
+      return records.size;
+    },
+    unregister(id) {
+      const record=records.get(id);
+      if(!record)return false;
+      restore(record);
+      records.delete(id);
+      return true;
+    },
+    update(x,z) {
+      const originX=Number.isFinite(x)?x:0,originZ=Number.isFinite(z)?z:0;
+      let hidden=0,shown=0,culled=0;
+      for(const record of records.values()) {
+        if(!record.baseVisible)continue;
+        let position;
+        try { position=record.getPosition(); } catch { continue; }
+        if(!position||!Number.isFinite(position.x)||!Number.isFinite(position.z))continue;
+        if(record.isCritical()) {
+          if(record.culled)shown++;
+          record.object.visible=true;
+          record.culled=false;
+          continue;
+        }
+        const distance=Math.hypot(position.x-originX,position.z-originZ);
+        if(!record.culled&&distance>hide) {
+          record.object.visible=false;
+          record.culled=true;
+          hidden++;
+        } else if(record.culled&&distance<show) {
+          record.object.visible=true;
+          record.culled=false;
+          shown++;
+        }
+        if(record.culled)culled++;
+      }
+      return {size:records.size,culled,hidden,shown};
+    },
+    clear() {
+      for(const record of records.values())restore(record);
+      records.clear();
+    },
+    size() { return records.size; }
+  };
+}
