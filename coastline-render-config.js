@@ -11,19 +11,21 @@ export function createCoastlineRenderConfig(profile=detectCoastlineDeviceProfile
   return Object.freeze({
     version:1,
     profile: constrained?'constrained':'full',
-    antialias:!constrained,
-    pixelRatioMax: constrained?1.25:1.75,
-    shadows:!constrained,
-    shadowMapSize: constrained?1024:2048,
-    bloom:!constrained,
-    reflectionSize: constrained?512:1024,
-    maxVisibleWorldCells: constrained?16:36,
-    maxActiveNpc: constrained?42:90,
-    maxActiveTraffic: constrained?18:36,
-    vegetationDensity: constrained?.58:1,
-    objectLodBias: constrained?1:0,
-    postFxScale: constrained?.7:1,
-    targetFrameMs: constrained?20:16.67
+    // Device profile remains diagnostic/scheduling context; it must not silently
+    // lower global rendering quality or cut the authored world/ambient population.
+    antialias:true,
+    pixelRatioMax:1.75,
+    shadows:true,
+    shadowMapSize:2048,
+    bloom:true,
+    reflectionSize:1024,
+    maxVisibleWorldCells:36,
+    maxActiveNpc:90,
+    maxActiveTraffic:36,
+    vegetationDensity:1,
+    objectLodBias:0,
+    postFxScale:1,
+    targetFrameMs:16.67
   });
 }
 
