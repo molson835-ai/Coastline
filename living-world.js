@@ -26,7 +26,11 @@ if (typeof window !== 'undefined') {
   const stripDeferredUi = () => {
     try {
       document.getElementById('coastMap')?.remove();
-      document.querySelectorAll('.mission,#mapCanvas,#mapLabel,#mapHint').forEach(node => node.remove());
+      document.querySelectorAll('.mission').forEach(node => {
+        node.style.display = 'none';
+        node.setAttribute('aria-hidden', 'true');
+      });
+      document.querySelectorAll('#mapCanvas,#mapLabel,#mapHint').forEach(node => node.remove());
     } catch {}
   };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', stripDeferredUi, { once: true });
