@@ -5,6 +5,12 @@ import { REALISM_PROFILES, realismLibraryRules } from './realism-library.js';
 import { createNpcAgency, NPC_ROLES, NPC_STORY_ARCS } from './npc-agency-engine.js';
 
 const residentActivities = Object.freeze(['idle']);
+const disabledAdapter = target => new Proxy(target, {
+  get(obj, prop) {
+    if (prop in obj) return obj[prop];
+    return () => false;
+  }
+});
 
 export function chooseResidentActivity() {
   return 'idle';
@@ -20,14 +26,8 @@ export function separationSteering() {
 }
 
 export function createLivingWorldReplayability() {
-  const memory = {
-    snapshot: () => ({})
-  };
-  const encounters = {
-    next: () => null,
-    update: () => null,
-    snapshot: () => ({})
-  };
+  const memory = disabledAdapter({ snapshot: () => ({}) });
+  const encounters = disabledAdapter({ snapshot: () => ({}) });
   return Object.freeze({
     memory,
     encounters,
