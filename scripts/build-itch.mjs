@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const output = path.join(root, 'dist', 'itch-html');
-const optionalAssets = ['assets/vehicles/coastline-hero.glb'];
+const optionalAssets = ['assets/vehicles/coastline-hero.glb', 'assets/vehicles/white-four-door-sedan.glb', 'assets/vehicles/blue-five-door-compact-hatchback.glb'];
 const files = [
   'game-v3.html', 'vehicle-visual-enhancer.js', 'coastline-vehicle-asset-loader.js', 'cinematic-world-upgrade.js',
   'car-customization.js', 'coastline-render-config.js', 'coastline-fidelity-budget.js',
