@@ -1,6 +1,6 @@
 // Core Coastline sandbox: keep ambient wildlife helpers available, but defer resident
-// activities, replayability encounters, rumors and story progression until the systems
-// are deliberately redesigned. This keeps the driving sandbox lightweight.
+// activities, replayability encounters, map/location discovery and story progression
+// until those systems are deliberately redesigned. This keeps the driving sandbox lightweight.
 import { REALISM_PROFILES, realismLibraryRules } from './realism-library.js';
 import { createNpcAgency, NPC_ROLES, NPC_STORY_ARCS } from './npc-agency-engine.js';
 
@@ -11,6 +11,27 @@ const disabledAdapter = target => new Proxy(target, {
     return () => false;
   }
 });
+
+if (typeof window !== 'undefined') {
+  window.__coastlineCoreSandbox = Object.freeze({
+    version: 1,
+    map: false,
+    missions: false,
+    activities: false,
+    pedestrianInteraction: false,
+    locationLabels: false,
+    ordinaryBuildingInteriors: false,
+    garageInterior: true
+  });
+  const stripDeferredUi = () => {
+    try {
+      document.getElementById('coastMap')?.remove();
+      document.querySelectorAll('.mission,#mapCanvas,#mapLabel,#mapHint').forEach(node => node.remove());
+    } catch {}
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', stripDeferredUi, { once: true });
+  else stripDeferredUi();
+}
 
 export function chooseResidentActivity() {
   return 'idle';
