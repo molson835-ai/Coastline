@@ -1,33 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-
-const [loader,game,packageScript]=await Promise.all([
-  readFile(new URL('../coastline-vehicle-asset-loader.js',import.meta.url),'utf8'),
-  readFile(new URL('../game-v3.html',import.meta.url),'utf8'),
-  readFile(new URL('../scripts/build-itch.mjs',import.meta.url),'utf8')
-]);
-
-test('vehicle GLB loader caches source loads and exposes explicit load status',()=>{
-  assert.match(loader,/const modelPromises = new Map\(\)/);
-  assert.match(loader,/export async function replaceCoastlineVehicleVisual/);
-  assert.match(loader,/source:'existing-vehicle-visual-preserved'/);
-  assert.match(loader,/getCoastlineVehicleAssetStatus/);
-  assert.match(loader,/sedan: Object\.freeze/);
-  assert.match(loader,/hatchback: Object\.freeze/);
-  assert.match(loader,/root\.rotation\.y=Math\.PI\/2/);
-});
-
-test('only the two authored fleet slots request the new GLBs and keep physics root intact',()=>{
-  assert.match(game,/import \{ replaceCoastlineVehicleVisual \} from '\.\/coastline-vehicle-asset-loader\.js'/);
-  assert.match(game,/if\(i===1\|\|i===2\)\{const assetId=i===1\?'sedan':'hatchback'/);
-  assert.match(game,/vehicles\.push\(v\);worldArchitecture\.runtime\.register/);
-});
-
-test('itch package includes all local vehicle GLBs when present and tracks them in packaged assets',()=>{
-  assert.match(packageScript,/assets\/vehicles\/coastline-hero\.glb/);
-  assert.match(packageScript,/assets\/vehicles\/white-four-door-sedan\.glb/);
-  assert.match(packageScript,/assets\/vehicles\/blue-five-door-compact-hatchback\.glb/);
-  assert.match(packageScript,/packagedAssets\.map\(file => '\.\/' \+ file\)/);
-  assert.match(packageScript,/No local vehicle GLBs found/);
-});
+const [loader,game,packageScript]=await Promise.all([readFile(new URL('../coastline-vehicle-asset-loader.js',import.meta.url),'utf8'),readFile(new URL('../game-v3.html',import.meta.url),'utf8'),readFile(new URL('../scripts/build-itch.mjs',import.meta.url),'utf8')]);
+test('vehicle GLB loader caches source loads and exposes explicit load status',()=>{assert.match(loader,/const modelPromises = new Map\(\)/);assert.match(loader,/export async function replaceCoastlineVehicleVisual/);assert.match(loader,/source:'existing-vehicle-visual-preserved'/);assert.match(loader,/getCoastlineVehicleAssetStatus/);assert.match(loader,/sedan: Object\.freeze/);assert.match(loader,/hatchback: Object\.freeze/);assert.match(loader,/white-four-door-sedan \(1\)\.glb/);assert.match(loader,/root\.rotation\.y=Math\.PI\/2/);});
+test('only the two authored fleet slots request the new GLBs and keep physics root intact',()=>{assert.match(game,/import \{ replaceCoastlineVehicleVisual \} from '\.\/coastline-vehicle-asset-loader\.js'/);assert.match(game,/if\(i===1\|\|i===2\)\{const assetId=i===1\?'sedan':'hatchback'/);assert.match(game,/vehicles\.push\(v\);worldArchitecture\.runtime\.register/);});
+test('itch package includes the uploaded local vehicle GLBs when present',()=>{assert.match(packageScript,/assets\/vehicles\/coastline-hero\.glb/);assert.match(packageScript,/assets\/vehicles\/white-four-door-sedan \(1\)\.glb/);assert.match(packageScript,/assets\/vehicles\/blue-five-door-compact-hatchback\.glb/);assert.match(packageScript,/packagedAssets\.map\(file => '\.\/' \+ file\)/);});
