@@ -1,4 +1,4 @@
-const RELEASE_ID='20261019-core-sandbox-3';
+const RELEASE_ID='20261019-core-sandbox-4';
 const CACHE_NAME=`coastline-static-v-${RELEASE_ID}`;
 const CORE=['./','./index.html','./coastline-cinematic-v2.html','./game-v3.html','./vehicle-visual-enhancer.js','./cinematic-world-upgrade.js','./coastline-runtime-fix.js','./coastline-stability-v8.js','./car-customization.js','./world-model.js','./world-engine.js','./living-world.js','./douglassville-layout.js','./realism-library.js','./presentation-runtime.js','./cinematic-visual-library.js','./cinematic-animation-library.js','./cinematic-environment-library.js','./replayability-engine.js','./npc-agency-engine.js','./npc-world-slice.js','./social-rumor-engine.js','./player-reputation-engine.js','./coastline-ai-runtime.js','./coastline-live-ops.js','./coastline-render-config.js','./coastline-fidelity-budget.js','./coastline-world-streaming.js','./coastline-instancing.js','./coastline-fidelity-bridge.js'];
 
@@ -50,6 +50,7 @@ async function applyCoreSandboxTransform(response){
 
   // Mission, landmark, garage-task and replayability activity triggers are deferred.
   html=html.replaceAll('startMission();','void 0;');
+  html=html.replace(/function startMission\(\)\{[\s\S]*?\}\nfunction nearestBench/,'function startMission(){return false}\nfunction nearestBench');
   html=html.replace(/function checkLandmarkDiscovery\(\)\{[\s\S]*?\}\nconst mission=/,'function checkLandmarkDiscovery(){return 0}\nconst mission=');
   html=html.replace(/function startGarageChain\([^)]*\)\{[\s\S]*?\}\nfunction finishGarageStep/,'function startGarageChain(){return false}\nfunction finishGarageStep');
   html=html.replace(/function missionUpdate\(\)\{[\s\S]*?\}\nfunction updateMissionPrompt/,'function missionUpdate(){}\nfunction updateMissionPrompt');
@@ -59,6 +60,7 @@ async function applyCoreSandboxTransform(response){
   // update every frame. This also removes player-to-pedestrian interaction.
   html=html.replace(/function pedestrianBlocked\([^)]*\)\{[\s\S]*?\}/,'function pedestrianBlocked(){return false}');
   html=html.replace(/function updatePedestrians\([^)]*\)\{[\s\S]*?\}\nfunction missionUpdate/,'function updatePedestrians(){}\nfunction missionUpdate');
+  html=html.replace(/function interact\(\)\{[\s\S]*?\}\nfunction exitVehicle/,'function interact(){if(paused)return;if(player.mode===\'vehicle\'){exitVehicle();return}if(player.mode===\'interior\'){exitBuilding();return}const garage=nearestGarage();if(garage){openGarage(garage);return}const v=nearestVehicle();if(v){enterVehicle(v);return}const b=nearestBuilding();if(b){enterBuilding(b);return}}\nfunction exitVehicle');
 
   return new Response(html,{status:response.status,statusText:response.statusText,headers:response.headers});
 }
