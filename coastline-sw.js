@@ -1,4 +1,4 @@
-const RELEASE_ID='20261019-core-sandbox-1';
+const RELEASE_ID='20261019-core-sandbox-2';
 const CACHE_NAME=`coastline-static-v-${RELEASE_ID}`;
 const CORE=['./','./index.html','./coastline-cinematic-v2.html','./game-v3.html','./vehicle-visual-enhancer.js','./cinematic-world-upgrade.js','./coastline-runtime-fix.js','./coastline-stability-v8.js','./car-customization.js','./world-model.js','./world-engine.js','./living-world.js','./douglassville-layout.js','./realism-library.js','./presentation-runtime.js','./cinematic-visual-library.js','./cinematic-animation-library.js','./cinematic-environment-library.js','./replayability-engine.js','./npc-agency-engine.js','./npc-world-slice.js','./social-rumor-engine.js','./player-reputation-engine.js','./coastline-ai-runtime.js','./coastline-live-ops.js','./coastline-render-config.js','./coastline-fidelity-budget.js','./coastline-world-streaming.js','./coastline-instancing.js','./coastline-fidelity-bridge.js'];
 
@@ -49,8 +49,9 @@ async function applyCoreSandboxTransform(response){
   html=html.replace('for(const b of buildings)b.interior=createInterior(b);','for(const b of buildings)b.interior=null;');
   html=html.replace("function enterBuilding(b){if(!b||player.mode==='vehicle')return false;", "function enterBuilding(b){if(!b||player.mode==='vehicle')return false;if(!b.interior&&garageLocations.some(s=>s.building===b))b.interior=createInterior(b);");
 
-  // Mission/activity triggers are deferred in the core driving sandbox.
+  // Mission and landmark activity triggers are deferred in the core driving sandbox.
   html=html.replaceAll('startMission();','void 0;');
+  html=html.replace(/function checkLandmarkDiscovery\(\)\{[\s\S]*?\}\nconst mission=/,'function checkLandmarkDiscovery(){return 0}\nconst mission=');
 
   return new Response(html,{status:response.status,statusText:response.statusText,headers:response.headers});
 }
