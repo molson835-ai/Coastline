@@ -57,6 +57,9 @@ const fs=require('node:fs');
   assert.ok(gameHtml.includes('new THREE.InstancedMesh(batch.geometry,batch.material,batch.matrices.length)'));
   assert.ok(!gameHtml.includes('const seed=worldModel.hash(x,z,21),tree=new THREE.Group()'));
 
+  assert.ok(gameHtml.includes("createDistanceVisibilityController"),'active game runtime should integrate distance-aware visibility');
+  assert.ok(gameHtml.includes('coastlineVehicleVisibility.register'),'traffic visuals should be registered with the visibility controller');
+  assert.ok(gameHtml.includes('updateCoastlineVehicleVisibility(now)'),'visibility updates should run from the active frame loop');
   const enhancer=fs.readFileSync(new URL('../vehicle-visual-enhancer.js', 'file://' + __dirname + '/'), 'utf8');
   const loader=fs.readFileSync(new URL('../coastline-vehicle-asset-loader.js', 'file://' + __dirname + '/'), 'utf8');
   const cinematic=fs.readFileSync(new URL('../cinematic-world-upgrade.js', 'file://' + __dirname + '/'), 'utf8');
