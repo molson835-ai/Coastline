@@ -7,6 +7,12 @@ const assert=require('node:assert/strict');
   }=await import('../coastline-adaptive-world-budget.js');
   const {createWorldModel}=await import('../world-model.js');
   const {createWorldArchitecture}=await import('../world-engine.js');
+  const {selectTrafficUpdateIntervalMs}=await import('../coastline-fidelity-budget.js');
+  assert.equal(typeof selectTrafficUpdateIntervalMs,'function','traffic update cadence selector should be available');
+  assert.equal(selectTrafficUpdateIntervalMs(60),0,'near traffic should update every frame');
+  assert.equal(selectTrafficUpdateIntervalMs(200),33,'near-mid traffic should update at about 30 Hz');
+  assert.equal(selectTrafficUpdateIntervalMs(400),50,'mid traffic should update at about 20 Hz');
+  assert.equal(selectTrafficUpdateIntervalMs(800),200,'far traffic should update at 5 Hz');
 
   const budget=createAdaptiveWorldBudget({heroDistance:24,nearDistance:80,midDistance:180,farDistance:360});
 
