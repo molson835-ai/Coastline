@@ -30,5 +30,16 @@ test('performance telemetry is available and includes renderer and entity counte
   expect(perf.deviceMemoryGb === null || Number.isFinite(perf.deviceMemoryGb)).toBe(true);
   expect(perf.jsHeapUsedMb === null || Number.isFinite(perf.jsHeapUsedMb)).toBe(true);
   expect(perf.jsHeapLimitMb === null || Number.isFinite(perf.jsHeapLimitMb)).toBe(true);
+  expect(Number.isFinite(perf.effectivePixelRatio)).toBe(true);
+  expect(perf.canvas.width).toBeGreaterThan(0);
+  expect(perf.canvas.height).toBeGreaterThan(0);
+  expect(perf.canvas.backingWidth).toBeGreaterThan(0);
+  expect(perf.canvas.backingHeight).toBeGreaterThan(0);
+  expect(perf.frameTimeBuckets.total).toBeGreaterThan(0);
+  expect(perf.longTasks.count).toBeGreaterThanOrEqual(0);
+  expect(perf.longTasks.totalMs).toBeGreaterThanOrEqual(0);
+  expect(perf.longTasks.maxMs).toBeGreaterThanOrEqual(0);
+  expect(perf.longTasks.count).toBeLessThan(100000);
+  expect(perf.instrumentationVersion).toBeGreaterThanOrEqual(2);
   expect(pageErrors, 'performance instrumentation should not create runtime errors').toEqual([]);
 });
