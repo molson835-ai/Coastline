@@ -1,6 +1,6 @@
 // Coastline Hero Vehicle v22 — authored-asset ready, green procedural fallback.
 // The procedural study remains a non-blocking fallback until an authored GLB is present.
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js';
+import * as THREE from 'https://unpkg.com/three@0.170.0/build/three.module.js';
 import { loadCoastlineHeroVehicle } from './coastline-vehicle-asset-loader.js';
 const INST=Symbol('c22i'),DONE=Symbol('c22d');let used=false;
 const D={L:187.6*.0254,W:73.9*.0254,H:55.4*.0254,WB:107.1*.0254,T:62.5*.0254},GREEN=0x0b7a3b;
