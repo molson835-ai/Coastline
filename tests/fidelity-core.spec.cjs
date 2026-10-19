@@ -2,12 +2,17 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs');
 
 (async()=>{
-  const {createCoastlineRenderConfig}=await import('../coastline-render-config.js');
+  const {detectCoastlineDeviceProfile,createCoastlineRenderConfig}=await import('../coastline-render-config.js');
   const {createFidelityBudget}=await import('../coastline-fidelity-budget.js');
   const {createWorldCellStream,createObjectLod}=await import('../coastline-world-streaming.js');
 
-  const full=createCoastlineRenderConfig({width:1200,cores:8,memory:8});
-  const constrained=createCoastlineRenderConfig({width:390,cores:4,memory:4});
+  const fullProfile=detectCoastlineDeviceProfile({width:1200,cores:8,memory:8});
+  const constrainedProfile=detectCoastlineDeviceProfile({width:390,cores:4,memory:4});
+  assert.equal(fullProfile.constrained,false);
+  assert.equal(constrainedProfile.constrained,true);
+
+  const full=createCoastlineRenderConfig(fullProfile);
+  const constrained=createCoastlineRenderConfig(constrainedProfile);
   assert.equal(full.profile,'full');
   assert.equal(constrained.profile,'constrained');
   assert.ok(full.pixelRatioMax>constrained.pixelRatioMax);
