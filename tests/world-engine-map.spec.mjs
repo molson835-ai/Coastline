@@ -8,7 +8,7 @@ const livingWorld = await readFile(new URL('../living-world.js', import.meta.url
 test('core sandbox delivery removes the map shell and activity triggers', () => {
   assert.match(sw, /applyCoreSandboxTransform/);
   assert.match(sw, /id=\\"coastMap\\"/);
-  assert.match(sw, /startMission\(\);/);
+  assert.match(sw, /function startMission\(\)\{return false\}/);
   assert.match(sw, /void 0;/);
   assert.match(sw, /function checkLandmarkDiscovery\(\)\{return 0\}/);
   assert.match(sw, /function startGarageChain\(\)\{return false\}/);
@@ -20,9 +20,10 @@ test('ordinary building interiors are deferred while garage creation remains ava
   assert.match(sw, /b\.interior=createInterior\(b\)/);
 });
 
-test('ambient pedestrians remain visible but their simulation and collision loops are disabled', () => {
+test('ambient pedestrians remain visible but their simulation and interaction loops are disabled', () => {
   assert.match(sw, /function pedestrianBlocked\(\)\{return false\}/);
   assert.match(sw, /function updatePedestrians\(\)\{\}/);
+  assert.match(sw, /function interact\(\)\{if\(paused\)return;/);
   assert.match(sw, /function missionUpdate\(\)\{\}/);
   assert.match(sw, /function updateMissionPrompt\(\)\{\}/);
 });
