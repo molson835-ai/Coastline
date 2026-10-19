@@ -29,5 +29,5 @@ test('itch package includes all local vehicle GLBs when present and tracks them 
   assert.match(packageScript,/assets\/vehicles\/white-four-door-sedan\.glb/);
   assert.match(packageScript,/assets\/vehicles\/blue-five-door-compact-hatchback\.glb/);
   assert.match(packageScript,/packagedAssets\.map\(file => '\.\/' \+ file\)/);
-  assert.match(packageScript,/No local vehicle GLB found/);
+  assert.match(packageScript,/No local vehicle GLBs found/);
 });
