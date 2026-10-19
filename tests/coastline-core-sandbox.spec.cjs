@@ -1,6 +1,6 @@
 const { test, expect } = require('@playwright/test');
 
-test('core sandbox disables deferred systems while preserving the garage', async ({ page }) => {
+test('core beta preserves the interactive map while keeping ordinary building interiors deferred', async ({ page }) => {
   const runtimeErrors = [];
   page.on('pageerror', error => runtimeErrors.push(error.message));
 
@@ -30,8 +30,7 @@ test('core sandbox disables deferred systems while preserving the garage', async
     };
   });
 
-  expect(snapshot.mapPresent).toBe(false);
-  expect(snapshot.missionVisible).toBe(false);
+  expect(snapshot.mapPresent).toBe(true);
   expect(snapshot.building.enterable).toBeLessThan(snapshot.building.count);
   expect(snapshot.ordinaryEnter).toBe(false);
   expect(snapshot.garageEnter).toBe(true);
