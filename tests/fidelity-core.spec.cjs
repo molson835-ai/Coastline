@@ -46,6 +46,13 @@ const fs=require('node:fs');
   assert.equal(lod.visible(221),false);
 
   const gameHtml=fs.readFileSync(new URL('../game-v3.html', 'file://' + __dirname + '/'), 'utf8');
+  const adaptiveStart=gameHtml.indexOf('function updateAdaptiveQuality');
+  const adaptiveEnd=gameHtml.indexOf('\ndocument.body.prepend',adaptiveStart);
+  assert.ok(adaptiveStart>=0&&adaptiveEnd>adaptiveStart,'adaptive quality function should remain identifiable for regression checks');
+  const adaptiveQuality=gameHtml.slice(adaptiveStart,adaptiveEnd);
+  assert.ok(!adaptiveQuality.includes('renderer.setPixelRatio'),'frame pressure must not lower renderer pixel ratio');
+  assert.ok(!adaptiveQuality.includes('bloomPass.enabled=false'),'frame pressure must not disable bloom');
+  assert.ok(!adaptiveQuality.includes('renderer.shadowMap.enabled=false'),'frame pressure must not disable shadows');
   assert.ok(gameHtml.includes('window.__coastlineTreeStats={version:1,trees:treeCount,drawBatches:treeBatches.size,instanced:true}'));
   assert.ok(gameHtml.includes('new THREE.InstancedMesh(batch.geometry,batch.material,batch.matrices.length)'));
   assert.ok(!gameHtml.includes('const seed=worldModel.hash(x,z,21),tree=new THREE.Group()'));
