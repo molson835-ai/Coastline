@@ -1,10 +1,7 @@
-const RELEASE_ID='20261019-fidelity-cache-1';
+const RELEASE_ID='20261019-core-sandbox-1';
 const CACHE_NAME=`coastline-static-v-${RELEASE_ID}`;
 const CORE=['./','./index.html','./coastline-cinematic-v2.html','./game-v3.html','./vehicle-visual-enhancer.js','./cinematic-world-upgrade.js','./coastline-runtime-fix.js','./coastline-stability-v8.js','./car-customization.js','./world-model.js','./world-engine.js','./living-world.js','./douglassville-layout.js','./realism-library.js','./presentation-runtime.js','./cinematic-visual-library.js','./cinematic-animation-library.js','./cinematic-environment-library.js','./replayability-engine.js','./npc-agency-engine.js','./npc-world-slice.js','./social-rumor-engine.js','./player-reputation-engine.js','./coastline-ai-runtime.js','./coastline-live-ops.js','./coastline-render-config.js','./coastline-fidelity-budget.js','./coastline-world-streaming.js','./coastline-instancing.js','./coastline-fidelity-bridge.js'];
 
-// Delivery layer only: rendering configuration and runtime hooks belong to the app.
-// Executable code is network-first so a beta deployment is never intentionally
-// held behind an older service-worker cache while the origin is reachable.
 self.addEventListener('install',event=>{
   event.waitUntil(
     caches.open(CACHE_NAME)
@@ -23,10 +20,9 @@ self.addEventListener('activate',event=>{
 
 async function networkFirst(request,cachedFallback=true){
   try{
-    // Bypass the browser HTTP cache for executable app code. The active deployment
-    // remains authoritative whenever the origin is reachable.
     const freshRequest=new Request(request,{cache:'no-store'});
-    const response=await fetch(freshRequest);
+    let response=await fetch(freshRequest);
+    if(response.ok && new URL(request.url).pathname.endsWith('/game-v3.html')) response=await applyCoreSandboxTransform(response);
     if(response.ok){
       const cache=await caches.open(CACHE_NAME);
       await cache.put(request,response.clone());
@@ -38,6 +34,25 @@ async function networkFirst(request,cachedFallback=true){
     if(cached)return cached;
     throw error;
   }
+}
+
+async function applyCoreSandboxTransform(response){
+  const source=await response.text();
+  let html=source;
+
+  // Remove the map from the delivered shell rather than merely hiding it.
+  html=html.replace(/<div id="coastMap"[\s\S]*?<\/div><div id="diag"/,'<div id="diag"');
+  html=html.replace(/<div class="card mission"[\s\S]*?<\/div><div class="card help"/,'<div class="card help"');
+
+  // Do not construct ordinary building interiors up front. The garage is created
+  // on demand when its building is entered, preserving the only intended interior.
+  html=html.replace('for(const b of buildings)b.interior=createInterior(b);','for(const b of buildings)b.interior=null;');
+  html=html.replace("function enterBuilding(b){if(!b||player.mode==='vehicle')return false;", "function enterBuilding(b){if(!b||player.mode==='vehicle')return false;if(!b.interior&&garageLocations.some(s=>s.building===b))b.interior=createInterior(b);");
+
+  // Mission/activity triggers are deferred in the core driving sandbox.
+  html=html.replaceAll('startMission();','void 0;');
+
+  return new Response(html,{status:response.status,statusText:response.statusText,headers:response.headers});
 }
 
 self.addEventListener('fetch',event=>{
@@ -54,7 +69,6 @@ self.addEventListener('fetch',event=>{
     return;
   }
 
-  // Non-executable static assets can remain cache-first for performance/offline use.
   event.respondWith(
     caches.match(request).then(cached=>{
       if(cached)return cached;
