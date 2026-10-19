@@ -70,7 +70,7 @@ jobs:
           tests/graphics-quality.spec.cjs
           tests/vehicle-collision.spec.cjs
           tests/mobile-controls.spec.cjs
-          tests/next-phase-smoke.spec.mjs
+          tests/next-phase-smoke.spec.cjs
 
       - name: Validate distributable package
         run: npm run package:itch
