@@ -8,7 +8,8 @@
     "test:vehicle": "node --test tests/vehicle-dynamics-v1.spec.cjs",
     "test:fidelity": "node tests/fidelity-core.spec.cjs",
     "test:adaptive-budget": "node tests/adaptive-world-budget.spec.cjs",
-    "test": "npm run test:engine && npm run test:systems && npm run test:vehicle && npm run test:fidelity && npm run test:adaptive-budget && npm run test:gameplay",
+    "test:vehicle-glb-fleet": "node --test tests/vehicle-glb-fleet.spec.mjs",
+    "test": "npm run test:engine && npm run test:systems && npm run test:vehicle && npm run test:fidelity && npm run test:adaptive-budget && npm run test:vehicle-glb-fleet && npm run test:gameplay",
     "package:itch": "node scripts/build-itch.mjs"
   },
   "devDependencies": {
