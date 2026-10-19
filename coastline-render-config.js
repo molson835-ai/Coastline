@@ -1,6 +1,6 @@
 // Coastline Fidelity Core: one source of truth for renderer quality decisions.
 // This module is intentionally independent of caching/service-worker behavior.
-export function detectCoastlineDeviceProfile({ width=innerWidth, dpr=devicePixelRatio||1, cores=navigator.hardwareConcurrency||8, memory=navigator.deviceMemory||8 }={}) {
+export function detectCoastlineDeviceProfile({ width=globalThis.innerWidth ?? 1024, dpr=globalThis.devicePixelRatio ?? 1, cores=globalThis.navigator?.hardwareConcurrency ?? 8, memory=globalThis.navigator?.deviceMemory ?? 8 }={}) {
   const mobile=width<=760;
   const constrained=mobile || cores<=4 || memory<=4;
   return { mobile, constrained, cores, memory, dpr };
@@ -29,7 +29,7 @@ export function createCoastlineRenderConfig(profile=detectCoastlineDeviceProfile
 
 export function applyCoastlineRendererConfig({ renderer, config }) {
   if(!renderer||!config) throw new Error('Renderer and config are required');
-  renderer.setPixelRatio(Math.min(devicePixelRatio||1,config.pixelRatioMax));
+  renderer.setPixelRatio(Math.min(globalThis.devicePixelRatio ?? 1,config.pixelRatioMax));
   renderer.shadowMap.enabled=config.shadows;
   return config;
 }
