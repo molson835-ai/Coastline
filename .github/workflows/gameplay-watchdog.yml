@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
+    branches: [main, coastline-fidelity-core]
   workflow_dispatch:
   schedule:
     - cron: '17 */6 * * *'
@@ -43,6 +43,21 @@ jobs:
         run: npm install
       - name: Run deterministic system tests
         run: npm run test:systems
+
+  vehicle-and-fidelity-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install test dependencies
+        run: npm install
+      - name: Run vehicle dynamics tests
+        run: npm run test:vehicle
+      - name: Run fidelity core tests
+        run: npm run test:fidelity
 
   browser-smoke-test:
     runs-on: ubuntu-latest
