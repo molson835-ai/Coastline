@@ -1,0 +1,130 @@
+name: Coastline Cloudflare release
+
+on:
+  workflow_dispatch:
+    inputs:
+      deploy_target:
+        description: Which existing Cloudflare Worker(s) should receive this exact commit?
+        required: true
+        type: choice
+        default: both
+        options:
+          - both
+          - beta
+          - primary
+
+permissions:
+  contents: read
+
+concurrency:
+  group: coastline-cloudflare-release
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Test exact release commit
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out selected commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install project dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Install Chromium for browser smoke tests
+        run: npx playwright install --with-deps chromium
+
+      - name: Run engine, systems, vehicle, and graphics-fidelity tests
+        run: |
+          npm run test:engine
+          npm run test:systems
+          npm run test:vehicle
+          npm run test:fidelity
+
+      - name: Start local static server
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/coastline-release-server.log 2>&1 &
+          for i in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:4173/game-v3.html >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/coastline-release-server.log
+          exit 1
+
+      - name: Browser regression smoke tests
+        env:
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:4173
+        run: >-
+          npx playwright test
+          tests/gameplay.spec.cjs
+          tests/graphics-quality.spec.cjs
+          tests/vehicle-collision.spec.cjs
+          tests/mobile-controls.spec.cjs
+          tests/next-phase-smoke.spec.cjs
+
+      - name: Validate distributable package
+        run: npm run package:itch
+
+  deploy:
+    name: Deploy and verify selected Worker(s)
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CLOUDFLARE_ACCOUNT_ID: 485e3a6cf433f8e7bf90fcc4b6f00b47
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - name: Check out the same tested commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Confirm Cloudflare credentials are configured
+        shell: bash
+        run: |
+          if [[ -z "${CLOUDFLARE_API_TOKEN}" ]]; then
+            echo "::error::Missing repository secret CLOUDFLARE_API_TOKEN. See the workflow setup instructions."
+            exit 1
+          fi
+
+      # Deploy beta first. If beta fails, the primary Worker is left untouched.
+      - name: Deploy beta Worker
+        if: ${{ inputs.deploy_target == 'both' || inputs.deploy_target == 'beta' }}
+        run: npx --yes wrangler@4.151.1 deploy --config wrangler.jsonc --name coastline-beta --keep-vars
+
+      - name: Verify beta HTML and a local module
+        if: ${{ inputs.deploy_target == 'both' || inputs.deploy_target == 'beta' }}
+        shell: bash
+        run: |
+          curl --fail --silent --show-error https://coastline-beta.molson835.workers.dev/game-v3.html -o /tmp/coastline-beta.html
+          grep -qi "Coastline" /tmp/coastline-beta.html
+          curl --fail --silent --show-error https://coastline-beta.molson835.workers.dev/coastline-render-config.js -o /dev/null
+          echo "Beta Worker serves game-v3.html and coastline-render-config.js."
+
+      - name: Deploy primary Worker
+        if: ${{ inputs.deploy_target == 'both' || inputs.deploy_target == 'primary' }}
+        run: npx --yes wrangler@4.151.1 deploy --config wrangler.jsonc --name coastline --keep-vars
+
+      - name: Verify primary HTML and a local module
+        if: ${{ inputs.deploy_target == 'both' || inputs.deploy_target == 'primary' }}
+        shell: bash
+        run: |
+          curl --fail --silent --show-error https://coastline.molson835.workers.dev/game-v3.html -o /tmp/coastline-primary.html
+          grep -qi "Coastline" /tmp/coastline-primary.html
+          curl --fail --silent --show-error https://coastline.molson835.workers.dev/coastline-render-config.js -o /dev/null
+          echo "Primary Worker serves game-v3.html and coastline-render-config.js."
