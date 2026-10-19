@@ -22,10 +22,12 @@ for (const file of files) await copyFile(path.join(root, file), path.join(output
 const html = await readFile(path.join(root, 'game-v3.html'), 'utf8');
 await writeFile(path.join(output, 'index.html'), html);
 let sw = await readFile(path.join(output, 'coastline-sw.js'), 'utf8');
-sw = sw.replace(/const CACHE_NAME='[^']+';/, "const CACHE_NAME='coastline-itch-static-v4';");
+// Standalone packages use their own release-scoped cache identity so an installed
+// website cache can never collide with an itch package cache.
+sw = sw.replace(/const RELEASE_ID='[^']+';/, "const RELEASE_ID='itch-v4';");
 const packagedCore = ['./', './index.html', ...files.map(file => './' + file)];
 sw = sw.replace(/const CORE=\[[^\]]*\];/, "const CORE=[" + packagedCore.map(file => "'" + file + "'").join(',') + "];");
-if (!sw.includes("'./index.html'") || !sw.includes('coastline-itch-static-v4')) throw new Error('Unable to configure packaged service-worker cache.');
+if (!sw.includes("'./index.html'") || !sw.includes("const RELEASE_ID='itch-v4'")) throw new Error('Unable to configure packaged service-worker release cache.');
 await writeFile(path.join(output, 'coastline-sw.js'), sw);
 const packaged = new Set([...files, 'index.html']);
 for (const file of files.filter(name => name.endsWith('.js') || name.endsWith('.html'))) {
