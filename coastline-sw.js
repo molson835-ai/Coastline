@@ -1,43 +1,65 @@
-const CACHE_NAME='coastline-static-v47';
-const CORE=['./','./index.html','./coastline-cinematic-v2.html','./game-v3.html','./vehicle-visual-enhancer.js','./cinematic-world-upgrade.js','./coastline-runtime-fix.js','./coastline-stability-v8.js','./car-customization.js','./world-model.js','./world-engine.js','./living-world.js','./douglassville-layout.js','./realism-library.js','./presentation-runtime.js','./cinematic-visual-library.js','./cinematic-animation-library.js','./cinematic-environment-library.js','./replayability-engine.js','./npc-agency-engine.js','./npc-world-slice.js','./social-rumor-engine.js','./player-reputation-engine.js','./coastline-ai-runtime.js','./coastline-live-ops.js'];
-const RUNTIME_PATCH='<script id="coastline-runtime-v31" src="./coastline-runtime-fix.js"></script><script id="coastline-stability-v8" src="./coastline-stability-v8.js"></script><script id="coastline-garage-customization" type="module" src="./car-customization.js"></script>';
-function patchFullBetaHtml(text){
- let out=text;
- const safetyPatch='<style id="coastline-v31-ui-safety">#coastMap{display:block!important;visibility:visible!important;opacity:1!important}</style><script id="coastline-v31-input-safety">(()=>{const proto=Element.prototype,original=proto.setPointerCapture;if(original&&!proto.__coastlineSafePointerCapture){proto.setPointerCapture=function(pointerId){try{return original.call(this,pointerId)}catch(error){if(error?.name!==\'InvalidStateError\')throw error}};Object.defineProperty(proto,\'__coastlineSafePointerCapture\',{value:true})}})();</script>';
- if(out.includes('</head>')&&!out.includes('coastline-runtime-v31'))out=out.replace('</head>',RUNTIME_PATCH+safetyPatch+'</head>');
- else if(out.includes('</head>')&&!out.includes('coastline-v31-ui-safety'))out=out.replace('</head>',safetyPatch+'</head>');
- out=out.replace('const worldArchitecture=createWorldArchitecture(worldModel);','const worldArchitecture=createWorldArchitecture(worldModel);window.__coastlineHooks={scene,camera,renderer,composer,worldArchitecture};');
- out=out.replace('const vehicles=[];','const vehicles=[];window.__coastlineVehicleRegistry=vehicles;');
- out=out.replace("const strafe=(keys['KeyA']?1:0)-(keys['KeyD']?1:0);","const strafe=(keys['KeyA']?1:0)-(keys['KeyD']?1:0);");
- out=out.replace("steer=(right?1:0)-(left?1:0);","steer=(right?1:0)-(left?1:0);");
- out=out.replace("accelRate=(kind==='bicycle'?9:kind==='motorcycle'?18:kind==='aircraft'?22:7.8)*upgrade","accelRate=(kind==='bicycle'?9:kind==='motorcycle'?18:kind==='aircraft'?22:18)*upgrade");
- out=out.replace(/accelRate=\(kind==='bicycle'\?9:kind==='motorcycle'\?18:kind==='aircraft'\?22:7\.8\)\*upgrade/g,"accelRate=(kind==='bicycle'?9:kind==='motorcycle'?18:kind==='aircraft'?22:18)*upgrade");
- out=out.replace(/r\.position\.y\+\.1/g,'r.position.y+.16').replace(/r\.position\.y\+\.095/g,'r.position.y+.145');
- out=out.replace('audioMaster.gain.value=audioEnabled ? .62 : 0','audioMaster.gain.value=audioEnabled ? .16 : 0');
- out=out.replace("new AC();audioMaster","new AC({latencyHint:'interactive',sampleRate:22050});audioMaster");
- out=out.replace('new THREE.WebGLRenderer({antialias:true,powerPreference:\'high-performance\'})','new THREE.WebGLRenderer({antialias:false,powerPreference:\'high-performance\',alpha:false,preserveDrawingBuffer:false})');
- out=out.replace('lowPowerDevice?.9:1.15','lowPowerDevice?.66:1.0');
- out=out.replace('renderer.shadowMap.enabled=true;','renderer.shadowMap.enabled=!lowPowerDevice;renderer.shadowMap.autoUpdate=!lowPowerDevice;');
- out=out.replace('const reflectionCanvas=document.createElement(\'canvas\');reflectionCanvas.width=1024;reflectionCanvas.height=512;','const reflectionCanvas=document.createElement(\'canvas\');reflectionCanvas.width=lowPowerDevice?512:1024;reflectionCanvas.height=lowPowerDevice?256:512;');
- out=out.replace('const composer=new EffectComposer(renderer);\ncomposer.addPass(new RenderPass(scene,camera));\nconst bloomPass=new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),.38,.38,.74);\ncomposer.addPass(bloomPass);\ncomposer.addPass(new OutputPass());','if(lowPowerDevice){const s=document.createElement(\'style\');s.textContent=\'.card,#coastMap{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}.card{box-shadow:none!important}.bug-report{box-shadow:none!important}\';document.head.appendChild(s)}\nconst composer=lowPowerDevice?null:new EffectComposer(renderer);\nconst bloomPass=lowPowerDevice?{enabled:false}:new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),.38,.38,.74);\nif(composer){composer.addPass(new RenderPass(scene,camera));composer.addPass(bloomPass);composer.addPass(new OutputPass());}\nconst coastlineRenderFrame=()=>composer?composer.render():renderer.render(scene,camera);');
- out=out.replace('if(lowPowerDevice){bloomPass.enabled=false;composer.render=()=>renderer.render(scene,camera);}else if','if(lowPowerDevice){}else if');
- out=out.replace('if(lowPowerDevice)bloomPass.enabled=false;','if(lowPowerDevice){}');
- out=out.replace(/composer\.render\(\)/g,'coastlineRenderFrame()');
- out=out.replace('composer.setSize(innerWidth,innerHeight)','if(composer)composer.setSize(innerWidth,innerHeight)');
- out=out.replace('renderer.compile(scene,camera);','if(!lowPowerDevice)renderer.compile(scene,camera);');
- out=out.replace("scene.children.find(o=>o.isHemisphereLight).color.set(daylight>.45?0xc8dcff:0xffa9bb);","const coastlineHemisphere=scene.children.find(o=>o.isHemisphereLight);coastlineHemisphere.color.set(daylight>.45?0xc8dcff:0xffa9bb);coastlineHemisphere.groundColor.set(daylight>.45?0x526b57:(sunset>.2?0x5d6863:0x26342f));");
- out=out.replace("const fogBase=environment.weather==='fog'?.00165:environment.weather==='rain'?.00105:environment.weather==='cloudy'?.00082:.00042;scene.fog.density=fogBase+(1-daylight)*.00012;scene.fog.color.set(environment.weather==='fog'?0xaab8c3:environment.weather==='rain'?0x718596:daylight>.55?0xa8c7d5:sunset>.2?0xdca2a5:0x3a465c);","const fogBase=environment.weather==='fog'?.00165:environment.weather==='rain'?.00105:environment.weather==='cloudy'?.00082:.00042;const coastlineSunsetFogSeparation=environment.weather==='clear'?THREE.MathUtils.clamp(1-sunset*.62,.38,1):1;scene.fog.density=(fogBase+(1-daylight)*.00012)*coastlineSunsetFogSeparation;scene.fog.color.set(environment.weather==='fog'?0xaab8c3:environment.weather==='rain'?0x718596:sunset>.2?0x8f9fa1:daylight>.55?0xa8c7d5:0x3a465c);");
- out=out.replace('const terrainMat=new THREE.MeshStandardMaterial({color:0xffffff,map:terrainTexture,vertexColors:true,roughness:1});','const terrainMat=new THREE.MeshStandardMaterial({color:0xffffff,map:terrainTexture,vertexColors:true,roughness:1,emissive:0x18251a,emissiveIntensity:.08});');
- out=out.replace('const ground=new THREE.Mesh(ggeo,terrainMat);ground.receiveShadow=true;scene.add(ground);','const ground=new THREE.Mesh(ggeo,terrainMat);ground.receiveShadow=true;ground.userData.coastlineTerrainLayer=true;ground.userData.coastlineAlwaysVisible=true;scene.add(ground);');
- out=out.replace('const centerStripe=M(0xf4c95d,.55),edgeStripe=M(0xe9e9dc,.72);','const centerStripe=M(0xf4c95d,.55),edgeStripe=M(0xe9e9dc,.72);roadMat.polygonOffset=true;roadMat.polygonOffsetFactor=1;roadMat.polygonOffsetUnits=1;centerStripe.polygonOffset=true;centerStripe.polygonOffsetFactor=-2;centerStripe.polygonOffsetUnits=-2;edgeStripe.polygonOffset=true;edgeStripe.polygonOffsetFactor=-3;edgeStripe.polygonOffsetUnits=-3;');
- out=out.replace('r.position.set(x,3.04,0);r.receiveShadow=true;scene.add(r);','r.position.set(x,3.04,0);r.receiveShadow=true;r.renderOrder=8;r.userData.coastlineRoadLayer=true;r.userData.coastlineAlwaysVisible=true;scene.add(r);');
- out=out.replace('l.position.set(x,r.position.y+.16,zz);scene.add(l)','l.position.set(x,r.position.y+.16,zz);l.renderOrder=20;l.userData.coastlineRoadLayer=true;l.userData.coastlineAlwaysVisible=true;scene.add(l)');
- out=out.replace('edge.position.set(x+side*(w/2-.55),r.position.y+.145,0);scene.add(edge)','edge.position.set(x+side*(w/2-.55),r.position.y+.145,0);edge.renderOrder=20;edge.userData.coastlineRoadLayer=true;edge.userData.coastlineAlwaysVisible=true;scene.add(edge)');
- out=out.replace('r.position.set(0,3.065,z);r.receiveShadow=true;scene.add(r);','r.position.set(0,3.065,z);r.receiveShadow=true;r.renderOrder=8;r.userData.coastlineRoadLayer=true;r.userData.coastlineAlwaysVisible=true;scene.add(r);');
- out=out.replace('l.position.set(xx,r.position.y+.16,z);scene.add(l)','l.position.set(xx,r.position.y+.16,z);l.renderOrder=20;l.userData.coastlineRoadLayer=true;l.userData.coastlineAlwaysVisible=true;scene.add(l)');
- out=out.replace('edge.position.set(0,r.position.y+.145,z+side*(w/2-.55));scene.add(edge)','edge.position.set(0,r.position.y+.145,z+side*(w/2-.55));edge.renderOrder=20;edge.userData.coastlineRoadLayer=true;edge.userData.coastlineAlwaysVisible=true;scene.add(edge)');
- return out;
+const CACHE_NAME='coastline-static-v51';
+const CORE=['./','./index.html','./coastline-cinematic-v2.html','./game-v3.html','./vehicle-visual-enhancer.js','./cinematic-world-upgrade.js','./coastline-runtime-fix.js','./coastline-stability-v8.js','./car-customization.js','./world-model.js','./world-engine.js','./living-world.js','./douglassville-layout.js','./realism-library.js','./presentation-runtime.js','./cinematic-visual-library.js','./cinematic-animation-library.js','./cinematic-environment-library.js','./replayability-engine.js','./npc-agency-engine.js','./npc-world-slice.js','./social-rumor-engine.js','./player-reputation-engine.js','./coastline-ai-runtime.js','./coastline-live-ops.js','./coastline-render-config.js','./coastline-fidelity-budget.js','./coastline-world-streaming.js','./coastline-instancing.js','./coastline-fidelity-bridge.js'];
+
+// Delivery layer only: rendering configuration and runtime hooks belong to the app.
+// Network-first for HTML/JS prevents stale vehicle/engine modules from winning over a newer deployment.
+// The versioned cache remains an offline fallback, not the preferred source while online.
+self.addEventListener('install',event=>{
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then(cache=>cache.addAll(CORE).catch(()=>{}))
+      .then(()=>self.skipWaiting())
+  );
+});
+
+self.addEventListener('activate',event=>{
+  event.waitUntil(
+    caches.keys()
+      .then(keys=>Promise.all(keys.filter(k=>k!==CACHE_NAME).map(k=>caches.delete(k))))
+      .then(()=>self.clients.claim())
+  );
+});
+
+async function networkFirst(request,cachedFallback=true){
+  try{
+    // Explicitly bypass the browser HTTP cache for executable app code.
+    const freshRequest=new Request(request,{cache:'no-store'});
+    const response=await fetch(freshRequest);
+    if(response.ok){
+      const cache=await caches.open(CACHE_NAME);
+      await cache.put(request,response.clone());
+    }
+    return response;
+  }catch(error){
+    if(!cachedFallback)throw error;
+    const cached=await caches.match(request);
+    if(cached)return cached;
+    throw error;
+  }
 }
-self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(CORE).catch(()=>{})).then(()=>self.skipWaiting()))});
-self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE_NAME).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
-self.addEventListener('fetch',event=>{const request=event.request;if(request.method!=='GET')return;const url=new URL(request.url);if(url.origin!==self.location.origin)return;const isHtml=request.mode==='navigate'||request.destination==='document'||url.pathname.endsWith('.html');if(isHtml){event.respondWith(fetch(request).then(async response=>{if(!response.ok)return response;let result=response;if(url.pathname.endsWith('/game-v3.html')){const source=await response.text();const patched=patchFullBetaHtml(source);result=new Response(patched,{status:response.status,statusText:response.statusText,headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'}})}caches.open(CACHE_NAME).then(cache=>cache.put(request,result.clone()));return result}).catch(()=>caches.match(request).then(c=>c||caches.match('./index.html'))));return}event.respondWith(caches.match(request).then(cached=>{const network=fetch(request).then(response=>{if(response.ok)caches.open(CACHE_NAME).then(cache=>cache.put(request,response.clone()));return response}).catch(()=>cached);return cached||network}))});
+
+self.addEventListener('fetch',event=>{
+  const request=event.request;
+  if(request.method!=='GET')return;
+  const url=new URL(request.url);
+  if(url.origin!==self.location.origin)return;
+
+  const isHtml=request.mode==='navigate'||request.destination==='document'||url.pathname.endsWith('.html');
+  const isExecutable=request.destination==='script'||url.pathname.endsWith('.js')||url.pathname.endsWith('.mjs');
+
+  if(isHtml||isExecutable){
+    event.respondWith(networkFirst(request,true).catch(()=>caches.match(request).then(c=>c||caches.match('./index.html'))));
+    return;
+  }
+
+  // Non-executable static assets can remain cache-first for performance/offline use.
+  event.respondWith(
+    caches.match(request).then(cached=>{
+      if(cached)return cached;
+      return fetch(request).then(response=>{
+        if(response.ok)caches.open(CACHE_NAME).then(cache=>cache.put(request,response.clone()));
+        return response;
+      });
+    })
+  );
+});
