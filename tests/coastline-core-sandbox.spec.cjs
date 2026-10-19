@@ -6,10 +6,16 @@ test('core sandbox disables deferred systems while preserving the garage', async
 
   await page.goto('/game-v3.html', { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => Boolean(window.__coastlineTest), null, { timeout: 30000 });
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await page.waitForFunction(() => Boolean(window.__coastlineTest), null, { timeout: 30000 });
 
   const snapshot = await page.evaluate(() => {
     const api = window.__coastlineTest;
     const building = api.buildingState();
+    api.exitVehicle();
+    const ordinaryEnter = api.enterBuildingByName('Harbor Hotel');
+    api.exitBuilding?.();
+    const garageEnter = api.enterBuildingByName('Auto Works');
     return {
       mapPresent: Boolean(document.getElementById('coastMap')),
       missionVisible: (() => {
@@ -17,9 +23,9 @@ test('core sandbox disables deferred systems while preserving the garage', async
         return Boolean(el && getComputedStyle(el).display !== 'none' && el.offsetParent !== null);
       })(),
       building,
-      hasHarborHotelInterior: typeof api.enterBuildingByName === 'function'
-        ? api.enterBuildingByName('Harbor Hotel')
-        : false,
+      ordinaryEnter,
+      garageEnter,
+      inside: api.buildingState().inside,
       errors: api.state().errors
     };
   });
@@ -27,7 +33,9 @@ test('core sandbox disables deferred systems while preserving the garage', async
   expect(snapshot.mapPresent).toBe(false);
   expect(snapshot.missionVisible).toBe(false);
   expect(snapshot.building.enterable).toBeLessThan(snapshot.building.count);
-  expect(snapshot.hasHarborHotelInterior).toBe(false);
+  expect(snapshot.ordinaryEnter).toBe(false);
+  expect(snapshot.garageEnter).toBe(true);
+  expect(snapshot.inside).toBe('Auto Works');
   expect(snapshot.errors).toEqual([]);
   expect(runtimeErrors).toEqual([]);
 });
