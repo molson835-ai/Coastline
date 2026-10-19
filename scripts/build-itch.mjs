@@ -28,7 +28,7 @@ for (const asset of optionalAssets) {
   await copyFile(path.join(root,asset),destination);
   packagedAssets.push(asset);
 }
-if (!packagedAssets.length) console.warn('No local vehicle GLB found; runtime will attempt the configured external source.');
+if (!packagedAssets.length) console.warn('No local vehicle GLBs found; authored vehicle slots will keep their procedural visuals until assets are added.');
 const html = await readFile(path.join(root, 'game-v3.html'), 'utf8');
 await writeFile(path.join(output, 'index.html'), html);
 let sw = await readFile(path.join(output, 'coastline-sw.js'), 'utf8');
