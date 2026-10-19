@@ -1,4 +1,4 @@
-const RELEASE_ID='20261019-core-sandbox-2';
+const RELEASE_ID='20261019-core-sandbox-3';
 const CACHE_NAME=`coastline-static-v-${RELEASE_ID}`;
 const CORE=['./','./index.html','./coastline-cinematic-v2.html','./game-v3.html','./vehicle-visual-enhancer.js','./cinematic-world-upgrade.js','./coastline-runtime-fix.js','./coastline-stability-v8.js','./car-customization.js','./world-model.js','./world-engine.js','./living-world.js','./douglassville-layout.js','./realism-library.js','./presentation-runtime.js','./cinematic-visual-library.js','./cinematic-animation-library.js','./cinematic-environment-library.js','./replayability-engine.js','./npc-agency-engine.js','./npc-world-slice.js','./social-rumor-engine.js','./player-reputation-engine.js','./coastline-ai-runtime.js','./coastline-live-ops.js','./coastline-render-config.js','./coastline-fidelity-budget.js','./coastline-world-streaming.js','./coastline-instancing.js','./coastline-fidelity-bridge.js'];
 
@@ -42,16 +42,23 @@ async function applyCoreSandboxTransform(response){
 
   // Remove the map from the delivered shell rather than merely hiding it.
   html=html.replace(/<div id="coastMap"[\s\S]*?<\/div><div id="diag"/,'<div id="diag"');
-  html=html.replace(/<div class="card mission"[\s\S]*?<\/div><div class="card help"/,'<div class="card help"');
 
   // Do not construct ordinary building interiors up front. The garage is created
   // on demand when its building is entered, preserving the only intended interior.
   html=html.replace('for(const b of buildings)b.interior=createInterior(b);','for(const b of buildings)b.interior=null;');
   html=html.replace("function enterBuilding(b){if(!b||player.mode==='vehicle')return false;", "function enterBuilding(b){if(!b||player.mode==='vehicle')return false;if(!b.interior&&garageLocations.some(s=>s.building===b))b.interior=createInterior(b);");
 
-  // Mission and landmark activity triggers are deferred in the core driving sandbox.
+  // Mission, landmark, garage-task and replayability activity triggers are deferred.
   html=html.replaceAll('startMission();','void 0;');
   html=html.replace(/function checkLandmarkDiscovery\(\)\{[\s\S]*?\}\nconst mission=/,'function checkLandmarkDiscovery(){return 0}\nconst mission=');
+  html=html.replace(/function startGarageChain\([^)]*\)\{[\s\S]*?\}\nfunction finishGarageStep/,'function startGarageChain(){return false}\nfunction finishGarageStep');
+  html=html.replace(/function missionUpdate\(\)\{[\s\S]*?\}\nfunction updateMissionPrompt/,'function missionUpdate(){}\nfunction updateMissionPrompt');
+  html=html.replace(/function updateMissionPrompt\([^)]*\)\{[\s\S]*?\}\nfunction cameraUpdate/,'function updateMissionPrompt(){}\nfunction cameraUpdate');
+
+  // Pedestrians remain visible ambient scenery but stop consuming an AI/collision
+  // update every frame. This also removes player-to-pedestrian interaction.
+  html=html.replace(/function pedestrianBlocked\([^)]*\)\{[\s\S]*?\}/,'function pedestrianBlocked(){return false}');
+  html=html.replace(/function updatePedestrians\([^)]*\)\{[\s\S]*?\}\nfunction missionUpdate/,'function updatePedestrians(){}\nfunction missionUpdate');
 
   return new Response(html,{status:response.status,statusText:response.statusText,headers:response.headers});
 }
