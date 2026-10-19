@@ -1,5 +1,6 @@
-// Coastline authored vehicle asset loader v5.
+// Coastline authored vehicle asset loader v6.
 // Loads only explicitly selected authored vehicles; the existing vehicle remains visible until a GLB validates.
+// The authored sedan is also installed on the player physics root so it is the beta starting vehicle visual.
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js';
 import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/loaders/GLTFLoader.js';
 
@@ -51,8 +52,32 @@ export async function replaceCoastlineVehicleVisual({group,assetId='hero',url,ex
   const config=resolveConfig(assetId,url,externalFallback,expectedLengthMeters);
   const sources=[config.url,...(config.externalFallback&&config.externalFallback!==config.url?[config.externalFallback]:[])];
   const failures=[];
-  for(const sourceUrl of sources){try{const source=await loadSource(sourceUrl);const instance=prepareInstance(source,config.expectedLengthMeters);group.traverse(o=>{if(o.isMesh&&!o.userData?.coastlineAuthoredVehicle)o.visible=false;});instance.userData.coastlineVehicleAssetUrl=sourceUrl;group.add(instance);const result={version:5,assetId,loaded:true,source:'authored-glb',url:sourceUrl,meshes:source.meshes,instance:true,fallbackTried:sourceUrl!==sources[0]};instanceResults.push(result);globalThis.__coastlineVehicleAssetStatus={version:5,loaded:true,assetId,url:sourceUrl,instances:instanceResults.length,lastInstance:result};return result;}catch(error){failures.push({url:sourceUrl,error:String(error?.message||error)});}}
-  const result={version:5,assetId,loaded:false,source:'existing-vehicle-visual-preserved',url:config.url,failures};globalThis.__coastlineVehicleAssetFailures=(globalThis.__coastlineVehicleAssetFailures||[]).concat([result]);globalThis.__coastlineVehicleAssetStatus=result;return result;
+  for(const sourceUrl of sources){try{
+    const source=await loadSource(sourceUrl);
+    const instance=prepareInstance(source,config.expectedLengthMeters);
+    group.traverse(o=>{if(o.isMesh&&!o.userData?.coastlineAuthoredVehicle)o.visible=false;});
+    instance.userData.coastlineVehicleAssetUrl=sourceUrl;
+    group.add(instance);
+    // The white sedan is the beta starting/player car. Install the same authored
+    // visual on the existing player physics root so controls/collision state stay intact.
+    if(assetId==='sedan'&&globalThis.__coastlinePlayer?.vehicle?.g&&group!==globalThis.__coastlinePlayer.vehicle.g&&!globalThis.__coastlinePlayer.vehicle.g.userData.coastlineAuthoredSedanInstalled){
+      const playerGroup=globalThis.__coastlinePlayer.vehicle.g;
+      playerGroup.traverse(o=>{if(o.isMesh&&!o.userData?.coastlineAuthoredVehicle)o.visible=false;});
+      const playerInstance=prepareInstance(source,config.expectedLengthMeters);
+      playerInstance.userData.coastlineVehicleAssetUrl=sourceUrl;
+      playerGroup.add(playerInstance);
+      playerGroup.userData.coastlineAuthoredSedanInstalled=true;
+      globalThis.__coastlinePlayer.vehicle.authoredAssetId='sedan';
+    }
+    const result={version:6,assetId,loaded:true,source:'authored-glb',url:sourceUrl,meshes:source.meshes,instance:true,fallbackTried:sourceUrl!==sources[0]};
+    instanceResults.push(result);
+    globalThis.__coastlineVehicleAssetStatus={version:6,loaded:true,assetId,url:sourceUrl,instances:instanceResults.length,lastInstance:result};
+    return result;
+  }catch(error){failures.push({url:sourceUrl,error:String(error?.message||error)});}}
+  const result={version:6,assetId,loaded:false,source:'existing-vehicle-visual-preserved',url:config.url,failures};
+  globalThis.__coastlineVehicleAssetFailures=(globalThis.__coastlineVehicleAssetFailures||[]).concat([result]);
+  globalThis.__coastlineVehicleAssetStatus=result;
+  return result;
 }
 export async function loadCoastlineHeroVehicle({group,url,externalFallback,expectedLengthMeters,replaceProcedural=true}={}){if(!group)return {loaded:false,reason:'invalid-input'};const config=resolveConfig('hero',url,externalFallback,expectedLengthMeters);const result=await replaceCoastlineVehicleVisual({group,assetId:'hero',...config});if(result.loaded&&replaceProcedural){const old=group.userData.coastlineHeroProceduralRoot;if(old?.parent)old.parent.remove(old);}return result;}
-export function getCoastlineVehicleAssetStatus(){return Object.freeze({version:5,configuredAssets:Object.keys(COASTLINE_VEHICLE_ASSETS),cachedSources:[...modelPromises.keys()],instances:instanceResults.length,status:globalThis.__coastlineVehicleAssetStatus||{loaded:false,source:'not-yet-requested'}});}
+export function getCoastlineVehicleAssetStatus(){return Object.freeze({version:6,configuredAssets:Object.keys(COASTLINE_VEHICLE_ASSETS),cachedSources:[...modelPromises.keys()],instances:instanceResults.length,status:globalThis.__coastlineVehicleAssetStatus||{loaded:false,source:'not-yet-requested'}});}
