@@ -8,7 +8,7 @@ export const COASTLINE_VEHICLE_ASSETS = Object.freeze({
   hero: Object.freeze({
     id: 'coastline-hero',
     url: './assets/vehicles/coastline-hero.glb',
-    externalFallback: 'https://raw.githubusercontent.com/JaronKBragg7337/spectral-gt-rs/main/spectral_gt_rs_game_ready.glb',
+    externalFallback: 'https://cdn.3dassets.dev/assets/32495/v1/model.glb',
     expectedLengthMeters: 4.765
   })
 });
