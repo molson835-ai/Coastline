@@ -287,11 +287,14 @@ const stopTexture=makeTrafficSignTexture('STOP','stop'),speedTexture=makeTraffic
 const stopSignMat=new THREE.MeshStandardMaterial({map:stopTexture,roughness:.8}),speedSignMat=new THREE.MeshStandardMaterial({map:speedTexture,roughness:.8}),streetSignMat=new THREE.MeshStandardMaterial({map:streetTexture,roughness:.8});
 const signPostGeo=new THREE.CylinderGeometry(.045,.06,2.7,6),signBoardGeo=new THREE.BoxGeometry(.95,1,.07);
 function addRoadSign(x,z,kind,rot=0){const g=new THREE.Group();g.position.set(x,groundY(x,z),z);g.rotation.y=rot;const post=new THREE.Mesh(signPostGeo,metal);post.position.y=1.35;g.add(post);const board=new THREE.Mesh(signBoardGeo,kind==='stop'?stopSignMat:kind==='speed'?speedSignMat:streetSignMat);board.position.set(0,2.28,0);if(kind==='stop')board.scale.set(.9,.9,1);g.add(board);scene.add(g);signPositions.push({x,z,kind,group:g,damage:0});return g}
+const crosswalkStripeAGeo=new THREE.BoxGeometry(1.25,.035,.48),crosswalkStripeBGeo=new THREE.BoxGeometry(.48,.035,1.25);
+const crosswalkStripeAInstances=new THREE.InstancedMesh(crosswalkStripeAGeo,crosswalkMat,108),crosswalkStripeBInstances=new THREE.InstancedMesh(crosswalkStripeBGeo,crosswalkMat,108);
+const crosswalkDummy=new THREE.Object3D();let crosswalkAIndex=0,crosswalkBIndex=0;
 for(const ix of [-200,0,200])for(const iz of [-200,0,200]){
-  // Painted zebra crossings on each approach, made from shared lightweight geometry/material.
+  // Painted zebra crossings preserve the exact layout while using two GPU draw batches.
   for(const side of [-1,1])for(let k=0;k<6;k++){
-    const stripeA=new THREE.Mesh(new THREE.BoxGeometry(1.25,.035,.48),crosswalkMat);stripeA.position.set(ix+side*(10.2+k*1.65),3.17,iz-9.8);scene.add(stripeA);
-    const stripeB=new THREE.Mesh(new THREE.BoxGeometry(.48,.035,1.25),crosswalkMat);stripeB.position.set(ix-9.8,3.17,iz+side*(10.2+k*1.65));scene.add(stripeB);
+    crosswalkDummy.position.set(ix+side*(10.2+k*1.65),3.17,iz-9.8);crosswalkDummy.rotation.set(0,0,0);crosswalkDummy.scale.set(1,1,1);crosswalkDummy.updateMatrix();crosswalkStripeAInstances.setMatrixAt(crosswalkAIndex++,crosswalkDummy.matrix);
+    crosswalkDummy.position.set(ix-9.8,3.17,iz+side*(10.2+k*1.65));crosswalkDummy.updateMatrix();crosswalkStripeBInstances.setMatrixAt(crosswalkBIndex++,crosswalkDummy.matrix);
   }
   // Four compact signal heads per junction; shared geometry keeps the mobile cost bounded.
   for(const cornerX of [-1,1])for(const cornerZ of [-1,1]){
@@ -306,8 +309,13 @@ for(const ix of [-200,0,200])for(const iz of [-200,0,200]){
   addRoadSign(ix-12.2,iz-12.2,'stop',Math.PI/4);
   addRoadSign(ix+12.2,iz-12.2,'street',Math.PI/2);
 }
-for(const x of [-600,-400,-200,0,200,400,600]){const offset=gridRoadWidth(x)/2+.65;const left=new THREE.Mesh(new THREE.BoxGeometry(.16,.035,1500),edgeLineMat);left.position.set(x-offset,3.14,0);scene.add(left);const right=left.clone();right.position.x=x+offset;scene.add(right)}
-for(const z of [-600,-400,-200,0,200,400,600]){const offset=gridRoadWidth(z)/2+.65;const edge=new THREE.Mesh(new THREE.BoxGeometry(1500,.035,.16),edgeLineMat);edge.position.set(0,3.15,z-offset);scene.add(edge);const other=edge.clone();other.position.z=z+offset;scene.add(other)}
+crosswalkStripeAInstances.instanceMatrix.needsUpdate=true;crosswalkStripeBInstances.instanceMatrix.needsUpdate=true;crosswalkStripeAInstances.castShadow=false;crosswalkStripeBInstances.castShadow=false;crosswalkStripeAInstances.receiveShadow=false;crosswalkStripeBInstances.receiveShadow=false;crosswalkStripeAInstances.computeBoundingSphere();crosswalkStripeBInstances.computeBoundingSphere();scene.add(crosswalkStripeAInstances,crosswalkStripeBInstances);
+const roadEdgeVerticalGeo=new THREE.BoxGeometry(.16,.035,1500),roadEdgeHorizontalGeo=new THREE.BoxGeometry(1500,.035,.16);
+const roadEdgeVerticalInstances=new THREE.InstancedMesh(roadEdgeVerticalGeo,edgeLineMat,14),roadEdgeHorizontalInstances=new THREE.InstancedMesh(roadEdgeHorizontalGeo,edgeLineMat,14);
+const roadEdgeDummy=new THREE.Object3D();let roadEdgeVerticalIndex=0,roadEdgeHorizontalIndex=0;
+for(const x of [-600,-400,-200,0,200,400,600]){const offset=gridRoadWidth(x)/2+.65;roadEdgeDummy.position.set(x-offset,3.14,0);roadEdgeDummy.updateMatrix();roadEdgeVerticalInstances.setMatrixAt(roadEdgeVerticalIndex++,roadEdgeDummy.matrix);roadEdgeDummy.position.set(x+offset,3.14,0);roadEdgeDummy.updateMatrix();roadEdgeVerticalInstances.setMatrixAt(roadEdgeVerticalIndex++,roadEdgeDummy.matrix)}
+for(const z of [-600,-400,-200,0,200,400,600]){const offset=gridRoadWidth(z)/2+.65;roadEdgeDummy.position.set(0,3.15,z-offset);roadEdgeDummy.updateMatrix();roadEdgeHorizontalInstances.setMatrixAt(roadEdgeHorizontalIndex++,roadEdgeDummy.matrix);roadEdgeDummy.position.set(0,3.15,z+offset);roadEdgeDummy.updateMatrix();roadEdgeHorizontalInstances.setMatrixAt(roadEdgeHorizontalIndex++,roadEdgeDummy.matrix)}
+roadEdgeVerticalInstances.instanceMatrix.needsUpdate=true;roadEdgeHorizontalInstances.instanceMatrix.needsUpdate=true;roadEdgeVerticalInstances.castShadow=false;roadEdgeHorizontalInstances.castShadow=false;roadEdgeVerticalInstances.receiveShadow=false;roadEdgeHorizontalInstances.receiveShadow=false;roadEdgeVerticalInstances.computeBoundingSphere();roadEdgeHorizontalInstances.computeBoundingSphere();scene.add(roadEdgeVerticalInstances,roadEdgeHorizontalInstances);
 for(const [x,z] of [[-400,-400],[0,-400],[400,-400],[-400,0],[400,0],[-400,400],[0,400],[400,400]])addRoadSign(x+13,z+13,'speed',Math.PI/2);
 function updateTrafficSignals(now){const t=now/1000;for(const head of trafficSignalHeads){const phase=((t+head.offset)%12+12)%12;const active=phase<5?2:phase<6?1:phase<11?0:1;head.bulbs.forEach((b,i)=>{const on=i===active;b.mat.emissiveIntensity=on?1.8:.08;b.mat.color.setHex(on?(i===0?0xff3030:i===1?0xffc02a:0x28ff75):(i===0?0x541919:i===1?0x59400d:0x164a28))})}}
 // Low-poly trees fill empty blocks and soften the skyline without expensive textures.
