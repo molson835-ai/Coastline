@@ -12,7 +12,7 @@ test('service worker uses a release identity and never treats executable code as
   assert.match(sw,/CACHE_NAME=`coastline-static-v-\$\{RELEASE_ID\}`/);
   assert.match(sw,/cache:\s*'no-store'/);
   assert.match(sw,/isExecutable/);
-  assert.match(sw,/cache.delete/);
+  assert.match(sw,/caches\.delete/);
   assert.doesNotMatch(sw,/CACHE_NAME='coastline-static-v\\d+'/);
 });
 
