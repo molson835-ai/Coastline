@@ -1,0 +1,1 @@
+Authored vehicle assets are stored under their runtime loader filenames.
