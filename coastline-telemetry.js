@@ -78,6 +78,8 @@
     };
   }
 
+  window.__coastlinePerformanceDiagnostics = diagnosticSnapshot;
+
   try {
     distinctId = sessionStorage.getItem('coastline_telemetry_session');
     if (!distinctId) {
