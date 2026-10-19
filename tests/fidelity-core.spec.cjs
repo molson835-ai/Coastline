@@ -65,6 +65,8 @@ const fs=require('node:fs');
   assert.ok(gameHtml.includes('const proxy=group.children[0],detailGroup=new THREE.Group()'),'buildings should retain a silhouette proxy while detail meshes are grouped');
   assert.ok(gameHtml.includes('coastlineBuildingDetailVisibility.register'),'building details should use distance-aware visibility');
   assert.ok(gameHtml.includes('coastlineBuildingDetailVisibility.update(player.x,player.z)'),'building detail visibility should update with player position');
+  assert.ok(gameHtml.includes('selectTrafficUpdateIntervalMs(Math.hypot(v.x-player.x,v.z-player.z))'),'traffic AI should use distance-aware scheduling');
+  assert.ok(gameHtml.includes('const aiStepDt=intervalMs===0?dt:Math.min(.2,v.aiElapsed)'),'throttled traffic should integrate elapsed time when it resumes');
   const vehicleUpdateStart=gameHtml.indexOf('function updateVehicle(dt){');
   const vehicleUpdateEnd=gameHtml.indexOf('\nfunction ',vehicleUpdateStart+10);
   const vehicleUpdate=gameHtml.slice(vehicleUpdateStart,vehicleUpdateEnd);
