@@ -10,7 +10,6 @@ permissions:
 
 jobs:
   repair:
-    if: hashFiles('.beta-syntax-repair-complete') == ''
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -19,6 +18,7 @@ jobs:
           ref: ${{ github.ref_name }}
           fetch-depth: 0
       - name: Repair malformed deferred vehicle loader
+        if: hashFiles('.beta-syntax-repair-complete') == ''
         shell: bash
         run: |
           python3 <<'PY'
