@@ -2,7 +2,7 @@ name: Coastline gameplay watchdog
 
 on:
   push:
-    branches: [main]
+    branches: [main, coastline-transition-manager-v1]
   pull_request:
     branches: [main, coastline-fidelity-core]
   workflow_dispatch:
