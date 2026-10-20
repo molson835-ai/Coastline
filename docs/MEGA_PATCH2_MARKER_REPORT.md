@@ -23,7 +23,6 @@ HEAD: ref: refs/heads/coastline-performance-mega-batch-spec
 - replayability loop: PRESENT — game-v3.html
   - match length: 67
 - green paint: MISSING — vehicle-visual-enhancer.js
-- green name: PRESENT — vehicle-visual-enhancer.js
-  - match length: 41
+- green name: MISSING — vehicle-visual-enhancer.js
 - loader result: PRESENT — coastline-vehicle-asset-loader.js
   - match length: 153
