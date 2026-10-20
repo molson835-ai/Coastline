@@ -8,7 +8,7 @@ test('service worker activates and caches every same-origin gameplay module', as
     if (!('serviceWorker' in navigator)) return { supported: false };
     const registration = await navigator.serviceWorker.ready;
     const cacheNames = await caches.keys();
-    const activeName = cacheNames.find(name => /^coastline-static-v\d+$/.test(name));
+    const activeName = cacheNames.find(name => /^coastline-static-v-.+$/.test(name));
     if (!activeName) return { supported: true, scope: registration.scope, scriptURL: registration.active?.scriptURL ?? '', cacheNames, cached: [] };
     const cache = await caches.open(activeName);
     const coreFiles = [
@@ -45,6 +45,6 @@ test('service worker activates and caches every same-origin gameplay module', as
   expect(result.supported).toBe(true);
   expect(result.scriptURL).toContain('/coastline-sw.js');
   expect(result.scope).toContain('/');
-  expect(result.activeName).toMatch(/^coastline-static-v\d+$/);
+  expect(result.activeName).toMatch(/^coastline-static-v-.+$/);
   expect(result.cached.filter(file => !file.present).map(file => file.path)).toEqual([]);
 });
