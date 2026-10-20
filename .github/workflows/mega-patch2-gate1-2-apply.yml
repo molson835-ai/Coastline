@@ -26,49 +26,45 @@ jobs:
           fi
           python3 <<'PY'
           from pathlib import Path
+          import re
+
+          def replace_once(text, pattern, replacement, label, flags=0):
+              new, count = re.subn(pattern, replacement, text, count=1, flags=flags)
+              if count != 1:
+                  raise SystemExit(f'Missing expected marker: {label}')
+              return new
 
           game = Path('game-v3.html')
           s = game.read_text()
 
-          replacements = [
-            ("let missionState='go',cashBalance=250,missionRuns=0,missionCompleteUntil=0;", "const COASTLINE_SANDBOX_MODE=true;\nlet missionState='sandbox',cashBalance=10000,missionRuns=0,missionCompleteUntil=0;"),
-            ("function checkLandmarkDiscovery(){let count=0;", "function checkLandmarkDiscovery(){if(COASTLINE_SANDBOX_MODE)return 0;let count=0;"),
-            ("function missionUpdate(){const activeGarage=garageProgress.active;", "function missionUpdate(){if(COASTLINE_SANDBOX_MODE)return;const activeGarage=garageProgress.active;"),
-            ("function updateMissionPrompt(now=performance.now()){const card=document.querySelector('.mission');", "function updateMissionPrompt(now=performance.now()){const card=document.querySelector('.mission');if(COASTLINE_SANDBOX_MODE){card.style.display='none';return;}"),
-            ("function interact(){if(paused)return;if(player.mode==='vehicle'){exitVehicle();return}", "function interact(){if(paused)return;if(player.mode==='vehicle'){const garage=nearestGarage();if(garage){openGarage(garage);return}exitVehicle();return}"),
-            ("function openGarage(site){if(!site)return;", "function openGarage(site){if(!site||player.mode!=='vehicle'||!player.vehicle)return;"),
-            ("const kind=v.kind||'car',accel=(keys.w?1:0)-(keys.s?1:0),steer=(keys.d?1:0)-(keys.a?1:0);", "const kind=v.kind||'car',accel=(keys.w?1:0)-(keys.s?1:0),steer=(keys.a?1:0)-(keys.d?1:0);"),
-            ("const starterVehicle=vehicles.find(v=>v.kind==='car');const player={mode:'vehicle',vehicle:starterVehicle,x:starterVehicle.x,z:starterVehicle.z,y:0,heading:starterVehicle.heading||0,speed:0,interiorBuilding:null,sitting:false,jumpHeight:0,jumpVelocity:0};enhanceCar(starterVehicle.g);", "const starterVehicle=vehicles.find(v=>v.kind==='car');const starterGarageBuilding=garageLocations.find(site=>site.id==='harbor')?.building;if(starterGarageBuilding){starterVehicle.x=starterGarageBuilding.x;starterVehicle.z=starterGarageBuilding.z+starterGarageBuilding.d/2+9;starterVehicle.heading=0;starterVehicle.g.position.set(starterVehicle.x,groundY(starterVehicle.x,starterVehicle.z),starterVehicle.z);starterVehicle.g.rotation.y=starterVehicle.heading;}const player={mode:'vehicle',vehicle:starterVehicle,x:starterVehicle.x,z:starterVehicle.z,y:0,heading:starterVehicle.heading||0,speed:0,interiorBuilding:null,sitting:false,jumpHeight:0,jumpVelocity:0};enhanceCar(starterVehicle.g);"),
-            ("const queueAuthoredFleetVisuals=()=>{const schedule=(fn,delay=0)=>{if(delay){setTimeout(fn,delay);return}if('requestIdleCallback'in window)requestIdleCallback(fn,{timeout:1400});else setTimeout(fn,900)};schedule(()=>{const sedan=vehicles[1];if(sedan)replaceCoastlineVehicleVisual({group:sedan.g,assetId:'sedan'}).catch(error=>{globalThis.__coastlineVehicleAssetFailures=(globalThis.__coastlineVehicleAssetFailures||[]).concat([{loaded:false,error:String(error?.message||error),vehicleId:sedan.worldEntityId,assetId:'sedan'}])});});schedule(()=>{const hatchback=vehicles[2];if(hatchback)replaceCoastlineVehicleVisual({group:hatchback.g,assetId:'hatchback'}).catch(error=>{globalThis.__coastlineVehicleAssetFailures=(globalThis.__coastlineVehicleAssetFailures||[]).concat([{loaded:false,error:String(error?.message||error),vehicleId:hatchback.worldEntityId,assetId:'hatchback'}])});},3500)};", "const queueAuthoredFleetVisuals=()=>{const schedule=(fn,delay=0)=>{if(delay){setTimeout(fn,delay);return}if('requestIdleCallback'in window)requestIdleCallback(fn,{timeout:1400});else setTimeout(fn,900)};schedule(()=>{const sedan=player?.vehicle;if(sedan)replaceCoastlineVehicleVisual({group:sedan.g,assetId:'sedan'}).catch(error=>{globalThis.__coastlineVehicleAssetFailures=(globalThis.__coastlineVehicleAssetFailures||[]).concat([{loaded:false,error:String(error?.message||error),vehicleId:sedan.worldEntityId,assetId:'sedan'}])});});schedule(()=>{const hatchback=vehicles.find(v=>v!==player?.vehicle&&v.kind==='car');if(hatchback)replaceCoastlineVehicleVisual({group:hatchback.g,assetId:'hatchback'}).catch(error=>{globalThis.__coastlineVehicleAssetFailures=(globalThis.__coastlineVehicleAssetFailures||[]).concat([{loaded:false,error:String(error?.message||error),vehicleId:hatchback.worldEntityId,assetId:'hatchback'}])});},3500)};")
-          ]
+          s = replace_once(s, r"let missionState='go',cashBalance=250,missionRuns=0,missionCompleteUntil=0;", "const COASTLINE_SANDBOX_MODE=true;\nlet missionState='sandbox',cashBalance=10000,missionRuns=0,missionCompleteUntil=0;", 'sandbox state')
+          s = replace_once(s, r"function checkLandmarkDiscovery\(\)\{let count=0;", "function checkLandmarkDiscovery(){if(COASTLINE_SANDBOX_MODE)return 0;let count=0;", 'landmark gate')
+          s = replace_once(s, r"function missionUpdate\(\)\{const activeGarage=garageProgress\.active;", "function missionUpdate(){if(COASTLINE_SANDBOX_MODE)return;const activeGarage=garageProgress.active;", 'mission update gate')
+          s = replace_once(s, r"function updateMissionPrompt\(now=performance\.now\(\)\)\{const card=document\.querySelector\('\.mission'\);", "function updateMissionPrompt(now=performance.now()){const card=document.querySelector('.mission');if(COASTLINE_SANDBOX_MODE){card.style.display='none';return;}", 'mission HUD gate')
+          s = replace_once(s, r"function interact\(\)\{if\(paused\)return;if\(player\.mode==='vehicle'\)\{exitVehicle\(\);return\}", "function interact(){if(paused)return;if(player.mode==='vehicle'){const garage=nearestGarage();if(garage){openGarage(garage);return}exitVehicle();return}", 'vehicle garage interaction')
+          s = replace_once(s, r"function openGarage\(site\)\{if\(!site\)return;", "function openGarage(site){if(!site||player.mode!=='vehicle'||!player.vehicle)return;", 'vehicle-only garage')
+          s = replace_once(s, r"const kind=v\.kind\|\|'car',accel=\(keys\.w\?1:0\)-\(keys\.s\?1:0\),steer=\(keys\.d\?1:0\)-\(keys\.a\?1:0\);", "const kind=v.kind||'car',accel=(keys.w?1:0)-(keys.s?1:0),steer=(keys.a?1:0)-(keys.d?1:0);", 'steering direction')
 
-          for old, new in replacements:
-              if old not in s:
-                  raise SystemExit('Missing expected game marker: ' + old[:100])
-              s = s.replace(old, new, 1)
+          starter_pattern = r"const starterVehicle=vehicles\.find\(v=>v\.kind==='car'\);const player=\{.*?\};enhanceCar\(starterVehicle\.g\);"
+          starter_replacement = "const starterVehicle=vehicles.find(v=>v.kind==='car');const starterGarageBuilding=garageLocations.find(site=>site.id==='harbor')?.building;if(starterGarageBuilding){starterVehicle.x=starterGarageBuilding.x;starterVehicle.z=starterGarageBuilding.z+starterGarageBuilding.d/2+9;starterVehicle.heading=0;starterVehicle.g.position.set(starterVehicle.x,groundY(starterVehicle.x,starterVehicle.z),starterVehicle.z);starterVehicle.g.rotation.y=starterVehicle.heading;}const player={mode:'vehicle',vehicle:starterVehicle,x:starterVehicle.x,z:starterVehicle.z,y:0,heading:starterVehicle.heading||0,speed:0,interiorBuilding:null,sitting:false,jumpHeight:0,jumpVelocity:0};enhanceCar(starterVehicle.g);"
+          s = replace_once(s, starter_pattern, starter_replacement, 'starter garage spawn', flags=re.S)
 
-          old = "updateReplayability(now);checkLandmarkDiscovery();cameraUpdate(dt);"
-          new = "if(!COASTLINE_SANDBOX_MODE)updateReplayability(now);cameraUpdate(dt);"
-          if old not in s:
-              raise SystemExit('Missing replayability loop marker')
-          s = s.replace(old, new, 1)
+          queue_pattern = r"const queueAuthoredFleetVisuals=\(\)=>\{.*?\};queueAuthoredFleetVisuals\(\);rebuildVehicleSpatialGrid\(\);"
+          queue_replacement = "const queueAuthoredFleetVisuals=()=>{const schedule=(fn,delay=0)=>{if(delay){setTimeout(fn,delay);return}if('requestIdleCallback'in window)requestIdleCallback(fn,{timeout:1400});else setTimeout(fn,900)};schedule(()=>{const sedan=player?.vehicle;if(sedan)replaceCoastlineVehicleVisual({group:sedan.g,assetId:'sedan'}).catch(error=>{globalThis.__coastlineVehicleAssetFailures=(globalThis.__coastlineVehicleAssetFailures||[]).concat([{loaded:false,error:String(error?.message||error),vehicleId:sedan.worldEntityId,assetId:'sedan'}])});});schedule(()=>{const hatchback=vehicles.find(v=>v!==player?.vehicle&&v.kind==='car');if(hatchback)replaceCoastlineVehicleVisual({group:hatchback.g,assetId:'hatchback'}).catch(error=>{globalThis.__coastlineVehicleAssetFailures=(globalThis.__coastlineVehicleAssetFailures||[]).concat([{loaded:false,error:String(error?.message||error),vehicleId:hatchback.worldEntityId,assetId:'hatchback'}])});},3500)};queueAuthoredFleetVisuals();rebuildVehicleSpatialGrid();"
+          s = replace_once(s, queue_pattern, queue_replacement, 'authored fleet queue', flags=re.S)
+
+          s = replace_once(s, r"updateReplayability\(now\);checkLandmarkDiscovery\(\);cameraUpdate\(dt\);", "if(!COASTLINE_SANDBOX_MODE)updateReplayability(now);cameraUpdate(dt);", 'replayability gate')
           game.write_text(s)
 
           enhancer = Path('vehicle-visual-enhancer.js')
           e = enhancer.read_text()
-          if "const paint=mat(GREEN,.72,.17,.95);" not in e:
-              raise SystemExit('Missing green hero paint marker')
-          e = e.replace("const paint=mat(GREEN,.72,.17,.95);", "const paint=mat(0xf2f3f4,.72,.17,.95);", 1)
-          e = e.replace("g.name='coastline-2008-muscle-hero-GREEN'", "g.name='coastline-procedural-vehicle-fallback'", 1)
+          e = replace_once(e, r"const paint=mat\(GREEN,\.72,\.17,\.95\);", "const paint=mat(0xf2f3f4,.72,.17,.95);", 'procedural fallback paint')
+          e = replace_once(e, r"g\.name='coastline-2008-muscle-hero-GREEN'", "g.name='coastline-procedural-vehicle-fallback'", 'procedural fallback name')
           enhancer.write_text(e)
 
           loader = Path('coastline-vehicle-asset-loader.js')
           l = loader.read_text()
-          marker = "const result={version:6,assetId,loaded:true,source:'authored-glb',url:sourceUrl,meshes:source.meshes,instance:true,fallbackTried:sourceUrl!==sources[0]};"
-          if marker not in l:
-              raise SystemExit('Missing vehicle success marker')
-          replacement = "if(assetId==='sedan'&&globalThis.__coastlinePlayer?.vehicle?.g===group){group.userData.coastlineAuthoredSedanInstalled=true;globalThis.__coastlinePlayer.vehicle.authoredAssetId='sedan';}\n    "+marker
-          l = l.replace(marker, replacement, 1)
+          l = replace_once(l, r"const result=\{version:6,assetId,loaded:true,source:'authored-glb',url:sourceUrl,meshes:source\.meshes,instance:true,fallbackTried:sourceUrl!==sources\[0\]\};", "if(assetId==='sedan'&&globalThis.__coastlinePlayer?.vehicle?.g===group){group.userData.coastlineAuthoredSedanInstalled=true;globalThis.__coastlinePlayer.vehicle.authoredAssetId='sedan';}\n    const result={version:6,assetId,loaded:true,source:'authored-glb',url:sourceUrl,meshes:source.meshes,instance:true,fallbackTried:sourceUrl!==sources[0]};", 'authored sedan status')
           loader.write_text(l)
 
           Path('.mega-patch2-gate1-2-complete').write_text('Gate 1-2 implementation applied\n')
