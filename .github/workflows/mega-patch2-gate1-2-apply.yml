@@ -36,7 +36,7 @@ jobs:
 
           game = Path('game-v3.html')
           s = game.read_text()
-          s = replace_once(s, r"let missionState='go',cashBalance=250,missionRuns=0,missionCompleteUntil=0;", "const COASTLINE_SANDBOX_MODE=true;\nlet missionState='sandbox',cashBalance=10000,missionRuns=0,missionCompleteUntil=0;", 'sandbox state')
+          s = replace_once(s, r"let missionState='go',cashBalance=250,missionRuns=0,missionCompleteUntil=0;", "const COASTLINE_SANDBOX_MODE=new URLSearchParams(location.search).get('sandbox')!=='0';\nlet missionState=COASTLINE_SANDBOX_MODE?'sandbox':'go',cashBalance=COASTLINE_SANDBOX_MODE?10000:250,missionRuns=0,missionCompleteUntil=0;", 'sandbox state')
           s = replace_once(s, r"function checkLandmarkDiscovery\(\)\{let count=0;", "function checkLandmarkDiscovery(){if(COASTLINE_SANDBOX_MODE)return 0;let count=0;", 'landmark gate')
           s = replace_once(s, r"function missionUpdate\(\)\{const activeGarage=garageProgress\.active;", "function missionUpdate(){if(COASTLINE_SANDBOX_MODE)return;const activeGarage=garageProgress.active;", 'mission update gate')
           s = replace_once(s, r"function updateMissionPrompt\(now=performance\.now\(\)\)\{const card=document\.querySelector\('\.mission'\);", "function updateMissionPrompt(now=performance.now()){const card=document.querySelector('.mission');if(COASTLINE_SANDBOX_MODE){card.style.display='none';return;}", 'mission HUD gate')
