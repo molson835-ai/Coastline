@@ -6,7 +6,7 @@ import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.170.0/examples/
 
 export const COASTLINE_VEHICLE_ASSETS = Object.freeze({
   hero: Object.freeze({ id: 'coastline-hero', url: './assets/vehicles/coastline-hero.glb', externalFallback: 'https://cdn.3dassets.dev/assets/32495/v1/model.glb', expectedLengthMeters: 4.765 }),
-  sedan: Object.freeze({ id: 'authored-white-sedan', url: './assets/vehicles/white-four-door-sedan.glb', expectedLengthMeters: 4.84 }),
+  sedan: Object.freeze({ id: 'authored-white-sedan', url: './assets/vehicles/white-four-door-sedan (1).glb', expectedLengthMeters: 4.84 }),
   hatchback: Object.freeze({ id: 'authored-blue-hatchback', url: './assets/vehicles/blue-five-door-compact-hatchback.glb', expectedLengthMeters: 4.265 })
 });
 
