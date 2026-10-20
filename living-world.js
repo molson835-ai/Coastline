@@ -65,8 +65,6 @@ export function separationSteering({ x = 0, z = 0, neighbors = [], radius = 2.2,
   return { x: (sx / len) * strength, z: (sz / len) * strength };
 }
 
-// A single adapter surface for the game shell to connect event triggers, clues, and save data.
-// It does not persist automatically; the host chooses when and where to save snapshot().
 export function createLivingWorldReplayability({ seed = 'coastline', initialMemory = {} } = {}) {
   const memory = createWorldMemory(initialMemory);
   const encounters = createEncounterDirector({ seed });

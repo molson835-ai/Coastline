@@ -14,6 +14,7 @@ test('on-foot movement treats pedestrians as physical obstacles', async ({ page 
       for (let z = -700; z <= 700; z += 25) {
         if (people.slice(1).some(p => Math.hypot(p.x - x, p.z - z) < 20)) continue;
         if (api.buildingBlocked(x, z, .45) || api.buildingBlocked(x - 1.5, z, .45)) continue;
+        if (api.vehicleRoster().some(v => Math.hypot(v.x - (x - 1.5), v.z - z) < 3.0)) continue;
         spot = { x, z };
         break;
       }

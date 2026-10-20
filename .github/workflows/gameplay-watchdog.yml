@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
+    branches: [main, coastline-fidelity-core]
   workflow_dispatch:
   schedule:
     - cron: '17 */6 * * *'
@@ -44,9 +44,39 @@ jobs:
       - name: Run deterministic system tests
         run: npm run test:systems
 
-  browser-smoke-test:
+  vehicle-and-fidelity-tests:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install test dependencies
+        run: npm install
+      - name: Run vehicle dynamics tests
+        run: npm run test:vehicle
+      - name: Run authored vehicle asset contract tests
+        run: npm run test:vehicle-glb-fleet
+      - name: Run fidelity core tests
+        run: npm run test:fidelity
+
+      - name: Build and verify itch package
+        run: |
+          npm run package:itch
+          test -f dist/itch-html/index.html
+          test -f dist/itch-html/coastline-world-streaming.js
+          test -f dist/itch-html/coastline-fidelity-budget.js
+
+  browser-smoke-test:
+    name: Browser smoke (shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }})
+    strategy:
+      fail-fast: false
+      matrix:
+        shardIndex: [1, 2, 3]
+        shardTotal: [3]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -55,6 +85,22 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+
+      - name: Validate inline game module syntax before browser tests
+        run: |
+          python3 <<'PY'
+          import re
+          from pathlib import Path
+          html = Path('game-v3.html').read_text()
+          scripts = re.findall(r'<script\b(?=[^>]*\btype=["\']module["\'])[^>]*>(.*?)</script>', html, re.I | re.S)
+          inline = [script for script in scripts if script.strip()]
+          if not inline:
+              raise SystemExit('No inline module script found in game-v3.html')
+          for index, script in enumerate(inline):
+              Path(f'/tmp/coastline-inline-{index}.mjs').write_text(script)
+          print(f'Extracted {len(inline)} inline module script(s)')
+          PY
+          for file in /tmp/coastline-inline-*.mjs; do node --check "$file"; done
 
       - name: Install test dependencies
         run: npm install
@@ -75,13 +121,13 @@ jobs:
       - name: Run gameplay browser tests
         env:
           PLAYWRIGHT_BASE_URL: http://127.0.0.1:4173
-        run: npm run test:gameplay
+        run: npx playwright test --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
 
       - name: Upload test report and traces
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: coastline-gameplay-report
+          name: coastline-gameplay-report-shard-${{ matrix.shardIndex }}
           path: |
             playwright-report/
             test-results/

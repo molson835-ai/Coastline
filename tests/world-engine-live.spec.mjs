@@ -46,8 +46,9 @@ test('resident identity and wildlife threat decisions are deterministic', () => 
   assert.equal(chooseWildlifeBehavior({ id: 'deer-17', threatDistance: 5 }), 'flee');
 });
 
-test('local separation steering pushes actors apart without teleporting them', () => {
+test('local separation steering provides bounded avoidance for nearby actors', () => {
   const s = separationSteering({ x: 0, z: 0, neighbors: [{ x: 1, z: 0 }] });
   assert.ok(s.x < 0);
   assert.equal(s.z, 0);
+  assert.ok(Math.hypot(s.x, s.z) <= 1);
 });

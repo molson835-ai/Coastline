@@ -1,4 +1,5 @@
-const CACHE_NAME='coastline-static-v51';
+const RELEASE_ID='20261019-beta-1';
+const CACHE_NAME=`coastline-static-v-${RELEASE_ID}`;
 const CORE=['./','./index.html','./coastline-cinematic-v2.html','./game-v3.html','./vehicle-visual-enhancer.js','./cinematic-world-upgrade.js','./coastline-runtime-fix.js','./coastline-stability-v8.js','./car-customization.js','./world-model.js','./world-engine.js','./living-world.js','./douglassville-layout.js','./realism-library.js','./presentation-runtime.js','./cinematic-visual-library.js','./cinematic-animation-library.js','./cinematic-environment-library.js','./replayability-engine.js','./npc-agency-engine.js','./npc-world-slice.js','./social-rumor-engine.js','./player-reputation-engine.js','./coastline-ai-runtime.js','./coastline-live-ops.js','./coastline-render-config.js','./coastline-fidelity-budget.js','./coastline-world-streaming.js','./coastline-instancing.js','./coastline-fidelity-bridge.js'];
 
 // Delivery layer only: rendering configuration and runtime hooks belong to the app.

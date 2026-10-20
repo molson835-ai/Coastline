@@ -5,37 +5,15 @@ import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const output = path.join(root, 'dist', 'itch-html');
-const files = [
-  'game-v3.html', 'vehicle-visual-enhancer.js', 'coastline-vehicle-asset-loader.js', 'cinematic-world-upgrade.js',
-  'car-customization.js', 'coastline-render-config.js', 'coastline-fidelity-budget.js',
-  'coastline-world-streaming.js', 'coastline-instancing.js', 'coastline-fidelity-bridge.js',
-  'world-model.js', 'world-engine.js', 'living-world.js', 'douglassville-layout.js',
-  'realism-library.js', 'presentation-runtime.js', 'cinematic-visual-library.js',
-  'cinematic-animation-library.js', 'cinematic-environment-library.js', 'replayability-engine.js',
-  'npc-agency-engine.js', 'npc-world-slice.js', 'social-rumor-engine.js',
-  'player-reputation-engine.js', 'coastline-runtime-fix.js', 'coastline-stability-v8.js', 'coastline-sw.js'
-];
+const optionalAssets = ['assets/vehicles/coastline-hero.glb', 'assets/vehicles/white-four-door-sedan (1).glb', 'assets/vehicles/blue-five-door-compact-hatchback.glb'];
+const files = ['game-v3.html','vehicle-visual-enhancer.js','coastline-vehicle-asset-loader.js','cinematic-world-upgrade.js','car-customization.js','coastline-render-config.js','coastline-fidelity-budget.js','coastline-adaptive-world-budget.js','coastline-world-streaming.js','coastline-instancing.js','coastline-fidelity-bridge.js','world-model.js','world-engine.js','living-world.js','douglassville-layout.js','realism-library.js','presentation-runtime.js','cinematic-visual-library.js','cinematic-animation-library.js','cinematic-environment-library.js','replayability-engine.js','npc-agency-engine.js','npc-world-slice.js','social-rumor-engine.js','player-reputation-engine.js','coastline-runtime-fix.js','coastline-stability-v8.js','coastline-sw.js'];
 for (const file of files) if (!existsSync(path.join(root, file))) throw new Error('Missing runtime file: ' + file);
-await rm(output, { recursive: true, force: true });
-await mkdir(output, { recursive: true });
-for (const file of files) await copyFile(path.join(root, file), path.join(output, file));
-const html = await readFile(path.join(root, 'game-v3.html'), 'utf8');
-await writeFile(path.join(output, 'index.html'), html);
-let sw = await readFile(path.join(output, 'coastline-sw.js'), 'utf8');
-sw = sw.replace(/const CACHE_NAME='[^']+';/, "const CACHE_NAME='coastline-itch-static-v4';");
-const packagedCore = ['./', './index.html', ...files.map(file => './' + file)];
-sw = sw.replace(/const CORE=\[[^\]]*\];/, "const CORE=[" + packagedCore.map(file => "'" + file + "'").join(',') + "];");
-if (!sw.includes("'./index.html'") || !sw.includes('coastline-itch-static-v4')) throw new Error('Unable to configure packaged service-worker cache.');
-await writeFile(path.join(output, 'coastline-sw.js'), sw);
-const packaged = new Set([...files, 'index.html']);
-for (const file of files.filter(name => name.endsWith('.js') || name.endsWith('.html'))) {
-  const source = await readFile(path.join(output, file), 'utf8');
-  for (const match of source.matchAll(/(?:from\s*|import\s*)['"](.+?)['"]/g)) {
-    const specifier = match[1];
-    if (specifier.startsWith('./') && !packaged.has(specifier.slice(2))) throw new Error(file + ' imports missing packaged dependency: ' + specifier);
-  }
-}
-const packagedIndex = await readFile(path.join(output, 'index.html'), 'utf8');
-if (packagedIndex !== html) throw new Error('Packaged index.html does not match the game entry point.');
-for (const match of sw.matchAll(/['"]\.\/([^'"]+)['"]/g)) if (!packaged.has(match[1])) throw new Error('Service worker references missing packaged file: ' + match[1]);
-console.log('Prepared and validated dist/itch-html with ' + (files.length + 1) + ' files.');
+await rm(output,{recursive:true,force:true});await mkdir(output,{recursive:true});
+for (const file of files) await copyFile(path.join(root,file),path.join(output,file));
+const packagedAssets=[];
+for(const asset of optionalAssets){if(!existsSync(path.join(root,asset)))continue;const destination=path.join(output,asset);await mkdir(path.dirname(destination),{recursive:true});await copyFile(path.join(root,asset),destination);packagedAssets.push(asset);}
+if(!packagedAssets.length)console.warn('No local vehicle GLBs found; authored vehicle slots will keep their procedural visuals until assets are added.');
+const html=await readFile(path.join(root,'game-v3.html'),'utf8');await writeFile(path.join(output,'index.html'),html);
+let sw=await readFile(path.join(output,'coastline-sw.js'),'utf8');sw=sw.replace(/const RELEASE_ID='[^']+';/,"const RELEASE_ID='itch-v4';");const packagedCore=['./','./index.html',...files.map(file=>'./'+file),...packagedAssets.map(file=>'./'+file)];sw=sw.replace(/const CORE=\[[^\]]*\];/,"const CORE=["+packagedCore.map(file=>"'"+file+"'").join(',')+"];");if(!sw.includes("'./index.html'")||!sw.includes("const RELEASE_ID='itch-v4'"))throw new Error('Unable to configure packaged service-worker release cache.');await writeFile(path.join(output,'coastline-sw.js'),sw);
+const packaged=new Set([...files,...packagedAssets,'index.html']);for(const file of files.filter(name=>name.endsWith('.js')||name.endsWith('.html'))){const source=await readFile(path.join(output,file),'utf8');for(const match of source.matchAll(/(?:from\s*|import\s*)['"](.+?)['"]/g)){const specifier=match[1];if(specifier.startsWith('./')&&!packaged.has(specifier.slice(2)))throw new Error(file+' imports missing packaged dependency: '+specifier);}}
+const packagedIndex=await readFile(path.join(output,'index.html'),'utf8');if(packagedIndex!==html)throw new Error('Packaged index.html does not match the game entry point.');for(const match of sw.matchAll(/['"]\.\/([^'"]+)['"]/g))if(!packaged.has(match[1]))throw new Error('Service worker references missing packaged file: '+match[1]);console.log('Prepared and validated dist/itch-html with '+(files.length+packagedAssets.length+1)+' files, including '+packagedAssets.length+' local vehicle asset(s).');
