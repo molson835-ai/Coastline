@@ -1,9 +1,9 @@
 const { test, expect } = require('@playwright/test');
 
-test('regional landmarks reward exploration and persist discoveries', async ({ page }) => {
+test('regional landmarks reward exploration and persist discoveries when sandbox mode is explicitly disabled', async ({ page }) => {
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
-  await page.goto('/game-v3.html?beta=landmark-discovery-test', { waitUntil: 'domcontentloaded' });
+  await page.goto('/game-v3.html?beta=landmark-discovery-test&sandbox=0', { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => Boolean(window.__coastlineTest), null, { timeout: 20000 });
 
   await page.evaluate(() => window.__coastlineTest.setWalkPosition(-390, -365, 0));
