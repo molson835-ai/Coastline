@@ -58,8 +58,6 @@ export async function replaceCoastlineVehicleVisual({group,assetId='hero',url,ex
     group.traverse(o=>{if(o.isMesh&&!o.userData?.coastlineAuthoredVehicle)o.visible=false;});
     instance.userData.coastlineVehicleAssetUrl=sourceUrl;
     group.add(instance);
-    // The white sedan is the beta starting/player car. Install the same authored
-    // visual on the existing player physics root so controls/collision state stay intact.
     if(assetId==='sedan'&&globalThis.__coastlinePlayer?.vehicle?.g&&group!==globalThis.__coastlinePlayer.vehicle.g&&!globalThis.__coastlinePlayer.vehicle.g.userData.coastlineAuthoredSedanInstalled){
       const playerGroup=globalThis.__coastlinePlayer.vehicle.g;
       playerGroup.traverse(o=>{if(o.isMesh&&!o.userData?.coastlineAuthoredVehicle)o.visible=false;});
@@ -71,12 +69,14 @@ export async function replaceCoastlineVehicleVisual({group,assetId='hero',url,ex
     }
     const result={version:6,assetId,loaded:true,source:'authored-glb',url:sourceUrl,meshes:source.meshes,instance:true,fallbackTried:sourceUrl!==sources[0]};
     instanceResults.push(result);
-    globalThis.__coastlineVehicleAssetStatus={version:6,loaded:true,assetId,url:sourceUrl,instances:instanceResults.length,lastInstance:result};
+    if(assetId==='sedan'||assetId==='hero'||!globalThis.__coastlineVehicleAssetStatus?.loaded){
+      globalThis.__coastlineVehicleAssetStatus={version:6,loaded:true,assetId,url:sourceUrl,instances:instanceResults.length,lastInstance:result};
+    }
     return result;
   }catch(error){failures.push({url:sourceUrl,error:String(error?.message||error)});}}
   const result={version:6,assetId,loaded:false,source:'existing-vehicle-visual-preserved',url:config.url,failures};
   globalThis.__coastlineVehicleAssetFailures=(globalThis.__coastlineVehicleAssetFailures||[]).concat([result]);
-  globalThis.__coastlineVehicleAssetStatus=result;
+  if(assetId==='sedan'||assetId==='hero'||!globalThis.__coastlineVehicleAssetStatus?.loaded)globalThis.__coastlineVehicleAssetStatus=result;
   return result;
 }
 export async function loadCoastlineHeroVehicle({group,url,externalFallback,expectedLengthMeters,replaceProcedural=true}={}){if(!group)return {loaded:false,reason:'invalid-input'};const config=resolveConfig('hero',url,externalFallback,expectedLengthMeters);const result=await replaceCoastlineVehicleVisual({group,assetId:'hero',...config});if(result.loaded&&replaceProcedural){const old=group.userData.coastlineHeroProceduralRoot;if(old?.parent)old.parent.remove(old);}return result;}
