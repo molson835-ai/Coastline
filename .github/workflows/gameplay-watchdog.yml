@@ -175,8 +175,14 @@ jobs:
           test -f dist/itch-html/coastline-fidelity-budget.js
 
   browser-smoke-test:
+    name: Browser smoke (shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }})
+    strategy:
+      fail-fast: false
+      matrix:
+        shardIndex: [1, 2, 3]
+        shardTotal: [3]
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 20
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -205,13 +211,13 @@ jobs:
       - name: Run gameplay browser tests
         env:
           PLAYWRIGHT_BASE_URL: http://127.0.0.1:4173
-        run: npm run test:gameplay
+        run: npx playwright test --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
 
       - name: Upload test report and traces
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: coastline-gameplay-report
+          name: coastline-gameplay-report-shard-${{ matrix.shardIndex }}
           path: |
             playwright-report/
             test-results/
