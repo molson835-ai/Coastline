@@ -6,12 +6,12 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   diagnose:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -24,15 +24,19 @@ jobs:
       - name: Start local server
         run: |
           npx http-server . -p 4173 -c-1 > /tmp/coastline-server.log 2>&1 &
+          server_pid=$!
           for i in {1..30}; do
-            if curl -fsS http://127.0.0.1:4173/index.html >/dev/null; then
+            if curl -fsS http://127.0.0.1:4173/game-v3.html >/dev/null; then
+              echo "Coastline server ready after ${i}s"
               exit 0
             fi
             sleep 1
           done
+          echo "Coastline server failed to become ready"
           cat /tmp/coastline-server.log
+          kill "$server_pid" 2>/dev/null || true
           exit 1
-      - name: Run browser suite with machine-readable diagnostics
+      - name: Run focused Mega Patch 2 browser diagnostics
         id: playwright
         continue-on-error: true
         env:
@@ -40,7 +44,7 @@ jobs:
           PLAYWRIGHT_JSON_OUTPUT_FILE: /tmp/playwright-report.json
         run: |
           set +e
-          npx playwright test --reporter=json
+          npx playwright test tests/mega-patch2-core.spec.cjs --reporter=json
           status=$?
           echo "PLAYWRIGHT_STATUS=$status" >> "$GITHUB_OUTPUT"
           if [ -f /tmp/playwright-report.json ]; then
@@ -49,17 +53,6 @@ jobs:
             printf '%s\n' '{"suites":[],"diagnosticError":"Playwright JSON report was not created"}' > beta-playwright-report.json
           fi
           exit 0
-      - name: Upload raw Playwright diagnostics
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: coastline-beta-playwright-diagnostics
-          path: |
-            beta-playwright-report.json
-            test-results/
-            /tmp/coastline-server.log
-          if-no-files-found: warn
-          retention-days: 14
       - name: Extract compact failure report
         if: always()
         env:
@@ -69,17 +62,14 @@ jobs:
           import json
           import os
           from pathlib import Path
-
           p = Path('beta-playwright-report.json')
           failures = []
           diagnostic_error = None
-
           try:
               data = json.loads(p.read_text())
           except Exception as exc:
               data = {'suites': []}
               diagnostic_error = f'{type(exc).__name__}: {exc}'
-
           def walk(suite, path=''):
               for spec in suite.get('specs', []):
                   for test in spec.get('tests', []):
@@ -95,10 +85,8 @@ jobs:
                               })
               for child in suite.get('suites', []):
                   walk(child, (path + ' / ' if path else '') + child.get('title', ''))
-
           for suite in data.get('suites', []):
               walk(suite)
-
           out = {
               'playwrightExit': int(os.environ.get('PLAYWRIGHT_STATUS') or 1),
               'failureCount': len(failures),
@@ -108,12 +96,15 @@ jobs:
           Path('beta-failure-report.json').write_text(json.dumps(out, indent=2))
           print(json.dumps(out, indent=2))
           PY
-      - name: Commit diagnostic report
+      - name: Upload focused diagnostics
         if: always()
-        run: |
-          git config user.name 'molson835-ai'
-          git config user.email 'molson835@gmail.com'
-          git add beta-playwright-report.json beta-failure-report.json
-          if git diff --cached --quiet; then exit 0; fi
-          git commit -m 'chore: record beta browser failure diagnostics'
-          git push origin HEAD:${{ github.ref_name }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: coastline-beta-playwright-diagnostics
+          path: |
+            beta-playwright-report.json
+            beta-failure-report.json
+            test-results/
+            /tmp/coastline-server.log
+          if-no-files-found: warn
+          retention-days: 14
