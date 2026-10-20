@@ -1,0 +1,233 @@
+name: Coastline beta stabilization repair
+
+on:
+  push:
+    branches:
+      - coastline-performance-mega-batch-spec
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: coastline-performance-mega-batch-spec
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Apply root-cause beta repairs
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          import re
+          
+          root=Path('.')
+          
+          # Restore the authored NPC slice from the full-fidelity runtime. The current
+          # branch still contained the old sandbox stub even after the living-world runtime
+          # was restored.
+          import urllib.request
+          npc_url='https://raw.githubusercontent.com/molson835-ai/Coastline/coastline-fidelity-core/npc-world-slice.js'
+          npc=urllib.request.urlopen(npc_url, timeout=30).read().decode('utf-8')
+          (root/'npc-world-slice.js').write_text(npc)
+          
+          # Remove the obsolete hero-GLB network dependency. Coastline's current authored
+          # sedan/hatchback are the intended fleet assets; the procedural hero remains the
+          # immediate local visual fallback and must not trigger a missing asset or external
+          # DNS request during beta startup.
+          enhancer=(root/'vehicle-visual-enhancer.js').read_text()
+          old="  loadCoastlineHeroVehicle({THREE,group}).catch(()=>{});"
+          new="  // Authored fleet loading is queued by game-v3 after the first rendered frame; do not block startup on the retired hero asset."
+          if old not in enhancer:
+              raise SystemExit('vehicle-visual-enhancer.js: expected hero loader call not found')
+          enhancer=enhancer.replace(old,new,1)
+          (root/'vehicle-visual-enhancer.js').write_text(enhancer)
+          
+          game=(root/'game-v3.html').read_text()
+          
+          old="for(const b of buildings)b.interior=createInterior(b);"
+          new="for(const b of buildings)b.interior=null;"
+          if old not in game:
+              raise SystemExit('game-v3.html: interior construction marker not found')
+          game=game.replace(old,new,1)
+          
+          old="setupGarages();\nconst garageProgress={active:null,taskHud:null};"
+          new="setupGarages();\nconst starterGarage=garageLocations.find(site=>site.id==='harbor')?.building;if(starterGarage)starterGarage.interior=createInterior(starterGarage);\nconst garageProgress={active:null,taskHud:null};"
+          if old not in game:
+              raise SystemExit('game-v3.html: garage setup marker not found')
+          game=game.replace(old,new,1)
+          
+          old="if(i===1||i===2){const assetId=i===1?'sedan':'hatchback';replaceCoastlineVehicleVisual({group:g,assetId}).catch(error=>{globalThis.__coastlineVehicleAssetFailures=(globalThis.__coastlineVehicleAssetFailures||[]).concat([{loaded:false,error:String(error?.message||error),vehicleId:v.worldEntityId,assetId}])});}return v}"
+          new="return v}"
+          if old not in game:
+              raise SystemExit('game-v3.html: inline authored fleet loader marker not found')
+          game=game.replace(old,new,1)
+          
+          old="function enterBuilding(b){if(!b||player.mode==='vehicle')return false;"
+          new="function enterBuilding(b){if(!b||!b.interior||player.mode==='vehicle')return false;"
+          if old not in game:
+              raise SystemExit('game-v3.html: enterBuilding guard not found')
+          game=game.replace(old,new,1)
+          
+          old="const b=nearestBuilding();if(b){enterBuilding(b);return}toast('Nothing nearby to use')"
+          new="const cityHall=buildings.find(item=>item.name==='CITY HALL');if(cityHall&&Math.hypot(cityHall.x-player.x,cityHall.z+cityHall.d/2-player.z)<5.5){if(missionState!=='deliver')startMission();return}const b=nearestBuilding();if(b){enterBuilding(b);return}toast('Nothing nearby to use')"
+          if old not in game:
+              raise SystemExit('game-v3.html: interaction tail marker not found')
+          game=game.replace(old,new,1)
+          
+          game=game.replace("objective='Courier work is available nearby. Enter City Hall to accept it.'","objective='Courier work is available nearby. Interact with City Hall to accept it.'",1)
+          
+          old="rebuildVehicleSpatialGrid();let trafficAccidentPauseUntil=0;"
+          new="const queueAuthoredFleetVisuals=()=>{const schedule=(fn,delay=0)=>{if(delay){setTimeout(fn,delay);return}if('requestIdleCallback'in window)requestIdleCallback(fn,{timeout:1400});else setTimeout(fn,900)};schedule(()=>{const sedan=vehicles[1];if(sedan)replaceCoastlineVehicleVisual({group:sedan.g,assetId:'sedan'}).catch(error=>{globalThis.__coastlineVehicleAssetFailures=(globalThis.__coastlineVehicleAssetFailures||[]).concat([{loaded:false,error:String(error?.message||error),vehicleId:sedan.worldEntityId,assetId:'sedan'}])});schedule(()=>{const hatchback=vehicles[2];if(hatchback)replaceCoastlineVehicleVisual({group:hatchback.g,assetId:'hatchback'}).catch(error=>{globalThis.__coastlineVehicleAssetFailures=(globalThis.__coastlineVehicleAssetFailures||[]).concat([{loaded:false,error:String(error?.message||error),vehicleId:hatchback.worldEntityId,assetId:'hatchback'}])})},3500)};queueAuthoredFleetVisuals();rebuildVehicleSpatialGrid();let trafficAccidentPauseUntil=0;"
+          if old not in game:
+              raise SystemExit('game-v3.html: frame bootstrap marker not found')
+          game=game.replace(old,new,1)
+          
+          (root/'game-v3.html').write_text(game)
+          
+          # Give the service-worker source an explicit release identity while retaining the
+          # current network-first executable-code strategy. The itch packager already rewrites
+          # RELEASE_ID for its packaged cache.
+          sw=(root/'coastline-sw.js').read_text()
+          old="const CACHE_NAME='coastline-static-v51';"
+          new="const RELEASE_ID='20261019-beta-1';\nconst CACHE_NAME=`coastline-static-v-${RELEASE_ID}`;"
+          if old not in sw:
+              raise SystemExit('coastline-sw.js: cache marker not found')
+          sw=sw.replace(old,new,1)
+          (root/'coastline-sw.js').write_text(sw)
+          PY
+          
+          cat > tests/performance-cache.spec.mjs.tmp <<'EOF'
+          import test from 'node:test';
+          import assert from 'node:assert/strict';
+          import fs from 'node:fs';
+          const sw=fs.readFileSync(new URL('../coastline-sw.js',import.meta.url),'utf8');
+          const living=fs.readFileSync(new URL('../living-world.js',import.meta.url),'utf8');
+          const renderConfig=fs.readFileSync(new URL('../coastline-render-config.js',import.meta.url),'utf8');
+          const cinematic=fs.readFileSync(new URL('../cinematic-world-upgrade.js',import.meta.url),'utf8');
+          test('service worker uses a release identity and network-first executable delivery',()=>{
+            assert.match(sw,/const RELEASE_ID='[^']+'/);
+            assert.match(sw,/CACHE_NAME=`coastline-static-v-\$\{RELEASE_ID\}`/);
+            assert.match(sw,/cache:\s*'no-store'/);
+            assert.match(sw,/isExecutable/);
+            assert.match(sw,/caches\.delete/);
+            assert.doesNotMatch(sw,/CACHE_NAME='coastline-static-v\\d+'/);
+          });
+          test('render config is the single authority for renderer pixel ratio',()=>{
+            assert.match(renderConfig,/function applyCoastlineRendererConfig/);
+            assert.match(renderConfig,/setPixelRatio/);
+            assert.doesNotMatch(cinematic,/renderer\.setPixelRatio\(/);
+          });
+          test('living world installs cache without adding a render-loop scheduler',()=>{
+            assert.match(living,/serviceWorker\.register/);
+            assert.doesNotMatch(living,/requestAnimationFrame\(/);
+            assert.match(living,/assetCaching/);
+          });
+          EOF
+          mv tests/performance-cache.spec.mjs.tmp tests/performance-cache.spec.mjs
+          
+          cat > tests/vehicle-glb-fleet.spec.mjs.tmp <<'EOF'
+          import test from 'node:test';
+          import assert from 'node:assert/strict';
+          import { readFile } from 'node:fs/promises';
+          const [loader,game,packageScript]=await Promise.all([readFile(new URL('../coastline-vehicle-asset-loader.js',import.meta.url),'utf8'),readFile(new URL('../game-v3.html',import.meta.url),'utf8'),readFile(new URL('../scripts/build-itch.mjs',import.meta.url),'utf8')]);
+          test('vehicle GLB loader caches source loads and exposes explicit load status',()=>{assert.match(loader,/const modelPromises = new Map\(\)/);assert.match(loader,/export async function replaceCoastlineVehicleVisual/);assert.match(loader,/source:'existing-vehicle-visual-preserved'/);assert.match(loader,/getCoastlineVehicleAssetStatus/);assert.match(loader,/sedan: Object\.freeze/);assert.match(loader,/hatchback: Object\.freeze/);assert.match(loader,/white-four-door-sedan \(1\)\.glb/);assert.match(loader,/root\.rotation\.y=Math\.PI\/2/);});
+          test('only the two authored fleet slots request the new GLBs and keep physics root intact',()=>{assert.match(game,/import \{ replaceCoastlineVehicleVisual \} from '\.\/coastline-vehicle-asset-loader\.js'/);assert.match(game,/vehicles\[1\]/);assert.match(game,/assetId:'sedan'/);assert.match(game,/vehicles\[2\]/);assert.match(game,/assetId:'hatchback'/);});
+          test('authored white sedan is promoted to the player vehicle without replacing its physics root',()=>{assert.match(loader,/assetId==='sedan'/);assert.match(loader,/globalThis\.__coastlinePlayer/);assert.match(loader,/globalThis\.__coastlinePlayer\.vehicle/);assert.match(loader,/group!==globalThis\.__coastlinePlayer\.vehicle\.g/);assert.match(loader,/playerGroup=globalThis\.__coastlinePlayer\.vehicle\.g/);});
+          test('itch package includes the uploaded local vehicle GLBs when present',()=>{assert.match(packageScript,/assets\/vehicles\/coastline-hero\.glb/);assert.match(packageScript,/assets\/vehicles\/white-four-door-sedan \(1\)\.glb/);assert.match(packageScript,/assets\/vehicles\/blue-five-door-compact-hatchback\.glb/);assert.match(packageScript,/packagedAssets\.map\(file=>['"]\.\/['"]\+file\)/);});
+          EOF
+          mv tests/vehicle-glb-fleet.spec.mjs.tmp tests/vehicle-glb-fleet.spec.mjs
+          
+          cat > tests/coastline-core-sandbox.spec.cjs <<'EOF'
+          const { test, expect } = require('@playwright/test');
+          test('beta preserves the full interactive map while deferring ordinary building interiors to the starter garage', async ({ page }) => {
+            const runtimeErrors=[];
+            page.on('pageerror', error => runtimeErrors.push(error.message));
+            await page.goto('/game-v3.html', { waitUntil:'domcontentloaded' });
+            await page.waitForFunction(() => Boolean(window.__coastlineTest), null, { timeout:30000 });
+            const snapshot=await page.evaluate(() => {
+              const api=window.__coastlineTest;
+              api.exitVehicle();
+              const ordinaryEnter=api.enterBuildingByName('Harbor Hotel');
+              const garageEnter=api.enterBuildingByName('Auto Works');
+              return { mapPresent:Boolean(document.getElementById('coastMap')), building:api.buildingState(), ordinaryEnter, garageEnter, inside:api.buildingState().inside, errors:api.state().errors };
+            });
+            expect(snapshot.mapPresent).toBe(true);
+            expect(snapshot.building.enterable).toBe(1);
+            expect(snapshot.building.count).toBeGreaterThan(10);
+            expect(snapshot.ordinaryEnter).toBe(false);
+            expect(snapshot.garageEnter).toBe(true);
+            expect(snapshot.inside).toBe('Auto Works');
+            expect(snapshot.errors).toEqual([]);
+            expect(runtimeErrors).toEqual([]);
+          });
+          EOF
+          
+          cat > tests/interactable-world.spec.cjs <<'EOF'
+          const { test, expect } = require('@playwright/test');
+          test('starter garage and non-pedestrian rideables remain interactable in the full beta world', async ({ page }) => {
+            const runtimeErrors=[];
+            page.on('pageerror', error => runtimeErrors.push(error.message));
+            await page.goto('/game-v3.html', { waitUntil:'domcontentloaded' });
+            await page.waitForFunction(() => Boolean(window.__coastlineTest), null, { timeout:30000 });
+            const initial=await page.evaluate(() => {
+              const api=window.__coastlineTest;
+              return { buildings:api.buildingState(), rideables:api.rideableState().map(v=>v.kind), errors:api.state().errors, mapPresent:Boolean(document.getElementById('coastMap')), living:api.livingWorldState() };
+            });
+            expect(initial.buildings.count).toBeGreaterThan(10);
+            expect(initial.buildings.enterable).toBe(1);
+            expect(initial.rideables).toEqual(expect.arrayContaining(['bicycle','motorcycle','aircraft']));
+            expect(initial.mapPresent).toBe(true);
+            expect(initial.errors).toEqual([]);
+            const entered=await page.evaluate(() => {
+              const api=window.__coastlineTest;
+              api.exitVehicle();
+              return { ordinary:api.enterBuildingByName('Harbor Hotel'), garage:api.enterBuildingByName('Auto Works') };
+            });
+            expect(entered.ordinary).toBe(false);
+            expect(entered.garage).toBe(true);
+            await expect.poll(async()=>page.evaluate(()=>window.__coastlineTest.buildingState().inside)).toBe('Auto Works');
+            await page.evaluate(()=>window.__coastlineTest.exitBuilding());
+            await expect.poll(async()=>page.evaluate(()=>window.__coastlineTest.state().mode)).toBe('walk');
+            await page.evaluate(()=>window.__coastlineTest.enterRideable('aircraft'));
+            await page.evaluate(()=>window.__coastlineTest.keyDown('space'));
+            await page.waitForTimeout(450);
+            const flightHeight=await page.evaluate(()=>window.__coastlineTest.rideableState().find(v=>v.kind==='aircraft').flightHeight);
+            await page.evaluate(()=>window.__coastlineTest.keyUp('space'));
+            expect(flightHeight).toBeGreaterThan(0);
+            expect(runtimeErrors).toEqual([]);
+          });
+          EOF
+          
+          # Make the pedestrian collision regression select a genuinely clear spot by
+          # accounting for vehicles as well as pedestrians before placing the test actor.
+          ped=tests/pedestrian-collision.spec.cjs
+          python3 - <<'PY2'
+          from pathlib import Path
+          p=Path('tests/pedestrian-collision.spec.cjs')
+          s=p.read_text()
+          old="if (api.buildingBlocked(x, z, .45) || api.buildingBlocked(x - 1.5, z, .45)) continue;"
+          new="if (api.buildingBlocked(x, z, .45) || api.buildingBlocked(x - 1.5, z, .45)) continue;\n        if (api.vehicleRoster().some(v => Math.hypot(v.x - (x - 1.5), v.z - z) < 3.0)) continue;"
+          if old not in s: raise SystemExit('pedestrian test marker not found')
+          p.write_text(s.replace(old,new,1))
+          PY2
+          
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add game-v3.html vehicle-visual-enhancer.js coastline-sw.js npc-world-slice.js tests
+          git diff --cached --check
+          git commit -m 'fix: stabilize beta startup and restore full gameplay slices'
+          git push origin HEAD:coastline-performance-mega-batch-spec
+      - name: Remove one-shot repair workflow
+        if: success()
+        shell: bash
+        run: |
+          git rm .github/workflows/repair-beta-stabilization.yml
+          git commit -m 'chore: remove one-shot beta repair workflow'
+          git push origin HEAD:coastline-performance-mega-batch-spec
