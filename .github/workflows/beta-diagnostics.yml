@@ -1,0 +1,81 @@
+name: Coastline beta diagnostics
+
+on:
+  push:
+    branches: [coastline-performance-mega-batch-spec]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Start local server
+        run: |
+          npx http-server . -p 4173 -c-1 > /tmp/coastline-server.log 2>&1 &
+          for i in {1..30}; do
+            curl -fsS http://127.0.0.1:4173/index.html >/dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/coastline-server.log
+          exit 1
+      - name: Run browser suite with machine-readable diagnostics
+        id: playwright
+        continue-on-error: true
+        env:
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:4173
+        run: |
+          set +e
+          npx playwright test --reporter=json > /tmp/playwright-report.json
+          status=$?
+          cp /tmp/playwright-report.json ./beta-playwright-report.json
+          echo "PLAYWRIGHT_STATUS=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+      - name: Extract compact failure report
+        run: |
+          python3 <<'PY'
+          import json
+          from pathlib import Path
+          p=Path('beta-playwright-report.json')
+          data=json.loads(p.read_text())
+          failures=[]
+          def walk(suite,path=''):
+              for spec in suite.get('specs',[]):
+                  for test in spec.get('tests',[]):
+                      for result in test.get('results',[]):
+                          if result.get('status') not in ('passed','skipped'):
+                              failures.append({
+                                  'title': (path+' / ' if path else '')+spec.get('title',''),
+                                  'status': result.get('status'),
+                                  'durationMs': result.get('duration'),
+                                  'errors': [e.get('message','') for e in result.get('errors',[])],
+                                  'stdout': ''.join(result.get('stdout',[]))[-3000:],
+                                  'stderr': ''.join(result.get('stderr',[]))[-3000:],
+                              })
+              for child in suite.get('suites',[]):
+                  walk(child,(path+' / ' if path else '')+child.get('title',''))
+          for suite in data.get('suites',[]): walk(suite)
+          out={'playwrightExit': int('${{ steps.playwright.outputs.PLAYWRIGHT_STATUS }}'),'failureCount':len(failures),'failures':failures}
+          Path('beta-failure-report.json').write_text(json.dumps(out,indent=2))
+          print(json.dumps(out,indent=2))
+          PY
+      - name: Commit diagnostic report
+        if: always()
+        run: |
+          git config user.name 'molson835-ai'
+          git config user.email 'molson835@gmail.com'
+          git add beta-playwright-report.json beta-failure-report.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'chore: record beta browser failure diagnostics'
+          git push origin HEAD:${{ github.ref_name }}
