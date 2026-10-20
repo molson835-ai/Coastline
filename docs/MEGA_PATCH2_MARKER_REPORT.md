@@ -21,10 +21,11 @@ Updated: 2026-10-20
 
 ## Asset availability
 
-- assets/vehicles/white-four-door-sedan.glb: not yet committed to the branch
-- assets/vehicles/blue-five-door-compact-hatchback.glb: present in the branch
+- `assets/vehicles/white-four-door-sedan (1).glb`: present in the branch.
+- `assets/vehicles/blue-five-door-compact-hatchback.glb`: present in the branch.
+- The loader, itch package builder, and asset-contract tests now all use the committed sedan filename, including `(1)`.
 
-The blue hatchback GLB is present, but the normalized white sedan GLB is still missing from `assets/vehicles/`. The runtime must retain the procedural sedan visual until that file is added. The asset contract test verifies that this fallback is explicit rather than treating a missing optional binary as a game-startup failure.
+The runtime should load both authored models and preserve the existing physics roots. The focused browser test requires the sedan asset to report `source: 'authored-glb'`; the fallback remains a runtime safety net, not a passing substitute for the committed sedan asset.
 
 ## Verification status
 
