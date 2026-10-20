@@ -5,7 +5,7 @@ module.exports = defineConfig({
   timeout: 75000,
   expect: { timeout: 15000 },
   // Fail cleanly before the CI runner hard-kills a slow browser batch.
-  globalTimeout: process.env.CI ? 17 * 60 * 1000 : 0,
+  globalTimeout: process.env.CI ? 15 * 60 * 1000 : 0,
   // Test-level sharding keeps each CI shard balanced across graphics-heavy specs.
   fullyParallel: true,
   reporter: [['list'], ['html', { outputFolder: 'playwright-report', open: 'never' }]],
