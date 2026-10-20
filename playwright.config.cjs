@@ -5,6 +5,10 @@ module.exports = defineConfig({
   timeout: 45000,
   expect: { timeout: 15000 },
   reporter: [['list'], ['html', { outputFolder: 'playwright-report', open: 'never' }]],
+  // Coastline's browser gate is a graphics-heavy WebGL workload. Keep CI to one
+  // browser worker so multiple SwiftShader/WebGL instances do not compete for
+  // the same runner CPU and make timing-sensitive gameplay checks flaky.
+  workers: process.env.CI ? 1 : undefined,
   use: {
     viewport: { width: 390, height: 844 },
     baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://127.0.0.1:4173',
