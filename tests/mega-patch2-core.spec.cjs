@@ -3,9 +3,43 @@ const fs = require('node:fs');
 
 async function boot(page) {
   const errors = [];
-  page.on('pageerror', error => errors.push(error.message));
+  const consoleErrors = [];
+  const failedRequests = [];
+  const badResponses = [];
+  page.on('pageerror', error => errors.push(error.stack || error.message));
+  page.on('console', message => {
+    if (message.type() === 'error') consoleErrors.push(message.text());
+  });
+  page.on('requestfailed', request => failedRequests.push({
+    url: request.url(),
+    error: request.failure()?.errorText || 'request failed'
+  }));
+  page.on('response', response => {
+    if (response.status() >= 400 && /\\.(?:js|mjs|glb)(?:[?#]|$)/i.test(response.url())) {
+      badResponses.push({ url: response.url(), status: response.status() });
+    }
+  });
   await page.goto('/game-v3.html', { waitUntil: 'domcontentloaded' });
-  await page.waitForFunction(() => Boolean(window.__coastlineTest), null, { timeout: 30000 });
+  try {
+    await page.waitForFunction(() => Boolean(window.__coastlineTest), null, { timeout: 20000 });
+  } catch (error) {
+    const pageInfo = await page.evaluate(() => ({
+      url: location.href,
+      title: document.title,
+      readyState: document.readyState,
+      bodyText: (document.body?.innerText || '').slice(0, 1200),
+      moduleScripts: [...document.scripts].filter(s => s.type === 'module').map(s => ({ src: s.src || 'inline', ready: s.readyState || 'module' }))
+    })).catch(() => ({ url: page.url(), evaluateFailed: true }));
+    throw new Error([
+      'Coastline runtime did not initialize within 20 seconds.',
+      'pageErrors=' + JSON.stringify(errors),
+      'consoleErrors=' + JSON.stringify(consoleErrors),
+      'failedRequests=' + JSON.stringify(failedRequests),
+      'badResponses=' + JSON.stringify(badResponses),
+      'pageInfo=' + JSON.stringify(pageInfo),
+      'waitError=' + error.message
+    ].join('\\n'));
+  }
   return errors;
 }
 
