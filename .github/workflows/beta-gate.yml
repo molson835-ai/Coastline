@@ -1,0 +1,42 @@
+name: Coastline beta gate
+
+on:
+  push:
+    branches: [coastline-performance-mega-batch-spec]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  beta-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Run engine, system, vehicle and fidelity gates
+        run: |
+          npm run test:engine
+          npm run test:systems
+          npm run test:vehicle
+          npm run test:fidelity
+      - name: Start local web server
+        run: |
+          npx http-server . -p 4173 -c-1 > /tmp/coastline-server.log 2>&1 &
+          for i in {1..30}; do
+            curl -fsS http://127.0.0.1:4173/index.html >/dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/coastline-server.log
+          exit 1
+      - name: Run full browser beta gate
+        env:
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:4173
+        run: npm run test:gameplay
