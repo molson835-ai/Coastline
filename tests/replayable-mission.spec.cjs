@@ -1,5 +1,20 @@
 const { test, expect } = require('@playwright/test');
 
+test('interacting at City Hall starts courier work when sandbox mode is disabled', async ({ page }) => {
+  await page.goto('/game-v3.html?sandbox=0', { waitUntil: 'domcontentloaded' });
+  await page.waitForFunction(() => Boolean(window.__coastlineTest), null, { timeout: 30000 });
+  const started = await page.evaluate(() => {
+    const api = window.__coastlineTest;
+    const hall = api.buildingRoster().find(building => building.name === 'CITY HALL');
+    if (!hall) throw new Error('City Hall is missing from the building roster');
+    api.setWalkPosition(hall.x, hall.z + hall.d / 2, 0);
+    api.interact();
+    return api.state();
+  });
+  expect(started.missionState).toBe('deliver');
+  expect(started.missionRuns).toBe(1);
+});
+
 test('courier activity can be discovered, completed, rewarded, and replayed', async ({ page }) => {
   await page.goto('/game-v3.html?sandbox=0', { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => Boolean(window.__coastlineTest), null, { timeout: 30000 });
