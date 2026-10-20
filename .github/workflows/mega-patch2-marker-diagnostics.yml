@@ -1,0 +1,55 @@
+name: Coastline Mega Patch 2 marker diagnostics
+
+on:
+  push:
+    branches: [coastline-performance-mega-batch-spec]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+      - name: Diagnose source markers
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          import re
+
+          checks = {
+            'sandbox state': (Path('game-v3.html'), r"let missionState='go',cashBalance=250,missionRuns=0,missionCompleteUntil=0;"),
+            'landmark gate': (Path('game-v3.html'), r"function checkLandmarkDiscovery\(\)\{let count=0;"),
+            'mission update gate': (Path('game-v3.html'), r"function missionUpdate\(\)\{const activeGarage=garageProgress\.active;"),
+            'mission HUD gate': (Path('game-v3.html'), r"function updateMissionPrompt\(now=performance\.now\(\)\)\{const card=document\.querySelector\('\.mission'\);"),
+            'vehicle interaction': (Path('game-v3.html'), r"function interact\(\)\{if\(paused\)return;if\(player\.mode==='vehicle'\)\{exitVehicle\(\);return\}"),
+            'garage guard': (Path('game-v3.html'), r"function openGarage\(site\)\{if\(!site\)return;"),
+            'steering': (Path('game-v3.html'), r"const kind=v\.kind\|\|'car',accel=\(keys\.w\?1:0\)-\(keys\.s\?1:0\),steer=\(keys\.d\?1:0\)-\(keys\.a\?1:0\);"),
+            'starter': (Path('game-v3.html'), r"const starterVehicle=vehicles\.find\(v=>v\.kind==='car'\);const player=\{.*?\};enhanceCar\(starterVehicle\.g\);"),
+            'fleet queue': (Path('game-v3.html'), r"const queueAuthoredFleetVisuals=\(\)=>\{.*?\};queueAuthoredFleetVisuals\(\);rebuildVehicleSpatialGrid\(\);"),
+            'replayability loop': (Path('game-v3.html'), r"updateReplayability\(now\);checkLandmarkDiscovery\(\);cameraUpdate\(dt\);"),
+            'green paint': (Path('vehicle-visual-enhancer.js'), r"const paint=mat\(GREEN,\.72,\.17,\.95\);"),
+            'green name': (Path('vehicle-visual-enhancer.js'), r"g\.name='coastline-2008-muscle-hero-GREEN'"),
+            'loader result': (Path('coastline-vehicle-asset-loader.js'), r"const result=\{version:6,assetId,loaded:true,source:'authored-glb',url:sourceUrl,meshes:source\.meshes,instance:true,fallbackTried:sourceUrl!==sources\[0\]\};")
+          }
+          lines=['# Mega Patch 2 marker report','',f'HEAD: {Path(".git/HEAD").read_text().strip()}','']
+          for name,(path,pattern) in checks.items():
+              text=path.read_text()
+              found=bool(re.search(pattern,text,re.S))
+              lines.append(f'- {name}: {"PRESENT" if found else "MISSING"} — {path}')
+              if found:
+                  m=re.search(pattern,text,re.S)
+                  lines.append(f'  - match length: {len(m.group(0))}')
+          Path('docs/MEGA_PATCH2_MARKER_REPORT.md').write_text('\n'.join(lines)+'\n')
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/MEGA_PATCH2_MARKER_REPORT.md
+          git commit -m 'test: record mega patch 2 marker diagnostics' || true
+          git push origin HEAD:${{ github.ref_name }}
