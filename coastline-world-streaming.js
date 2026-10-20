@@ -101,6 +101,12 @@ export function createDistanceVisibilityController({ showDistance=500, hideDista
     if(record.culled&&distance<show){record.object.visible=true;record.culled=false;culledCount=Math.max(0,culledCount-1);return {hidden:0,shown:1};}
     return {hidden:0,shown:0};
   };
+  const cellDistanceToOrigin=(cx,cz,originX,originZ)=>{
+    const minX=cx*bucketSize,maxX=(cx+1)*bucketSize,minZ=cz*bucketSize,maxZ=(cz+1)*bucketSize;
+    const dx=originX<minX?minX-originX:originX>maxX?originX-maxX:0;
+    const dz=originZ<minZ?minZ-originZ:originZ>maxZ?originZ-maxZ:0;
+    return Math.hypot(dx,dz);
+  };
   return {
     register(id,{object,getPosition,isCritical=()=>false,dynamic=false}={}) {
       if(id===undefined||id===null)throw new Error('id is required');
@@ -133,10 +139,13 @@ export function createDistanceVisibilityController({ showDistance=500, hideDista
         if(record)moveDynamicRecord(record);
       }
       const originCell=positionCell({x:originX,z:originZ});
-      const radius=Math.ceil(hide/bucketSize)+1;
+      const cellRadius=Math.ceil(hide/bucketSize)+1;
       const candidateIds=new Set();
-      for(let dz=-radius;dz<=radius;dz++)for(let dx=-radius;dx<=radius;dx++){
-        const bucket=buckets.get(cellKey(originCell.cx+dx,originCell.cz+dz));
+      const hideSquared=hide*hide;
+      for(let dz=-cellRadius;dz<=cellRadius;dz++)for(let dx=-cellRadius;dx<=cellRadius;dx++){
+        const cx=originCell.cx+dx,cz=originCell.cz+dz;
+        if(cellDistanceToOrigin(cx,cz,originX,originZ)**2>hideSquared)continue;
+        const bucket=buckets.get(cellKey(cx,cz));
         if(bucket)for(const id of bucket)candidateIds.add(id);
       }
       for(const id of criticalIds)candidateIds.add(id);
@@ -145,7 +154,8 @@ export function createDistanceVisibilityController({ showDistance=500, hideDista
         if(!record||!record.baseVisible)continue;
         visited++;
         const change=applyVisibility(record,originX,originZ);
-        hidden+=change.hidden;shown+=change.shown;
+        hidden+=change.hidden;
+        shown+=change.shown;
       }
       return {size:records.size,visited,culled:culledCount,hidden,shown};
     },
