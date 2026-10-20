@@ -1,40 +1,28 @@
-name: Coastline beta syntax repair
+name: Coastline beta syntax validation
 
+# Manual-only: the old repair workflow rewrote and pushed game files on every
+# branch update, causing redundant runs and races with normal regression tests.
 on:
-  push:
-    branches: [coastline-performance-mega-batch-spec]
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  repair:
+  validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          ref: ${{ github.ref_name }}
-          fetch-depth: 0
-      - name: Repair malformed deferred vehicle loader
-        if: hashFiles('.beta-syntax-repair-complete') == ''
-        shell: bash
+          node-version: 20
+      - name: Install test dependencies
+        run: npm install
+      - name: Check runtime module syntax
         run: |
-          python3 <<'PY'
-          from pathlib import Path
-          p=Path('game-v3.html')
-          s=p.read_text()
-          old="const queueAuthoredFleetVisuals=()=>{const schedule=(fn,delay=0)=>{if(delay){setTimeout(fn,delay);return}if('requestIdleCallback'in window)requestIdleCallback(fn,{timeout:1400});else setTimeout(fn,900)};schedule(()=>{const sedan=vehicles[1];if(sedan)replaceCoastlineVehicleVisual({group:sedan.g,assetId:'sedan'}).catch(error=>{globalThis.__coastlineVehicleAssetFailures=(globalThis.__coastlineVehicleAssetFailures||[]).concat([{loaded:false,error:String(error?.message||error),vehicleId:sedan.worldEntityId,assetId:'sedan'}])});schedule(()=>{const hatchback=vehicles[2];if(hatchback)replaceCoastlineVehicleVisual({group:hatchback.g,assetId:'hatchback'}).catch(error=>{globalThis.__coastlineVehicleAssetFailures=(globalThis.__coastlineVehicleAssetFailures||[]).concat([{loaded:false,error:String(error?.message||error),vehicleId:hatchback.worldEntityId,assetId:'hatchback'}])})},3500)};"
-          new="const queueAuthoredFleetVisuals=()=>{const schedule=(fn,delay=0)=>{if(delay){setTimeout(fn,delay);return}if('requestIdleCallback'in window)requestIdleCallback(fn,{timeout:1400});else setTimeout(fn,900)};schedule(()=>{const sedan=vehicles[1];if(sedan)replaceCoastlineVehicleVisual({group:sedan.g,assetId:'sedan'}).catch(error=>{globalThis.__coastlineVehicleAssetFailures=(globalThis.__coastlineVehicleAssetFailures||[]).concat([{loaded:false,error:String(error?.message||error),vehicleId:sedan.worldEntityId,assetId:'sedan'}])});});schedule(()=>{const hatchback=vehicles[2];if(hatchback)replaceCoastlineVehicleVisual({group:hatchback.g,assetId:'hatchback'}).catch(error=>{globalThis.__coastlineVehicleAssetFailures=(globalThis.__coastlineVehicleAssetFailures||[]).concat([{loaded:false,error:String(error?.message||error),vehicleId:hatchback.worldEntityId,assetId:'hatchback'}])});},3500)};"
-          if old not in s:
-              raise SystemExit('malformed queueAuthoredFleetVisuals marker not found')
-          p.write_text(s.replace(old,new,1))
-          PY
-          touch .beta-syntax-repair-complete
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add game-v3.html .beta-syntax-repair-complete
-          git diff --cached --check
-          git commit -m 'fix: repair beta startup syntax'
-          git push origin HEAD:${{ github.ref_name }}
+          for file in coastline-render-config.js coastline-fidelity-budget.js coastline-world-streaming.js coastline-vehicle-asset-loader.js npc-world-slice.js living-world.js; do
+            node --check "$file"
+          done
+      - name: Run focused engine and fidelity regressions
+        run: npm run test:engine && npm run test:fidelity
