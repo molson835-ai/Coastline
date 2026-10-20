@@ -84,6 +84,22 @@ jobs:
         with:
           node-version: 20
 
+      - name: Validate inline game module syntax before browser tests
+        run: |
+          python3 <<'PY'
+          import re
+          from pathlib import Path
+          html = Path('game-v3.html').read_text()
+          scripts = re.findall(r'<script\b(?=[^>]*\btype=["\']module["\'])[^>]*>(.*?)</script>', html, re.I | re.S)
+          inline = [script for script in scripts if script.strip()]
+          if not inline:
+              raise SystemExit('No inline module script found in game-v3.html')
+          for index, script in enumerate(inline):
+              Path(f'/tmp/coastline-inline-{index}.mjs').write_text(script)
+          print(f'Extracted {len(inline)} inline module script(s)')
+          PY
+          for file in /tmp/coastline-inline-*.mjs; do node --check "$file"; done
+
       - name: Install test dependencies
         run: npm install
 
