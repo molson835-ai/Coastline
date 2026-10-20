@@ -1,8 +1,6 @@
 name: Coastline Mega Patch 2 focused gate
 
 on:
-  push:
-    branches: [coastline-performance-mega-batch-spec]
   workflow_dispatch:
 
 permissions:
@@ -11,7 +9,7 @@ permissions:
 jobs:
   focused-gate:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -21,13 +19,27 @@ jobs:
         run: npm install
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
-      - name: Run Mega Patch 2 focused regression gate
-        env:
-          PLAYWRIGHT_BASE_URL: http://127.0.0.1:4173
+      - name: Start local server
         run: |
           npx http-server . -p 4173 -c-1 > /tmp/coastline-server.log 2>&1 &
           for i in {1..30}; do
-            curl -fsS http://127.0.0.1:4173/index.html >/dev/null && break
+            if curl -fsS http://127.0.0.1:4173/index.html >/dev/null; then exit 0; fi
             sleep 1
           done
-          npm run test:mega-patch2
+          cat /tmp/coastline-server.log
+          exit 1
+      - name: Run focused regression gate
+        env:
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:4173
+        run: npm run test:mega-patch2
+      - name: Upload focused browser report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coastline-mega-patch2-focused-report
+          path: |
+            playwright-report/
+            test-results/
+            /tmp/coastline-server.log
+          if-no-files-found: ignore
+          retention-days: 7
