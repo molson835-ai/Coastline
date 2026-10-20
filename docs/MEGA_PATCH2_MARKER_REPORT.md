@@ -2,26 +2,18 @@
 
 HEAD: ref: refs/heads/coastline-performance-mega-batch-spec
 
-- sandbox state: PRESENT — game-v3.html
-  - match length: 75
-- landmark gate: PRESENT — game-v3.html
-  - match length: 46
-- mission update gate: PRESENT — game-v3.html
-  - match length: 66
+- sandbox state: MISSING — game-v3.html
+- landmark gate: MISSING — game-v3.html
+- mission update gate: MISSING — game-v3.html
 - mission HUD gate: PRESENT — game-v3.html
   - match length: 98
-- vehicle interaction: PRESENT — game-v3.html
-  - match length: 86
-- garage guard: PRESENT — game-v3.html
-  - match length: 42
-- steering: PRESENT — game-v3.html
-  - match length: 89
-- starter: PRESENT — game-v3.html
-  - match length: 284
+- vehicle interaction: MISSING — game-v3.html
+- garage guard: MISSING — game-v3.html
+- steering: MISSING — game-v3.html
+- starter: MISSING — game-v3.html
 - fleet queue: PRESENT — game-v3.html
-  - match length: 945
-- replayability loop: PRESENT — game-v3.html
-  - match length: 67
+  - match length: 991
+- replayability loop: MISSING — game-v3.html
 - green paint: MISSING — vehicle-visual-enhancer.js
 - green name: MISSING — vehicle-visual-enhancer.js
 - loader result: PRESENT — coastline-vehicle-asset-loader.js
