@@ -21,4 +21,5 @@ test('only the player sedan and one non-player hatchback request authored GLBs w
   assert.doesNotMatch(game,/replaceCoastlineVehicleVisual\(\{group:vehicles\[[0-9]+\]\.g/);
 });
 test('authored white sedan is promoted to the player vehicle without replacing its physics root',()=>{assert.match(loader,/assetId==='sedan'/);assert.match(loader,/globalThis\.__coastlinePlayer/);assert.match(loader,/globalThis\.__coastlinePlayer\.vehicle/);assert.match(loader,/group!==globalThis\.__coastlinePlayer\.vehicle\.g/);assert.match(loader,/playerGroup=globalThis\.__coastlinePlayer\.vehicle\.g/);});
+test('non-player authored vehicle loads do not overwrite the player sedan asset status',()=>{assert.match(loader,/assetId==='sedan'\|\|assetId==='hero'/);});
 test('itch package includes the uploaded local vehicle GLBs when present',()=>{assert.match(packageScript,/assets\/vehicles\/coastline-hero\.glb/);assert.match(packageScript,/assets\/vehicles\/white-four-door-sedan \(1\)\.glb/);assert.match(packageScript,/assets\/vehicles\/blue-five-door-compact-hatchback\.glb/);assert.match(packageScript,/packagedAssets\.map\(file=>['"]\.\/['"]\+file\)/);});
