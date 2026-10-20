@@ -56,6 +56,8 @@ jobs:
         run: npm install
       - name: Run vehicle dynamics tests
         run: npm run test:vehicle
+      - name: Run authored vehicle asset contract tests
+        run: npm run test:vehicle-glb-fleet
       - name: Run fidelity core tests
         run: npm run test:fidelity
 
