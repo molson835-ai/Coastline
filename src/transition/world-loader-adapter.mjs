@@ -28,7 +28,9 @@ export class WorldLoaderAdapter {
   }
 
   async dispose(instance, context = {}) {
+    if (instance.disposed) return instance;
     await this.implementation.dispose?.(instance, context);
     instance.dispose();
+    return instance;
   }
 }
