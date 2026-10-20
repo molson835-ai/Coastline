@@ -1,7 +1,7 @@
 const { test, expect } = require('@playwright/test');
 
 test('courier activity can be discovered, completed, rewarded, and replayed', async ({ page }) => {
-  await page.goto('/game-v3.html', { waitUntil: 'domcontentloaded' });
+  await page.goto('/game-v3.html?sandbox=0', { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => Boolean(window.__coastlineTest), null, { timeout: 30000 });
   const initial = await page.evaluate(() => window.__coastlineTest.state());
   expect(initial.cashBalance).toBe(250);
