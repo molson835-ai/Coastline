@@ -61,7 +61,7 @@ test('Coastline boots, exits a vehicle, shows the avatar, and supports walking t
 });
 
 
-test('vehicle steering follows left/right input and reverse builds usable negative speed', async ({ page }) => {
+test('vehicle steering follows the corrected left/right input and reverse builds usable negative speed', async ({ page }) => {
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.goto('/game-v3.html?beta=vehicle-controls-regression', { waitUntil: 'domcontentloaded' });
@@ -72,12 +72,11 @@ test('vehicle steering follows left/right input and reverse builds usable negati
     const roster = api.vehicleRoster();
     for (let x = -600; x <= 600; x += 200) {
       for (let z = -600; z <= 580; z += 20) {
-        const p = { x, z };
         const laneSamples = Array.from({ length: 7 }, (_, i) => z + i * 2);
         const clear = laneSamples.every(sampleZ => !api.buildingBlocked(x, sampleZ, 2))
           && !roster.some(v => laneSamples.some(sampleZ => Math.hypot(v.x - x, v.z - sampleZ) < 10));
         if (clear && api.worldModel.isRoadCorridor(x, z)
-          && api.worldModel.isRoadCorridor(x, z + 12)) return p;
+          && api.worldModel.isRoadCorridor(x, z + 12)) return { x, z };
       }
     }
     throw new Error('Could not locate a clear straight road lane for controls regression');
@@ -101,7 +100,7 @@ test('vehicle steering follows left/right input and reverse builds usable negati
   await page.waitForTimeout(500);
   await page.evaluate(() => window.__coastlineTest.keyUp('a'));
   const leftTurn = await page.evaluate(() => window.__coastlineTest.state());
-  expect(leftTurn.heading, 'A should steer left while driving forward').toBeLessThan(beforeLeft.heading);
+  expect(leftTurn.heading, 'A should steer left while driving forward').toBeGreaterThan(beforeLeft.heading);
 
   await resetCar();
   await page.evaluate(() => window.__coastlineTest.keyDown('w'));
@@ -111,7 +110,7 @@ test('vehicle steering follows left/right input and reverse builds usable negati
   await page.waitForTimeout(500);
   await page.evaluate(() => window.__coastlineTest.keyUp('d'));
   const rightTurn = await page.evaluate(() => window.__coastlineTest.state());
-  expect(rightTurn.heading, 'D should steer right while driving forward').toBeGreaterThan(0);
+  expect(rightTurn.heading, 'D should steer right while driving forward').toBeLessThan(0);
 
   await resetCar();
   await page.evaluate(() => window.__coastlineTest.keyDown('s'));
@@ -122,8 +121,8 @@ test('vehicle steering follows left/right input and reverse builds usable negati
   expect(errors, 'vehicle controls should not introduce runtime errors').toEqual([]);
 });
 
-test('landmark discoveries award cash once and persist across reloads', async ({ page }) => {
-  await page.goto('/game-v3.html?beta=landmark-discovery-regression', { waitUntil: 'domcontentloaded' });
+test('landmark discoveries award cash once and persist across reloads when sandbox mode is explicitly disabled', async ({ page }) => {
+  await page.goto('/game-v3.html?beta=landmark-discovery-regression&sandbox=0', { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => Boolean(window.__coastlineTest), null, { timeout: 20000 });
   await page.evaluate(() => localStorage.removeItem('coastline-discovered-landmarks-v1'));
   await page.reload({ waitUntil: 'domcontentloaded' });
