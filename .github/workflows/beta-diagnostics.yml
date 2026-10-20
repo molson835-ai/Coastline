@@ -25,7 +25,9 @@ jobs:
         run: |
           npx http-server . -p 4173 -c-1 > /tmp/coastline-server.log 2>&1 &
           for i in {1..30}; do
-            curl -fsS http://127.0.0.1:4173/index.html >/dev/null && exit 0
+            if curl -fsS http://127.0.0.1:4173/index.html >/dev/null; then
+              exit 0
+            fi
             sleep 1
           done
           cat /tmp/coastline-server.log
@@ -35,40 +37,76 @@ jobs:
         continue-on-error: true
         env:
           PLAYWRIGHT_BASE_URL: http://127.0.0.1:4173
+          PLAYWRIGHT_JSON_OUTPUT_FILE: /tmp/playwright-report.json
         run: |
           set +e
-          npx playwright test --reporter=json > /tmp/playwright-report.json
+          npx playwright test --reporter=json
           status=$?
-          cp /tmp/playwright-report.json ./beta-playwright-report.json
           echo "PLAYWRIGHT_STATUS=$status" >> "$GITHUB_OUTPUT"
+          if [ -f /tmp/playwright-report.json ]; then
+            cp /tmp/playwright-report.json ./beta-playwright-report.json
+          else
+            printf '%s\n' '{"suites":[],"diagnosticError":"Playwright JSON report was not created"}' > beta-playwright-report.json
+          fi
           exit 0
+      - name: Upload raw Playwright diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coastline-beta-playwright-diagnostics
+          path: |
+            beta-playwright-report.json
+            test-results/
+            /tmp/coastline-server.log
+          if-no-files-found: warn
+          retention-days: 14
       - name: Extract compact failure report
+        if: always()
+        env:
+          PLAYWRIGHT_STATUS: ${{ steps.playwright.outputs.PLAYWRIGHT_STATUS }}
         run: |
           python3 <<'PY'
           import json
+          import os
           from pathlib import Path
-          p=Path('beta-playwright-report.json')
-          data=json.loads(p.read_text())
-          failures=[]
-          def walk(suite,path=''):
-              for spec in suite.get('specs',[]):
-                  for test in spec.get('tests',[]):
-                      for result in test.get('results',[]):
-                          if result.get('status') not in ('passed','skipped'):
+
+          p = Path('beta-playwright-report.json')
+          failures = []
+          diagnostic_error = None
+
+          try:
+              data = json.loads(p.read_text())
+          except Exception as exc:
+              data = {'suites': []}
+              diagnostic_error = f'{type(exc).__name__}: {exc}'
+
+          def walk(suite, path=''):
+              for spec in suite.get('specs', []):
+                  for test in spec.get('tests', []):
+                      for result in test.get('results', []):
+                          if result.get('status') not in ('passed', 'skipped'):
                               failures.append({
-                                  'title': (path+' / ' if path else '')+spec.get('title',''),
+                                  'title': (path + ' / ' if path else '') + spec.get('title', ''),
                                   'status': result.get('status'),
                                   'durationMs': result.get('duration'),
-                                  'errors': [e.get('message','') for e in result.get('errors',[])],
-                                  'stdout': ''.join(result.get('stdout',[]))[-3000:],
-                                  'stderr': ''.join(result.get('stderr',[]))[-3000:],
+                                  'errors': [e.get('message', '') for e in result.get('errors', [])],
+                                  'stdout': ''.join(result.get('stdout', []))[-3000:],
+                                  'stderr': ''.join(result.get('stderr', []))[-3000:],
                               })
-              for child in suite.get('suites',[]):
-                  walk(child,(path+' / ' if path else '')+child.get('title',''))
-          for suite in data.get('suites',[]): walk(suite)
-          out={'playwrightExit': int('${{ steps.playwright.outputs.PLAYWRIGHT_STATUS }}'),'failureCount':len(failures),'failures':failures}
-          Path('beta-failure-report.json').write_text(json.dumps(out,indent=2))
-          print(json.dumps(out,indent=2))
+              for child in suite.get('suites', []):
+                  walk(child, (path + ' / ' if path else '') + child.get('title', ''))
+
+          for suite in data.get('suites', []):
+              walk(suite)
+
+          out = {
+              'playwrightExit': int(os.environ.get('PLAYWRIGHT_STATUS') or 1),
+              'failureCount': len(failures),
+              'diagnosticError': diagnostic_error,
+              'failures': failures,
+          }
+          Path('beta-failure-report.json').write_text(json.dumps(out, indent=2))
+          print(json.dumps(out, indent=2))
           PY
       - name: Commit diagnostic report
         if: always()
