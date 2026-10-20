@@ -32,6 +32,34 @@ Used for: Understanding detailed -> merged/proxy -> distant world representation
 Coastline relevance: High. Direct architectural inspiration for Coastline HLOD.
 Cost: Public documentation; concept can be implemented with current project tools.
 
+### Unreal Engine — Level Streaming
+URL: https://dev.epicgames.com/documentation/en-us/unreal-engine/level-streaming-in-unreal-engine
+Category: World transitions / asynchronous loading
+Used for: Official explanation of loading and unloading levels asynchronously and changing visibility to create large worlds that feel continuous.
+Coastline relevance: High. Informs a hybrid transition model: pre-load the destination, show it only when ready, then retire the old world.
+Cost: Public documentation; Unreal is a reference, not a required dependency.
+
+### Three.js — Cleanup guide
+URL: https://threejs.org/manual/pages/cleanup.html
+Category: Resource lifecycle / world unloading
+Used for: Tracking and disposing objects, geometries, materials and textures when no longer needed.
+Coastline relevance: Critical. Three.js GPU resources are not automatically released merely because a scene is removed; the framework must own resource lifetimes and avoid disposing shared assets still in use.
+Cost: Public documentation; no paid service required.
+
+### Three.js — How to dispose of objects
+URL: https://threejs.org/manual/pages/how-to-dispose-of-objects.html
+Category: GPU memory / resource lifecycle
+Used for: Identifying explicit disposal needs for geometries, materials, textures, render targets and skeletons.
+Coastline relevance: Critical for repeated world transitions on mobile, preventing GPU memory accumulation and stale resource references.
+Cost: Public documentation; no paid service required.
+
+### Three.js — GLTFLoader
+URL: https://threejs.org/docs/pages/GLTFLoader.html
+Category: Asset loading / glTF
+Used for: Asynchronous glTF asset loading, load progress and error handling.
+Coastline relevance: High. Useful for loading a destination world and its required assets before activating the transition.
+Cost: Public documentation; no paid service required.
+
 ## Project/service references
 
 ### GitHub
