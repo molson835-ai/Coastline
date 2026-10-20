@@ -1,79 +1,42 @@
-name: Coastline Mega Patch 2 Gate 1-2 apply
+name: Coastline Mega Patch 2 Gate 1-2 validation
 
+# The approved Gate 1-2 source changes are now committed directly. Keep this
+# validation opt-in; never rewrite/push runtime code from a workflow.
 on:
-  push:
-    branches: [coastline-performance-mega-batch-spec]
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  apply:
+  validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          ref: ${{ github.ref_name }}
-          fetch-depth: 0
-      - name: Apply Gate 1 and Gate 2 implementation
-        shell: bash
+          node-version: 20
+      - name: Install dependencies
+        run: npm install
+      - name: Verify Gate 1-2 runtime markers
         run: |
-          if [ -f .mega-patch2-gate1-2-complete ]; then
-            echo 'Gate 1-2 implementation already applied.'
-            exit 0
-          fi
           python3 <<'PY'
           from pathlib import Path
-          import re
-
-          def replace_once(text, pattern, replacement, label, flags=0):
-              new, count = re.subn(pattern, replacement, text, count=1, flags=flags)
-              if count != 1:
-                  raise SystemExit(f'Missing expected marker: {label}')
-              return new
-
-          game = Path('game-v3.html')
-          s = game.read_text()
-          s = replace_once(s, r"let missionState='go',cashBalance=250,missionRuns=0,missionCompleteUntil=0;", "const COASTLINE_SANDBOX_MODE=new URLSearchParams(location.search).get('sandbox')!=='0';\nlet missionState=COASTLINE_SANDBOX_MODE?'sandbox':'go',cashBalance=COASTLINE_SANDBOX_MODE?10000:250,missionRuns=0,missionCompleteUntil=0;", 'sandbox state')
-          s = replace_once(s, r"function checkLandmarkDiscovery\(\)\{let count=0;", "function checkLandmarkDiscovery(){if(COASTLINE_SANDBOX_MODE)return 0;let count=0;", 'landmark gate')
-          s = replace_once(s, r"function missionUpdate\(\)\{const activeGarage=garageProgress\.active;", "function missionUpdate(){if(COASTLINE_SANDBOX_MODE)return;const activeGarage=garageProgress.active;", 'mission update gate')
-          s = replace_once(s, r"function updateMissionPrompt\(now=performance\.now\(\)\)\{const card=document\.querySelector\('\.mission'\);", "function updateMissionPrompt(now=performance.now()){const card=document.querySelector('.mission');if(COASTLINE_SANDBOX_MODE){card.style.display='none';return;}", 'mission HUD gate')
-          s = replace_once(s, r"function interact\(\)\{if\(paused\)return;if\(player\.mode==='vehicle'\)\{exitVehicle\(\);return\}", "function interact(){if(paused)return;if(player.mode==='vehicle'){const garage=nearestGarage();if(garage){openGarage(garage);return}exitVehicle();return}", 'vehicle garage interaction')
-          s = replace_once(s, r"function openGarage\(site\)\{if\(!site\)return;", "function openGarage(site){if(!site||player.mode!=='vehicle'||!player.vehicle)return;", 'vehicle-only garage')
-          s = replace_once(s, r"const kind=v\.kind\|\|'car',accel=\(keys\.w\?1:0\)-\(keys\.s\?1:0\),steer=\(keys\.d\?1:0\)-\(keys\.a\?1:0\);", "const kind=v.kind||'car',accel=(keys.w?1:0)-(keys.s?1:0),steer=(keys.a?1:0)-(keys.d?1:0);", 'steering direction')
-          starter_pattern = r"const starterVehicle=vehicles\.find\(v=>v\.kind==='car'\);const player=\{.*?\};enhanceCar\(starterVehicle\.g\);"
-          starter_replacement = "const starterVehicle=vehicles.find(v=>v.kind==='car');const starterGarageBuilding=buildings.find(b=>b.name==='Auto Works');if(starterGarageBuilding){starterVehicle.x=starterGarageBuilding.x;starterVehicle.z=starterGarageBuilding.z+starterGarageBuilding.d/2+9;starterVehicle.heading=0;starterVehicle.g.position.set(starterVehicle.x,groundY(starterVehicle.x,starterVehicle.z),starterVehicle.z);starterVehicle.g.rotation.y=starterVehicle.heading;}const player={mode:'vehicle',vehicle:starterVehicle,x:starterVehicle.x,z:starterVehicle.z,y:0,heading:starterVehicle.heading||0,speed:0,interiorBuilding:null,sitting:false,jumpHeight:0,jumpVelocity:0};enhanceCar(starterVehicle.g);"
-          s = replace_once(s, starter_pattern, starter_replacement, 'starter Auto Works spawn', flags=re.S)
-          queue_pattern = r"const queueAuthoredFleetVisuals=\(\)=>\{.*?\};queueAuthoredFleetVisuals\(\);rebuildVehicleSpatialGrid\(\);"
-          queue_replacement = "const queueAuthoredFleetVisuals=()=>{const schedule=(fn,delay=0)=>{if(delay){setTimeout(fn,delay);return}if('requestIdleCallback'in window)requestIdleCallback(fn,{timeout:1400});else setTimeout(fn,900)};schedule(()=>{const sedan=player?.vehicle;if(sedan)replaceCoastlineVehicleVisual({group:sedan.g,assetId:'sedan'}).catch(error=>{globalThis.__coastlineVehicleAssetFailures=(globalThis.__coastlineVehicleAssetFailures||[]).concat([{loaded:false,error:String(error?.message||error),vehicleId:sedan.worldEntityId,assetId:'sedan'}])});});schedule(()=>{const hatchback=vehicles.find(v=>v!==player?.vehicle&&v.kind==='car');if(hatchback)replaceCoastlineVehicleVisual({group:hatchback.g,assetId:'hatchback'}).catch(error=>{globalThis.__coastlineVehicleAssetFailures=(globalThis.__coastlineVehicleAssetFailures||[]).concat([{loaded:false,error:String(error?.message||error),vehicleId:hatchback.worldEntityId,assetId:'hatchback'}])});},3500)};queueAuthoredFleetVisuals();rebuildVehicleSpatialGrid();"
-          s = replace_once(s, queue_pattern, queue_replacement, 'authored fleet queue', flags=re.S)
-          s = replace_once(s, r"updateReplayability\(now\);checkLandmarkDiscovery\(\);cameraUpdate\(dt\);", "if(!COASTLINE_SANDBOX_MODE)updateReplayability(now);cameraUpdate(dt);", 'replayability gate')
-          game.write_text(s)
-
-          enhancer = Path('vehicle-visual-enhancer.js')
-          e = enhancer.read_text()
-          e = re.sub(r"(?:let|const) paint=mat\(GREEN,\.72,\.17,\.95\);", "let paint=mat(0xf2f3f4,.72,.17,.95);", e, count=1)
-          e = re.sub(r"g\.name='coastline-2008-muscle-hero-GREEN'", "g.name='coastline-procedural-vehicle-fallback'", e, count=1)
-          e = re.sub(r"debugColor:'green'", "debugColor:'white'", e, count=2)
-          e = e.replace("new THREE.Float32BufferAttribute(u,3)", "new THREE.Float32BufferAttribute(u,2)")
-          enhancer.write_text(e)
-
-          loader = Path('coastline-vehicle-asset-loader.js')
-          l = loader.read_text()
-          marker = r"const result=\{version:6,assetId,loaded:true,source:'authored-glb',url:sourceUrl,meshes:source\.meshes,instance:true,fallbackTried:sourceUrl!==sources\[0\]\};"
-          if not re.search(marker,l):
-              raise SystemExit('Missing vehicle success marker')
-          if "coastlineAuthoredSedanInstalled" not in l:
-              l = re.sub(marker, "if(assetId==='sedan'&&globalThis.__coastlinePlayer?.vehicle?.g===group){group.userData.coastlineAuthoredSedanInstalled=true;globalThis.__coastlinePlayer.vehicle.authoredAssetId='sedan';}\n    const result={version:6,assetId,loaded:true,source:'authored-glb',url:sourceUrl,meshes:source.meshes,instance:true,fallbackTried:sourceUrl!==sources[0]};", l, count=1)
-          loader.write_text(l)
-
-          Path('.mega-patch2-gate1-2-complete').write_text('Gate 1-2 implementation applied\n')
+          game=Path('game-v3.html').read_text()
+          checks={
+            'sandbox query override': "new URLSearchParams(location.search).get('sandbox')!=='0'",
+            'sandbox landmark gate': 'function checkLandmarkDiscovery(){if(COASTLINE_SANDBOX_MODE)return 0;',
+            'sandbox mission gate': 'function missionUpdate(){if(COASTLINE_SANDBOX_MODE)return;',
+            'garage interaction guard': "function openGarage(site){if(!site||player.mode!=='vehicle'||!player.vehicle)return;",
+            'correct steering direction': "steer=(keys.a?1:0)-(keys.d?1:0)",
+            'deferred sedan visual': "const sedan=player?.vehicle",
+            'deferred non-player hatchback visual': "vehicles.find(v=>v!==player?.vehicle&&v.kind==='car')",
+            'rendered-frame timing': 'diagState.firstFrameAt=performance.now()',
+          }
+          missing=[name for name,marker in checks.items() if marker not in game]
+          if missing: raise SystemExit('Missing Gate 1-2 markers: '+', '.join(missing))
+          print(f'Gate 1-2 runtime markers passed: {len(checks)}')
           PY
-          git diff --check
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add game-v3.html vehicle-visual-enhancer.js coastline-vehicle-asset-loader.js .mega-patch2-gate1-2-complete
-          git commit -m 'feat: implement mega patch 2 sandbox and hero vehicle controls'
-          git push origin HEAD:${{ github.ref_name }}
+      - name: Run deterministic regression gates
+        run: npm run test:engine && npm run test:systems && npm run test:vehicle && npm run test:fidelity
