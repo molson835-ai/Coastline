@@ -4,6 +4,10 @@ module.exports = defineConfig({
   testDir: './tests',
   timeout: 45000,
   expect: { timeout: 15000 },
+  // Fail cleanly before the CI runner hard-kills a slow browser batch.
+  globalTimeout: process.env.CI ? 10 * 60 * 1000 : 0,
+  // Test-level sharding keeps each CI shard balanced across graphics-heavy specs.
+  fullyParallel: true,
   reporter: [['list'], ['html', { outputFolder: 'playwright-report', open: 'never' }]],
   // Coastline's browser gate is a graphics-heavy WebGL workload. Keep CI to one
   // browser worker so multiple SwiftShader/WebGL instances do not compete for
