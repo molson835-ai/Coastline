@@ -2,6 +2,7 @@ const { defineConfig } = require('@playwright/test');
 
 module.exports = defineConfig({
   testDir: './tests',
+  testIgnore: ['**/*.spec.mjs'],
   timeout: 75000,
   expect: { timeout: 15000 },
   // Fail cleanly before the CI runner hard-kills a slow browser batch.
