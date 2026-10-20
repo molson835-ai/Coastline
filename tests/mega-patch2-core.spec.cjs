@@ -45,7 +45,7 @@ async function boot(page) {
 
 test('mega patch 2 starts with the authored white sedan and sandbox balance', async ({ page }) => {
   const errors = await boot(page);
-  await page.waitForFunction(() => Boolean(window.__coastlineVehicleAssetStatus && typeof window.__coastlineVehicleAssetStatus.loaded === 'boolean'), null, { timeout: 15000 });
+  await page.waitForFunction(() => window.__coastlineVehicleAssetStatus?.loaded === true, null, { timeout: 15000 });
   const result = await page.evaluate(() => ({
     state: window.__coastlineTest.state(),
     assetStatus: window.__coastlineVehicleAssetStatus || null
@@ -53,12 +53,8 @@ test('mega patch 2 starts with the authored white sedan and sandbox balance', as
   expect(result.state.mode).toBe('vehicle');
   expect(result.state.cashBalance).toBe(10000);
   expect(result.assetStatus?.assetId).toBe('sedan');
-  // The uploaded GLBs may not be present in a repository checkout yet. A
-  // failed optional load is acceptable only when the procedural visual is
-  // explicitly preserved; it must never block gameplay startup.
-  expect(['authored-glb', 'existing-vehicle-visual-preserved']).toContain(result.assetStatus?.source);
-  if (result.assetStatus?.loaded) expect(result.assetStatus.source).toBe('authored-glb');
-  else expect(result.assetStatus.source).toBe('existing-vehicle-visual-preserved');
+  expect(result.assetStatus?.source).toBe('authored-glb');
+  expect(result.assetStatus?.loaded).toBe(true);
   expect(errors).toEqual([]);
 });
 
