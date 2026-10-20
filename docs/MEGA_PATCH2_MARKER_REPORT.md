@@ -24,7 +24,7 @@ Updated: 2026-10-20
 - assets/vehicles/white-four-door-sedan.glb: not yet committed to the branch
 - assets/vehicles/blue-five-door-compact-hatchback.glb: present in the branch
 
-Until the two GLBs are committed under `assets/vehicles/`, the runtime must retain the procedural vehicle visuals. The asset contract test now verifies that this fallback is explicit rather than treating a missing optional binary as a game-startup failure.
+The blue hatchback GLB is present, but the normalized white sedan GLB is still missing from `assets/vehicles/`. The runtime must retain the procedural sedan visual until that file is added. The asset contract test verifies that this fallback is explicit rather than treating a missing optional binary as a game-startup failure.
 
 ## Verification status
 
