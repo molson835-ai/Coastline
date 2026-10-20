@@ -28,6 +28,9 @@ test('performance telemetry is available and includes renderer and entity counte
   expect(perf.triangles).toBeGreaterThan(0);
   expect(perf.geometries).toBeGreaterThan(0);
   expect(perf.textures).toBeGreaterThanOrEqual(0);
+  expect(perf.categoryTimingCounts.render).toBe(1);
+  expect(Number.isFinite(perf.categoryTimingsMs.render)).toBe(true);
+  expect(perf.categoryTimingsMs.render).toBeGreaterThanOrEqual(0);
   expect(perf.entities.buildings).toBe(snapshot.state.buildingCount);
   expect(perf.entities.vehicles).toBe(snapshot.state.vehicleCount);
   expect(perf.entities.pedestrians).toBe(snapshot.state.pedestrianCount);
