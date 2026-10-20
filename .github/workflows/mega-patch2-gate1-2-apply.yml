@@ -1,0 +1,114 @@
+name: Coastline Mega Patch 2 Gate 1-2 apply
+
+on:
+  push:
+    branches: [coastline-performance-mega-batch-spec]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: ${{ !hashFiles('.mega-patch2-gate1-2-complete') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+      - name: Apply Gate 1 and Gate 2 implementation
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+
+          game = Path('game-v3.html')
+          s = game.read_text()
+
+          replacements = [
+            (
+              "let missionState='go',cashBalance=250,missionRuns=0,missionCompleteUntil=0;",
+              "const COASTLINE_SANDBOX_MODE=true;\nlet missionState='sandbox',cashBalance=10000,missionRuns=0,missionCompleteUntil=0;"
+            ),
+            (
+              "function checkLandmarkDiscovery(){let count=0;",
+              "function checkLandmarkDiscovery(){if(COASTLINE_SANDBOX_MODE)return 0;let count=0;"
+            ),
+            (
+              "function missionUpdate(){const activeGarage=garageProgress.active;",
+              "function missionUpdate(){if(COASTLINE_SANDBOX_MODE)return;const activeGarage=garageProgress.active;"
+            ),
+            (
+              "function updateMissionPrompt(now=performance.now()){const card=document.querySelector('.mission');",
+              "function updateMissionPrompt(now=performance.now()){const card=document.querySelector('.mission');if(COASTLINE_SANDBOX_MODE){card.style.display='none';return;}"
+            ),
+            (
+              "function interact(){if(paused)return;if(player.mode==='vehicle'){exitVehicle();return}",
+              "function interact(){if(paused)return;if(player.mode==='vehicle'){const garage=nearestGarage();if(garage){openGarage(garage);return}exitVehicle();return}"
+            ),
+            (
+              "function openGarage(site){if(!site)return;",
+              "function openGarage(site){if(!site||player.mode!=='vehicle'||!player.vehicle)return;"
+            ),
+            (
+              "const kind=v.kind||'car',accel=(keys.w?1:0)-(keys.s?1:0),steer=(keys.d?1:0)-(keys.a?1:0);",
+              "const kind=v.kind||'car',accel=(keys.w?1:0)-(keys.s?1:0),steer=(keys.a?1:0)-(keys.d?1:0);"
+            ),
+            (
+              "const starterVehicle=vehicles.find(v=>v.kind==='car');const player={mode:'vehicle',vehicle:starterVehicle,x:starterVehicle.x,z:starterVehicle.z,y:0,heading:starterVehicle.heading||0,speed:0,interiorBuilding:null,sitting:false,jumpHeight:0,jumpVelocity:0};enhanceCar(starterVehicle.g);",
+              "const starterVehicle=vehicles.find(v=>v.kind==='car');const starterGarageBuilding=garageLocations.find(site=>site.id==='harbor')?.building;if(starterGarageBuilding){starterVehicle.x=starterGarageBuilding.x;starterVehicle.z=starterGarageBuilding.z+starterGarageBuilding.d/2+9;starterVehicle.heading=0;starterVehicle.g.position.set(starterVehicle.x,groundY(starterVehicle.x,starterVehicle.z),starterVehicle.z);starterVehicle.g.rotation.y=starterVehicle.heading;}const player={mode:'vehicle',vehicle:starterVehicle,x:starterVehicle.x,z:starterVehicle.z,y:0,heading:starterVehicle.heading||0,speed:0,interiorBuilding:null,sitting:false,jumpHeight:0,jumpVelocity:0};enhanceCar(starterVehicle.g);"
+            ),
+            (
+              "const queueAuthoredFleetVisuals=()=>{const schedule=(fn,delay=0)=>{if(delay){setTimeout(fn,delay);return}if('requestIdleCallback'in window)requestIdleCallback(fn,{timeout:1400});else setTimeout(fn,900)};schedule(()=>{const sedan=vehicles[1];if(sedan)replaceCoastlineVehicleVisual({group:sedan.g,assetId:'sedan'}).catch(error=>{globalThis.__coastlineVehicleAssetFailures=(globalThis.__coastlineVehicleAssetFailures||[]).concat([{loaded:false,error:String(error?.message||error),vehicleId:sedan.worldEntityId,assetId:'sedan'}])});});schedule(()=>{const hatchback=vehicles[2];if(hatchback)replaceCoastlineVehicleVisual({group:hatchback.g,assetId:'hatchback'}).catch(error=>{globalThis.__coastlineVehicleAssetFailures=(globalThis.__coastlineVehicleAssetFailures||[]).concat([{loaded:false,error:String(error?.message||error),vehicleId:hatchback.worldEntityId,assetId:'hatchback'}])});},3500)};",
+              "const queueAuthoredFleetVisuals=()=>{const schedule=(fn,delay=0)=>{if(delay){setTimeout(fn,delay);return}if('requestIdleCallback'in window)requestIdleCallback(fn,{timeout:1400});else setTimeout(fn,900)};schedule(()=>{const sedan=player?.vehicle;if(sedan)replaceCoastlineVehicleVisual({group:sedan.g,assetId:'sedan'}).catch(error=>{globalThis.__coastlineVehicleAssetFailures=(globalThis.__coastlineVehicleAssetFailures||[]).concat([{loaded:false,error:String(error?.message||error),vehicleId:sedan.worldEntityId,assetId:'sedan'}])});});schedule(()=>{const hatchback=vehicles.find(v=>v!==player?.vehicle&&v.kind==='car');if(hatchback)replaceCoastlineVehicleVisual({group:hatchback.g,assetId:'hatchback'}).catch(error=>{globalThis.__coastlineVehicleAssetFailures=(globalThis.__coastlineVehicleAssetFailures||[]).concat([{loaded:false,error:String(error?.message||error),vehicleId:hatchback.worldEntityId,assetId:'hatchback'}])});},3500)};"
+            )
+          ]
+
+          for old, new in replacements:
+              if old not in s:
+                  raise SystemExit('Missing expected game marker: ' + old[:100])
+              s = s.replace(old, new, 1)
+
+          # Sandbox must also stop the replayability encounter presentation/update path.
+          old = "updateReplayability(now);checkLandmarkDiscovery();cameraUpdate(dt);"
+          new = "if(!COASTLINE_SANDBOX_MODE)updateReplayability(now);cameraUpdate(dt);"
+          if old not in s:
+              raise SystemExit('Missing replayability loop marker')
+          s = s.replace(old, new, 1)
+
+          # The temporary procedural fallback is no longer green. It remains a visual
+          # fallback only; the authored white sedan is the normal player asset.
+          enhancer = Path('vehicle-visual-enhancer.js')
+          e = enhancer.read_text()
+          if "const paint=mat(GREEN,.72,.17,.95);" not in e:
+              raise SystemExit('Missing green hero paint marker')
+          e = e.replace("const paint=mat(GREEN,.72,.17,.95);", "const paint=mat(0xf2f3f4,.72,.17,.95);", 1)
+          e = e.replace("g.name='coastline-2008-muscle-hero-GREEN'", "g.name='coastline-procedural-vehicle-fallback'", 1)
+          enhancer.write_text(e)
+
+          # Promote the authored sedan directly onto the actual player physics root.
+          loader = Path('coastline-vehicle-asset-loader.js')
+          l = loader.read_text()
+          old = "if(assetId==='sedan'&&globalThis.__coastlinePlayer?.vehicle?.g&&group!==globalThis.__coastlinePlayer.vehicle.g&&!globalThis.__coastlinePlayer.vehicle.g.userData.coastlineAuthoredSedanInstalled){"
+          if old not in l:
+              raise SystemExit('Missing sedan promotion marker')
+          # Keep the existing secondary promotion path for compatibility, but make the
+          # direct-player load authoritative and observable.
+          marker = "const result={version:6,assetId,loaded:true,source:'authored-glb',url:sourceUrl,meshes:source.meshes,instance:true,fallbackTried:sourceUrl!==sources[0]};"
+          replacement = "if(assetId==='sedan'&&globalThis.__coastlinePlayer?.vehicle?.g===group){group.userData.coastlineAuthoredSedanInstalled=true;globalThis.__coastlinePlayer.vehicle.authoredAssetId='sedan';}\n    "+marker
+          if marker not in l:
+              raise SystemExit('Missing vehicle success marker')
+          l = l.replace(marker, replacement, 1)
+          loader.write_text(l)
+
+          Path('.mega-patch2-gate1-2-complete').write_text('Gate 1-2 implementation applied\n')
+          PY
+
+          git diff --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add game-v3.html vehicle-visual-enhancer.js coastline-vehicle-asset-loader.js .mega-patch2-gate1-2-complete
+          git commit -m 'feat: implement mega patch 2 sandbox and hero vehicle controls'
+          git push origin HEAD:${{ github.ref_name }}
