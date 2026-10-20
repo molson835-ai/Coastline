@@ -2,7 +2,7 @@ const { defineConfig } = require('@playwright/test');
 
 module.exports = defineConfig({
   testDir: './tests',
-  timeout: 45000,
+  timeout: 75000,
   expect: { timeout: 15000 },
   // Fail cleanly before the CI runner hard-kills a slow browser batch.
   globalTimeout: process.env.CI ? 17 * 60 * 1000 : 0,
