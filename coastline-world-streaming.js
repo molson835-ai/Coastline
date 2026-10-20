@@ -107,6 +107,20 @@ export function createDistanceVisibilityController({ showDistance=500, hideDista
     const dz=originZ<minZ?minZ-originZ:originZ>maxZ?originZ-maxZ:0;
     return Math.hypot(dx,dz);
   };
+  const bulkCullDistantBuckets=(originX,originZ)=>{
+    const hideSquared=hide*hide;
+    for(const [key,bucket] of buckets){
+      const [cx,cz]=key.split(':').map(Number);
+      if(cellDistanceToOrigin(cx,cz,originX,originZ)**2<=hideSquared)continue;
+      for(const id of bucket){
+        const record=records.get(id);
+        if(!record||!record.baseVisible||record.culled||record.isCritical())continue;
+        record.object.visible=false;
+        record.culled=true;
+        culledCount++;
+      }
+    }
+  };
   return {
     register(id,{object,getPosition,isCritical=()=>false,dynamic=false}={}) {
       if(id===undefined||id===null)throw new Error('id is required');
@@ -138,6 +152,11 @@ export function createDistanceVisibilityController({ showDistance=500, hideDista
         const record=records.get(id);
         if(record)moveDynamicRecord(record);
       }
+      // Buckets wholly outside the hide radius can be culled without visiting each
+      // record for distance math. This is what makes the spatial index useful on
+      // very large worlds while still guaranteeing that initially-visible distant
+      // objects are hidden on the first update.
+      bulkCullDistantBuckets(originX,originZ);
       const originCell=positionCell({x:originX,z:originZ});
       const cellRadius=Math.ceil(hide/bucketSize)+1;
       const candidateIds=new Set();
