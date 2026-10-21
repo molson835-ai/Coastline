@@ -76,3 +76,14 @@ The remaining 33 browser tests passed, including basic walking/driving, steering
 - No global visual downgrade as a shortcut.
 - Diagnose the injected runtime emergency path as well as `game-v3.html`; testing only the latter misses behavior added by the service worker.
 - Do not claim CTM field proof from this repair; CTM integration is still separate.
+
+## Follow-up repair attempt (after watchdog #865)
+
+Commits on `coastline-repair-gameplay-watchdog-v1`:
+- `a13231bf4613255d491f4b850836130ece6d3489`: pedestrian collision test now searches for a clear 4-unit approach corridor and uses `advanceTestFrame(1/60, 45)` instead of a 900 ms wall-clock wait. It asserts approach movement, collision separation, and that the player actually closes distance.
+- `ebf89e4951d2464bd3a2a4fb7c8514c8c8ec6a08`: emergency quality mode no longer turns off shadow maps or bloom; emergency protection still reduces render scale and distant workload.
+- `0a91b9f9dff43e237e32d2386c4f757cb8021a02`: service-worker patch now keeps shadow maps enabled and auto-updating on low-power devices rather than forcing them off.
+
+These are source/test fixes for the two latest failures. They have **not yet been validated by a completed CI run**. Watchdog #866 or the next run triggered by this branch update must confirm the outcome. If the graphics test still fails, inspect the runtime snapshot and browser logs rather than weakening the assertion. If pedestrian test fails, inspect the selected corridor and final player/NPC positions.
+
+Scope note: the service worker still has other low-power rendering compromises (including its no-bloom path). This repair specifically restores shadow-map state and stops emergency mode from disabling bloom; it does not claim all low-power rendering differences have been removed.
