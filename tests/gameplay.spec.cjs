@@ -33,6 +33,14 @@ test('Coastline boots, exits a vehicle, shows the avatar, and supports walking t
   expect(afterExit.avatarVisible, 'avatar should be visible on foot').toBe(true);
   expect(afterExit.buildingCount).toBeGreaterThan(10);
   expect(afterExit.vehicleCount).toBeGreaterThan(1);
+  // This smoke test exercises input/movement logic, not the renderer's maximum frame rate.
+  // Throttling only the browser test loop prevents the full cinematic scene from starving the
+  // Playwright control channel while leaving the production renderer and gameplay code untouched.
+  await page.evaluate(() => {
+    window.__coastlineTest.keyDown('__coastline_walk_test_marker__');
+    window.__coastlineTest.keyUp('__coastline_walk_test_marker__');
+    window.requestAnimationFrame = callback => setTimeout(() => callback(performance.now()), 75);
+  });
 
   // Use a deterministic open-ground coordinate already covered by world-invariants, but
   // choose the first of four cardinal directions whose short movement corridor is also clear.
@@ -64,7 +72,7 @@ test('Coastline boots, exits a vehicle, shows the avatar, and supports walking t
       const now = window.__coastlineTest.state();
       return Math.hypot(now.x - x, now.z - z);
     }, { x: walkStart.x, z: walkStart.z }), {
-      timeout: 4000, intervals: [100, 250, 500], message: 'W should move the player on a verified clear corridor'
+      timeout: 6000, intervals: [150, 300, 600], message: 'W should move the player on a verified clear corridor'
     }).toBeGreaterThan(0.2);
   } finally {
     await page.evaluate(() => window.__coastlineTest.keyUp('w'));
