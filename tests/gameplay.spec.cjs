@@ -34,20 +34,29 @@ test('Coastline boots, exits a vehicle, shows the avatar, and supports walking t
   expect(afterExit.buildingCount).toBeGreaterThan(10);
   expect(afterExit.vehicleCount).toBeGreaterThan(1);
 
-  // Use the deterministic open-ground coordinate already covered by world-invariants.
-  // The prior bounded road probe could select a dense road location that stalled the
-  // browser's render loop before the synthetic key event was processed. Keep this test
-  // focused on walking/turning behavior rather than dynamic spawn selection.
+  // Use a deterministic open-ground coordinate already covered by world-invariants, but
+  // choose the first of four cardinal directions whose short movement corridor is also clear.
+  // This avoids both exhaustive synchronous probes and accidentally starting immediately beside
+  // a static prop that can make the real movement loop appear stalled.
   const clearWalkStart = await page.evaluate(() => {
     const api = window.__coastlineTest;
     const x = -650;
     const z = -500;
-    if (api.buildingBlocked(x, z, 0.45)) throw new Error('Deterministic walk start is not open ground');
-    if (api.pedestrianCollisionBlocked(x, z, 0.45)) throw new Error('Deterministic walk start is occupied by a pedestrian');
-    if (api.vehicleRoster().some(v => !v.occupied && Math.hypot(v.x - x, v.z - z) < 3)) throw new Error('Deterministic walk start is occupied by a vehicle');
-    return { x, z };
+    const candidates = [0, Math.PI, Math.PI / 2, -Math.PI / 2];
+    for (const heading of candidates) {
+      const samples = [0, 0.5, 1, 1.5, 2, 2.5, 3].map(distance => ({
+        x: x + Math.sin(heading) * distance,
+        z: z + Math.cos(heading) * distance
+      }));
+      if (samples.every(p => !api.buildingBlocked(p.x, p.z, 0.45)
+        && !api.pedestrianCollisionBlocked(p.x, p.z, 0.45)
+        && !api.vehicleRoster().some(v => !v.occupied && Math.hypot(v.x - p.x, v.z - p.z) < 2.5))) {
+        return { x, z, heading };
+      }
+    }
+    throw new Error('No short clear walking corridor found from deterministic open ground');
   });
-  await page.evaluate(({ x, z }) => window.__coastlineTest.setWalkPosition(x, z, 0), clearWalkStart);
+  await page.evaluate(({ x, z, heading }) => window.__coastlineTest.setWalkPosition(x, z, heading), clearWalkStart);
   const walkStart = await page.evaluate(() => window.__coastlineTest.state());
   await page.evaluate(() => window.__coastlineTest.keyDown('w'));
   try {
@@ -55,7 +64,7 @@ test('Coastline boots, exits a vehicle, shows the avatar, and supports walking t
       const now = window.__coastlineTest.state();
       return Math.hypot(now.x - x, now.z - z);
     }, { x: walkStart.x, z: walkStart.z }), {
-      timeout: 4000, intervals: [100, 250, 500], message: 'W should move the player on verified clear ground'
+      timeout: 4000, intervals: [100, 250, 500], message: 'W should move the player on a verified clear corridor'
     }).toBeGreaterThan(0.2);
   } finally {
     await page.evaluate(() => window.__coastlineTest.keyUp('w'));
