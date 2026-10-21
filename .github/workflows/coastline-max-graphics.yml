@@ -23,13 +23,19 @@ jobs:
           replacements={
             "let currentPixelRatio=Math.min(Math.max(devicePixelRatio||1,1.5),2.0);":"let currentPixelRatio=Math.min(devicePixelRatio||1,lowPowerDevice?.9:1.15);",
             "if(lowPowerDevice)bloomPass.enabled=true;":"if(lowPowerDevice)bloomPass.enabled=false;",
-            "if(avg>999){qualityRecoveryAt=0;":"if(avg>23){qualityRecoveryAt=now;",
             "terrainSegments=384":"terrainSegments=lowPowerDevice?176:256"
           }
           for a,b in replacements.items():
-            if a not in s:
-              raise SystemExit(f'missing expected max-graphics mutation: {a}')
-            s=s.replace(a,b,1)
+            if a in s:
+              s=s.replace(a,b,1)
+              print(f'restored: {a}')
+            else:
+              print(f'already restored or not present: {a}')
+          if "if(avg>999){qualityRecoveryAt=0;" in s:
+            s=s.replace("if(avg>999){qualityRecoveryAt=0;","if(avg>23){qualityRecoveryAt=now;",1)
+            print('restored forced recovery threshold')
+          else:
+            print('adaptive recovery threshold already present')
           p.write_text(s)
           PY
       - name: Replace mutating workflow with validation-only guard
