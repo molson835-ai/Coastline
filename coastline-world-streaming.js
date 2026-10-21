@@ -34,3 +34,154 @@ export function createObjectLod(distanceBands=[40,100,220,500]) {
     visible(distance,maxDistance=distanceBands.at(-1)){return distance<=maxDistance;}
   };
 }
+
+/**
+ * Hide distant render objects without changing their simulation or collision state.
+ * A separate show/hide threshold prevents visible popping at cell boundaries.
+ * Static records are spatially bucketed so an update only visits cells intersecting
+ * the visibility radius. Moving records opt into `dynamic:true` and are re-bucketed
+ * as they cross cell boundaries. Critical records remain visible regardless of range.
+ */
+export function createDistanceVisibilityController({ showDistance=500, hideDistance=600, cellSize=DEFAULT_CELL_SIZE }={}) {
+  const show=Number.isFinite(showDistance)&&showDistance>=0?showDistance:500;
+  const hide=Number.isFinite(hideDistance)&&hideDistance>=show?hideDistance:NaN;
+  const bucketSize=Number.isFinite(cellSize)&&cellSize>0?cellSize:DEFAULT_CELL_SIZE;
+  if(!Number.isFinite(hide))throw new Error('hideDistance must be greater than or equal to showDistance');
+  const records=new Map();
+  const buckets=new Map();
+  const dynamicIds=new Set();
+  const criticalIds=new Set();
+  let culledCount=0;
+  const cellKey=(cx,cz)=>`${cx}:${cz}`;
+  const positionCell=position=>({cx:Math.floor(position.x/bucketSize),cz:Math.floor(position.z/bucketSize)});
+  const removeFromBucket=record=>{
+    if(!record.bucketKey)return;
+    const bucket=buckets.get(record.bucketKey);
+    bucket?.delete(record.id);
+    if(bucket?.size===0)buckets.delete(record.bucketKey);
+    record.bucketKey=null;
+  };
+  const addToBucket=(record,position)=>{
+    const {cx,cz}=positionCell(position);
+    const key=cellKey(cx,cz);
+    let bucket=buckets.get(key);
+    if(!bucket){bucket=new Set();buckets.set(key,bucket);}
+    bucket.add(record.id);
+    record.bucketKey=key;
+  };
+  const restore=record=>{
+    if(record.culled&&record.object){record.object.visible=record.baseVisible;record.culled=false;culledCount=Math.max(0,culledCount-1);}
+    else if(record.object&&record.baseVisible)record.object.visible=true;
+  };
+  const readPosition=record=>{
+    try {
+      const position=record.getPosition();
+      if(!position||!Number.isFinite(position.x)||!Number.isFinite(position.z))return null;
+      return position;
+    } catch { return null; }
+  };
+  const moveDynamicRecord=record=>{
+    const position=readPosition(record);
+    if(!position)return null;
+    const {cx,cz}=positionCell(position);
+    const nextKey=cellKey(cx,cz);
+    if(record.bucketKey!==nextKey){removeFromBucket(record);addToBucket(record,position);}
+    return position;
+  };
+  const applyVisibility=(record,originX,originZ)=>{
+    const position=readPosition(record);
+    if(!position)return {hidden:0,shown:0};
+    if(record.isCritical()){
+      if(record.culled){record.object.visible=true;record.culled=false;culledCount=Math.max(0,culledCount-1);return {hidden:0,shown:1};}
+      record.object.visible=true;
+      return {hidden:0,shown:0};
+    }
+    const distance=Math.hypot(position.x-originX,position.z-originZ);
+    if(!record.culled&&distance>hide){record.object.visible=false;record.culled=true;culledCount++;return {hidden:1,shown:0};}
+    if(record.culled&&distance<show){record.object.visible=true;record.culled=false;culledCount=Math.max(0,culledCount-1);return {hidden:0,shown:1};}
+    return {hidden:0,shown:0};
+  };
+  const cellDistanceToOrigin=(cx,cz,originX,originZ)=>{
+    const minX=cx*bucketSize,maxX=(cx+1)*bucketSize,minZ=cz*bucketSize,maxZ=(cz+1)*bucketSize;
+    const dx=originX<minX?minX-originX:originX>maxX?originX-maxX:0;
+    const dz=originZ<minZ?minZ-originZ:originZ>maxZ?originZ-maxZ:0;
+    return Math.hypot(dx,dz);
+  };
+  const bulkCullDistantBuckets=(originX,originZ)=>{
+    const hideSquared=hide*hide;
+    for(const [key,bucket] of buckets){
+      const [cx,cz]=key.split(':').map(Number);
+      if(cellDistanceToOrigin(cx,cz,originX,originZ)**2<=hideSquared)continue;
+      for(const id of bucket){
+        const record=records.get(id);
+        if(!record||!record.baseVisible||record.culled||record.isCritical())continue;
+        record.object.visible=false;
+        record.culled=true;
+        culledCount++;
+      }
+    }
+  };
+  return {
+    register(id,{object,getPosition,isCritical=()=>false,dynamic=false}={}) {
+      if(id===undefined||id===null)throw new Error('id is required');
+      if(!object||typeof object!=='object')throw new Error('object is required');
+      if(typeof getPosition!=='function')throw new Error('getPosition must be a function');
+      if(records.has(id))this.unregister(id);
+      const record={id,object,getPosition,isCritical,baseVisible:object.visible!==false,culled:false,dynamic:!!dynamic,bucketKey:null};
+      records.set(id,record);
+      if(record.dynamic)dynamicIds.add(id);
+      if(record.isCritical())criticalIds.add(id);
+      const position=readPosition(record);
+      if(position&&record.baseVisible)addToBucket(record,position);
+      return records.size;
+    },
+    unregister(id) {
+      const record=records.get(id);
+      if(!record)return false;
+      restore(record);
+      removeFromBucket(record);
+      dynamicIds.delete(id);
+      criticalIds.delete(id);
+      records.delete(id);
+      return true;
+    },
+    update(x,z) {
+      const originX=Number.isFinite(x)?x:0,originZ=Number.isFinite(z)?z:0;
+      let hidden=0,shown=0,visited=0;
+      for(const id of dynamicIds){
+        const record=records.get(id);
+        if(record)moveDynamicRecord(record);
+      }
+      // Buckets wholly outside the hide radius can be culled without visiting each
+      // record for distance math. This is what makes the spatial index useful on
+      // very large worlds while still guaranteeing that initially-visible distant
+      // objects are hidden on the first update.
+      bulkCullDistantBuckets(originX,originZ);
+      const originCell=positionCell({x:originX,z:originZ});
+      const cellRadius=Math.ceil(hide/bucketSize)+1;
+      const candidateIds=new Set();
+      const hideSquared=hide*hide;
+      for(let dz=-cellRadius;dz<=cellRadius;dz++)for(let dx=-cellRadius;dx<=cellRadius;dx++){
+        const cx=originCell.cx+dx,cz=originCell.cz+dz;
+        if(cellDistanceToOrigin(cx,cz,originX,originZ)**2>hideSquared)continue;
+        const bucket=buckets.get(cellKey(cx,cz));
+        if(bucket)for(const id of bucket)candidateIds.add(id);
+      }
+      for(const id of criticalIds)candidateIds.add(id);
+      for(const id of candidateIds){
+        const record=records.get(id);
+        if(!record||!record.baseVisible)continue;
+        visited++;
+        const change=applyVisibility(record,originX,originZ);
+        hidden+=change.hidden;
+        shown+=change.shown;
+      }
+      return {size:records.size,visited,culled:culledCount,hidden,shown};
+    },
+    clear() {
+      for(const record of records.values())restore(record);
+      records.clear();buckets.clear();dynamicIds.clear();criticalIds.clear();culledCount=0;
+    },
+    size() { return records.size; }
+  };
+}

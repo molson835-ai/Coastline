@@ -1,0 +1,42 @@
+name: Coastline Mega Patch 2 Gate 1-2 validation
+
+# The approved Gate 1-2 source changes are now committed directly. Keep this
+# validation opt-in; never rewrite/push runtime code from a workflow.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm install
+      - name: Verify Gate 1-2 runtime markers
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          game=Path('game-v3.html').read_text()
+          checks={
+            'sandbox query override': "new URLSearchParams(location.search).get('sandbox')!=='0'",
+            'sandbox landmark gate': 'function checkLandmarkDiscovery(){if(COASTLINE_SANDBOX_MODE)return 0;',
+            'sandbox mission gate': 'function missionUpdate(){if(COASTLINE_SANDBOX_MODE)return;',
+            'garage interaction guard': "function openGarage(site){if(!site||player.mode!=='vehicle'||!player.vehicle)return;",
+            'correct steering direction': "steer=(keys.a?1:0)-(keys.d?1:0)",
+            'deferred sedan visual': "const sedan=player?.vehicle",
+            'deferred non-player hatchback visual': "vehicles.find(v=>v!==player?.vehicle&&v.kind==='car')",
+            'rendered-frame timing': 'diagState.firstFrameAt=performance.now()',
+          }
+          missing=[name for name,marker in checks.items() if marker not in game]
+          if missing: raise SystemExit('Missing Gate 1-2 markers: '+', '.join(missing))
+          print(f'Gate 1-2 runtime markers passed: {len(checks)}')
+          PY
+      - name: Run deterministic regression gates
+        run: npm run test:engine && npm run test:systems && npm run test:vehicle && npm run test:fidelity

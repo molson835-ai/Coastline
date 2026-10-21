@@ -1,4 +1,5 @@
 const { test, expect } = require('@playwright/test');
+const { findNearbyQuietGround } = require('./helpers/nearby-world-spawn.cjs');
 
 test('on-foot movement treats pedestrians as physical obstacles', async ({ page }) => {
   const pageErrors = [];
@@ -6,35 +7,41 @@ test('on-foot movement treats pedestrians as physical obstacles', async ({ page 
   await page.goto('/game-v3.html', { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => Boolean(window.__coastlineTest), null, { timeout: 30000 });
 
+  const quiet = await page.evaluate(findNearbyQuietGround);
+  await page.evaluate(({ x, z }) => { window.__coastlineQuietGroundForTest = { x, z }; }, quiet);
   const start = await page.evaluate(() => {
     const api = window.__coastlineTest;
-    const people = api.pedestrianRoster();
-    let spot = null;
-    for (let x = -700; x <= 700 && !spot; x += 25) {
-      for (let z = -700; z <= 700; z += 25) {
-        if (people.slice(1).some(p => Math.hypot(p.x - x, p.z - z) < 20)) continue;
-        if (api.buildingBlocked(x, z, .45) || api.buildingBlocked(x - 1.5, z, .45)) continue;
-        spot = { x, z };
-        break;
-      }
-    }
-    if (!spot || !api.setPedestrianPosition(0, spot.x, spot.z)) return null;
-    api.setWalkPosition(spot.x - 1.5, spot.z, Math.PI / 2);
+    const quiet = window.__coastlineQuietGroundForTest;
+    if (!quiet) return null;
+    api.setPedestrianPosition(0, quiet.x, quiet.z + 2.5);
+    api.setWalkPosition(quiet.x, quiet.z, 0);
     api.keyDown('w');
-    return { ...spot, initialX: spot.x - 1.5, blockedAtNpc: api.pedestrianCollisionBlocked(spot.x, spot.z, .45) };
+    return { ...quiet, npcX: quiet.x, npcZ: quiet.z + 2.5, blockedAtNpc: api.pedestrianCollisionBlocked(quiet.x, quiet.z + 2.5, .45) };
   });
 
   expect(start).not.toBeNull();
   expect(start.blockedAtNpc).toBe(true);
-  await page.waitForTimeout(900);
+  try {
+    // First prove the player can actually advance on the isolated path. The previous assertion
+    // tied the polling threshold to a hard-coded NPC Z value and failed when the fixture's
+    // selected quiet-ground coordinate differed slightly from the assumed corridor.
+    await expect.poll(() => page.evaluate(({ x, z }) => {
+      const now = window.__coastlineTest.state();
+      return Math.hypot(now.x - x, now.z - z);
+    }, { x: start.x, z: start.z }), {
+      timeout: 12000, intervals: [100, 250, 500], message: 'W should approach the stationary pedestrian'
+    }).toBeGreaterThan(0.2);
+  } finally {
+    await page.evaluate(() => window.__coastlineTest.keyUp('w'));
+  }
   const result = await page.evaluate(() => {
     const api = window.__coastlineTest;
-    api.keyUp('w');
     const player = api.state();
     const npc = api.pedestrianRoster()[0];
     return { player, npc, distance: Math.hypot(player.x - npc.x, player.z - npc.z) };
   });
-  expect(result.player.x).toBeGreaterThan(start.initialX + .1);
+  expect(result.player.z).toBeGreaterThan(start.z + .2);
+  expect(result.player.z).toBeLessThanOrEqual(result.npc.z - 1.0);
   expect(result.distance).toBeGreaterThanOrEqual(1.0);
   expect(pageErrors).toEqual([]);
 });

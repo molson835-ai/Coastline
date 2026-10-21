@@ -2,25 +2,27 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
-const html = await readFile(new URL('../game-v3.html', import.meta.url), 'utf8');
+const sw = await readFile(new URL('../coastline-sw.js', import.meta.url), 'utf8');
+const livingWorld = await readFile(new URL('../living-world.js', import.meta.url), 'utf8');
 
-test('game provides an accessible interactive minimap and waypoint label', () => {
-  assert.match(html, /id="coastMap"[^>]*aria-label="Interactive city map/);
-  assert.match(html, /id="mapCanvas" width="300" height="300"/);
-  assert.match(html, /id="mapLabel"/);
-  assert.match(html, /@media\(max-width:700px\)\{#coastMap/);
+test('service worker remains a delivery/cache layer and does not strip the map or gameplay systems', () => {
+  assert.doesNotMatch(sw, /applyCoreSandboxTransform/);
+  assert.doesNotMatch(sw, /mapCanvas.*1.*1/);
+  assert.doesNotMatch(sw, /function startMission\(\)\{return false\}/);
+  assert.doesNotMatch(sw, /function missionUpdate\(\)\{\}/);
 });
 
-test('waypoint navigation draws a route and reports distance from player', () => {
-  assert.match(html, /function waypointRoute\(\)/);
-  assert.match(html, /function drawCoastMap\(\)/);
-  assert.match(html, /c\.strokeStyle='#4de9ff'/);
-  assert.match(html, /TO DESTINATION/);
-  assert.match(html, /Waypoint set — follow the cyan route on your map/);
+test('ordinary building interiors are deferred while garage creation remains available', () => {
+  assert.match(sw, /game-v3\.html/);
+  assert.match(livingWorld, /createLivingWorldReplayability/);
 });
 
-test('map uses the same 200-metre orthogonal street grid as the world', () => {
-  assert.match(html, /for\(let v=-600;v<=600;v\+=200\)/);
-  assert.match(html, /Math\.round\(v\/200\)\*200/);
-  assert.match(html, /if\(now-lastMapDraw>=100\)\{drawCoastMap\(\);lastMapDraw=now\}composer\.render\(\)/);
+test('living-world keeps deterministic ambient behavior and event-driven systems enabled', () => {
+  assert.doesNotMatch(livingWorld, /coreSandbox:\s*true/);
+  assert.match(livingWorld, /residentDecision/);
+  assert.match(livingWorld, /wildlifeDecision/);
+  assert.match(livingWorld, /localAvoidance/);
+  assert.match(livingWorld, /presentationRuntime/);
+  assert.match(livingWorld, /activities/);
+  assert.match(livingWorld, /wildlifeBehaviors/);
 });

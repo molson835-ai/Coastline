@@ -1,0 +1,28 @@
+name: Coastline beta syntax validation
+
+# Manual-only: the old repair workflow rewrote and pushed game files on every
+# branch update, causing redundant runs and races with normal regression tests.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install test dependencies
+        run: npm install
+      - name: Check runtime module syntax
+        run: |
+          for file in coastline-render-config.js coastline-fidelity-budget.js coastline-world-streaming.js coastline-vehicle-asset-loader.js npc-world-slice.js living-world.js; do
+            node --check "$file"
+          done
+      - name: Run focused engine and fidelity regressions
+        run: npm run test:engine && npm run test:fidelity

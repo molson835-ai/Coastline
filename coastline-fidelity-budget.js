@@ -44,3 +44,15 @@ export function createFrameBudgetScheduler(budget) {
     budget
   };
 }
+
+/**
+ * Distance-aware cadence for ambient traffic. Nearby traffic stays frame-synchronous;
+ * only distant AI is scheduled less often. This does not change render quality.
+ */
+export function selectTrafficUpdateIntervalMs(distance,{nearDistance=120,midDistance=300,farDistance=600}={}) {
+  if(!Number.isFinite(distance)||distance<0)return 0;
+  if(distance<=nearDistance)return 0;
+  if(distance<=midDistance)return 33;
+  if(distance<=farDistance)return 50;
+  return 200;
+}

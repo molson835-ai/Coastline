@@ -1,0 +1,36 @@
+name: Coastline Mega Patch 2 marker diagnostics
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check current Gate 1-2 markers
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          game=Path('game-v3.html').read_text()
+          checks={
+            'sandbox state supports explicit opt-out': "new URLSearchParams(location.search).get('sandbox')!=='0'",
+            'landmark discovery is sandbox-gated': 'function checkLandmarkDiscovery(){if(COASTLINE_SANDBOX_MODE)return 0;',
+            'mission updates are sandbox-gated': 'function missionUpdate(){if(COASTLINE_SANDBOX_MODE)return;',
+            'mission HUD is sandbox-gated': "if(COASTLINE_SANDBOX_MODE){card.style.display='none';return;}",
+            'vehicle garage interaction': "if(player.mode==='vehicle'){const garage=nearestGarage();",
+            'garage requires an occupied vehicle': "function openGarage(site){if(!site||player.mode!=='vehicle'||!player.vehicle)return;",
+            'steering direction': "steer=(keys.a?1:0)-(keys.d?1:0)",
+            'starter vehicle is positioned at Auto Works': "const starterGarageBuilding=buildings.find(b=>b.name==='Auto Works');",
+            'sedan visual is deferred': "const sedan=player?.vehicle",
+            'hatchback visual is deferred': "vehicles.find(v=>v!==player?.vehicle&&v.kind==='car')",
+            'render telemetry is recorded after render': 'diagState.firstFrameAt=performance.now()',
+          }
+          failed=[name for name,marker in checks.items() if marker not in game]
+          for name,marker in checks.items(): print(('PASS' if marker in game else 'FAIL')+' — '+name)
+          if failed: raise SystemExit('Missing markers: '+', '.join(failed))
+          PY

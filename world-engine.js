@@ -1,4 +1,5 @@
 // Coastline 2.0 runtime architecture.
+import { createAdaptiveWorldBudget, evaluateWorldBudget as evaluateAdaptiveWorldBudget } from './coastline-adaptive-world-budget.js';
 // Renderer-agnostic world truth and simulation services for WebGL, WebGPU,
 // tests, missions and persistence.
 
@@ -182,5 +183,14 @@ export function createWorldArchitecture(worldModel) {
   const parking = createParkingRegistry(worldModel);
   const events = createWorldEventBus();
   const scheduler = createSimulationScheduler();
-  return Object.freeze({ worldModel, runtime, parking, events, scheduler, materials: MATERIALS, simulationLOD, renderLOD, tickRateForLOD, collisionResponse, applyImpact });
+  const adaptiveBudget = createAdaptiveWorldBudget();
+  const evaluateWorldBudget = (options = {}) => evaluateAdaptiveWorldBudget({
+    ...options,
+    budget: options.budget || adaptiveBudget
+  });
+  return Object.freeze({
+    worldModel, runtime, parking, events, scheduler, materials: MATERIALS,
+    simulationLOD, renderLOD, tickRateForLOD, collisionResponse, applyImpact,
+    adaptiveBudget, evaluateWorldBudget
+  });
 }
