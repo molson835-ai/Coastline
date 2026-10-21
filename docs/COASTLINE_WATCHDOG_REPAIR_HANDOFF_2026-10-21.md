@@ -87,3 +87,5 @@ Commits on `coastline-repair-gameplay-watchdog-v1`:
 These are source/test fixes for the two latest failures. They have **not yet been validated by a completed CI run**. Watchdog #866 or the next run triggered by this branch update must confirm the outcome. If the graphics test still fails, inspect the runtime snapshot and browser logs rather than weakening the assertion. If pedestrian test fails, inspect the selected corridor and final player/NPC positions.
 
 Scope note: the service worker still has other low-power rendering compromises (including its no-bloom path). This repair specifically restores shadow-map state and stops emergency mode from disabling bloom; it does not claim all low-power rendering differences have been removed.
+
+- `49b87f6dc13fbc7648b35d612e9018dadc13f29b`: bumped the service-worker cache from `coastline-static-v47` to `coastline-static-v48`, so already-installed clients discard the cached runtime that could still force shadows off. This closes a stale-cache path; the new CI run must still validate it.
