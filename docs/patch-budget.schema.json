@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://coastline.invalid/schemas/patch-budget.schema.json",
+  "title": "Coastline Patch Budget Record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["patchClass", "riskAreas", "systemsTouched", "expectedVerification", "budgetUnits"],
+  "properties": {
+    "dateTime": { "type": "string" },
+    "branch": { "type": "string", "minLength": 1 },
+    "pr": { "type": ["integer", "null"], "minimum": 1 },
+    "sha": { "type": ["string", "null"], "pattern": "^[0-9a-f]{7,64}$" },
+    "patchClass": { "enum": ["micro", "small", "medium", "large", "oversized"] },
+    "riskAreas": {
+      "type": "array",
+      "items": { "enum": ["ctm", "persistence", "renderer-assets", "player-physics", "npc-simulation", "performance", "none"] },
+      "uniqueItems": true
+    },
+    "filesChanged": { "type": "integer", "minimum": 0 },
+    "systemsTouched": { "type": "integer", "minimum": 1 },
+    "interfacesTouched": { "type": "integer", "minimum": 0 },
+    "expectedVerification": { "type": "string", "minLength": 1 },
+    "budgetUnits": { "type": "number", "minimum": 0 },
+    "overrideReason": { "type": ["string", "null"] },
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "targeted": { "type": "string" },
+        "ci": { "type": "string" },
+        "device": { "type": ["string", "null"] }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "patchClass": { "enum": ["large", "oversized"] } } },
+      "then": { "required": ["overrideReason"] }
+    },
+    {
+      "if": { "properties": { "patchClass": { "const": "oversized" } } },
+      "then": { "properties": { "overrideReason": { "type": "string", "minLength": 1 } } }
+    }
+  ]
+}
