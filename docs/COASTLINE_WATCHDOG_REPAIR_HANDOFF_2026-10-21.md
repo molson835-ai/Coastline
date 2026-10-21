@@ -3,7 +3,7 @@
 **Status:** In progress; CI queued, not yet field-proven  
 **PR:** https://github.com/molson835-ai/Coastline/pull/84  
 **Branch:** `coastline-repair-gameplay-watchdog-v1`  
-**Current head:** `a7045f65754c8e081c03b490c5579f35ce01e3d2`  
+**Current head:** `c07888b9063e470cb1a30bf038b406c62367cff8`  
 **Base:** `main`  
 **No merge or production deployment has been performed.**
 
@@ -33,7 +33,7 @@ The prior watchdog run (run 39663949401, PR #83 head `09858599512861cf633750896c
 
 ## Verification state
 
-- CI for current head was queued when this checkpoint was written: workflow run 39677806287 (gameplay watchdog #861).
+- CI run 39677806287 (gameplay watchdog #861) was triggered for code/test SHA `a7045f65754c8e081c03b490c5579f35ce01e3d2`; the current head adds only this handoff document. The browser job was still installing Chromium when last checked.
 - No successful CI result has yet been observed for this head.
 - No Android field test has been run for this patch.
 - The deterministic stepping hook is only called by tests; normal runtime continues to use the normal animation loop.
