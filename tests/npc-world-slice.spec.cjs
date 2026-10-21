@@ -11,7 +11,12 @@ test('public-works NPC reacts to a nearby player and begins a character-specific
   expect(before.phase).toBe('idle');
 
   await page.evaluate(({ x, z }) => window.__coastlineTest.setVehiclePosition(x, z, 0), before.target);
-  await expect.poll(async () => page.evaluate(() => window.__coastlineTest.npcWorldSliceState().phase), { timeout: 5000 }).toBe('repairing');
+  try {
+    await expect.poll(async () => page.evaluate(() => window.__coastlineTest.npcWorldSliceState().phase), { timeout: 5000 }).toBe('repairing');
+  } catch (error) {
+    const diagnostic = await page.evaluate(() => { const state = window.__coastlineTest.npcWorldSliceState(); return { phase: state.phase, target: state.target, player: state.player }; });
+    throw new Error(`${error.message}; NPC trigger diagnostic=${JSON.stringify(diagnostic)}`);
+  }
 
   const active = await page.evaluate(() => window.__coastlineTest.npcWorldSliceState());
   expect(active.npc.flags.signalOutage).toBe(true);
