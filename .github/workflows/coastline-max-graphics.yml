@@ -2,44 +2,19 @@ name: Coastline graphics quality guard
 
 on:
   push:
-    branches: [coastline-p0-renderer-runtime-normalization-v1]
+    branches: [main]
   pull_request:
     branches: [main]
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  normalize-rendering:
-    if: ${{ github.event_name == 'pull_request' || !contains(github.event.head_commit.message, '[p0-render-normalized]') }}
+  graphics-quality-guard:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.head_ref || github.ref_name }}
-          fetch-depth: 1
-      - name: Restore adaptive rendering baseline
-        shell: bash
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          p=Path('game-v3.html')
-          s=p.read_text()
-          replacements={
-            "let currentPixelRatio=Math.min(Math.max(devicePixelRatio||1,1.5),2.0);":"let currentPixelRatio=Math.min(devicePixelRatio||1,lowPowerDevice?.9:1.15);",
-            "if(lowPowerDevice)bloomPass.enabled=true;":"if(lowPowerDevice)bloomPass.enabled=false;",
-            "terrainSegments=384":"terrainSegments=lowPowerDevice?176:256",
-            "if(avg>999){qualityRecoveryAt=0;":"if(avg>23){qualityRecoveryAt=0;"
-          }
-          for a,b in replacements.items():
-            if a in s:
-              s=s.replace(a,b,1)
-              print(f'restored: {a}')
-            else:
-              print(f'already restored or not present: {a}')
-          p.write_text(s)
-          PY
-      - name: Verify normalized source
+      - name: Verify adaptive quality policy remains source-controlled
         shell: bash
         run: |
           python3 - <<'PY'
@@ -57,15 +32,9 @@ jobs:
             "if(avg>999){qualityRecoveryAt=0;",
             "terrainSegments=384"
           ]
-          for value in required: assert value in s, f'missing adaptive rendering policy: {value}'
-          for value in forbidden: assert value not in s, f'forbidden max-graphics mutation detected: {value}'
+          for value in required:
+            assert value in s, f'missing adaptive rendering policy: {value}'
+          for value in forbidden:
+            assert value not in s, f'forbidden max-graphics mutation detected: {value}'
           print('Coastline adaptive graphics policy verified.')
           PY
-      - name: Commit normalized game source
-        shell: bash
-        run: |
-          git config user.name 'coastline-p0-bot'
-          git config user.email 'coastline-p0-bot@users.noreply.github.com'
-          git add game-v3.html
-          git commit -m 'Restore adaptive rendering baseline [p0-render-normalized]'
-          git push origin "HEAD:${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
