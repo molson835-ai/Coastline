@@ -3,7 +3,7 @@
 **Status:** In progress; CI queued, not yet field-proven  
 **PR:** https://github.com/molson835-ai/Coastline/pull/84  
 **Branch:** `coastline-repair-gameplay-watchdog-v1`  
-**Current head:** `c07888b9063e470cb1a30bf038b406c62367cff8`  
+**Current head:** `e37a7879de49b3cbf108064e2014d747db22595c`  
 **Base:** `main`  
 **No merge or production deployment has been performed.**
 
@@ -33,8 +33,8 @@ The prior watchdog run (run 39663949401, PR #83 head `09858599512861cf633750896c
 
 ## Verification state
 
-- CI run 39677806287 (gameplay watchdog #861) was triggered for code/test SHA `a7045f65754c8e081c03b490c5579f35ce01e3d2`; the current head adds only this handoff document. The browser job was still installing Chromium when last checked.
-- No successful CI result has yet been observed for this head.
+- CI run 39677806287 (gameplay watchdog #861) began for code/test SHA `a7045f65754c8e081c03b490c5579f35ce01e3d2`; a branch update cancelled that browser attempt before results were emitted. A rerun was requested and the run is pending. The latest head `e37a7879de49b3cbf108064e2014d747db22595c` includes one additional test-only fix so the NPC persistence reset happens only on the first page load; that final change is not covered by the pending run yet.
+- No successful gameplay-watchdog result has yet been observed for this head.
 - No Android field test has been run for this patch.
 - The deterministic stepping hook is only called by tests; normal runtime continues to use the normal animation loop.
 - Do not merge based on code inspection alone.
