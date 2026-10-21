@@ -109,3 +109,14 @@ Four other browser tests now fail:
 Artifact: https://github.com/molson835-ai/Coastline/actions/runs/39686784572/artifacts/12385974165
 
 Next actions: inspect the four failed traces/error-contexts; fix root causes without relaxing assertions. In particular, avoid serializing multiple expensive game boots/reloads under two browser workers unless evidence shows worker contention is the cause. Re-run all 35 tests and record exact results. No merge or production deployment.
+
+## Landmark cash persistence bug found and fixed (follow-up)
+
+Inspection of watchdog #872's actual Playwright artifact confirms the user's concern was valid: the regional landmark test's final post-reload page snapshot showed HUD **CASH $250** and mode **DRIVING**. The snapshot alone is from the reload phase and does not prove the in-session reward failed; the test had timed out before it could finish verifying the reloaded state. Source inspection identified the concrete persistence defect: `cashBalance` was always initialized to `250` on every page load, while only discovered landmark IDs were stored in localStorage. Thus the $150 reward could be awarded in-session but was lost after reload.
+
+Fix commits on the repair branch:
+- `1caa3ad07a4751ff7b0e2d26bb78f9434fd0a5da`: load cash from `coastline-cash-balance-v1` (default $250 if absent/invalid) and persist balance changes from landmark rewards, mission rewards, garage task payouts, and garage purchases.
+- `5b23237372780e4548faf112cf77a2bb6958e4bd`: update gameplay landmark regression to assert the awarded balance persists across reload and reset test storage only once per tab.
+- `a1b05da900d9caeb43451cce1b64b15a8935a40a`: update regional landmark regression to verify cash remains $400 after reload and reset local test storage once per tab.
+
+**Validation pending:** these commits have not yet been covered by a completed watchdog run. The previous watchdog #872 result was 31 passed / 4 failed, with landmark tests timing out during reload initialization. New assertions are intentionally retained; if reload continues to time out, address slow startup/worker contention without removing the persistence check.
