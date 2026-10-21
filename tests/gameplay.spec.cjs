@@ -43,11 +43,32 @@ test('Coastline boots, exits a vehicle, shows the avatar, and supports walking t
   expect(afterExit.buildingCount).toBeGreaterThan(10);
   expect(afterExit.vehicleCount).toBeGreaterThan(1);
 
-  await page.evaluate(() => window.__coastlineTest.setWalkPosition(0, 0, 0));
+  const clearWalkStart = await page.evaluate(() => {
+    const api = window.__coastlineTest;
+    const roster = api.vehicleRoster();
+    for (let x = -650; x <= 650; x += 25) {
+      for (let z = -650; z <= 640; z += 10) {
+        const samples = Array.from({ length: 13 }, (_, i) => z + i * 0.5);
+        const clear = samples.every(sampleZ =>
+          !api.obstacleBlocked(x, sampleZ, 0.6)
+          && !api.pedestrianCollisionBlocked(x, sampleZ, 0.6)
+          && !roster.some(v => Math.hypot(v.x - x, v.z - sampleZ) < 2.5));
+        if (clear) return { x, z };
+      }
+    }
+    throw new Error('Could not locate clear ground for walking controls regression');
+  });
+  await page.evaluate(({ x, z }) => window.__coastlineTest.setWalkPosition(x, z, 0), clearWalkStart);
   const walkStart = await page.evaluate(() => window.__coastlineTest.state());
   await page.evaluate(() => window.__coastlineTest.keyDown('w'));
-  await page.waitForTimeout(1000);
-  await page.evaluate(() => window.__coastlineTest.keyUp('w'));
+  try {
+    await expect.poll(async () => page.evaluate(({ x, z }) => {
+      const now = window.__coastlineTest.state();
+      return Math.hypot(now.x - x, now.z - z);
+    }, { x: walkStart.x, z: walkStart.z }), { timeout: 4000, message: 'W should move the player on verified clear ground' }).toBeGreaterThan(0.2);
+  } finally {
+    await page.evaluate(() => window.__coastlineTest.keyUp('w'));
+  }
   const afterWalk = await page.evaluate(() => window.__coastlineTest.state());
   expect(Math.hypot(afterWalk.x - walkStart.x, afterWalk.z - walkStart.z), 'W should move the player in open ground').toBeGreaterThan(0.2);
 
