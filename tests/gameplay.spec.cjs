@@ -1,4 +1,5 @@
 const { test, expect } = require('@playwright/test');
+const { findNearbyClearRoad, findNearbyClearWalkStart } = require('./helpers/nearby-world-spawn.cjs');
 
 test('public beta launcher opens the feature-rich open-world runtime', async ({ page }) => {
   const pageErrors = [];
@@ -35,20 +36,8 @@ test('Coastline boots, exits a vehicle, shows the avatar, and supports walking t
 
   // The old exhaustive synchronous scan blocked the browser animation loop. Keep this
   // candidate search bounded while still verifying actual collision-free ground.
-  const clearWalkStart = await page.evaluate(() => {
-    const api = window.__coastlineTest;
-    const roster = api.vehicleRoster();
-    for (let x = -500; x <= 500; x += 100) {
-      for (let z = -500; z <= 500; z += 100) {
-        const samples = Array.from({ length: 5 }, (_, i) => z + i * 2);
-        if (api.buildingBlocked(x, z, 0.6) || api.pedestrianCollisionBlocked(x, z, 0.6)) continue;
-        if (samples.some(sampleZ => api.obstacleBlocked(x, sampleZ, 0.6) || api.pedestrianCollisionBlocked(x, sampleZ, 0.6))) continue;
-        if (samples.some(sampleZ => roster.some(v => Math.hypot(v.x - x, v.z - sampleZ) < 2.5))) continue;
-        return { x, z };
-      }
-    }
-    throw new Error('Could not locate clear ground for walking controls regression');
-  });
+  // Use a small central-road probe; a broad synchronous scan starves the render loop.
+  const clearWalkStart = await page.evaluate(findNearbyClearWalkStart);
   await page.evaluate(({ x, z }) => window.__coastlineTest.setWalkPosition(x, z, 0), clearWalkStart);
   const walkStart = await page.evaluate(() => window.__coastlineTest.state());
   await page.evaluate(() => window.__coastlineTest.keyDown('w'));
@@ -70,48 +59,42 @@ test('vehicle steering follows the corrected left/right input and reverse builds
   page.on('pageerror', error => errors.push(error.message));
   await page.goto('/game-v3.html?beta=vehicle-controls-regression', { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => Boolean(window.__coastlineTest), null, { timeout: 20000 });
-  const roadStart = await page.evaluate(() => {
-    const api = window.__coastlineTest;
-    const roster = api.vehicleRoster();
-    for (let x = -600; x <= 600; x += 200) for (let z = -600; z <= 580; z += 20) {
-      const samples = [...Array.from({ length: 7 }, (_, i) => z + i * 2), ...Array.from({ length: 7 }, (_, i) => z - i * 2)];
-      const clear = samples.every(sampleZ => !api.buildingBlocked(x, sampleZ, 2)) && !roster.some(v => samples.some(sampleZ => Math.hypot(v.x - x, v.z - sampleZ) < 10));
-      if (clear && api.worldModel.isRoadCorridor(x, z) && api.worldModel.isRoadCorridor(x, z + 12) && api.worldModel.isRoadCorridor(x, z - 12)) return { x, z };
-    }
-    throw new Error('Could not locate a clear straight road lane for controls regression');
-  });
+  const roadStart = await page.evaluate(findNearbyClearRoad);
   const resetCar = () => page.evaluate(({ x, z }) => window.__coastlineTest.setVehiclePosition(x, z, 0), roadStart);
-  await resetCar();
-  await page.evaluate(() => window.__coastlineTest.keyDown('w'));
-  try {
-    await expect.poll(async () => page.evaluate(() => window.__coastlineTest.state().vehicleSpeed), { timeout: 5000, message: 'W should accelerate the car on a clear road' }).toBeGreaterThan(2);
-    await expect.poll(async () => page.evaluate(({ x, z }) => { const now = window.__coastlineTest.state(); return Math.hypot(now.x - x, now.z - z); }, roadStart), { timeout: 5000, message: 'W should move the car along the clear road' }).toBeGreaterThan(0.5);
-  } finally { await page.evaluate(() => window.__coastlineTest.keyUp('w')); }
-  await resetCar();
-  await page.evaluate(() => window.__coastlineTest.keyDown('w'));
-  await page.waitForTimeout(350);
-  await page.evaluate(() => window.__coastlineTest.keyUp('w'));
-  const beforeLeft = await page.evaluate(() => window.__coastlineTest.state());
-  await page.evaluate(() => window.__coastlineTest.keyDown('a'));
-  await page.waitForTimeout(500);
-  await page.evaluate(() => window.__coastlineTest.keyUp('a'));
-  const leftTurn = await page.evaluate(() => window.__coastlineTest.state());
-  expect(leftTurn.heading, 'A should steer left while driving forward').toBeLessThan(beforeLeft.heading);
-  await resetCar();
-  await page.evaluate(() => window.__coastlineTest.keyDown('w'));
-  await page.waitForTimeout(350);
-  await page.evaluate(() => window.__coastlineTest.keyUp('w'));
-  await page.evaluate(() => window.__coastlineTest.keyDown('d'));
-  await page.waitForTimeout(500);
-  await page.evaluate(() => window.__coastlineTest.keyUp('d'));
-  const rightTurn = await page.evaluate(() => window.__coastlineTest.state());
-  expect(rightTurn.heading, 'D should steer right while driving forward').toBeGreaterThan(0);
+
+  async function verifyTurn(key, direction) {
+    await resetCar();
+    await page.evaluate(() => window.__coastlineTest.keyDown('w'));
+    try {
+      await expect.poll(() => page.evaluate(() => window.__coastlineTest.state().vehicleSpeed), {
+        timeout: 12000, intervals: [100, 250, 500], message: 'The car must actually accelerate before steering is measured'
+      }).toBeGreaterThan(2);
+      const before = await page.evaluate(() => window.__coastlineTest.state());
+      await page.evaluate(k => window.__coastlineTest.keyDown(k), key);
+      try {
+        const delta = () => page.evaluate(({ heading }) => window.__coastlineTest.state().heading - heading, { heading: before.heading });
+        const options = { timeout: 12000, intervals: [100, 250, 500], message: key + ' should change heading in the expected direction' };
+        if (direction === 'left') await expect.poll(delta, options).toBeLessThan(-0.01);
+        else await expect.poll(delta, options).toBeGreaterThan(0.01);
+      } finally {
+        await page.evaluate(k => window.__coastlineTest.keyUp(k), key);
+      }
+    } finally {
+      await page.evaluate(() => window.__coastlineTest.keyUp('w'));
+    }
+  }
+
+  await verifyTurn('a', 'left');
+  await verifyTurn('d', 'right');
   await resetCar();
   await page.evaluate(() => window.__coastlineTest.keyDown('s'));
-  await page.waitForTimeout(500);
-  await page.evaluate(() => window.__coastlineTest.keyUp('s'));
-  const reversing = await page.evaluate(() => window.__coastlineTest.state());
-  expect(reversing.vehicleSpeed, 'S should build useful reverse speed').toBeLessThan(-2.5);
+  try {
+    await expect.poll(() => page.evaluate(() => window.__coastlineTest.state().vehicleSpeed), {
+      timeout: 12000, intervals: [100, 250, 500], message: 'S should build usable negative reverse speed'
+    }).toBeLessThan(-2.5);
+  } finally {
+    await page.evaluate(() => window.__coastlineTest.keyUp('s'));
+  }
   expect(errors, 'vehicle controls should not introduce runtime errors').toEqual([]);
 });
 

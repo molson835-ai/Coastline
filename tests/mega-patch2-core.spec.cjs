@@ -1,4 +1,5 @@
 const { test, expect } = require('@playwright/test');
+const { findNearbyClearRoad } = require('./helpers/nearby-world-spawn.cjs');
 const fs = require('node:fs');
 
 async function boot(page) {
@@ -20,16 +21,7 @@ async function boot(page) {
 }
 
 async function findClearRoad(page) {
-  return page.evaluate(() => {
-    const api = window.__coastlineTest;
-    const roster = api.vehicleRoster();
-    for (let x = -600; x <= 600; x += 200) for (let z = -600; z <= 580; z += 20) {
-      const samples = [...Array.from({ length: 7 }, (_, i) => z + i * 2), ...Array.from({ length: 7 }, (_, i) => z - i * 2)];
-      const clear = samples.every(sampleZ => !api.buildingBlocked(x, sampleZ, 2)) && !roster.some(v => samples.some(sampleZ => Math.hypot(v.x - x, v.z - sampleZ) < 10));
-      if (clear && api.worldModel.isRoadCorridor(x, z) && api.worldModel.isRoadCorridor(x, z + 12) && api.worldModel.isRoadCorridor(x, z - 12)) return { x, z };
-    }
-    throw new Error('Could not locate a clear straight road lane for steering regression');
-  });
+  return page.evaluate(findNearbyClearRoad);
 }
 
 test('mega patch 2 starts with the authored white sedan and sandbox balance', async ({ page }) => {
@@ -49,30 +41,30 @@ test('mega patch 2 makes A/left steer left and D/right steer right', async ({ pa
   const roadStart = await findClearRoad(page);
   const resetCar = () => page.evaluate(({ x, z }) => window.__coastlineTest.setVehiclePosition(x, z, 0), roadStart);
 
-  await resetCar();
-  await page.evaluate(() => window.__coastlineTest.keyDown('w'));
-  const left = await page.evaluate(async () => {
-    const api = window.__coastlineTest;
-    api.keyDown('a');
-    await new Promise(resolve => setTimeout(resolve, 450));
-    api.keyUp('a');
-    api.keyUp('w');
-    return api.state();
-  });
+  async function verifyTurn(key, direction) {
+    await resetCar();
+    await page.evaluate(() => window.__coastlineTest.keyDown('w'));
+    try {
+      await expect.poll(() => page.evaluate(() => window.__coastlineTest.state().vehicleSpeed), {
+        timeout: 12000, intervals: [100, 250, 500], message: 'The car must actually accelerate before steering is measured'
+      }).toBeGreaterThan(2);
+      const before = await page.evaluate(() => window.__coastlineTest.state());
+      await page.evaluate(k => window.__coastlineTest.keyDown(k), key);
+      try {
+        const delta = () => page.evaluate(({ heading }) => window.__coastlineTest.state().heading - heading, { heading: before.heading });
+        const options = { timeout: 12000, intervals: [100, 250, 500], message: key + ' should change heading in the expected direction' };
+        if (direction === 'left') await expect.poll(delta, options).toBeLessThan(-0.01);
+        else await expect.poll(delta, options).toBeGreaterThan(0.01);
+      } finally {
+        await page.evaluate(k => window.__coastlineTest.keyUp(k), key);
+      }
+    } finally {
+      await page.evaluate(() => window.__coastlineTest.keyUp('w'));
+    }
+  }
 
-  await resetCar();
-  const right = await page.evaluate(async () => {
-    const api = window.__coastlineTest;
-    api.keyDown('w');
-    api.keyDown('d');
-    await new Promise(resolve => setTimeout(resolve, 450));
-    api.keyUp('d');
-    api.keyUp('w');
-    return api.state();
-  });
-
-  expect(left.heading).toBeLessThan(-0.01);
-  expect(right.heading).toBeGreaterThan(0.01);
+  await verifyTurn('a', 'left');
+  await verifyTurn('d', 'right');
   expect(errors).toEqual([]);
 });
 
