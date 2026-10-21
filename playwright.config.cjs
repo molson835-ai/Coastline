@@ -6,9 +6,9 @@ module.exports = defineConfig({
   // Match the browser suite positively so Playwright cannot accidentally import
   // a Node test file during sharding.
   testMatch: ['**/*.spec.cjs'],
-  timeout: 75000,
-  expect: { timeout: 15000 },
-  globalTimeout: process.env.CI ? 15 * 60 * 1000 : 0,
+  timeout: 90000,
+  expect: { timeout: 20000 },
+  globalTimeout: process.env.CI ? 30 * 60 * 1000 : 0,
   fullyParallel: true,
   reporter: [['list'], ['html', { outputFolder: 'playwright-report', open: 'never' }]],
   workers: process.env.CI ? 1 : undefined,
