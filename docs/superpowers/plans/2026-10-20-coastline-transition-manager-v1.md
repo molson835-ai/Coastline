@@ -233,3 +233,11 @@ After this gate, the next project is **World 2 — Private Island**, using CTM a
 - Coverage proves successful A→B→A transitions, state restoration before destination activation, source retention after preload/restore/activation failure, masked-gate cancellation while waiting at READY, and rapid sequential A→B→A→B retirement without duplicate active roots.
 - Local scratch verification: `node --check tests/transition-worlds-a-b.spec.mjs && node --test 'tests/transition-*.spec.mjs'` — **44 passed, 0 failed**. This remains local/WIP evidence until exact-head GitHub Actions validates the saved branch.
 - Browser smoke/runtime integration remains pending; this harness does not claim the actual game page uses CTM or that World 2 is playable.
+
+
+## Execution checkpoint — isolated CTM browser smoke tests (Task 8, implementation started)
+
+- Added `tests/fixtures/ctm-runtime-smoke.html`, an unlinked test-only fixture that imports the same CTM ES modules used by the game architecture and exercises them in a real Chromium browser against a fake Three.js scene/object tree. It does not load third-party CDNs and is not linked or exposed in the product UI.
+- Added `tests/transition-runtime-smoke.spec.cjs`, matching the repo's `playwright.config.cjs` positive selector `**/*.spec.cjs`. It asserts browser-level A→B→A state retention, restore-before-activation ordering, one authoritative scene root, telemetry completion, ownership-aware retirement, and cancellation of a masked gate while READY.
+- This is a synthetic browser acceptance harness, not yet an in-game CTM hook and not proof that `game-v3.html` uses CTM. The active beta route remains unchanged.
+- Current CTM CI run [#39535395919](https://github.com/molson835-ai/Coastline/actions/runs/39535395919) on base head `9cc7d9d` was still running when these browser tests were created. New test branch: `coastline-ctm-runtime-smoke-v1`, head `d51a66f`. No browser execution result is claimed yet. After the older run completes, fast-forward the test branch only if its base has not moved, then run all CTM tests and the three browser shards against that exact new head.
