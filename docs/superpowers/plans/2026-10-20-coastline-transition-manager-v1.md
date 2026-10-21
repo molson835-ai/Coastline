@@ -207,3 +207,12 @@ After this gate, the next project is **World 2 — Private Island**, using CTM a
 - Extended `TransitionManager` with an optional abortable activation barrier between `READY` and `TRANSFERRING`; this lets an elevator animation or doorman conversation complete the visual/interaction handoff without creating a separate transition pipeline. Cancellation while waiting is tested; telemetry records the wait as advisory.
 - Added `tests/transition-gates.spec.mjs`. Combined local scratch verification: `node --check src/transition/transition-manager.mjs && node --test 'tests/transition-*.spec.mjs'` — **24 passed, 0 failed**. This includes registry/loader, manager, state handoff, and gate-provider suites; it is not yet GitHub Actions evidence.
 - Saved on WIP branch `coastline-player-state-handoff-v1` after Task 4 so the in-progress browser run on parent SHA `9e7f36e` is not needlessly cancelled. Recheck that run before advancing PR #77.
+
+
+## Execution checkpoint — bounded telemetry (Task 6, partial)
+
+- Added `src/transition/transition-telemetry.mjs` with bounded retained transition records, bounded lifecycle event history, compact failure/recovery diagnostics, named milestone timings, and bounded whitelisted resource samples.
+- Telemetry does not record frame-by-frame history or player-state snapshots. Unknown fields are excluded from events; resource samples accept finite non-negative counts only. Existing manager integration uses the documented `start/mark/complete/fail` hooks and safely treats telemetry as advisory.
+- Added `tests/transition-telemetry.spec.mjs` for timing, failure/cancellation classification, record/event/resource retention bounds, snapshot isolation, integration with the manager, and invalid inputs.
+- Local scratch verification: `node --check src/transition/transition-manager.mjs && node --check src/transition/transition-telemetry.mjs && node --test 'tests/transition-*.spec.mjs'` — **32 passed, 0 failed**. This is local evidence only.
+- Babylon adapter/runtime wiring is still outstanding. Official Babylon.js docs confirm `AssetContainer` supports explicit `addAllToScene()` and `removeAllFromScene()`; use this staging boundary rather than activating the destination at load time. See [Asset Containers](https://doc.babylonjs.com/features/featuresDeepDive/importers/assetContainers) and [glTF Loader](https://doc.babylonjs.com/features/featuresDeepDive/importers/glTF).
