@@ -225,3 +225,11 @@ After this gate, the next project is **World 2 — Private Island**, using CTM a
 - Added `tests/transition-three-loader.spec.mjs` covering staging, activation/deactivation, ownership-aware disposal, preload abort, and rejection/removal of premature live-scene insertion.
 - Local scratch verification on the current WIP tree: `node --check src/transition/three-world-loader.mjs && node --check src/transition/transition-telemetry.mjs && node --test 'tests/transition-*.spec.mjs'` — **38 passed, 0 failed**.
 - This is an adapter contract only: no second-world asset factory and no `game-v3.html` integration has been added. Browser regressions from parent CTM SHA `9e7f36e` remain independent blockers. Current CTM head is still being validated by the exact-SHA Actions run before this WIP stack should be fast-forwarded.
+
+
+## Execution checkpoint — synthetic World A/B acceptance harness (Task 7, partial)
+
+- Added `tests/transition-worlds-a-b.spec.mjs` using deterministic synthetic A/B/C manifests, a fake Three.js scene graph, the target-runtime loader adapter, state handoff and bounded telemetry.
+- Coverage proves successful A→B→A transitions, state restoration before destination activation, source retention after preload/restore/activation failure, masked-gate cancellation while waiting at READY, and rapid sequential A→B→A→B retirement without duplicate active roots.
+- Local scratch verification: `node --check tests/transition-worlds-a-b.spec.mjs && node --test 'tests/transition-*.spec.mjs'` — **44 passed, 0 failed**. This remains local/WIP evidence until exact-head GitHub Actions validates the saved branch.
+- Browser smoke/runtime integration remains pending; this harness does not claim the actual game page uses CTM or that World 2 is playable.
