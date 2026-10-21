@@ -19,6 +19,13 @@ test('Coastline boots, exits a vehicle, shows the avatar, and supports walking t
   page.on('console', message => { if (message.type() === 'error') consoleErrors.push(message.text()); });
   const failedRequests = [];
   page.on('requestfailed', request => failedRequests.push(`${request.url()} :: ${request.failure()?.errorText || 'request failed'}`));
+  // The cinematic scene can monopolize the headless browser's control channel. Throttle only this
+  // test page before application initialization so the smoke test remains responsive without
+  // changing the production renderer or gameplay loop.
+  await page.addInitScript(() => {
+    const schedule = window.setTimeout.bind(window);
+    window.requestAnimationFrame = callback => schedule(() => callback(performance.now()), 75);
+  });
   await page.goto('/game-v3.html', { waitUntil: 'domcontentloaded' });
   try { await expect(page.locator('canvas').first()).toBeAttached({ timeout: 12000 }); }
   catch (error) { throw new Error(`Coastline did not create a canvas. pageErrors=${JSON.stringify(pageErrors)} consoleErrors=${JSON.stringify(consoleErrors)} failedRequests=${JSON.stringify(failedRequests)}; original=${error.message}`); }
@@ -33,14 +40,6 @@ test('Coastline boots, exits a vehicle, shows the avatar, and supports walking t
   expect(afterExit.avatarVisible, 'avatar should be visible on foot').toBe(true);
   expect(afterExit.buildingCount).toBeGreaterThan(10);
   expect(afterExit.vehicleCount).toBeGreaterThan(1);
-  // This smoke test exercises input/movement logic, not the renderer's maximum frame rate.
-  // Throttling only the browser test loop prevents the full cinematic scene from starving the
-  // Playwright control channel while leaving the production renderer and gameplay code untouched.
-  await page.evaluate(() => {
-    window.__coastlineTest.keyDown('__coastline_walk_test_marker__');
-    window.__coastlineTest.keyUp('__coastline_walk_test_marker__');
-    window.requestAnimationFrame = callback => setTimeout(() => callback(performance.now()), 75);
-  });
 
   // Use a deterministic open-ground coordinate already covered by world-invariants, but
   // choose the first of four cardinal directions whose short movement corridor is also clear.
@@ -90,6 +89,10 @@ test('Coastline boots, exits a vehicle, shows the avatar, and supports walking t
 test('vehicle steering follows the corrected left/right input and reverse builds usable negative speed', async ({ page }) => {
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
+  await page.addInitScript(() => {
+    const schedule = window.setTimeout.bind(window);
+    window.requestAnimationFrame = callback => schedule(() => callback(performance.now()), 75);
+  });
   await page.goto('/game-v3.html?beta=vehicle-controls-regression', { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => Boolean(window.__coastlineTest), null, { timeout: 20000 });
   const roadStart = await page.evaluate(findNearbyClearRoad);
