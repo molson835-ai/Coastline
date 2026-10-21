@@ -71,6 +71,17 @@ At parent SHA `252ee60ec06ae6b9c4e676fc6f0cde0edbef8f2b`:
 
 Those runs verify the parent SHA only. The residual-policy commit changes the exact test target, so fetch current PR #81 head and require fresh CI evidence before claiming renderer normalization complete.
 
+## Guard formatting failure and correction on the residual-policy patch
+
+The first validation run on source commit `cb8d9043bd072b96c6188229b3cf01df54b2bedd` failed in the graphics guard because two newly inserted entries in each Python list were missing commas. Python concatenated adjacent string literals, so the required-policy assertion looked for one invalid combined string. The source itself passed direct exact-string assertions for the adaptive shadow, terrain texture, and anisotropy settings. This failure is a **guard-script formatting defect**, not evidence of a renderer/gameplay defect. The follow-up adds the missing commas to both the required and forbidden lists.
+
+At last observation for source SHA `cb8d9043bd072b96c6188229b3cf01df54b2bedd`:
+- Graphics quality guard run `39645074880`: failed on the malformed assertion list above.
+- itch.io package run `39645074892`: in progress.
+- Babylon preview run `39645074910`: in progress.
+- Gameplay watchdog run `39645074869`: pending.
+Those results are not the final verification target because this guard-only correction advances the PR head. Re-fetch live PR #81 and verify all required jobs on the new exact SHA.
+
 ## Why this matters for the next debugging pass
 Do not change movement/steering code based on the old PR #79 failure set yet. The next meaningful experiment is the full gameplay watchdog against the normalized exact head SHA. Compare the new failure set with PR #79's 12 failures.
 
