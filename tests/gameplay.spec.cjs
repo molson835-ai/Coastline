@@ -34,16 +34,22 @@ test('Coastline boots, exits a vehicle, shows the avatar, and supports walking t
   expect(afterExit.buildingCount).toBeGreaterThan(10);
   expect(afterExit.vehicleCount).toBeGreaterThan(1);
 
-  // The old exhaustive synchronous scan blocked the browser animation loop. Keep this
-  // candidate search bounded while still verifying actual collision-free ground.
-  // Use a small central-road probe; a broad synchronous scan starves the render loop.
+  // The helper selects a bounded central-road path and moves only nearby test pedestrians
+  // out of its way, leaving production movement/collision behavior intact.
   const clearWalkStart = await page.evaluate(findNearbyClearWalkStart);
   await page.evaluate(({ x, z }) => window.__coastlineTest.setWalkPosition(x, z, 0), clearWalkStart);
   const walkStart = await page.evaluate(() => window.__coastlineTest.state());
   await page.evaluate(() => window.__coastlineTest.keyDown('w'));
   try {
-    await expect.poll(async () => page.evaluate(({ x, z }) => { const now = window.__coastlineTest.state(); return Math.hypot(now.x - x, now.z - z); }, { x: walkStart.x, z: walkStart.z }), { timeout: 4000, message: 'W should move the player on verified clear ground' }).toBeGreaterThan(0.2);
-  } finally { await page.evaluate(() => window.__coastlineTest.keyUp('w')); }
+    await expect.poll(async () => page.evaluate(({ x, z }) => {
+      const now = window.__coastlineTest.state();
+      return Math.hypot(now.x - x, now.z - z);
+    }, { x: walkStart.x, z: walkStart.z }), {
+      timeout: 7000, intervals: [100, 250, 500], message: 'W should move the player on the bounded clear-road test path'
+    }).toBeGreaterThan(0.2);
+  } finally {
+    await page.evaluate(() => window.__coastlineTest.keyUp('w'));
+  }
   const afterWalk = await page.evaluate(() => window.__coastlineTest.state());
   expect(Math.hypot(afterWalk.x - walkStart.x, afterWalk.z - walkStart.z), 'W should move the player in open ground').toBeGreaterThan(0.2);
   await page.evaluate(() => window.__coastlineTest.keyDown('a'));

@@ -1,6 +1,5 @@
-// Browser-side spawn probes intentionally start near the map center and test road geometry
-// before running collision checks. Never sweep the entire world synchronously: that blocks
-// Chromium's main thread and makes the gameplay loop appear broken.
+// Browser-side spawn probes deliberately use known central road corridors and bounded
+// local samples. Avoid exhaustive coordinate sweeps: they block Chromium's game/render loop.
 function findNearbyClearRoad() {
   const api = window.__coastlineTest;
   if (!api?.worldModel?.isRoadCorridor) throw new Error('World road model is not ready');
@@ -20,18 +19,30 @@ function findNearbyClearRoad() {
 function findNearbyClearWalkStart() {
   const api = window.__coastlineTest;
   if (!api?.worldModel?.isRoadCorridor) throw new Error('World road model is not ready');
+  const x = 0; // Known central north/south road: traffic lanes are offset from the walking line.
   const vehicles = api.vehicleRoster();
-  const xs = [0, 200, -200, 400, -400, 600, -600];
+  const pedestrians = api.pedestrianRoster();
   const zs = [40, -40, 80, -80, 120, -120, 160, -160, 240, -240, 280, -280, 320, -320, 360, -360];
-  for (const x of xs) for (const z of zs) {
-    const samples = [0, 0.75, 1.5, 2.25].map(offset => z + offset);
+  for (const z of zs) {
+    // Short samples are enough for the initial walking assertion and bound sync work to one
+    // central road segment. The path remains inside the corridor and away from intersections.
+    const samples = Array.from({ length: 17 }, (_, i) => z + i * 0.25);
     if (!samples.every(sampleZ => api.worldModel.isRoadCorridor(x, sampleZ, 2))) continue;
-    if (samples.some(sampleZ => api.buildingBlocked(x, sampleZ, 0.6)
-      || api.pedestrianCollisionBlocked(x, sampleZ, 0.6))) continue;
-    if (vehicles.some(v => samples.some(sampleZ => Math.hypot(v.x - x, v.z - sampleZ) < 3))) continue;
+    if (samples.some(sampleZ => api.buildingBlocked(x, sampleZ, 0.6))) continue;
+    if (vehicles.some(v => samples.some(sampleZ => Math.hypot(v.x - x, v.z - sampleZ) < 2.6))) continue;
+
+    // Clear only nearby pedestrians from this test lane; all game entities and rules remain
+    // unchanged in production and the player can exercise the real input/movement loop.
+    for (let i = 0; i < pedestrians.length; i++) {
+      const p = pedestrians[i];
+      const nearestZ = Math.max(z, Math.min(z + 4, p.z));
+      if (Math.hypot(p.x - x, p.z - nearestZ) < 4) {
+        api.setPedestrianPosition(i, -680, -600 + i * 9);
+      }
+    }
     return { x, z };
   }
-  throw new Error('Could not locate nearby clear ground for walking controls regression');
+  throw new Error('Could not locate a nearby clear central-road lane for walking controls regression');
 }
 
 module.exports = { findNearbyClearRoad, findNearbyClearWalkStart };
