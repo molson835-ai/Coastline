@@ -10,8 +10,10 @@ test('on-foot movement treats pedestrians as physical obstacles', async ({ page 
     const api = window.__coastlineTest;
     const people = api.pedestrianRoster();
     let spot = null;
-    for (let x = -700; x <= 700 && !spot; x += 25) {
-      for (let z = -700; z <= 700; z += 25) {
+    // Keep the player safely inside the playable bounds; the previous search could
+    // choose x=-700 and then place the player at -701.5, testing the world boundary.
+    for (let x = -500; x <= 500 && !spot; x += 25) {
+      for (let z = -500; z <= 500; z += 25) {
         if (people.slice(1).some(p => Math.hypot(p.x - x, p.z - z) < 20)) continue;
         if (api.buildingBlocked(x, z, .45) || api.buildingBlocked(x - 1.5, z, .45)) continue;
         if (api.vehicleRoster().some(v => Math.hypot(v.x - (x - 1.5), v.z - z) < 3.0)) continue;
