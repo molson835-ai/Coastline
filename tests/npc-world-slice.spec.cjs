@@ -1,7 +1,7 @@
 const { test, expect } = require('@playwright/test');
 
 test('public-works NPC reacts to a nearby player and begins a character-specific repair story', async ({ page }) => {
-  await page.addInitScript(() => localStorage.removeItem('coastline-npc-world-slice-v1'));
+  await page.addInitScript(() => { if (!sessionStorage.getItem('coastline-npc-test-reset')) { localStorage.removeItem('coastline-npc-world-slice-v1'); sessionStorage.setItem('coastline-npc-test-reset', '1'); } });
   await page.goto('/game-v3.html', { waitUntil: 'domcontentloaded' });
   await expect(page.locator('canvas').first()).toBeAttached({ timeout: 30000 });
   await page.waitForFunction(() => Boolean(window.__coastlineTest?.npcWorldSliceState), null, { timeout: 30000 });
