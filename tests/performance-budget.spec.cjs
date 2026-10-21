@@ -5,13 +5,21 @@ test('runtime exposes performance budget telemetry without errors', async ({ pag
   page.on('pageerror', error => pageErrors.push(error.message));
   await page.goto('/game-v3.html', { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => Boolean(window.__coastlineTest), null, { timeout: 30000 });
-  await expect.poll(async () => page.evaluate(() => {
-    const perf = window.__coastlineTest?.state()?.performance;
-    const ready = Boolean(perf && perf.loadingMs !== null && perf.fps > 0 && perf.averageFrameMs > 0 && perf.p95FrameMs > 0 && perf.drawCalls > 0 && perf.triangles > 0 && perf.geometries > 0);
-    return { ready, perf };
-  }), { timeout: 25000, intervals: [250, 500, 1000] }).toMatchObject({ ready: true });
-  const state = await page.evaluate(() => window.__coastlineTest.state());
-  const perf = state.performance;
+
+  // Capture the same valid snapshot that satisfied readiness. The previous test
+  // polled until FPS was valid, then took a second snapshot; the telemetry can
+  // legitimately rotate between samples and expose a transient zero FPS there.
+  const perf = await page.evaluate(async () => {
+    const valid = value => Boolean(value && value.loadingMs !== null && value.fps > 0 && value.averageFrameMs > 0 && value.p95FrameMs > 0 && value.drawCalls > 0 && value.triangles > 0 && value.geometries > 0);
+    const deadline = performance.now() + 25000;
+    while (performance.now() < deadline) {
+      const value = window.__coastlineTest?.state()?.performance;
+      if (valid(value)) return value;
+      await new Promise(resolve => setTimeout(resolve, 250));
+    }
+    throw new Error('Timed out waiting for a valid performance telemetry snapshot');
+  });
+
   expect(perf, 'performance snapshot should be exposed').toBeTruthy();
   expect(perf.loadingMs, 'first rendered frame should be timed').toEqual(expect.any(Number));
   expect(perf.loadingMs).toBeGreaterThanOrEqual(0);
