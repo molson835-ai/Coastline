@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { findNearbyClearRoad, findNearbyClearWalkStart } = require('./helpers/nearby-world-spawn.cjs');
+const { findNearbyClearRoad } = require('./helpers/nearby-world-spawn.cjs');
 
 test('public beta launcher opens the feature-rich open-world runtime', async ({ page }) => {
   const pageErrors = [];
@@ -34,9 +34,19 @@ test('Coastline boots, exits a vehicle, shows the avatar, and supports walking t
   expect(afterExit.buildingCount).toBeGreaterThan(10);
   expect(afterExit.vehicleCount).toBeGreaterThan(1);
 
-  // The helper selects a bounded central-road path and moves only nearby test pedestrians
-  // out of its way, leaving production movement/collision behavior intact.
-  const clearWalkStart = await page.evaluate(findNearbyClearWalkStart);
+  // Use the deterministic open-ground coordinate already covered by world-invariants.
+  // The prior bounded road probe could select a dense road location that stalled the
+  // browser's render loop before the synthetic key event was processed. Keep this test
+  // focused on walking/turning behavior rather than dynamic spawn selection.
+  const clearWalkStart = await page.evaluate(() => {
+    const api = window.__coastlineTest;
+    const x = -650;
+    const z = -500;
+    if (api.buildingBlocked(x, z, 0.45)) throw new Error('Deterministic walk start is not open ground');
+    if (api.pedestrianCollisionBlocked(x, z, 0.45)) throw new Error('Deterministic walk start is occupied by a pedestrian');
+    if (api.vehicleRoster().some(v => !v.occupied && Math.hypot(v.x - x, v.z - z) < 3)) throw new Error('Deterministic walk start is occupied by a vehicle');
+    return { x, z };
+  });
   await page.evaluate(({ x, z }) => window.__coastlineTest.setWalkPosition(x, z, 0), clearWalkStart);
   const walkStart = await page.evaluate(() => window.__coastlineTest.state());
   await page.evaluate(() => window.__coastlineTest.keyDown('w'));
@@ -45,7 +55,7 @@ test('Coastline boots, exits a vehicle, shows the avatar, and supports walking t
       const now = window.__coastlineTest.state();
       return Math.hypot(now.x - x, now.z - z);
     }, { x: walkStart.x, z: walkStart.z }), {
-      timeout: 7000, intervals: [100, 250, 500], message: 'W should move the player on the bounded clear-road test path'
+      timeout: 4000, intervals: [100, 250, 500], message: 'W should move the player on verified clear ground'
     }).toBeGreaterThan(0.2);
   } finally {
     await page.evaluate(() => window.__coastlineTest.keyUp('w'));
