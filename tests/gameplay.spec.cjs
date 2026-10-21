@@ -106,11 +106,18 @@ test('vehicle steering follows the corrected left/right input and reverse builds
 
   await resetCar();
   await page.evaluate(() => window.__coastlineTest.keyDown('w'));
-  await page.waitForTimeout(350);
-  await page.evaluate(() => window.__coastlineTest.keyUp('w'));
+  try {
+    await expect.poll(async () => page.evaluate(() => window.__coastlineTest.state().vehicleSpeed), {
+      timeout: 5000, message: 'W should accelerate the car on a clear road'
+    }).toBeGreaterThan(2);
+    await expect.poll(async () => page.evaluate(({ x, z }) => {
+      const now = window.__coastlineTest.state();
+      return Math.hypot(now.x - x, now.z - z);
+    }, roadStart), { timeout: 5000, message: 'W should move the car along the clear road' }).toBeGreaterThan(0.5);
+  } finally {
+    await page.evaluate(() => window.__coastlineTest.keyUp('w'));
+  }
   const movingForward = await page.evaluate(() => window.__coastlineTest.state());
-  expect(movingForward.vehicleSpeed, 'W should accelerate the car forward').toBeGreaterThan(2);
-  expect(Math.hypot(movingForward.x - roadStart.x, movingForward.z - roadStart.z), 'W should move the car along the clear road').toBeGreaterThan(0.5);
 
   await resetCar();
   await page.evaluate(() => window.__coastlineTest.keyDown('w'));
