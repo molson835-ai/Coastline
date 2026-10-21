@@ -25,10 +25,9 @@ test('courier activity can be discovered, completed, rewarded, and replayed', as
   await page.evaluate(() => window.__coastlineTest.startMission());
   expect((await page.evaluate(() => window.__coastlineTest.state())).missionState).toBe('deliver');
 
-  // The authored delivery zone is centered at (100, -50) and missionUpdate accepts any point
-  // within 9 units. Use a nearby point just outside the exact authored center so the browser
-  // smoke does not force the camera/render workload onto a dense prop intersection at the center.
-  const deliveryProbe = { x: 100, z: -41 };
+  // missionUpdate uses a strict distance < 9 check around the authored target (100, -50).
+  // Six units away is safely inside the delivery zone while avoiding the exact target center.
+  const deliveryProbe = { x: 100, z: -44 };
   await page.evaluate(({ x, z }) => window.__coastlineTest.setWalkPosition(x, z, 0), deliveryProbe);
   await page.waitForFunction(() => window.__coastlineTest.state().missionState === 'done', null, { timeout: 5000 });
   const firstComplete = await page.evaluate(() => window.__coastlineTest.state());
