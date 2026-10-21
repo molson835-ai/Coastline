@@ -15,7 +15,7 @@ async function openHarness(page) {
 }
 
 test('browser CTM synthetic A to B to A preserves state and keeps one active root', async ({ page }) => {
-  await openHarness(page);
+  const pageErrors = await openHarness(page);
   const result = await page.evaluate(() => window.__coastlineCTMBrowserSmoke.roundTrip());
   expect(result.firstState).toBe('COMPLETE');
   expect(result.secondState).toBe('COMPLETE');
@@ -28,10 +28,11 @@ test('browser CTM synthetic A to B to A preserves state and keeps one active roo
   expect(result.telemetry).toEqual(['COMPLETE', 'COMPLETE']);
   expect(result.disposed['world-a']).toBe(1);
   expect(result.disposed['world-b']).toBe(1);
+  expect(pageErrors, 'transitions should not throw browser errors').toEqual([]);
 });
 
 test('browser masked gate can be cancelled at READY without replacing World A', async ({ page }) => {
-  await openHarness(page);
+  const pageErrors = await openHarness(page);
   await page.evaluate(() => window.__coastlineCTMBrowserSmoke.beginMaskedTransition());
   await page.waitForFunction(() => window.__coastlineCTMBrowserSmoke.state().transition?.state === 'READY', null, { timeout: 10000 });
   const result = await page.evaluate(() => window.__coastlineCTMBrowserSmoke.cancelMaskedTransition());
@@ -44,4 +45,5 @@ test('browser masked gate can be cancelled at READY without replacing World A', 
   expect(result.activeRoot).toEqual(['world-a']);
   expect(result.telemetry).toBe('CANCELLED');
   expect(result.disposed['world-b']).toBe(1);
+  expect(pageErrors, 'masked cancellation should not throw browser errors').toEqual([]);
 });
