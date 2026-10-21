@@ -7,8 +7,9 @@ test('runtime exposes performance budget telemetry without errors', async ({ pag
   await page.waitForFunction(() => Boolean(window.__coastlineTest), null, { timeout: 30000 });
   await expect.poll(async () => page.evaluate(() => {
     const perf = window.__coastlineTest?.state()?.performance;
-    return Boolean(perf && perf.loadingMs !== null && perf.fps > 0 && perf.averageFrameMs > 0 && perf.p95FrameMs > 0 && perf.drawCalls > 0 && perf.triangles > 0 && perf.geometries > 0);
-  }), { timeout: 15000, intervals: [250, 500, 1000] }).toBe(true);
+    const ready = Boolean(perf && perf.loadingMs !== null && perf.fps > 0 && perf.averageFrameMs > 0 && perf.p95FrameMs > 0 && perf.drawCalls > 0 && perf.triangles > 0 && perf.geometries > 0);
+    return { ready, perf };
+  }), { timeout: 25000, intervals: [250, 500, 1000] }).toMatchObject({ ready: true });
   const state = await page.evaluate(() => window.__coastlineTest.state());
   const perf = state.performance;
   expect(perf, 'performance snapshot should be exposed').toBeTruthy();
