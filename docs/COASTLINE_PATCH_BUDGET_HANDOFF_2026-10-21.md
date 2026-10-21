@@ -22,6 +22,7 @@ Normal development should favor Micro/Small patches. Medium is acceptable for on
 - `docs/patch-budget.examples.json` — valid/invalid schema examples.
 - `docs/COASTLINE_CHANGE_DISCIPLINE.md` — operating discipline.
 - `docs/COASTLINE_AGENT_RECOVERY_GUIDE.md` — durable instructions for future agents/chats, including failure taxonomy, evidence capture, tool/workflow guidance, and knowledge-retention rules.
+- `docs/COASTLINE_AI_ENGINEERING_PLAYBOOK.md` — end-to-end human–AI operating workflow, test-runner hygiene, exact current P0 browser failure ledger, user-feedback guidelines, and free-tier/tool-cost discipline.
 
 ## Starting heuristics
 
@@ -85,9 +86,19 @@ The browser job used GitHub-hosted Ubuntu 24.04, Node 20.20.2, Playwright Chromi
 
 Do not treat a browser-run failure as a source-code regression until the failure signature, fixture state, initialization state, and exact SHA are compared against the nearest known-good run.
 
-## Current CI state after PR #80 submission
+## Current CI state after PR #80 submission (historical snapshot)
 
-PR #80 is the documentation/process branch for this operating system. At the latest check, its gameplay watchdog run #847 was still in progress; system tests and engine tests had already passed while the browser-smoke job was still running. Do not claim PR #80 green until all required jobs complete successfully on its exact head SHA.
+PR #80 is the documentation/process branch for this operating system. The prior snapshot recorded watchdog run #847 in progress at an earlier point. Live re-check on 2026-10-21 showed PR #80 head `e183f6d62d9c63aa82b43c95530a93045c6da0e7`: gameplay watchdog run `39642460781` failed; itch.io package run `39642460918` and Babylon preview run `39642460784` passed. These are branch-specific results, not evidence about main or the current renderer-normalization branch. Always query live status before acting.
+
+## Latest P0 renderer evidence — 2026-10-21
+
+- PR #81: `https://github.com/molson835-ai/Coastline/pull/81`, still draft/open at the checkpoint; source head `4afbf75e3dc03c8a62c13b4d56cd8bd4b82d53a8`.
+- Graphics guard run `39645237767`, HTML package run `39645237782`, and Babylon preview run `39645237776` passed on that head.
+- Gameplay watchdog run `39645237597` failed on tested merge SHA `27a4097523b89b86f5fab7cfaa4d8c1945612fa4`: engine/system jobs passed; Playwright reported 31 passed and 4 failed over 4.8 minutes.
+- Four reported browser failures: vehicle acceleration (speed 0.271 vs >2 expected), jump input sampled before positive height/velocity, mobile forward displacement 0.3368 vs >0.5 expected, and graphics shadow state false when test expected true.
+- The same job emitted a separate TAP failure from `tests/performance-cache.spec.mjs`; the assertion appears inconsistent with the raw service-worker source at the same merge SHA. Treat this as unresolved test-runner/path evidence, not as a confirmed source defect.
+- Artifact `12367401801` / `coastline-gameplay-report` expires 2026-10-28; SHA-256 `57da7542a7c9a845393c1ba78ef9ea03e8273103b79929cd96edb993cdbedb44`.
+- Next action: inspect traces and exact runner/path behavior, classify these failures individually, and create one focused test/fix at a time. Do not weaken tests or merge PR #81 while unresolved.
 
 ## Calibration status
 

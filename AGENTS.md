@@ -13,7 +13,7 @@ Build Coastline into a large, living coastal open-world driving game with satisf
 - Avoid broad rewrites of the monolithic `game-v3.html`. Prefer isolated modules and small changes with regression tests.
 
 ## Working loop
-1. Read the issue, roadmap, relevant source, and existing tests before editing.
+1. Read this file, `docs/COASTLINE_AI_ENGINEERING_PLAYBOOK.md`, the relevant recovery/checkpoint, roadmap, source, and existing tests before editing. Check live PR/CI state; dated checkpoints are historical snapshots.
 2. Select one small outcome that can be completed in one PR. State assumptions and acceptance criteria in the PR.
 3. Create a dedicated branch. Never commit directly to `main`.
 4. Add or update regression tests for every behavior change. Preserve the current test suite.
