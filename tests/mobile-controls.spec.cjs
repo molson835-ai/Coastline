@@ -41,6 +41,7 @@ test('mobile driving controls are visible and operate the vehicle', async ({ pag
 
   await forward.hover();
   await page.mouse.down();
+  await page.evaluate(() => window.__coastlineTest.advanceTestFrame(1/60, 60));
   try {
     await expect.poll(async () => page.evaluate(({ x, z }) => {
       const now = window.__coastlineTest.state();
@@ -55,6 +56,7 @@ test('mobile driving controls are visible and operate the vehicle', async ({ pag
   await left.hover();
   const headingBeforeSteer = (await page.evaluate(() => window.__coastlineTest.state())).heading;
   await page.mouse.down();
+  await page.evaluate(() => window.__coastlineTest.advanceTestFrame(1/60, 30));
   try {
     await expect.poll(async () => page.evaluate(heading => window.__coastlineTest.state().heading - heading, headingBeforeSteer), {
       timeout: 3000,

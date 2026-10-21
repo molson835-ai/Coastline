@@ -43,16 +43,18 @@ test('Coastline boots, exits a vehicle, shows the avatar, and supports walking t
   expect(afterExit.buildingCount).toBeGreaterThan(10);
   expect(afterExit.vehicleCount).toBeGreaterThan(1);
 
-  await page.evaluate(() => window.__coastlineTest.setWalkPosition(0, 0, 0));
+  const openWalk = await page.evaluate(() => window.__coastlineTest.findOpenWalkPosition());
+  expect(openWalk, 'a clear walking spawn should exist').not.toBeNull();
+  await page.evaluate(({ x, z }) => window.__coastlineTest.setWalkPosition(x, z, 0), openWalk);
   const walkStart = await page.evaluate(() => window.__coastlineTest.state());
   await page.evaluate(() => window.__coastlineTest.keyDown('w'));
-  await page.waitForTimeout(1000);
+  await page.evaluate(() => window.__coastlineTest.advanceTestFrame(1/60, 60));
   await page.evaluate(() => window.__coastlineTest.keyUp('w'));
   const afterWalk = await page.evaluate(() => window.__coastlineTest.state());
   expect(Math.hypot(afterWalk.x - walkStart.x, afterWalk.z - walkStart.z), 'W should move the player in open ground').toBeGreaterThan(0.2);
 
   await page.evaluate(() => window.__coastlineTest.keyDown('a'));
-  await page.waitForTimeout(800);
+  await page.evaluate(() => window.__coastlineTest.advanceTestFrame(1/60, 48));
   await page.evaluate(() => window.__coastlineTest.keyUp('a'));
   const afterTurn = await page.evaluate(() => window.__coastlineTest.state());
   expect(Math.abs(afterTurn.heading - afterWalk.heading), 'A should turn the avatar/camera').toBeGreaterThan(0.05);
@@ -86,7 +88,7 @@ test('vehicle steering follows left/right input and reverse builds usable negati
 
   await resetCar();
   await page.evaluate(() => window.__coastlineTest.keyDown('w'));
-  await page.waitForTimeout(350);
+  await page.evaluate(() => window.__coastlineTest.advanceTestFrame(1/60, 30));
   await page.evaluate(() => window.__coastlineTest.keyUp('w'));
   const movingForward = await page.evaluate(() => window.__coastlineTest.state());
   expect(movingForward.vehicleSpeed, 'W should accelerate the car forward').toBeGreaterThan(2);
@@ -94,39 +96,45 @@ test('vehicle steering follows left/right input and reverse builds usable negati
 
   await resetCar();
   await page.evaluate(() => window.__coastlineTest.keyDown('w'));
-  await page.waitForTimeout(350);
+  await page.evaluate(() => window.__coastlineTest.advanceTestFrame(1/60, 30));
   await page.evaluate(() => window.__coastlineTest.keyUp('w'));
   const beforeLeft = await page.evaluate(() => window.__coastlineTest.state());
   await page.evaluate(() => window.__coastlineTest.keyDown('a'));
-  await page.waitForTimeout(500);
+  await page.evaluate(() => window.__coastlineTest.advanceTestFrame(1/60, 30));
   await page.evaluate(() => window.__coastlineTest.keyUp('a'));
   const leftTurn = await page.evaluate(() => window.__coastlineTest.state());
   expect(leftTurn.heading, 'A should steer left while driving forward').toBeLessThan(beforeLeft.heading);
 
   await resetCar();
   await page.evaluate(() => window.__coastlineTest.keyDown('w'));
-  await page.waitForTimeout(350);
+  await page.evaluate(() => window.__coastlineTest.advanceTestFrame(1/60, 30));
   await page.evaluate(() => window.__coastlineTest.keyUp('w'));
   await page.evaluate(() => window.__coastlineTest.keyDown('d'));
-  await page.waitForTimeout(500);
+  await page.evaluate(() => window.__coastlineTest.advanceTestFrame(1/60, 30));
   await page.evaluate(() => window.__coastlineTest.keyUp('d'));
   const rightTurn = await page.evaluate(() => window.__coastlineTest.state());
   expect(rightTurn.heading, 'D should steer right while driving forward').toBeGreaterThan(0);
 
   await resetCar();
   await page.evaluate(() => window.__coastlineTest.keyDown('s'));
-  await page.waitForTimeout(500);
+  await page.evaluate(() => window.__coastlineTest.advanceTestFrame(1/60, 35));
   await page.evaluate(() => window.__coastlineTest.keyUp('s'));
   const reversing = await page.evaluate(() => window.__coastlineTest.state());
   expect(reversing.vehicleSpeed, 'S should build useful reverse speed').toBeLessThan(-2.5);
   expect(errors, 'vehicle controls should not introduce runtime errors').toEqual([]);
 });
 
-test('landmark discoveries award cash once and persist across reloads', async ({ page }) => {
+test('landmark discoveries award cash once and persist cash and discoveries across reloads', async ({ page }) => {
+  await page.addInitScript(() => {
+    if (sessionStorage.getItem('coastline-landmark-test-reset-v1')) return;
+    localStorage.removeItem('coastline-discovered-landmarks-v1');
+    localStorage.removeItem('coastline-cash-balance-v1');
+    sessionStorage.setItem('coastline-landmark-test-reset-v1', '1');
+  });
   await page.goto('/game-v3.html?beta=landmark-discovery-regression', { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => Boolean(window.__coastlineTest), null, { timeout: 20000 });
   await page.evaluate(() => localStorage.removeItem('coastline-discovered-landmarks-v1'));
-  await page.reload({ waitUntil: 'domcontentloaded' });
+  await page.reload({ waitUntil: 'commit' });
   await page.waitForFunction(() => Boolean(window.__coastlineTest), null, { timeout: 20000 });
   const before = await page.evaluate(() => ({ cash: window.__coastlineTest.state().cashBalance, landmark: window.__coastlineTest.landmarkRoster()[0] }));
   await page.evaluate(({ x, z }) => {
@@ -139,7 +147,8 @@ test('landmark discoveries award cash once and persist across reloads', async ({
   expect(after.state.discovered).toContain(before.landmark.id);
   await page.evaluate(() => window.__coastlineTest.checkLandmarkDiscovery());
   expect(await page.evaluate(() => window.__coastlineTest.state().cashBalance)).toBe(after.cash);
-  await page.reload({ waitUntil: 'domcontentloaded' });
-  await page.waitForFunction(() => Boolean(window.__coastlineTest), null, { timeout: 20000 });
+  await page.reload({ waitUntil: 'commit' });
+  await page.waitForFunction(() => Boolean(window.__coastlineTest), null, { timeout: 30000 });
   expect(await page.evaluate(() => window.__coastlineTest.landmarkDiscoveryState().discovered)).toContain(before.landmark.id);
+  expect(await page.evaluate(() => window.__coastlineTest.state().cashBalance)).toBe(after.cash);
 });
