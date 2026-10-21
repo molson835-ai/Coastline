@@ -30,6 +30,7 @@
 - Local scratch validation of the newly added manager suite reported **8 tests passed, 0 failed**. This is useful focused evidence only, not repository CI acceptance. The full workflow and other repository tests must be checked against the current SHA.
 - New implementation in that commit: `src/transition/transition-state-machine.mjs`, `src/transition/transition-manager.mjs`, `tests/fixtures/transition-worlds.mjs`, and `tests/transition-manager.spec.mjs`. Existing registry/loader modules and tests were already in the CTM branch.
 - The manager is currently engine-agnostic and injected/testable. It is **not yet wired into `game-v3.html`**, and there is no production Babylon adapter or real in-game gate yet. Do not describe World 2 transitions as playable.
+- The next planned slice is saved separately on branch [`coastline-player-state-handoff-v1`](https://github.com/molson835-ai/Coastline/commit/a703b356c1f771c36bf93ae095b186a63132e0bb), commit `a703b35`. It adds the canonical `PlayerStateHandoff` contract, destination/source rollback hooks, diagnostics for rollback failures, and 10 state-handoff tests (8 new cases beyond the manager tests). A local scratch run of `node --test 'tests/transition-*.spec.mjs'` reported **18 passed, 0 failed**. This branch has not yet been fast-forwarded into PR #77, because the parent commit's full browser run was still active at the last check.
 - CTM PR #77 remains draft and must not be merged until its acceptance gate is satisfied.
 
 ## Key player-approved design decisions
@@ -68,7 +69,7 @@ The manager patch provides explicit state changes/history, single-flight request
 
 1. Inspect Actions run #39533658401 on commit `9e7f36e`. Confirm the `test:transition` runner includes both existing registry/loader specs and the new manager tests. Review any new failures against logs and traces.
 2. Resolve the existing browser failures listed below independently; do not broaden CTM changes to hide/skip gameplay assertions.
-3. Implement and test the dedicated atomic `PlayerStateHandoff` (capture, validate, restore, rollback), including failure and partial-restore tests.
+3. Review branch [`coastline-player-state-handoff-v1`](https://github.com/molson835-ai/Coastline/commit/a703b356c1f771c36bf93ae095b186a63132e0bb), then fast-forward/cherry-pick its Task 4 commit onto `coastline-transition-manager-v1` only after the parent run finishes or is deliberately superseded. Re-run the full suite on the resulting exact SHA.
 4. Implement provider-neutral gate definitions/providers for physical, masked and explicit triggers.
 5. Add bounded transition telemetry; telemetry failure must never break gameplay. Do not retain unbounded per-frame history.
 6. Implement the Babylon loader behind the adapter and use the existing runtime conventions. Consult official [Babylon.js Asset Containers documentation](https://github.com/BabylonJS/Documentation/blob/master/content/features/featuresDeepDive/importers/assetContainers.md): `LoadAssetContainerAsync` returns assets without automatically adding them to the scene; explicitly add them for activation, remove them from the scene during retirement, and dispose owned assets only after the destination is safe. Check shared materials/references before disposal.
@@ -122,4 +123,4 @@ Never claim work has been saved if it exists only in a chat or local scratch fil
 
 ## Checkpoint log
 
-- **2026-10-20/21:** CTM PR #77 head `9e7f36e` adds the transition state machine, manager, synthetic fixture and 8 manager lifecycle tests. Local scratch manager tests reported 8/8 passing. GitHub Actions run #39533658401 was queued on last inspection; full CI result is pending/unknown here. Prior completed run #39529433357 on `3b16b27` had the browser failures listed above. No merge or production promotion was performed.
+- **2026-10-20/21:** CTM PR #77 head `9e7f36e` adds the transition state machine, manager, synthetic fixture and 8 manager lifecycle tests. Actions run #39533658401 had engine/system/vehicle-fidelity/package jobs pass while browser shards were still running; final result must be rechecked. Task 4 is saved on `coastline-player-state-handoff-v1` at `a703b35`, with a local scratch result of 18/18 combined transition tests passing; it is not yet part of PR #77. Prior completed run #39529433357 on `3b16b27` had the browser failures listed above. No merge or production promotion was performed.
