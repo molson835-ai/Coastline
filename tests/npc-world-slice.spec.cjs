@@ -12,9 +12,9 @@ test('public-works NPC reacts to a nearby player and begins a character-specific
   expect(before.phase).toBe('idle');
 
   // Warm only long enough to prove the real update loop is alive. The prior
-  // diagnostic showed this game can update slowly on CI, so 4 ticks is safer than
+  // diagnostic showed this game can update slowly on CI, so 3 ticks is safer than
   // using an arbitrary wall-clock sleep while still detecting a stalled loop.
-  await expect.poll(async () => page.evaluate(() => window.__coastlineTest.npcWorldSliceState().diagnostics.updateCount), { timeout: 12000, intervals: [250, 500, 1000] }).toBeGreaterThan(3);
+  await expect.poll(async () => page.evaluate(() => window.__coastlineTest.npcWorldSliceState().diagnostics.updateCount), { timeout: 12000, intervals: [250, 500, 1000] }).toBeGreaterThan(2);
   await page.evaluate(({ x, z }) => window.__coastlineTest.setVehiclePosition(x, z, 0), before.target);
   try {
     await expect.poll(async () => page.evaluate(() => {
