@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Coastline CTM Runtime Contract Test</title></head>
+<body>
+  <!-- Isolated test fixture. This route is not linked from the product UI. -->
+  <main hidden><h1>CTM browser test fixture</h1></main>
+  <script type="module">
+    import { TransitionManager } from '../../src/transition/transition-manager.mjs';
+    import { PlayerStateHandoff } from '../../src/transition/player-state-handoff.mjs';
+    import { TransitionTelemetry } from '../../src/transition/transition-telemetry.mjs';
+    import { ThreeWorldLoaderAdapter } from '../../src/transition/three-world-loader.mjs';
+    import { createPhysicalGate, createMaskedGate, createGateTransitionRequest } from '../../src/transition/gate-providers.mjs';
+
+    class FakeObject3D {
+      constructor(name) { this.name = name; this.isObject3D = true; this.parent = null; this.children = []; }
+      add(child) { if (child.parent) child.parent.remove(child); child.parent = this; this.children.push(child); }
+      remove(child) {
+        const index = this.children.indexOf(child);
+        if (index >= 0) this.children.splice(index, 1);
+        if (child.parent === this) child.parent = null;
+      }
+      updateMatrixWorld() {}
+    }
+    class FakeScene extends FakeObject3D { constructor() { super('live-scene'); } }
+    const clone = value => structuredClone(value);
+    const makeState = () => ({
+      schemaVersion: 1,
+      player: { position: { x: 2, y: 0, z: 9 }, status: 'driving' },
+      vehicle: { activeVehicle: 'white-sedan', condition: { health: .94 }, upgrades: { engine: 1 }, customization: { paint: 'white' } },
+      economy: { money: 1750, inventory: ['garage-key'] },
+      progression: { reputation: { city: 2 }, progression: { chapter: 1 } },
+      mission: { activeMission: null, progress: { completed: 2 } },
+      discoveries: { visited: ['marina'] },
+      environment: { time: 'sunset', weather: 'clear' },
+      worldState: { garageDoorOpen: false }
+    });
+    const world = id => ({
+      id, version: 1, assetManifest: [], entryPoints: [{id:'entry'}], gates: [],
+      spawnPoints: [{id:'arrival'}], memoryBudget: 64, streamingPriority: 1,
+      collisionPolicy: {}, aiPolicy: {}, missionPolicy: {}, environment: {}, persistencePolicy: {}
+    });
+
+    const scene = new FakeScene();
+    const disposedByWorld = {};
+    const activatedByWorld = {};
+    const events = [];
+    const restoredSnapshots = [];
+    const telemetry = new TransitionTelemetry();
+    const loader = new ThreeWorldLoaderAdapter({
+      THREE: { Object3D: FakeObject3D },
+      scene,
+      prepareWorld: async manifest => ({
+        root: new FakeObject3D(manifest.id),
+        resourceCounts: { meshes: 3, geometries: 2, textures: 1 },
+        warm: async () => events.push('warm:' + manifest.id),
+        activate: async () => {
+          events.push('activate:' + manifest.id);
+          activatedByWorld[manifest.id] = (activatedByWorld[manifest.id] || 0) + 1;
+        },
+        deactivate: async () => events.push('deactivate:' + manifest.id),
+        disposeOwnedResources: async () => {
+          events.push('dispose:' + manifest.id);
+          disposedByWorld[manifest.id] = (disposedByWorld[manifest.id] || 0) + 1;
+        }
+      })
+    });
+    const handoff = new PlayerStateHandoff({
+      captureSourceState: async context => clone(context.snapshot || makeState()),
+      restoreDestinationState: async (snapshot, context) => {
+        events.push('restore:' + context.destinationWorldId);
+        restoredSnapshots.push({ worldId: context.destinationWorldId, snapshot: clone(snapshot) });
+        return { restored: true, destinationWorldId: context.destinationWorldId, snapshot: clone(snapshot) };
+      },
+      rollbackSourceState: async () => events.push('rollback-source')
+    });
+    const manager = new TransitionManager({
+      loader, stateHandoff: handoff, telemetry,
+      idFactory: (() => { let n = 0; return () => 'browser-ctm-' + (++n); })()
+    });
+    manager.registerWorld(world('world-a'));
+    manager.registerWorld(world('world-b'));
+
+    let maskedHandle = null;
+    let releaseMasked = null;
+    let maskedOutcome = null;
+
+    async function initialize() {
+      await manager.initializeWorld('world-a');
+      return { activeWorldId: manager.getActiveWorldId(), activeRoot: scene.children.map(c => c.name), sceneCount: scene.children.length };
+    }
+
+    async function roundTrip() {
+      const snapshot = makeState();
+      const abGate = createPhysicalGate({ id:'bridge-a-b', fromWorld:'world-a', toWorld:'world-b', preloadDistance:100, activationDistance:8, spawnPoint:'island', fallbackPoint:'city-safe' });
+      const firstHandle = manager.requestTransition({ gate:abGate, playerStateContext:{snapshot} });
+      const first = await firstHandle.promise;
+      const baGate = createPhysicalGate({ id:'tunnel-b-a', fromWorld:'world-b', toWorld:'world-a', preloadDistance:100, activationDistance:8, spawnPoint:'city', fallbackPoint:'island-safe' });
+      const secondHandle = manager.requestTransition({ gate:baGate, playerStateContext:{snapshot} });
+      const second = await secondHandle.promise;
+      return {
+        firstState:first.state, secondState:second.state, activeWorldId:manager.getActiveWorldId(),
+        sceneCount:scene.children.length, activeRoot:scene.children.map(c=>c.name),
+        restoredMoney:restoredSnapshots[0]?.snapshot?.economy?.money,
+        restoredVehicle:restoredSnapshots[0]?.snapshot?.vehicle?.activeVehicle,
+        restoreBeforeActivate:events.indexOf('restore:world-b') >= 0 && events.indexOf('restore:world-b') < events.indexOf('activate:world-b'),
+        disposed:clone(disposedByWorld),
+        telemetry:[telemetry.get(firstHandle.id)?.status,telemetry.get(secondHandle.id)?.status]
+      };
+    }
+
+    async function beginMaskedTransition() {
+      if (maskedHandle) throw new Error('masked test already started');
+      const barrier = new Promise(resolve => { releaseMasked = resolve; });
+      const gate = createMaskedGate({ id:'doorman-a-b', fromWorld:'world-a', toWorld:'world-b', preloadDistance:100, activationDistance:8, spawnPoint:'lobby', fallbackPoint:'front-walk' });
+      const request = createGateTransitionRequest({
+        gate, sourceWorldId:'world-a', playerStateContext:{snapshot:makeState()},
+        waitForHandoff: () => barrier
+      });
+      maskedHandle = manager.requestTransition(request);
+      maskedOutcome = maskedHandle.promise.then(
+        result => ({ ok:true, state:result.state }),
+        error => ({ ok:false, name:error.name, code:error.code, message:error.message, snapshot:maskedHandle.getSnapshot() })
+      );
+      return { id:maskedHandle.id };
+    }
+
+    async function cancelMaskedTransition() {
+      if (!maskedHandle || !releaseMasked || !maskedOutcome) throw new Error('masked transition was not started');
+      const cancelled = maskedHandle.cancel();
+      releaseMasked('release after cancellation');
+      const outcome = await maskedOutcome;
+      return {
+        cancelAccepted:cancelled, outcome, activeWorldId:manager.getActiveWorldId(),
+        sceneCount:scene.children.length, activeRoot:scene.children.map(c=>c.name),
+        disposed:clone(disposedByWorld), telemetry:telemetry.get(maskedHandle.id)?.status
+      };
+    }
+
+    try {
+      const initial = await initialize();
+      window.__coastlineCTMBrowserSmoke = {
+        ready:true, initial,
+        state:() => ({activeWorldId:manager.getActiveWorldId(), transition:manager.getActiveTransition()?.getSnapshot?.() || null}),
+        roundTrip, beginMaskedTransition, cancelMaskedTransition
+      };
+    } catch (error) {
+      window.__coastlineCTMBrowserSmoke = { ready:false, error:{name:error.name,message:error.message,stack:error.stack} };
+    }
+  </script>
+</body>
+</html>
