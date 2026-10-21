@@ -24,7 +24,12 @@ test('courier activity can be discovered, completed, rewarded, and replayed', as
 
   await page.evaluate(() => window.__coastlineTest.startMission());
   expect((await page.evaluate(() => window.__coastlineTest.state())).missionState).toBe('deliver');
-  await page.evaluate(() => window.__coastlineTest.setWalkPosition(100, -50, 0));
+
+  // The authored delivery zone is centered at (100, -50) and missionUpdate accepts any point
+  // within 9 units. Use a nearby point just outside the exact authored center so the browser
+  // smoke does not force the camera/render workload onto a dense prop intersection at the center.
+  const deliveryProbe = { x: 100, z: -41 };
+  await page.evaluate(({ x, z }) => window.__coastlineTest.setWalkPosition(x, z, 0), deliveryProbe);
   await page.waitForFunction(() => window.__coastlineTest.state().missionState === 'done', null, { timeout: 5000 });
   const firstComplete = await page.evaluate(() => window.__coastlineTest.state());
   expect(firstComplete.cashBalance).toBe(750);
@@ -33,7 +38,7 @@ test('courier activity can be discovered, completed, rewarded, and replayed', as
 
   await page.evaluate(() => window.__coastlineTest.startMission());
   expect((await page.evaluate(() => window.__coastlineTest.state())).missionState).toBe('deliver');
-  await page.evaluate(() => window.__coastlineTest.setWalkPosition(100, -50, 0));
+  await page.evaluate(({ x, z }) => window.__coastlineTest.setWalkPosition(x, z, 0), deliveryProbe);
   await page.waitForFunction(() => {
     const s = window.__coastlineTest.state();
     return s.missionState === 'done' && s.missionRuns === 2;
