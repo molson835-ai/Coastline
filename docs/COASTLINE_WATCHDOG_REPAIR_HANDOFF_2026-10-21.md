@@ -120,3 +120,5 @@ Fix commits on the repair branch:
 - `a1b05da900d9caeb43451cce1b64b15a8935a40a`: update regional landmark regression to verify cash remains $400 after reload and reset local test storage once per tab.
 
 **Validation pending:** these commits have not yet been covered by a completed watchdog run. The previous watchdog #872 result was 31 passed / 4 failed, with landmark tests timing out during reload initialization. New assertions are intentionally retained; if reload continues to time out, address slow startup/worker contention without removing the persistence check.
+
+- `77a144f9614a6ceb1e653bdd95f79d4303a17d91`: hardened the cash loader so a missing localStorage key correctly defaults to $250 (rather than coercing `null` to zero). This was caught during code review before accepting the persistence fix; the latest watchdog must verify the clean-start balance and persistence together.
