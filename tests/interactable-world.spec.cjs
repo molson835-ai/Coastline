@@ -25,7 +25,7 @@ test('starter garage and non-pedestrian rideables remain interactable in the ful
   await expect.poll(async()=>page.evaluate(()=>window.__coastlineTest.state().mode)).toBe('walk');
   await page.evaluate(()=>window.__coastlineTest.enterRideable('aircraft'));
   await page.evaluate(()=>window.__coastlineTest.keyDown('space'));
-  await page.waitForTimeout(450);
+  await expect.poll(async()=>page.evaluate(()=>window.__coastlineTest.rideableState().find(v=>v.kind==='aircraft').flightHeight),{timeout:5000,intervals:[100,250,500]}).toBeGreaterThan(0);
   const flightHeight=await page.evaluate(()=>window.__coastlineTest.rideableState().find(v=>v.kind==='aircraft').flightHeight);
   await page.evaluate(()=>window.__coastlineTest.keyUp('space'));
   expect(flightHeight).toBeGreaterThan(0);
