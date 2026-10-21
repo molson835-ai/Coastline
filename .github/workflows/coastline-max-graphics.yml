@@ -25,12 +25,20 @@ jobs:
             "if(lowPowerDevice)bloomPass.enabled=false;",
             "if(avg>23){qualityRecoveryAt=0;",
             "terrainSegments=lowPowerDevice?176:256"
+            "sun.shadow.mapSize.set(lowPowerDevice?1024:2048,lowPowerDevice?1024:2048);",
+            "makeSurfaceTexture('terrain',lowPowerDevice?192:384),asphaltTexture=makeSurfaceTexture('asphalt',lowPowerDevice?192:384);",
+            "t.anisotropy=Math.min(lowPowerDevice?2:8,renderer.capabilities.getMaxAnisotropy());",
+            "anisotropy:Math.min(lowPowerDevice?2:8,renderer.capabilities.getMaxAnisotropy())"
           ]
           forbidden=[
             "let currentPixelRatio=Math.min(Math.max(devicePixelRatio||1,1.5),2.0);",
             "if(lowPowerDevice)bloomPass.enabled=true;",
             "if(avg>999){qualityRecoveryAt=0;",
             "terrainSegments=384"
+            "sun.shadow.mapSize.set(4096,4096);",
+            "makeSurfaceTexture('terrain',512),asphaltTexture=makeSurfaceTexture('asphalt',512);",
+            "t.anisotropy=Math.min(16,renderer.capabilities.getMaxAnisotropy());",
+            "anisotropy:Math.min(16,renderer.capabilities.getMaxAnisotropy())"
           ]
           for value in required:
             assert value in s, f'missing adaptive rendering policy: {value}'
