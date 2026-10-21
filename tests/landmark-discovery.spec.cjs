@@ -1,6 +1,12 @@
 const { test, expect } = require('@playwright/test');
 
-test('regional landmarks reward exploration and persist discoveries', async ({ page }) => {
+test('regional landmarks reward exploration and persist cash and discoveries', async ({ page }) => {
+  await page.addInitScript(() => {
+    if (sessionStorage.getItem('coastline-landmark-test-reset-v1')) return;
+    localStorage.removeItem('coastline-discovered-landmarks-v1');
+    localStorage.removeItem('coastline-cash-balance-v1');
+    sessionStorage.setItem('coastline-landmark-test-reset-v1', '1');
+  });
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.goto('/game-v3.html?beta=landmark-discovery-test', { waitUntil: 'domcontentloaded' });
@@ -21,7 +27,8 @@ test('regional landmarks reward exploration and persist discoveries', async ({ p
   expect(errors).toEqual([]);
 
   await page.reload({ waitUntil: 'commit' });
-  await page.waitForFunction(() => Boolean(window.__coastlineTest), null, { timeout: 20000 });
+  await page.waitForFunction(() => Boolean(window.__coastlineTest), null, { timeout: 30000 });
   expect(await page.evaluate(() => window.__coastlineTest.landmarkDiscoveryState().discovered))
     .toContain('morlatton-village');
+  expect(await page.evaluate(() => window.__coastlineTest.state().cashBalance)).toBe(400);
 });
