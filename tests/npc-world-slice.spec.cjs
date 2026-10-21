@@ -49,7 +49,7 @@ test('public-works NPC reacts to a nearby player and begins a character-specific
   // Navigate without the one-time reset flag so persistence is actually exercised.
   await page.goto('/game-v3.html', { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => Boolean(window.__coastlineTest?.npcWorldSliceState), null, { timeout: 30000 });
-  const restored await page.evaluate(() => window.__coastlineTest.npcWorldSliceState());
+  const restored = await page.evaluate(() => window.__coastlineTest.npcWorldSliceState());
   expect(restored.phase).toBe('complete');
   expect(restored.agency.outcomes.some(event => event.type === 'signal_restored')).toBe(true);
   expect(restored.rumors.rumors.find(rumor => rumor.topic === 'signalOutage').history.length).toBeGreaterThan(1);
