@@ -24,8 +24,9 @@ Use explicit status words:
 
 When starting a new Coastline session:
 
-1. Read the durable handoff/checkpoint documents.
-2. Identify current production/main branch and active draft PRs.
+1. Read `AGENTS.md` and `docs/COASTLINE_AI_ENGINEERING_PLAYBOOK.md`.
+2. Read the durable handoff/checkpoint documents.
+3. Identify current production/main branch and active draft PRs.
 3. Verify exact head SHAs.
 4. Check current CI runs for those SHAs.
 5. Read the relevant spec/plan before changing architecture.
@@ -273,7 +274,11 @@ This includes:
 - performance discoveries;
 - useful documentation/tutorial locations.
 
-## 16. Never claim completion without evidence
+## 16. Coastline AI engineering playbook
+
+Use `docs/COASTLINE_AI_ENGINEERING_PLAYBOOK.md` as the detailed workflow for task contracts, test/runner separation, failure-ledger quality, AI/human role boundaries, current P0 renderer incident, free-tier cost discipline, and user playtest feedback. It complements this recovery guide and `AGENTS.md`; if instructions conflict, respect the explicit user request and current project constraints, and resolve stale checkpoint claims by checking exact live GitHub state.
+
+## 17. Never claim completion without evidence
 
 Use the exact SHA and verification result in completion statements.
 
