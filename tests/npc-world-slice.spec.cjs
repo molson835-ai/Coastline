@@ -11,9 +11,16 @@ test('public-works NPC reacts to a nearby player and begins a character-specific
   expect(before.npc.role).toBe('publicWorks');
   expect(before.phase).toBe('idle');
 
+  // Let the real render/update loop establish a healthy cadence before triggering
+  // the story. This avoids mistaking initial world construction/render pressure for
+  // a broken NPC state machine.
+  await expect.poll(async () => page.evaluate(() => window.__coastlineTest.npcWorldSliceState().diagnostics.updateCount), { timeout: 12000, intervals: [250, 500, 1000] }).toBeGreaterThan(20);
   await page.evaluate(({ x, z }) => window.__coastlineTest.setVehiclePosition(x, z, 0), before.target);
   try {
-    await expect.poll(async () => page.evaluate(() => window.__coastlineTest.npcWorldSliceState().phase), { timeout: 8000, intervals: [100, 250, 500] }).toBe('repairing');
+    await expect.poll(async () => page.evaluate(() => {
+      const state = window.__coastlineTest.npcWorldSliceState();
+      return state.diagnostics.lastTriggerAt === null ? `waiting:${state.phase}` : state.phase;
+    }), { timeout: 12000, intervals: [100, 250, 500, 1000] }).toBe('repairing');
   } catch (error) {
     const diagnostic = await page.evaluate(() => { const state = window.__coastlineTest.npcWorldSliceState(); return { phase: state.phase, target: state.target, player: state.player, diagnostics: state.diagnostics }; });
     throw new Error(`${error.message}; NPC trigger diagnostic=${JSON.stringify(diagnostic)}`);
