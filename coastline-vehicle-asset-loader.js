@@ -70,7 +70,7 @@ export async function replaceCoastlineVehicleVisual({group,assetId='hero',url,ex
     const result={version:6,assetId,loaded:true,source:'authored-glb',url:sourceUrl,meshes:source.meshes,instance:true,fallbackTried:sourceUrl!==sources[0]};
     instanceResults.push(result);
     if(assetId==='sedan'||assetId==='hero'||!globalThis.__coastlineVehicleAssetStatus?.loaded){
-      globalThis.__coastlineVehicleAssetStatus={version:6,loaded:true,assetId,url:sourceUrl,instances:instanceResults.length,lastInstance:result};
+      globalThis.__coastlineVehicleAssetStatus={version:6,loaded:true,assetId,source:'authored-glb',url:sourceUrl,meshes:source.meshes,instances:instanceResults.length,lastInstance:result};
     }
     return result;
   }catch(error){failures.push({url:sourceUrl,error:String(error?.message||error)});}}
