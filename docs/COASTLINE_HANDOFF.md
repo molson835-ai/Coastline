@@ -25,13 +25,13 @@
 - CTM branch: `coastline-transition-manager-v1`
 - CTM PR: [#77 — CTM v1: transition manager foundation](https://github.com/molson835-ai/Coastline/pull/77)
 - Base branch for PR #77: `coastline-fidelity-core` (not `main`). Never assume its merge would promote to the public/live build.
-- CTM branch head: [`9cc7d9d`](https://github.com/molson835-ai/Coastline/commit/9cc7d9d870ae5ff20ce669c4e8b03065d101d0ab) on `coastline-transition-manager-v1`.
-- Completed validation on CTM parent SHA `ff5f04f`: [push run #39534474998](https://github.com/molson835-ai/Coastline/actions/runs/39534474998) failed because browser shards 1–2 failed (shard 3 passed); [PR run #39534481432](https://github.com/molson835-ai/Coastline/actions/runs/39534481432) failed because all three browser shards failed. Engine, system, and vehicle/fidelity jobs passed on that SHA. Current head `9cc7d9d` is running [Actions #39535395919](https://github.com/molson835-ai/Coastline/actions/runs/39535395919): engine, system, and vehicle/fidelity/package jobs passed; browser shards 1–3 were still in progress at the latest check.
-- Transition tests on the current tree passed in the GitHub engine job for run #39535395919. Local scratch command `node --check src/transition/three-world-loader.mjs && node --check src/transition/transition-telemetry.mjs && node --check tests/transition-worlds-a-b.spec.mjs && node --test 'tests/transition-*.spec.mjs'` previously reported **44 passed, 0 failed**. The prior local result is not a substitute for browser acceptance or representative-device testing.
-- The current CTM head includes `src/transition/transition-state-machine.mjs`, `transition-manager.mjs`, `player-state-handoff.mjs`, `gate-definition.mjs`, `gate-providers.mjs`, `transition-telemetry.mjs`, and `three-world-loader.mjs`, plus registry/loader/manager/player-state/gate/telemetry/adapter/synthetic A/B tests.
-- Runtime correction verified from repository source: root `index.html` routes players to `game-v3.html?beta=20261016performance`, which imports Three.js 0.170; `/babylon/` is a separate classic-script Babylon experiment. CTM's staged loader uses detached Three.js `Object3D` roots and factory-owned disposal. It is **not wired into `game-v3.html`**; no second-world factory or playable gate exists yet.
-- CTM PR #77 remains draft and must not be merged until exact-head CI/browser acceptance is green. The handoff PR #78 is open and unmerged.
-- CTM PR #77 remains draft and must not be merged until its acceptance gate is satisfied.
+- CTM branch head: [`d9bb97d`](https://github.com/molson835-ai/Coastline/commit/d9bb97db88a9224d936b586feef0a91c71e7c20d) on `coastline-transition-manager-v1`.
+- Older CTM SHA `ff5f04f` had failing browser shards as summarized below. Run #39535395919 on `9cc7d9d` remained stale `in_progress` with engine/system/vehicle-fidelity jobs green. After adding browser tests, current exact-head runs are [push #39535884754](https://github.com/molson835-ai/Coastline/actions/runs/39535884754) and [PR #39535888939](https://github.com/molson835-ai/Coastline/actions/runs/39535888939), both queued/pending when checked.
+- The GitHub engine job passed the CTM Node transition suite on SHA `9cc7d9d`; local scratch command `node --check src/transition/three-world-loader.mjs && node --check src/transition/transition-telemetry.mjs && node --check tests/transition-worlds-a-b.spec.mjs && node --test 'tests/transition-*.spec.mjs'` previously reported **44 passed, 0 failed**. Do not count this as browser verification.
+- Current head `d9bb97d` includes registry/loader, transition state machine/manager, player-state handoff, physical/masked/explicit gate providers, bounded telemetry, a Three.js staged loader, synthetic A/B tests, and the new isolated browser smoke fixture/spec: `tests/fixtures/ctm-runtime-smoke.html` and `tests/transition-runtime-smoke.spec.cjs`.
+- Runtime correction verified from repository source: root `index.html` routes to `game-v3.html?beta=20261016performance`, which uses Three.js 0.170; `/babylon/` is a separate classic-script experiment. The Three.js adapter stages detached `Object3D` roots and requires factory-owned resource disposal. Browser smoke tests exercise CTM modules with a fake scene tree only; CTM is still not wired into `game-v3.html`, and there is no real second-world factory/gate.
+- CTM PR #77 remains draft; no merge or production promotion is authorized.
+
 
 ## Key player-approved design decisions
 
@@ -67,19 +67,19 @@ The manager patch provides explicit state changes/history, single-flight request
 
 **Immediate next actions:**
 
-1. Finish and record all browser shard results from [Actions run #39535395919](https://github.com/molson835-ai/Coastline/actions/runs/39535395919) on exact SHA `9cc7d9d`. Engine/system/vehicle-fidelity checks are green, browser shards were still running at the last poll.
-2. If browser shards fail, inspect each current-SHA trace/log and fix the actual cause without weakening or skipping assertions: steering/movement, public-works NPC story phase, pedestrian movement, and courier mission completion/replay are known historical failures.
-3. Once current-head browser checks finish, review telemetry, gate, state-handoff, Three.js adapter, and synthetic A/B test results. The exact current SHA must pass all required CI before calling the CTM foundation verified.
-4. Next planned CTM task: browser/runtime smoke coverage and a dev/test-only transition hook. Do not wire into the live `game-v3.html` until the destination-world factory, state ownership, disposal, and graceful fallback behavior are defined and smoke tests are ready.
-5. Keep the current root runtime engine correct: do not use Babylon APIs in `game-v3.html`; the live target is Three.js 0.170. The separate `/babylon/` page is not the active beta.
-6. Do not begin World 2 art/gates until the CTM lifecycle tests and browser smoke checks are green on one SHA.
-7. Preserve the graphics-quality rule: optimize active-world scope and measured hotspots, never silently lower near-field quality to improve frame rate.
-8. Keep PR #77 draft; never auto-merge or promote to production without a human decision.
-9. Before the next chat/context limit, update this file again with exact results and the next single task.
+1. Check exact-head Actions runs [#39535884754](https://github.com/molson835-ai/Coastline/actions/runs/39535884754) (push) and [#39535888939](https://github.com/molson835-ai/Coastline/actions/runs/39535888939) (PR) on `d9bb97d`. Both were pending on last check; engine/system/vehicle-fidelity results on the preceding SHA were green.
+2. If exact-head browser shards fail, inspect each failing trace/log and fix the underlying cause without weakening assertions. Historical blockers: steering displacement, public-works NPC story, pedestrian movement, courier mission completion/replay.
+3. Review the new Chromium CTM smoke results specifically: synthetic A→B→A state preservation, restore-before-activation, single active root, disposal, bounded telemetry, and masked cancellation at READY. Current CTM head is `d9bb97d`; prior `9cc7d` runs do not include the new smoke spec.
+4. If tests pass, proceed toward the guarded runtime smoke integration only after defining an actual destination world factory and asset ownership/fallback contract. Keep the current smoke fixture test-only and unlinked.
+5. Do not use Babylon APIs in `game-v3.html`; active beta uses Three.js 0.170. Keep `/babylon/` distinct.
+6. Do not build World 2 assets/gates until CTM lifecycle and browser acceptance tests pass together on the exact same SHA.
+7. Preserve visual quality; focus optimization on world scope and measured hotspots, not reduced fidelity.
+8. Keep PR #77 draft; do not merge or promote without a human decision.
+9. Before the next chat/context limit, update this handoff and the implementation plan with exact results, head SHA, open failures, and next task.
 
 ## Latest CI result and failures to preserve as open until disproven
 
-Exact-head run #39535395919 is the current validation source. At the last poll its engine, system, and vehicle/fidelity/package jobs passed, while all three browser shards were still in progress. The preceding SHA `ff5f04f` had known failures: steering displacement delta 0; public-works NPC story remained `idle`; pedestrian position x=-501.5 did not exceed the required -501.4; and the courier mission state failed to reach `done`. Do not assume these are fixed until run #39535395919 finishes and its logs are inspected.
+Exact-head run #39535395919 on `9cc7d9d` remained reported as `in_progress` with stale update time; engine/system/vehicle-fidelity jobs had passed but it is superseded for acceptance by the newly triggered exact-head runs on `d9bb97d`: [push #39535884754](https://github.com/molson835-ai/Coastline/actions/runs/39535884754) and [PR #39535888939](https://github.com/molson835-ai/Coastline/actions/runs/39535888939). At last poll both were pending; no result should be claimed yet. Older `ff5f04f` failures remain historical evidence and need rechecking.
 
 ## Older CI failures (context only)
 
@@ -104,7 +104,7 @@ User-provided Android snapshot, 2026-10-20 11:04 UTC, URL path `/game-v3.html?be
 
 ## Deployment and free-tier caveats
 
-- Vercel reports `api-deployments-free-per-day` (more than 100 deployments), with “try again in 1 day/24 hours”; the `ff5f04f` Vercel status failed at the free daily limit. Avoid unnecessary Vercel builds; use GitHub Actions for code validation while this cap applies.
+- Vercel reports `api-deployments-free-per-day` (more than 100 deployments), with “try again in 1 day/24 hours”; `ff5f04f` status failed at this free daily limit. Avoid unnecessary builds; GitHub Actions validates source behavior, while no representative phone playtest has been performed in this session.
 - Cloudflare produced successful preview deployments for the CTM branch in the previous inspected PR comments, but verify the latest URL/commit before sharing a preview. A preview deployment is not proof that the feature works or that production was promoted.
 - GitHub account access is working through the repository integration. No need to ask the user to reconnect GitHub unless actual permission errors appear.
 - Keep PR #76 (performance mega-batch, draft) separate from CTM PR #77. It removes adaptive quality downgrades and adds profiling, but still has its own verification/failure ledger. Do not merge that batch as part of CTM.
@@ -127,4 +127,4 @@ Never claim work has been saved if it exists only in a chat or local scratch fil
 
 ## Checkpoint log
 
-- **2026-10-20/21:** CTM PR #77 head `9cc7d9d` contains the transition manager/state handoff/gates/bounded telemetry/Three.js adapter/synthetic A/B tests. GitHub Actions run #39535395919 has engine/system/vehicle-fidelity/package jobs passed; browser shards 1–3 remained active at the last poll. Older current-parent failures are listed in the CI section above and must be re-evaluated on the exact current head. Handoff PR #78 is open/unmerged; no CTM merge or production promotion was performed.
+- **2026-10-20/21:** CTM PR #77 head `d9bb97d` includes CTM core/state handoff/gates/telemetry/Three.js adapter/synthetic A/B acceptance and newly added isolated Playwright browser tests. Exact-head runs #39535884754 (push) and #39535888939 (PR) were pending at last check. Prior run #39535395919 on parent `9cc7d` had engine/system/vehicle-fidelity passed but browser jobs stale in progress. No test result is claimed for the newest head yet. Handoff PR #78 is open/unmerged; CTM remains draft and no production promotion was performed.
