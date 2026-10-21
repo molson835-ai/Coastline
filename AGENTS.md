@@ -21,6 +21,14 @@ Build Coastline into a large, living coastal open-world driving game with satisf
 6. Open a focused PR with summary, risk, test evidence, rollback notes, and any human playtest still required.
 7. Stop and request human input for ambiguous game-design choices, unverified licenses, new costs/permissions, destructive actions, secrets, failing checks that cannot be diagnosed safely, or changes requiring subjective gameplay feedback.
 
+## Conversation continuity and mandatory handoff checkpoints
+1. At the start of every Coastline session, read `docs/COASTLINE_HANDOFF.md` and verify its branch/PR/SHA/CI/deployment statements against GitHub. Treat the document as a checkpoint, not as proof that remote state has not changed.
+2. Update the handoff after every material code, testing, architecture or user-decision milestone. Before ending/switching a chat or when free-plan/context limits may be near, pause feature work and save a checkpoint first.
+3. Record durable decisions from the conversation, exact changed files/commit SHA, exact test commands and observed outcomes, unresolved failures with run links, deployment limits, what was not done, and the next concrete step. Do not leave vital project context only in chat history or model memory.
+4. Keep the current summary near the top and add concise dated entries to the checkpoint log. Preserve older decision history; never overwrite a still-relevant user decision with an assumption.
+5. A checkpoint is only saved when the file/commit/PR can be verified. If a push/commit cannot be completed, plainly state what remains only in the chat or local scratch environment.
+6. Never record secrets, tokens, credentials, cookies or personal data. Do not auto-merge or deploy while creating a checkpoint.
+
 ## Priorities
 1. Keep the live game booting and controls working on desktop and mobile.
 2. Fix reproducible bugs and establish shared deterministic world data.
