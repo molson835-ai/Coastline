@@ -39,7 +39,7 @@ jobs:
               print(f'already restored or not present: {a}')
           p.write_text(s)
           PY
-      - name: Verify and replace mutating workflow with validation-only guard
+      - name: Verify normalized source
         shell: bash
         run: |
           python3 - <<'PY'
@@ -61,50 +61,11 @@ jobs:
           for value in forbidden: assert value not in s, f'forbidden max-graphics mutation detected: {value}'
           print('Coastline adaptive graphics policy verified.')
           PY
-          cat > .github/workflows/coastline-max-graphics.yml <<'YAML'
-          name: Coastline graphics quality guard
-
-          on:
-            push:
-              branches: [main]
-            pull_request:
-              branches: [main]
-
-          permissions:
-            contents: read
-
-          jobs:
-            graphics-quality-guard:
-              runs-on: ubuntu-latest
-              steps:
-                - uses: actions/checkout@v4
-                - name: Verify adaptive quality policy remains source-controlled
-                  shell: bash
-                  run: |
-                    python3 - <<'PY'
-                    from pathlib import Path
-                    s=Path('game-v3.html').read_text()
-                    required=[
-                      "let currentPixelRatio=Math.min(devicePixelRatio||1,lowPowerDevice?.9:1.15);",
-                      "if(lowPowerDevice)bloomPass.enabled=false;",
-                      "if(avg>23){qualityRecoveryAt=0;",
-                      "terrainSegments=lowPowerDevice?176:256"
-                    ]
-                    forbidden=[
-                      "let currentPixelRatio=Math.min(Math.max(devicePixelRatio||1,1.5),2.0);",
-                      "if(lowPowerDevice)bloomPass.enabled=true;",
-                      "if(avg>999){qualityRecoveryAt=0;",
-                      "terrainSegments=384"
-                    ]
-                    for value in required:
-                      assert value in s, f'missing adaptive rendering policy: {value}'
-                    for value in forbidden:
-                      assert value not in s, f'forbidden max-graphics mutation detected: {value}'
-                    print('Coastline adaptive graphics policy verified.')
-                    PY
-          YAML
+      - name: Commit normalized game source
+        shell: bash
+        run: |
           git config user.name 'coastline-p0-bot'
           git config user.email 'coastline-p0-bot@users.noreply.github.com'
-          git add game-v3.html .github/workflows/coastline-max-graphics.yml
+          git add game-v3.html
           git commit -m 'Restore adaptive rendering baseline [p0-render-normalized]'
           git push origin "HEAD:${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
