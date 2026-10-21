@@ -4,9 +4,9 @@
 
 **Goal:** Implement and verify a reusable Coastline Transition Manager that can stream between synthetic worlds today and support the private-island, mansion, apartment-elevator, and doorman transition patterns later.
 
-**Architecture:** CTM is a small ES-module subsystem under `src/transition/`. Pure manifest/registry/state-machine logic stays independent of Babylon and the current monolithic `game-v3.html`. A loader adapter provides Babylon `AssetContainer`-style lifecycle operations, while a separate state-handoff interface preserves player/game continuity. The game page supplies gate triggers and consumes CTM events; it does not own the transition state machine.
+**Architecture:** CTM is an engine-neutral ES-module subsystem under `src/transition/`. The active root route (`index.html` → `game-v3.html`) uses Three.js 0.170; the separate `/babylon/` foundation is an experimental path, not the root beta runtime. The production loader adapter for `game-v3.html` must therefore use a Three.js staging root (detached `Object3D`/`Group`) and explicit resource ownership callbacks. Do not wire a Babylon-only adapter into `game-v3.html`. A separate Babylon adapter is appropriate only if a future target is explicitly moved to `/babylon/`.
 
-**Tech Stack:** Browser ES modules, JavaScript, Babylon.js runtime already used by Coastline, Node's built-in test runner, Playwright.
+**Tech Stack:** Browser ES modules, JavaScript, Three.js 0.170 for `game-v3.html`, Node's built-in test runner, and Playwright. `/babylon/` is a separate Babylon classic-script prototype.
 
 **Spec:** `docs/COASTLINE_TRANSITION_MANAGER_V1.md`
 
@@ -18,7 +18,7 @@
 - CTM orchestrates transitions; persistent player/game state remains owned by the state layer.
 - Duplicate transition requests must not create duplicate world instances.
 - Failed preload/warm/activation must have deterministic recovery and leave the source world usable whenever possible.
-- Babylon-specific loading must remain behind a loader adapter.
+- Engine-specific loading must remain behind an adapter; the adapter must match the actual target runtime.
 - All production transitions must emit bounded structured telemetry.
 - Real World 2/World 3 art is out of scope for this implementation branch.
 
@@ -59,11 +59,11 @@
 **Interfaces:**
 - Produces `WorldLoaderAdapter` with `preload(manifest, context)`, `warm(instance, context)`, `activate(instance, context)`, `deactivate(instance, context)`, `dispose(instance, context)`.
 - Produces `WorldInstance` lifecycle state and resource ownership counters.
-- Adapter accepts injected implementations so synthetic tests never require a Babylon renderer.
+- Adapter accepts injected implementations so synthetic tests never require a renderer.
 
 - [ ] **Step 1: Write failing tests** for preload → warm → activate → deactivate → dispose, double-dispose safety, and load failure propagation.
 - [ ] **Step 2: Run the focused loader tests and verify failure.**
-- [ ] **Step 3: Implement the adapter and instance lifecycle.** The Babylon implementation must be injectable and must support an AssetContainer-equivalent prepare/activate/dispose path without coupling CTM to one loader API.
+- [ ] **Step 3: Implement the adapter and instance lifecycle.** Use a detached Three.js root for the `game-v3.html` target, keep root construction injected, and require an ownership-aware disposer rather than traversing/discarding possibly shared materials or textures.
 - [ ] **Step 4: Run focused tests and verify PASS, including resource release counts.**
 - [ ] **Step 5: Commit `feat: add CTM world loader lifecycle`.**
 
@@ -121,24 +121,24 @@
 - [ ] **Step 5: Run focused tests and verify PASS.**
 - [ ] **Step 6: Commit `feat: add CTM transition gates`.**
 
-### Task 6: Add telemetry and Babylon/game runtime adapter
+### Task 6: Add bounded telemetry and the target-runtime loader adapter
 
 **Files:**
 - Create: `src/transition/transition-telemetry.mjs`
-- Create: `src/transition/babylon-world-loader.mjs`
-- Modify: `game-v3.html` at the existing inline module integration point
+- Create: `src/transition/three-world-loader.mjs`
+- Defer modifying `game-v3.html` until the standalone adapter and transition acceptance harness pass
 - Create: `tests/transition-telemetry.spec.mjs`
 
 **Interfaces:**
 - Produces `TransitionTelemetry.start(...)`, `mark(...)`, `complete(...)`, `fail(...)`, `snapshot()` with bounded records.
-- Babylon adapter translates CTM lifecycle calls to the existing Babylon scene/container APIs.
+- Three.js adapter stages a detached `Object3D` root; activation adds it to the scene, retirement removes it, and disposal calls only the world factory's explicit ownership-aware cleanup hook. A world factory is injected because the current procedural runtime has not yet defined a complete second-world asset manifest.
 - Game integration exposes a single `window.__coastlineTransitionManager` diagnostic handle in test/dev mode without adding visible HUD noise.
 
 - [ ] **Step 1: Write failing telemetry tests** for complete, failed, cancelled, and recovered transitions and bounded retention.
 - [ ] **Step 2: Implement telemetry and verify focused tests pass.**
-- [ ] **Step 3: Implement the Babylon loader adapter** using the project's existing Babylon imports/runtime conventions; load destination assets without immediately making them authoritative, then activate/dispose through CTM.
-- [ ] **Step 4: Wire CTM into `game-v3.html` behind a non-disruptive runtime initialization path.** Existing gameplay must remain the active World 1 source world; no real-world transition gate is required yet.
-- [ ] **Step 5: Run the existing inline-module syntax validation plus the focused CTM tests.**
+- [x] **Step 3: Implement the staged Three.js loader adapter** with an injected `prepareWorld` contract and no direct CDN or new package dependency.
+- [ ] **Step 4: After A/B and browser smoke coverage is ready, wire CTM into `game-v3.html` behind a non-disruptive initialization path. Existing gameplay must remain playable if CTM initialization fails; no real-world gate is required yet.
+- [ ] **Step 5: Run the existing inline-module syntax validation plus the focused CTM and Three.js adapter tests.**
 - [ ] **Step 6: Commit `feat: integrate CTM with Coastline runtime`.**
 
 ### Task 7: Build deterministic synthetic World A/B harness
@@ -170,7 +170,7 @@
 - [ ] **Step 3: Implement the minimal test-only synthetic transition hook without exposing a user-facing test UI.**
 - [ ] **Step 4: Run the focused browser test and verify PASS.**
 - [ ] **Step 5: Run the existing inline-module syntax check and all CTM node tests.**
-- [ ] **Step 6: Run the relevant existing Coastline regression suites, including `npm run test:engine`, `npm run test:streaming-performance`, `npm run test:mega-patch2`, and the full browser shard command used by CI.**
+- [ ] **Step 6: Run the relevant Coastline regression suites, including `npm run test:engine`, `npm run test:streaming-performance`, `npm run test:mega-patch2`, and the full browser shard command used by CI.**
 - [ ] **Step 7: Inspect the final head and workflow results; do not call CTM complete if any required regression job is failing or cancelled.**
 - [ ] **Step 8: Commit `test: verify CTM integration and regressions`.**
 
@@ -197,7 +197,7 @@ After this gate, the next project is **World 2 — Private Island**, using CTM a
 - As of base commit `9e7f36e1165084b7fa64924627f745fc628aae1f`, CTM Tasks 1–3 have registry/loader contracts, explicit transition manager/state machine, cancellation/coalescing, source protection, and manager tests. The engine, system, and vehicle/fidelity/package jobs passed on that commit; browser shards were still running when last checked.
 - Task 4 is implemented for staged review on branch `coastline-player-state-handoff-v1`: `src/transition/player-state-handoff.mjs` and `tests/transition-player-state.spec.mjs`. The snapshot schema preserves player status/position, active vehicle/condition/upgrades/customization, money/inventory, progression, mission state/progress, discoveries, time/weather, and world-specific state. Restore is validated before applying; optional destination backup/rollback hooks cover partial restore failure; source rollback remains injected and state-manager-owned.
 - A local scratch run of `node --test 'tests/transition-*.spec.mjs'` reported 18 passed, 0 failed. This is not GitHub Actions evidence; the Task 4 branch is deliberately separate while the full browser run for the parent CTM head is active.
-- No production Babylon adapter or `game-v3.html` integration is implemented yet. Finish/inspect the parent Actions run, then review Task 4 and fast-forward the CTM branch only after confirming its head has not moved. Run all CTM and regression tests on the resulting exact head.
+- The standalone Three.js adapter is implemented and tested in scratch; it is not yet wired into `game-v3.html` and no production world factory exists. The root beta index routes to Three.js `game-v3.html`; `/babylon/` is separate. Do not add a Babylon-specific runtime hook to the root beta.
 
 
 ## Execution checkpoint — provider-neutral transition gates (Task 5)
@@ -215,4 +215,13 @@ After this gate, the next project is **World 2 — Private Island**, using CTM a
 - Telemetry does not record frame-by-frame history or player-state snapshots. Unknown fields are excluded from events; resource samples accept finite non-negative counts only. Existing manager integration uses the documented `start/mark/complete/fail` hooks and safely treats telemetry as advisory.
 - Added `tests/transition-telemetry.spec.mjs` for timing, failure/cancellation classification, record/event/resource retention bounds, snapshot isolation, integration with the manager, and invalid inputs.
 - Local scratch verification: `node --check src/transition/transition-manager.mjs && node --check src/transition/transition-telemetry.mjs && node --test 'tests/transition-*.spec.mjs'` — **32 passed, 0 failed**. This is local evidence only.
-- Babylon adapter/runtime wiring is still outstanding. Official Babylon.js docs confirm `AssetContainer` supports explicit `addAllToScene()` and `removeAllFromScene()`; use this staging boundary rather than activating the destination at load time. See [Asset Containers](https://doc.babylonjs.com/features/featuresDeepDive/importers/assetContainers) and [glTF Loader](https://doc.babylonjs.com/features/featuresDeepDive/importers/glTF).
+- The active game-v3 target is Three.js, so the next runtime-specific step is a world factory that constructs a detached root and explicitly tracks owned resources. Three.js documents that `Object3D.add()` reparents objects and that geometries, materials, and textures require explicit disposal; shared resources must not be indiscriminately disposed. See [Object3D](https://threejs.org/docs/pages/Object3D.html) and [How to dispose of objects](https://threejs.org/manual/pages/how-to-dispose-of-objects.html). Babylon's equivalent `AssetContainer` staging applies only if `/babylon/` is separately selected: [Asset Containers](https://doc.babylonjs.com/features/featuresDeepDive/importers/assetContainers).
+
+
+## Execution checkpoint — Three.js runtime adapter verified (Task 6, partial)
+
+- Repository-source inspection confirmed that root `index.html` links to `game-v3.html?beta=20261016performance`; the active `game-v3.html` imports `three@0.170.0`. The separate `/babylon/index.html` loads `babylon.js` and `babylon/coastline-babylon.js`, and is not the root beta route.
+- Replaced the planned wrong-engine Babylon adapter for `game-v3.html` with `src/transition/three-world-loader.mjs`. It stages a detached `THREE.Object3D`, warms without scene insertion, adds the root only during activation, removes it on deactivation, and calls an injected ownership-aware resource disposer. It intentionally avoids generic traversal/disposal of potentially shared geometry/material/texture objects.
+- Added `tests/transition-three-loader.spec.mjs` covering staging, activation/deactivation, ownership-aware disposal, preload abort, and rejection/removal of premature live-scene insertion.
+- Local scratch verification on the current WIP tree: `node --check src/transition/three-world-loader.mjs && node --check src/transition/transition-telemetry.mjs && node --test 'tests/transition-*.spec.mjs'` — **38 passed, 0 failed**.
+- This is an adapter contract only: no second-world asset factory and no `game-v3.html` integration has been added. Browser regressions from parent CTM SHA `9e7f36e` remain independent blockers. Current CTM head is still being validated by the exact-SHA Actions run before this WIP stack should be fast-forwarded.
