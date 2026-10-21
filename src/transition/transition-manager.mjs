@@ -15,6 +15,15 @@ function safeCall(target, method, ...args) {
   } catch { return undefined; }
 }
 
+function awaitWithAbort(task, signal) {
+  if (signal.aborted) return Promise.reject(signal.reason instanceof Error ? signal.reason : new TransitionCancelledError());
+  return new Promise((resolve, reject) => {
+    const onAbort = () => reject(signal.reason instanceof Error ? signal.reason : new TransitionCancelledError());
+    signal.addEventListener('abort', onAbort, { once: true });
+    Promise.resolve(task).then(resolve, reject).finally(() => signal.removeEventListener('abort', onAbort));
+  });
+}
+
 export class TransitionBusyError extends Error {
   constructor(message = 'another transition is already in progress') {
     super(message);
@@ -86,10 +95,11 @@ export class TransitionManager {
     } finally { this._initializing = false; }
   }
 
-  requestTransition({ gate, sourceWorldId, playerStateContext = {} } = {}) {
+  requestTransition({ gate, sourceWorldId, playerStateContext = {}, activationBarrier = null } = {}) {
     if (!gate || typeof gate !== 'object') throw new TypeError('gate definition is required');
     sourceWorldId = sourceWorldId ?? gate.fromWorld ?? this.activeWorldId;
     this.#validateGateShape(gate, sourceWorldId);
+    if (activationBarrier !== null && typeof activationBarrier !== 'function') throw new TypeError('activationBarrier must be a function when provided');
     const destinationWorldId = gate.toWorld;
     const existing = this._activeTransition;
     if (existing) {
@@ -101,7 +111,7 @@ export class TransitionManager {
     const record = {
       id: this.idFactory(), gate: clone(gate), sourceWorldId, destinationWorldId,
       sourceInstance: this.instances.get(sourceWorldId), destinationInstance: null, playerStateContext,
-      stateSnapshot: undefined, restoredState: undefined, controller: new AbortController(),
+      stateSnapshot: undefined, restoredState: undefined, activationBarrier, controller: new AbortController(),
       cancelRequested: false, committed: false, failure: null, cleanupWarnings: [],
       startedAt: this.clock(), updatedAt: this.clock(), machine: null, handle: null
     };
@@ -188,6 +198,13 @@ export class TransitionManager {
       });
       this.#throwIfCancelled(record);
       record.machine.transition('READY', { destinationWorldId });
+      if (record.activationBarrier) {
+        safeCall(this.telemetry, 'mark', id, 'ACTIVATION_BARRIER_WAIT', { sourceWorldId, destinationWorldId, gateId: gate.id });
+        await awaitWithAbort(Promise.resolve().then(() => record.activationBarrier({
+          transitionId: id, gate, sourceWorldId, destinationWorldId, signal: controller.signal
+        })), controller.signal);
+        this.#throwIfCancelled(record);
+      }
 
       record.machine.transition('TRANSFERRING');
       record.stateSnapshot = this.stateHandoff?.capture
