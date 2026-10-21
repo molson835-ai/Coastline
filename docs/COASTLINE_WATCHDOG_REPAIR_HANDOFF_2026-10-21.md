@@ -89,3 +89,23 @@ These are source/test fixes for the two latest failures. They have **not yet bee
 Scope note: the service worker still has other low-power rendering compromises (including its no-bloom path). This repair specifically restores shadow-map state and stops emergency mode from disabling bloom; it does not claim all low-power rendering differences have been removed.
 
 - `49b87f6dc13fbc7648b35d612e9018dadc13f29b`: bumped the service-worker cache from `coastline-static-v47` to `coastline-static-v48`, so already-installed clients discard the cached runtime that could still force shadows off. This closes a stale-cache path; the new CI run must still validate it.
+
+## Latest rerun result — watchdog #872
+
+Run: https://github.com/molson835-ai/Coastline/actions/runs/39686784572  
+Tested SHA: `041e38751b54289434e48b7c99b0d2d7f736eac6`  
+Result: **31 passed, 4 failed** in 9.1 minutes. Engine and system tests passed. HTML package and Babylon preview validations passed.
+
+The two failures this patch explicitly targeted are now passing in this run:
+- `tests/next-phase-smoke.spec.cjs`: graphics smoke test passed.
+- `tests/pedestrian-collision.spec.cjs`: pedestrian collision test passed.
+
+Four other browser tests now fail:
+1. `tests/gameplay.spec.cjs:127`, landmark reward/persistence: test timed out at 45 seconds while waiting for `window.__coastlineTest` after `page.reload({waitUntil:'commit'})` at line 145. This suggests reload/init did not expose the test API before the timeout, but runtime evidence is needed to determine why.
+2. `tests/landmark-discovery.spec.cjs`, regional landmark reward/persistence: 45-second test timeout. The condensed job log does not show the exact wait/assertion where this second landmark test stalled; inspect its trace/error-context artifact.
+3. `tests/npc-world-slice.spec.cjs`, public-works NPC repair story: 45-second test timeout. The condensed job log does not show the precise blocked assertion; inspect trace/error context and verify deterministic stepping plus NPC story-state persistence.
+4. `tests/performance-budget.spec.cjs:14`: `expect(perf.fps).toBeGreaterThan(0)` received `0`. Telemetry object exists, but frame/FPS sampling was still zero when read; determine whether the first render/frame counter never advanced or the test sampled before enough frames.
+
+Artifact: https://github.com/molson835-ai/Coastline/actions/runs/39686784572/artifacts/12385974165
+
+Next actions: inspect the four failed traces/error-contexts; fix root causes without relaxing assertions. In particular, avoid serializing multiple expensive game boots/reloads under two browser workers unless evidence shows worker contention is the cause. Re-run all 35 tests and record exact results. No merge or production deployment.
