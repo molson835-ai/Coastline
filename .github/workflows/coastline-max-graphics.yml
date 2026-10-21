@@ -1,19 +1,19 @@
-name: Coastline max graphics
+name: Coastline graphics quality guard
 
 on:
   push:
-    branches: [main]
+    branches: [coastline-p0-renderer-runtime-normalization-v1]
 
 permissions:
   contents: write
 
 jobs:
-  max-graphics:
-    if: ${{ !contains(github.event.head_commit.message, '[max-graphics-applied]') }}
+  normalize-rendering:
+    if: ${{ !contains(github.event.head_commit.message, '[p0-render-normalized]') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Max out rendering quality
+      - name: Restore adaptive rendering baseline
         shell: bash
         run: |
           python3 - <<'PY'
@@ -21,27 +21,64 @@ jobs:
           p=Path('game-v3.html')
           s=p.read_text()
           replacements={
-            "let currentPixelRatio=Math.min(devicePixelRatio||1,lowPowerDevice?.9:1.15);":"let currentPixelRatio=Math.min(Math.max(devicePixelRatio||1,1.5),2.0);",
-            "if(lowPowerDevice)bloomPass.enabled=false;":"if(lowPowerDevice)bloomPass.enabled=true;",
-            "if(avg>23){qualityRecoveryAt=now;":"if(avg>999){qualityRecoveryAt=0;",
-            "lowPowerDevice?1024:2048":"4096",
-            "terrainSegments=lowPowerDevice?176:256":"terrainSegments=384",
-            "lowPowerDevice?2:8":"16",
-            "lowPowerDevice?192:384":"512",
-            "Math.min(lowPowerDevice?2:8,renderer.capabilities.getMaxAnisotropy())":"renderer.capabilities.getMaxAnisotropy()"
+            "let currentPixelRatio=Math.min(Math.max(devicePixelRatio||1,1.5),2.0);":"let currentPixelRatio=Math.min(devicePixelRatio||1,lowPowerDevice?.9:1.15);",
+            "if(lowPowerDevice)bloomPass.enabled=true;":"if(lowPowerDevice)bloomPass.enabled=false;",
+            "if(avg>999){qualityRecoveryAt=0;":"if(avg>23){qualityRecoveryAt=now;",
+            "terrainSegments=384":"terrainSegments=lowPowerDevice?176:256"
           }
           for a,b in replacements.items():
             if a not in s:
-              print('MISSING:',a[:120])
-            s=s.replace(a,b)
+              raise SystemExit(f'missing expected max-graphics mutation: {a}')
+            s=s.replace(a,b,1)
           p.write_text(s)
           PY
-      - name: Commit graphics pass
+      - name: Replace mutating workflow with validation-only guard
+        shell: bash
         run: |
-          git config user.name 'coastline-graphics-bot'
-          git config user.email 'coastline-graphics-bot@users.noreply.github.com'
-          git add game-v3.html
-          if ! git diff --cached --quiet; then
-            git commit -m 'Max out Coastline graphics rendering [max-graphics-applied]'
-            git push
-          fi
+          cat > .github/workflows/coastline-max-graphics.yml <<'YAML'
+          name: Coastline graphics quality guard
+
+          on:
+            push:
+              branches: [main]
+            pull_request:
+              branches: [main]
+
+          permissions:
+            contents: read
+
+          jobs:
+            graphics-quality-guard:
+              runs-on: ubuntu-latest
+              steps:
+                - uses: actions/checkout@v4
+                - name: Verify adaptive quality policy remains source-controlled
+                  shell: bash
+                  run: |
+                    python3 - <<'PY'
+                    from pathlib import Path
+                    s=Path('game-v3.html').read_text()
+                    required=[
+                      "let currentPixelRatio=Math.min(devicePixelRatio||1,lowPowerDevice?.9:1.15);",
+                      "if(lowPowerDevice)bloomPass.enabled=false;",
+                      "if(avg>23){qualityRecoveryAt=now;",
+                      "terrainSegments=lowPowerDevice?176:256"
+                    ]
+                    forbidden=[
+                      "let currentPixelRatio=Math.min(Math.max(devicePixelRatio||1,1.5),2.0);",
+                      "if(lowPowerDevice)bloomPass.enabled=true;",
+                      "if(avg>999){qualityRecoveryAt=0;",
+                      "terrainSegments=384"
+                    ]
+                    for value in required:
+                      assert value in s, f'missing adaptive rendering policy: {value}'
+                    for value in forbidden:
+                      assert value not in s, f'forbidden max-graphics mutation detected: {value}'
+                    print('Coastline adaptive graphics policy verified.')
+                    PY
+          YAML
+          git config user.name 'coastline-p0-bot'
+          git config user.email 'coastline-p0-bot@users.noreply.github.com'
+          git add game-v3.html .github/workflows/coastline-max-graphics.yml
+          git commit -m 'Restore adaptive rendering baseline [p0-render-normalized]'
+          git push
