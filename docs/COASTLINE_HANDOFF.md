@@ -25,11 +25,11 @@
 - CTM branch: `coastline-transition-manager-v1`
 - CTM PR: [#77 — CTM v1: transition manager foundation](https://github.com/molson835-ai/Coastline/pull/77)
 - Base branch for PR #77: `coastline-fidelity-core` (not `main`). Never assume its merge would promote to the public/live build.
-- Latest CTM code commit verified while writing this checkpoint: [`9e7f36e`](https://github.com/molson835-ai/Coastline/commit/9e7f36e1165084b7fa64924627f745fc628aae1f)
-- Current workflow started for that commit: [Actions run #39533658401](https://github.com/molson835-ai/Coastline/actions/runs/39533658401). It was **queued when last checked**; this handoff does not claim that commit has passed CI.
+- Latest CTM code commit at this checkpoint: [`ff5f04f`](https://github.com/molson835-ai/Coastline/commit/ff5f04fb16a0aef21080965fa053ca7513e686cd) on `coastline-transition-manager-v1`.
+- Completed validation for parent commit `9e7f36e`: [Actions run #39533658401](https://github.com/molson835-ai/Coastline/actions/runs/39533658401) **failed overall**. Engine, deterministic system, and vehicle/fidelity/package jobs passed; all three browser shards failed. The run is for the parent SHA, not the newer CTM head. After that run completed, Task 4 and Task 5 were fast-forwarded into CTM at `ff5f04f`. No Actions run tied to that new SHA was visible at this checkpoint, so exact-head CI remains unverified.
 - Local scratch validation of the newly added manager suite reported **8 tests passed, 0 failed**. This is useful focused evidence only, not repository CI acceptance. The full workflow and other repository tests must be checked against the current SHA.
 - New implementation in that commit: `src/transition/transition-state-machine.mjs`, `src/transition/transition-manager.mjs`, `tests/fixtures/transition-worlds.mjs`, and `tests/transition-manager.spec.mjs`. Existing registry/loader modules and tests were already in the CTM branch.
-- The manager is currently engine-agnostic and injected/testable. It is **not yet wired into `game-v3.html`**, and there is no production Babylon adapter or real in-game gate yet. Do not describe World 2 transitions as playable.
+- CTM now includes the engine-agnostic state handoff contract and gate providers on head `ff5f04f`. Local scratch verification: `node --check src/transition/transition-manager.mjs && node --test 'tests/transition-*.spec.mjs'` — **24 passed, 0 failed**. This is local evidence only; no GitHub Actions result was visible for `ff5f04f` at checkpoint time. CTM is **not yet wired into `game-v3.html`**; there is no production Babylon adapter or real in-game gate yet. Do not describe World 2 transitions as playable.
 - The next planned slice is saved separately on branch [`coastline-player-state-handoff-v1`](https://github.com/molson835-ai/Coastline/commit/a703b356c1f771c36bf93ae095b186a63132e0bb), commit `a703b35`. It adds the canonical `PlayerStateHandoff` contract, destination/source rollback hooks, diagnostics for rollback failures, and 10 state-handoff tests (8 new cases beyond the manager tests). A local scratch run of `node --test 'tests/transition-*.spec.mjs'` reported **18 passed, 0 failed**. This branch has not yet been fast-forwarded into PR #77, because the parent commit's full browser run was still active at the last check.
 - CTM PR #77 remains draft and must not be merged until its acceptance gate is satisfied.
 
@@ -67,17 +67,21 @@ The manager patch provides explicit state changes/history, single-flight request
 
 **Immediate next actions:**
 
-1. Inspect Actions run #39533658401 on commit `9e7f36e`. Confirm the `test:transition` runner includes both existing registry/loader specs and the new manager tests. Review any new failures against logs and traces.
-2. Resolve the existing browser failures listed below independently; do not broaden CTM changes to hide/skip gameplay assertions.
-3. Review branch [`coastline-player-state-handoff-v1`](https://github.com/molson835-ai/Coastline/commit/a703b356c1f771c36bf93ae095b186a63132e0bb), then fast-forward/cherry-pick its Task 4 commit onto `coastline-transition-manager-v1` only after the parent run finishes or is deliberately superseded. Re-run the full suite on the resulting exact SHA.
-4. Implement provider-neutral gate definitions/providers for physical, masked and explicit triggers.
+1. Find a way to run GitHub Actions against current head `ff5f04f`; the last visible run is for parent SHA `9e7f36e`. Inspect whether the API integration suppressed the push trigger. Do not count old-SHA CI as validation of the current head.
+2. Continue diagnosing browser blockers: steering/movement, NPC story, pedestrian movement, and courier mission replay. Preserve meaningful assertions.
+3. Implement bounded transition telemetry and the Babylon `AssetContainer` adapter behind the injected loader interface; use the official lifecycle guidance linked below.
+4. Wire CTM into `game-v3.html` behind a safe startup path, then add deterministic A/B and browser smoke acceptance tests.
 5. Add bounded transition telemetry; telemetry failure must never break gameplay. Do not retain unbounded per-frame history.
 6. Implement the Babylon loader behind the adapter and use the existing runtime conventions. Consult official [Babylon.js Asset Containers documentation](https://github.com/BabylonJS/Documentation/blob/master/content/features/featuresDeepDive/importers/assetContainers.md): `LoadAssetContainerAsync` returns assets without automatically adding them to the scene; explicitly add them for activation, remove them from the scene during retirement, and dispose owned assets only after the destination is safe. Check shared materials/references before disposal.
 7. Wire CTM behind a non-disruptive runtime initialization path, leaving current World 1 playable if CTM initialization fails.
 8. Add deterministic synthetic A/B acceptance tests and the Playwright/runtime smoke test; run the relevant engine, transition, streaming-performance, mega-patch and three browser-shard checks on one exact head SHA.
 9. Only after these gates pass, begin World 2 (island/bridge/tunnel). Keep production art, actual mansion interior, and final doorman/elevator animations out of CTM v1.
 
-## Existing CI failures to preserve as open until disproven
+## Latest CI result and failures to preserve as open until disproven
+
+The last completed workflow available at checkpoint time is [run #39533658401](https://github.com/molson835-ai/Coastline/actions/runs/39533658401) on parent SHA `9e7f36e`; it finished with `failure`. Engine, system, and vehicle/fidelity/package jobs passed. Browser shard 2 failed left/right displacement (delta 0), public-works NPC story remaining `idle`, and pedestrian movement (`x=-501.5`, required `>-501.4`). Browser shard 1 failed a clear-ground walk displacement assertion after the 90-second test timeout and steering-left movement (delta 0). Browser shard 3 timed out waiting for replayable courier mission state `done`. These are observed results for the parent SHA, not claims about the newer `ff5f04f` head.
+
+## Older CI failures (context only)
 
 The last **completed** workflow inspected was [run #39529433357](https://github.com/molson835-ai/Coastline/actions/runs/39529433357) on parent commit `3b16b27`. Engine tests, system tests, vehicle/fidelity/package tests and browser shard 3 passed. Browser shards 1 and 2 failed:
 
