@@ -89,8 +89,8 @@ test('mega patch 2 makes A/left steer left and D/right steer right', async ({ pa
     return api.state();
   });
 
-  expect(left.heading).toBeGreaterThan(0.01);
-  expect(right.heading).toBeLessThan(-0.01);
+  expect(left.heading).toBeLessThan(-0.01);
+  expect(right.heading).toBeGreaterThan(0.01);
   expect(errors).toEqual([]);
 });
 
