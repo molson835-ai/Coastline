@@ -34,12 +34,11 @@
   },
   "allOf": [
     {
-      "if": { "properties": { "patchClass": { "enum": ["large", "oversized"] } } },
-      "then": { "required": ["overrideReason"] }
-    },
-    {
       "if": { "properties": { "patchClass": { "const": "oversized" } } },
-      "then": { "properties": { "overrideReason": { "type": "string", "minLength": 1 } } }
+      "then": {
+        "required": ["overrideReason"],
+        "properties": { "overrideReason": { "type": "string", "minLength": 1 } }
+      }
     }
   ]
 }
