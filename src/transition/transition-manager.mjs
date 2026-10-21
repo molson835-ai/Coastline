@@ -233,7 +233,12 @@ export class TransitionManager {
       safeCall(this.telemetry, 'complete', id, result);
       return result;
     } catch (error) {
-      record.failure = { name: error?.name ?? 'Error', message: error?.message ?? String(error), code: error?.code ?? null };
+      record.failure = {
+        name: error?.name ?? 'Error',
+        message: error?.message ?? String(error),
+        code: error?.code ?? null,
+        ...(error?.rollbackError ? { rollbackError: { name: error.rollbackError.name ?? 'Error', message: error.rollbackError.message ?? String(error.rollbackError) } } : {})
+      };
       const canRecover = !record.committed && ['TRANSFERRING', 'ACTIVATING'].includes(record.machine.state);
       if (canRecover) {
         try { record.machine.transition('RECOVERING', record.failure); } catch { /* preserve primary failure */ }

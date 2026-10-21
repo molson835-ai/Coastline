@@ -190,3 +190,11 @@ CTM is complete only when:
 10. Required CI/regression tests pass on the final branch head.
 
 After this gate, the next project is **World 2 — Private Island**, using CTM as the production transition backbone. The first island transition should use a real physical gate (bridge and/or tunnel), followed by mansion garage/front-door transitions into World 3.
+
+
+## Execution checkpoint — transition manager and player-state handoff
+
+- As of base commit `9e7f36e1165084b7fa64924627f745fc628aae1f`, CTM Tasks 1–3 have registry/loader contracts, explicit transition manager/state machine, cancellation/coalescing, source protection, and manager tests. The engine, system, and vehicle/fidelity/package jobs passed on that commit; browser shards were still running when last checked.
+- Task 4 is implemented for staged review on branch `coastline-player-state-handoff-v1`: `src/transition/player-state-handoff.mjs` and `tests/transition-player-state.spec.mjs`. The snapshot schema preserves player status/position, active vehicle/condition/upgrades/customization, money/inventory, progression, mission state/progress, discoveries, time/weather, and world-specific state. Restore is validated before applying; optional destination backup/rollback hooks cover partial restore failure; source rollback remains injected and state-manager-owned.
+- A local scratch run of `node --test 'tests/transition-*.spec.mjs'` reported 18 passed, 0 failed. This is not GitHub Actions evidence; the Task 4 branch is deliberately separate while the full browser run for the parent CTM head is active.
+- No production Babylon adapter or `game-v3.html` integration is implemented yet. Finish/inspect the parent Actions run, then review Task 4 and fast-forward the CTM branch only after confirming its head has not moved. Run all CTM and regression tests on the resulting exact head.
