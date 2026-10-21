@@ -43,7 +43,7 @@ Create a reusable world-transition system that lets Coastline scale from one lar
 - `TransitionManager`: public API for requesting, cancelling, and observing transitions.
 - `TransitionStateMachine`: explicit lifecycle and failure/recovery rules.
 - `GateDefinition`: transition trigger metadata and preload/activation distances.
-- `WorldLoaderAdapter`: Babylon-compatible loading boundary; CTM must not hard-code the game into one asset-loading implementation.
+- `WorldLoaderAdapter`: engine-specific loading boundary; CTM must not hard-code the game into one asset-loading implementation. The current root beta route uses Three.js in `game-v3.html`; a Babylon adapter only applies to the separate `/babylon/` prototype unless the selected runtime changes.
 - `PlayerStateHandoff`: read/restore contract for persistent gameplay state.
 - `TransitionTelemetry`: structured metrics for each transition.
 - `TransitionTestWorlds`: deterministic synthetic A/B worlds used before real World 2 integration.
@@ -182,7 +182,7 @@ State transfer must be atomic from the perspective of the destination activation
 
 ## Resource lifecycle
 
-The loader adapter must support:
+The target-runtime loader adapter must support:
 
 - load without immediately activating gameplay
 - warm/prepare
@@ -192,7 +192,7 @@ The loader adapter must support:
 - release references
 - report failures
 
-Babylon `AssetContainer` or an equivalent container abstraction is preferred so destination assets can be prepared before activation and removed cleanly after retirement.
+For the root Three.js runtime, stage a detached `Object3D`/`Group` and add it only at activation; remove it during retirement. Require explicit ownership-aware resource disposal because Three.js resources can be shared. Babylon `AssetContainer` is an equivalent only for the separate `/babylon/` path; do not assume it can load into a Three.js scene.
 
 ## Performance contract
 
