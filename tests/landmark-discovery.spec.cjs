@@ -20,7 +20,7 @@ test('regional landmarks reward exploration and persist discoveries', async ({ p
   expect(firstVisit.duplicateReward).toBe(0);
   expect(errors).toEqual([]);
 
-  await page.reload({ waitUntil: 'domcontentloaded' });
+  await page.reload({ waitUntil: 'commit' });
   await page.waitForFunction(() => Boolean(window.__coastlineTest), null, { timeout: 20000 });
   expect(await page.evaluate(() => window.__coastlineTest.landmarkDiscoveryState().discovered))
     .toContain('morlatton-village');
