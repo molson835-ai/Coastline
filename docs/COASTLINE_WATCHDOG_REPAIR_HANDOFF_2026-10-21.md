@@ -144,3 +144,43 @@ Fix commits on the repair branch:
 ### Review / failure reporting contract
 
 For each new CI run, report the exact tested commit SHA and link to the workflow and failed browser job. For every failed test, record the test title, source file and line number, exact failed assertion/expected-versus-actual values or timeout location, and a grounded explanation of the failure. Clearly label hypotheses as unconfirmed until logs or traces support them. Do not merge or deploy based on a partial green run.
+
+
+## CTM + World 2 live integration — 2026-10-22
+
+**Workstream:** [Draft PR #87](https://github.com/molson835-ai/Coastline/pull/87)  
+**Branch:** `feat/ctm-world2-live-integration`  
+**Latest code/test commit at this note:** `f6a514ff86aafd7efd97eebf4a46ee32f4c58e79`  
+**Status:** implementation in progress; do not merge or deploy.
+
+### Implemented on the feature branch
+
+- Hardened CTM failure phases, per-world saved state/return points, destination-spawn delivery, partial-load cleanup hook, and degraded-state reporting for source-disposal failure.
+- Added a scene-root registry and a live adapter imported by `game-v3.html`; City and a bounded World 2 island shell now use CTM lifecycle adapters.
+- Added a city bridge affordance and a proximity-gated transition button; World 2 arrival is deterministic at `(1500, groundY(1500,1500), 1500)`.
+- Added City → Island → City and injected-load-failure/retry browser coverage. Transition test hooks return serializable status instead of Three.js scene handles.
+- While Island is active, city NPC/traffic/mission/wildlife/debris updates and city entity-index updates are paused. The runtime spatial-budget traversal skips invisible world roots. Local point lights are grouped with City; shared sky and player fill light remain global.
+- Added the adapter to the service-worker cache and itch.io package. Bumped their cache versions.
+- Made the gameplay, Babylon preview, and itch package workflows preinstall `http-server@14.1.1` before readiness polling to eliminate the observed asynchronous `npx` install race.
+
+### Verification evidence and current state
+
+- **CTM/engine tests:** 38 passed, 0 failed in the engine job of workflow run [39711380929](https://github.com/molson835-ai/Coastline/actions/runs/39711380929), tested commit `701d1a07ec4a620da800cee603c5ac44992ac868`.
+- **Itch package:** run #476 ([39711381035](https://github.com/molson835-ai/Coastline/actions/runs/39711381035)) passed the packaged Chromium smoke test before the final adapter/test-hook refinements. Newer run #481 is in progress.
+- **Babylon preview validation:** run #171 ([39711380985](https://github.com/molson835-ai/Coastline/actions/runs/39711380985)) failed in the repository-server startup step because `npx http-server` was still downloading while the 30-second readiness loop ran. The preinstall fix is in the branch; rerun #176 is in progress.
+- **Gameplay watchdog:** run #909 ([39711380929](https://github.com/molson835-ai/Coastline/actions/runs/39711380929)) was cancelled as the branch advanced. Before cancellation, 31 tests passed and the CTM runtime test was still in progress. Failures seen before cancellation were `landmark-discovery.spec.cjs`, `npc-world-slice.spec.cjs`, `performance-budget.spec.cjs`, and the old `transition-manager-browser.spec.cjs` expectation for the placeholder `world-1/world-2` IDs. The CTM browser test was updated to exercise live `city/island` adapters and return state. These results are not a final full-suite verdict.
+- **Latest gameplay watchdog:** run #914 ([39712612206](https://github.com/molson835-ai/Coastline/actions/runs/39712612206)) is in progress for the updated browser tests. Read its final logs before claiming the CTM browser tests pass.
+- Vercel preview creation remains blocked by the account's free daily deployment quota; no preview URL was produced. No production deployment or merge occurred.
+
+### Implementation rulings / limitations
+
+1. **City root caching:** `game-v3.html` currently builds City as one monolithic runtime and has no safe world-builder function to recreate it on return. The adapter hides and caches the City root while Island is active; CTM reports one active world handle and only one visible world root, but City resources remain allocated in memory. This is a deliberate phase-one compromise to preserve return-state continuity, **not proof of true single-world memory unloading**. Cost if wrong: memory use will not scale linearly as more worlds are added. Before claiming true memory streaming or adding many large worlds, refactor City construction into an explicit reloadable builder/teardown lifecycle and update tests to assert actual resource disposal.
+2. **CI server startup:** workflows now preinstall the exact server binary in the foreground before starting it. Cost if wrong: one extra cached/download step; this removes the race without adding a project runtime dependency.
+
+### Next bounded actions
+
+1. Wait for gameplay watchdog #914, itch package #481, and Babylon preview #176 to finish on the current code. Record exact outcomes.
+2. If the two CTM browser tests fail, inspect their Playwright traces and fix the actual root cause; do not weaken assertions.
+3. Keep the three pre-existing watchdog failures above visible as separate blockers; inspect their trace artifacts before changing behavior. In particular, the NPC repair-story timeout remains relevant to the earlier loader-test handoff.
+4. Perform the final whole-branch self-review (no reviewer subagent is available in this session), then update this handoff with final run IDs and deferred blockers.
+5. Do not merge or deploy until the CTM browser tests and package checks are green and the City-memory-caching limitation is explicitly accepted or resolved.
