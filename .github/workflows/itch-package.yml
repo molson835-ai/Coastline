@@ -29,6 +29,9 @@ jobs:
         run: |
           npm install
           npx playwright install --with-deps chromium
+      - name: Preinstall local web server
+        run: npx --yes http-server@14.1.1 --version
+
       - name: Serve the actual package root
         run: |
           npx http-server dist/itch-html -p 4174 -c-1 > /tmp/coastline-itch-server.log 2>&1 &
