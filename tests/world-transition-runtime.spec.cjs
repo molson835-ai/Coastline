@@ -11,18 +11,21 @@ async function openGame(page) {
 
 test('live runtime starts in City and supports deterministic City to World 2 and return transitions', async ({ page }) => {
   const errors = await openGame(page);
-  const initial = await page.evaluate(() => window.__coastlineTransitionTest.status());
-  expect(initial.activeWorldId).toBe('city');
-  expect(initial.residentWorldIds).toEqual(['city']);
+  const initial = await page.evaluate(() => ({ status: window.__coastlineTransitionTest.status(), roots: window.__coastlineTransitionTest.rootVisibility() }));
+  expect(initial.status.activeWorldId).toBe('city');
+  expect(initial.status.residentWorldIds).toEqual(['city']);
+  expect(initial.roots).toMatchObject({ cityVisible: true, cityCachedInScene: true, islandVisible: false, islandRootResident: false });
 
   const cityStart = await page.evaluate(() => window.__coastlineTransitionTest.playerState());
   await page.evaluate(() => window.__coastlineTransitionTest.transition('city-to-island'));
   const island = await page.evaluate(() => ({
     status: window.__coastlineTransitionTest.status(),
     player: window.__coastlineTransitionTest.playerState(),
+    roots: window.__coastlineTransitionTest.rootVisibility(),
   }));
   expect(island.status.activeWorldId).toBe('island');
   expect(island.status.residentWorldIds).toEqual(['island']);
+  expect(island.roots).toMatchObject({ cityVisible: false, cityCachedInScene: true, islandVisible: true, islandRootResident: true });
   expect(island.player.position.x).toBe(1500);
   expect(island.player.position.z).toBe(1500);
   expect(island.player.vehicleIndex).toBe(cityStart.vehicleIndex);
@@ -31,9 +34,11 @@ test('live runtime starts in City and supports deterministic City to World 2 and
   const returned = await page.evaluate(() => ({
     status: window.__coastlineTransitionTest.status(),
     player: window.__coastlineTransitionTest.playerState(),
+    roots: window.__coastlineTransitionTest.rootVisibility(),
   }));
   expect(returned.status.activeWorldId).toBe('city');
   expect(returned.status.residentWorldIds).toEqual(['city']);
+  expect(returned.roots).toMatchObject({ cityVisible: true, cityCachedInScene: true, islandVisible: false, islandRootResident: false });
   expect(returned.player.position.x).toBe(cityStart.position.x);
   expect(returned.player.position.z).toBe(cityStart.position.z);
   expect(errors).toEqual([]);
@@ -48,10 +53,12 @@ test('failed World 2 load cleans partial shell resources, preserves City, and ca
   expect(failed.activeWorldId).toBe('city');
   expect(failed.state).toBe('active');
   expect(failed.residentWorldIds).toEqual(['city']);
+  expect(await page.evaluate(() => window.__coastlineTransitionTest.rootVisibility())).toMatchObject({ cityVisible: true, cityCachedInScene: true, islandVisible: false, islandRootResident: false });
 
   await page.evaluate(() => window.__coastlineTransitionTest.transition('city-to-island'));
   const retried = await page.evaluate(() => window.__coastlineTransitionTest.status());
   expect(retried.activeWorldId).toBe('island');
   expect(retried.residentWorldIds).toEqual(['island']);
+  expect(await page.evaluate(() => window.__coastlineTransitionTest.rootVisibility())).toMatchObject({ cityVisible: false, cityCachedInScene: true, islandVisible: true, islandRootResident: true });
   expect(errors).toEqual([]);
 });
