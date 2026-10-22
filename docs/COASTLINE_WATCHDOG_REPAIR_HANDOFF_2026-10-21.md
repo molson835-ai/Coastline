@@ -184,3 +184,14 @@ For each new CI run, report the exact tested commit SHA and link to the workflow
 3. Keep the three pre-existing watchdog failures above visible as separate blockers; inspect their trace artifacts before changing behavior. In particular, the NPC repair-story timeout remains relevant to the earlier loader-test handoff.
 4. Perform the final whole-branch self-review (no reviewer subagent is available in this session), then update this handoff with final run IDs and deferred blockers.
 5. Do not merge or deploy until the CTM browser tests and package checks are green and the City-memory-caching limitation is explicitly accepted or resolved.
+
+
+### CI follow-up — 2026-10-22 02:50 UTC
+
+- Reviewed gameplay watchdog #916 (run `39713058275`): the `browser-smoke-test` job failed in **Start local web server**, before gameplay assertions. Logs confirm the `npx http-server` server process never opened port 4173 during the 30-second loop; `npx` attempted another install after the preceding `--version` step. This is a workflow setup failure, not a CTM test verdict.
+- Corrected all three browser workflows on this branch: use `npm install --global http-server@14.1.1` as a completed installation step, then invoke the installed `http-server` executable directly. Commits:
+  - gameplay watchdog: `c2a413511944046cf178b268df180e6b06b5d7b0`
+  - Babylon preview: `c2bfd97c76863443f7f5fd4e613b3dc88a425c61`
+  - itch package: `24fb2c775d7f6b79aa5e18bb0f06f3ad6b0c0fdc`
+- Latest CI triggered by these changes: itch package #484, run [39713498991](https://github.com/molson835-ai/Coastline/actions/runs/39713498991); Babylon preview #179, run [39713498992](https://github.com/molson835-ai/Coastline/actions/runs/39713498992); gameplay watchdog #917, run [39713498888](https://github.com/molson835-ai/Coastline/actions/runs/39713498888). At the last check these were still pending/in progress; no green result has been confirmed.
+- The prior gameplay run's engine/system jobs were still running when checked; their verdicts are unknown. Do not infer they passed. Continue by checking these latest run IDs and collecting final job conclusions. If global npm installation is also unexpectedly slow, increase no test assertions; inspect the specific step and use a lockfile-managed dev dependency only if justified.
