@@ -1,0 +1,49 @@
+name: CTM debug apply
+
+on:
+  push:
+    branches:
+      - feat/ctm-world2-live-integration
+    paths:
+      - .ctm-debug-trigger
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/ctm-world2-live-integration
+          fetch-depth: 1
+      - name: Apply minimal CTM runtime fixes
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('game-v3.html')
+          s = p.read_text()
+          old = "function buildingBlocked(x,z,r=1.6){if(!worldModel.inBounds(x,z,r)||rowhomePositions.some"
+          new = "function buildingBlocked(x,z,r=1.6){if(window.__coastlineWorld2Active)return false;if(!worldModel.inBounds(x,z,r)||rowhomePositions.some"
+          if old not in s:
+              raise SystemExit('expected buildingBlocked source pattern not found')
+          s = s.replace(old, new, 1)
+          old = "const coastlineTransitions=createCoastlineWorldTransitions({THREE,scene,roots:coastlineWorldRoots,player,vehicles,avatar,groundY});await coastlineTransitions.initialize();"
+          new = "const coastlineTransitions=createCoastlineWorldTransitions({THREE,scene,roots:coastlineWorldRoots,player,vehicles,avatar,groundY});await coastlineTransitions.initialize();if(window.__coastlineTransitionTest){const coastlineTransitionTestRaw=window.__coastlineTransitionTest.transition;window.__coastlineTransitionTest.transition=async transitionId=>{await coastlineTransitionTestRaw(transitionId);return window.__coastlineTransitionTest.status()}}"
+          if old not in s:
+              raise SystemExit('expected CTM initialization source pattern not found')
+          s = s.replace(old, new, 1)
+          p.write_text(s)
+      - name: Verify source edits
+        run: |
+          grep -F "if(window.__coastlineWorld2Active)return false" game-v3.html
+          grep -F "coastlineTransitionTestRaw" game-v3.html
+      - name: Commit and remove temporary workflow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          rm -f .ctm-debug-trigger .github/workflows/ctm-debug-apply.yml
+          git add game-v3.html .ctm-debug-trigger .github/workflows/ctm-debug-apply.yml
+          git commit -m "fix: isolate World 2 collisions and CTM browser bridge serialization"
+          git push origin HEAD:feat/ctm-world2-live-integration
