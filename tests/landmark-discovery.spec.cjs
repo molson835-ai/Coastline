@@ -4,8 +4,10 @@ test('visiting a landmark never grants cash or records a discovery', async ({ pa
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.addInitScript(() => {
+    if (sessionStorage.getItem('coastline-landmark-removal-seeded-v1')) return;
     localStorage.removeItem('coastline-discovered-landmarks-v1');
     localStorage.setItem('coastline-cash-balance-v1', '250');
+    sessionStorage.setItem('coastline-landmark-removal-seeded-v1', '1');
   });
   await page.goto('/game-v3.html?beta=landmark-reward-removal-regression', { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => Boolean(window.__coastlineTest), null, { timeout: 20000 });
