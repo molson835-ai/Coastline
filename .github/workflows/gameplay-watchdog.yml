@@ -28,8 +28,8 @@ jobs:
           node-version: 20
       - name: Install test dependencies
         run: npm install
-      - name: Run world-engine tests
-        run: npm run test:engine
+      - name: Run world-engine and transition manager tests
+        run: node --test tests/world-engine*.spec.mjs tests/transition-manager.spec.mjs
 
   system-tests:
     runs-on: ubuntu-latest

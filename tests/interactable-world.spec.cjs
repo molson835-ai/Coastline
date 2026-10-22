@@ -42,6 +42,7 @@ test('buildings, benches, low walls, bicycles, motorcycles and aircraft are inte
   const jump = await page.evaluate(() => {
     const api = window.__coastlineTest;
     api.keyDown('space');
+    api.advanceTestFrame(1/60, 1);
     const state = api.state();
     api.keyUp('space');
     return { jumpHeight: state.jumpHeight, jumpVelocity: state.jumpVelocity, mode: state.mode, errors: state.errors };
@@ -52,7 +53,7 @@ test('buildings, benches, low walls, bicycles, motorcycles and aircraft are inte
 
   await page.evaluate(() => window.__coastlineTest.enterRideable('aircraft'));
   await page.evaluate(() => window.__coastlineTest.keyDown('space'));
-  await page.waitForTimeout(450);
+  await page.evaluate(() => window.__coastlineTest.advanceTestFrame(1/60, 30));
   const flightHeight = await page.evaluate(() => window.__coastlineTest.rideableState().find(v => v.kind === 'aircraft').flightHeight);
   await page.evaluate(() => window.__coastlineTest.keyUp('space'));
   expect(flightHeight).toBeGreaterThan(0);

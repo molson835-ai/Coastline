@@ -1,6 +1,7 @@
 const { test, expect } = require('@playwright/test');
 
 test('public-works NPC reacts to a nearby player and begins a character-specific repair story', async ({ page }) => {
+  await page.addInitScript(() => { if (!sessionStorage.getItem('coastline-npc-test-reset')) { localStorage.removeItem('coastline-npc-world-slice-v1'); sessionStorage.setItem('coastline-npc-test-reset', '1'); } });
   await page.goto('/game-v3.html', { waitUntil: 'domcontentloaded' });
   await expect(page.locator('canvas').first()).toBeAttached({ timeout: 30000 });
   await page.waitForFunction(() => Boolean(window.__coastlineTest?.npcWorldSliceState), null, { timeout: 30000 });
@@ -11,15 +12,16 @@ test('public-works NPC reacts to a nearby player and begins a character-specific
   expect(before.phase).toBe('idle');
 
   await page.evaluate(({ x, z }) => window.__coastlineTest.setVehiclePosition(x, z, 0), before.target);
-  await expect.poll(async () => page.evaluate(() => window.__coastlineTest.npcWorldSliceState().phase), { timeout: 5000 }).toBe('repairing');
-
+  await page.evaluate(() => window.__coastlineTest.advanceTestFrame(.035, 1));
   const active = await page.evaluate(() => window.__coastlineTest.npcWorldSliceState());
+  expect(active.phase).toBe('repairing');
   expect(active.npc.flags.signalOutage).toBe(true);
   expect(active.npc.memory.some(item => item.type === 'infrastructure_failure')).toBe(true);
   expect(active.agency.events.some(event => event.type === 'signal_outage')).toBe(true);
 
-  await expect.poll(async () => page.evaluate(() => window.__coastlineTest.npcWorldSliceState().phase), { timeout: 18000, intervals: [250, 500, 1000] }).toBe('complete');
+  await page.evaluate(() => window.__coastlineTest.advanceTestFrame(.035, 400));
   const completed = await page.evaluate(() => window.__coastlineTest.npcWorldSliceState());
+  expect(completed.phase).toBe('complete');
   expect(completed.agency.outcomes.some(event => event.type === 'signal_restored')).toBe(true);
   expect(completed.npc.flags.signalOutage).toBe(false);
   const townRumor = completed.rumors.rumors.find(rumor => rumor.topic === 'signalOutage');
@@ -27,7 +29,7 @@ test('public-works NPC reacts to a nearby player and begins a character-specific
   expect(townRumor.history.length).toBeGreaterThan(1);
   expect(completed.rumors.people.filter(person => person.knowledge.signalOutage).length).toBeGreaterThan(1);
 
-  await page.reload({ waitUntil: 'domcontentloaded' });
+  await page.reload({ waitUntil: 'commit' });
   await page.waitForFunction(() => Boolean(window.__coastlineTest?.npcWorldSliceState), null, { timeout: 30000 });
   const restored = await page.evaluate(() => window.__coastlineTest.npcWorldSliceState());
   expect(restored.phase).toBe('complete');

@@ -10,6 +10,7 @@ test('courier activity can be discovered, completed, rewarded, and replayed', as
   await page.evaluate(() => window.__coastlineTest.startMission());
   expect((await page.evaluate(() => window.__coastlineTest.state())).missionState).toBe('deliver');
   await page.evaluate(() => window.__coastlineTest.setWalkPosition(100, -50, 0));
+  await page.evaluate(() => window.__coastlineTest.advanceTestFrame(1/60, 2));
   await page.waitForFunction(() => window.__coastlineTest.state().missionState === 'done', null, { timeout: 5000 });
   const firstComplete = await page.evaluate(() => window.__coastlineTest.state());
   expect(firstComplete.cashBalance).toBe(750);
@@ -19,6 +20,7 @@ test('courier activity can be discovered, completed, rewarded, and replayed', as
   await page.evaluate(() => window.__coastlineTest.startMission());
   expect((await page.evaluate(() => window.__coastlineTest.state())).missionState).toBe('deliver');
   await page.evaluate(() => window.__coastlineTest.setWalkPosition(100, -50, 0));
+  await page.evaluate(() => window.__coastlineTest.advanceTestFrame(1/60, 2));
   await page.waitForFunction(() => {
     const s = window.__coastlineTest.state();
     return s.missionState === 'done' && s.missionRuns === 2;
