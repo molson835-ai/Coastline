@@ -104,7 +104,6 @@ test('restores the last return point after a successful round trip', async () =>
   assert.deepEqual(manager.restoreLastReturnPoint(), { x: 99, y: 0, z: 88 });
 });
 
-
 test('passes the validated destination spawn and transition state to the destination adapter', async () => {
   const manager = createTransitionManager();
   let loadArgs;
@@ -121,6 +120,39 @@ test('passes the validated destination spawn and transition state to the destina
   assert.deepEqual(loadArgs.destinationSpawn, destinationSpawn);
   assert.deepEqual(loadArgs.transitionState.player, player);
   assert.deepEqual(loadArgs.transitionState.vehicle, vehicle);
+});
+
+test('captures source world state before destination load can mutate the shared context', async () => {
+  const manager = createTransitionManager();
+  let captured;
+  manager.registerWorld({
+    id: 'city',
+    name: 'City',
+    load: async () => ({ id: 'city' }),
+    unload: async () => {},
+    captureState: async ({ context }) => {
+      captured = structuredClone(context.player);
+      return { player: structuredClone(context.player) };
+    },
+  });
+  manager.registerWorld({
+    id: 'island',
+    name: 'Island',
+    load: async ({ context }) => {
+      context.player.position.x = 500;
+      context.player.position.z = 500;
+      return { id: 'island' };
+    },
+    unload: async () => {},
+  });
+  manager.registerTransition({ id: 'city-to-island', fromWorld: 'city', toWorld: 'island', trigger: 'bridge', destinationSpawn: { x: 500, y: 0, z: 500 }, vehiclePolicy: 'allowed' });
+  await manager.activate('city');
+  const context = { player: { position: { x: 12, y: 0, z: -34 }, rotationY: 0.25 }, vehicle: null };
+
+  await manager.transition('city-to-island', context);
+
+  assert.deepEqual(captured, { position: { x: 12, y: 0, z: -34 }, rotationY: 0.25 });
+  assert.deepEqual(manager.getStatus().lastTransitionState.worldState, { player: captured });
 });
 
 test('cleans up partial destination resources when the destination loader fails before returning a handle', async () => {
