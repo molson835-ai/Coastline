@@ -161,7 +161,7 @@ test('reports source-unload failure and retains accurate resident-world status',
   await assert.rejects(() => manager.transition('city-to-island', {}), /city disposal failed/);
 
   assert.equal(manager.getActiveWorldId(), 'city');
-  assert.equal(manager.getStatus().state, 'active');
+  assert.equal(manager.getStatus().state, 'degraded');
   assert.deepEqual(manager.getStatus().residentWorldIds, ['city']);
   assert.equal(destinationUnloadCalls, 1);
   assert.equal(manager.getStatus().lastFailure.phase, 'source-unload');
