@@ -38,6 +38,7 @@ export function createTransitionManager({ onEvent } = {}) {
   const worlds = new Map();
   const transitions = new Map();
   const handles = new Map();
+  const savedReturnPoints = new Map();
   let activeWorldId = null;
   let state = 'idle';
   let activeTransitionId = null;
@@ -109,11 +110,12 @@ export function createTransitionManager({ onEvent } = {}) {
     const sourceDefinition = worlds.get(transition.fromWorld);
     const destinationDefinition = worlds.get(transition.toWorld);
     const sourceHandle = handles.get(transition.fromWorld);
+    const sourceReturnPoint = cloneState(transition.returnPoint ?? context.player?.position ?? null);
     const transitionState = {
       player: cloneState(context.player),
       vehicle: hasVehicle ? cloneState(context.vehicle) : null,
       sourceWorld: transition.fromWorld,
-      returnPoint: cloneState(transition.returnPoint ?? context.player?.position ?? null),
+      returnPoint: sourceReturnPoint,
     };
 
     state = 'transitioning';
@@ -141,10 +143,20 @@ export function createTransitionManager({ onEvent } = {}) {
       handles.delete(transition.fromWorld);
       emit('world:disposed', { worldId: transition.fromWorld });
 
+      // Remember where the player left the source world so a later return can
+      // restore that world-specific entry point instead of the temporary
+      // position used while visiting the destination.
+      if (sourceReturnPoint !== null) savedReturnPoints.set(transition.fromWorld, cloneState(sourceReturnPoint));
+
       handles.set(transition.toWorld, destinationHandle);
       activeWorldId = transition.toWorld;
       lastTransitionState = cloneState(transitionState);
-      lastReturnPoint = cloneState(transition.returnPoint ?? context.player?.position ?? null);
+      lastReturnPoint = cloneState(
+        savedReturnPoints.get(transition.toWorld)
+          ?? transition.returnPoint
+          ?? context.player?.position
+          ?? null,
+      );
 
       if (transition.vehiclePolicy === 'forbidden' && hasVehicle) {
         await context.storeVehicle(context.vehicle, { transition, sourceWorld: transition.fromWorld, destinationWorld: transition.toWorld });
@@ -173,7 +185,7 @@ export function createTransitionManager({ onEvent } = {}) {
   };
 
   const transition = (transitionId, context = {}) => {
-    if (transitionPromise) throw new Error('transition manager is busy');
+    if (transitionPromise) return Promise.reject(new Error('transition manager is busy'));
     transitionPromise = performTransition(transitionId, context);
     return transitionPromise.finally(() => { transitionPromise = null; });
   };
@@ -213,6 +225,7 @@ export function createTransitionManager({ onEvent } = {}) {
       worlds.clear();
       transitions.clear();
       handles.clear();
+      savedReturnPoints.clear();
       activeWorldId = null;
     },
   };
