@@ -62,6 +62,9 @@ jobs:
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
 
+      - name: Preinstall local web server
+        run: npx --yes http-server@14.1.1 --version
+
       - name: Start local web server
         run: |
           npx http-server . -p 4173 -c-1 > /tmp/coastline-server.log 2>&1 &
