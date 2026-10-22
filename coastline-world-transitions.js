@@ -48,7 +48,7 @@ function disposeRoot(root) {
 }
 
 export function createCoastlineWorldTransitions({ THREE, scene, roots, player, vehicles, avatar, groundY }) {
-  const WORLD_2_SPAWN = Object.freeze({ x: 1500, y: 0, z: 1500, rotationY: 0 });
+  const WORLD_2_SPAWN = Object.freeze({ x: 1500, y: finiteOr(groundY(1500, 1500)), z: 1500, rotationY: 0 });
   const CITY_BRIDGE = Object.freeze({ x: 0, z: -680 });
   let pendingWorld2Root = null;
   let failNextWorld2Load = false;
