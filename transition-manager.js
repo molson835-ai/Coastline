@@ -126,11 +126,16 @@ export function createTransitionManager({ onEvent } = {}) {
 
     let destinationHandle = null;
     let destinationLoadCompleted = false;
-    let phase = 'destination-load';
+    let phase = 'source-capture';
     let sourceUnloadStarted = false;
     let cleanupError = null;
     try {
+      if (typeof sourceDefinition.captureState === 'function') {
+        transitionState.worldState = cloneState(await sourceDefinition.captureState({ context, handle: sourceHandle, transition }));
+      }
+
       emit('transition:loading', { transitionId, fromWorld: transition.fromWorld, toWorld: transition.toWorld });
+      phase = 'destination-load';
       const destinationSpawn = cloneState(savedReturnPoints.get(transition.toWorld) ?? transition.destinationSpawn);
       destinationHandle = await destinationDefinition.load({
         worldId: transition.toWorld,
@@ -155,14 +160,9 @@ export function createTransitionManager({ onEvent } = {}) {
         context.vehicle = null;
       }
 
-      phase = 'source-capture';
-      if (typeof sourceDefinition.captureState === 'function') {
-        transitionState.worldState = cloneState(await sourceDefinition.captureState({ context, handle: sourceHandle, transition }));
-      }
-
+      emit('transition:unloading', { transitionId, fromWorld: transition.fromWorld, toWorld: transition.toWorld });
       phase = 'source-unload';
       sourceUnloadStarted = true;
-      emit('transition:unloading', { transitionId, fromWorld: transition.fromWorld, toWorld: transition.toWorld });
       await sourceDefinition.unload(sourceHandle, { context, transition, transitionState });
       handles.delete(transition.fromWorld);
       emit('world:disposed', { worldId: transition.fromWorld });
@@ -194,7 +194,6 @@ export function createTransitionManager({ onEvent } = {}) {
           await destinationDefinition.unload(destinationHandle, { context, transition, transitionState, failed: true });
         } catch (cleanupFailure) {
           cleanupError = { name: cleanupFailure?.name ?? 'Error', message: cleanupFailure?.message ?? String(cleanupFailure) };
-          // Keep the handle visible in status instead of hiding a staged-world leak.
           handles.set(transition.toWorld, destinationHandle);
         }
       }
