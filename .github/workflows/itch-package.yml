@@ -30,11 +30,11 @@ jobs:
           npm install
           npx playwright install --with-deps chromium
       - name: Preinstall local web server
-        run: npx --yes http-server@14.1.1 --version
+        run: npm install --global http-server@14.1.1
 
       - name: Serve the actual package root
         run: |
-          npx http-server dist/itch-html -p 4174 -c-1 > /tmp/coastline-itch-server.log 2>&1 &
+          http-server dist/itch-html -p 4174 -c-1 > /tmp/coastline-itch-server.log 2>&1 &
           for i in {1..30}; do
             curl -fsS http://127.0.0.1:4174/ >/dev/null && exit 0
             sleep 1
