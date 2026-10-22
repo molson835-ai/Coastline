@@ -13,16 +13,15 @@ test('public-works NPC reacts to a nearby player and begins a character-specific
 
   await page.evaluate(({ x, z }) => window.__coastlineTest.setVehiclePosition(x, z, 0), before.target);
   await page.evaluate(() => window.__coastlineTest.advanceTestFrame(.035, 1));
-  await expect.poll(async () => page.evaluate(() => window.__coastlineTest.npcWorldSliceState().phase), { timeout: 5000 }).toBe('repairing');
-
   const active = await page.evaluate(() => window.__coastlineTest.npcWorldSliceState());
+  expect(active.phase).toBe('repairing');
   expect(active.npc.flags.signalOutage).toBe(true);
   expect(active.npc.memory.some(item => item.type === 'infrastructure_failure')).toBe(true);
   expect(active.agency.events.some(event => event.type === 'signal_outage')).toBe(true);
 
   await page.evaluate(() => window.__coastlineTest.advanceTestFrame(.035, 400));
-  await expect.poll(async () => page.evaluate(() => window.__coastlineTest.npcWorldSliceState().phase), { timeout: 3000 }).toBe('complete');
   const completed = await page.evaluate(() => window.__coastlineTest.npcWorldSliceState());
+  expect(completed.phase).toBe('complete');
   expect(completed.agency.outcomes.some(event => event.type === 'signal_restored')).toBe(true);
   expect(completed.npc.flags.signalOutage).toBe(false);
   const townRumor = completed.rumors.rumors.find(rumor => rumor.topic === 'signalOutage');
