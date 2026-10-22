@@ -90,8 +90,6 @@ function addBridge(THREE, root, { x, z, y, length = 100 }) {
 }
 
 export function createCoastlineWorldTransitions({ THREE, scene, roots, player, vehicles, avatar, groundY }) {
-  // Keep World 2 inside the established gameplay coordinate envelope. It is an
-  // intentionally blank shell, not a second copy of the City's heavy assets.
   const WORLD_2_SPAWN = Object.freeze({ x: 500, y: finiteOr(groundY(500, 500)), z: 500, rotationY: 0 });
   const CITY_BRIDGE = Object.freeze({ x: 0, z: -680 });
   const CITY_PROMPT_RANGE = 24;
@@ -357,6 +355,7 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
   return {
     manager,
     ready: initializePromise,
+    initialize: initializePromise,
     dispose: async () => {
       disposed = true;
       setWorld2CollisionScope(false);
