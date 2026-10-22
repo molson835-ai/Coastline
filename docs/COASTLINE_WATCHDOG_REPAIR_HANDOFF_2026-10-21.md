@@ -122,3 +122,25 @@ Fix commits on the repair branch:
 **Validation pending:** these commits have not yet been covered by a completed watchdog run. The previous watchdog #872 result was 31 passed / 4 failed, with landmark tests timing out during reload initialization. New assertions are intentionally retained; if reload continues to time out, address slow startup/worker contention without removing the persistence check.
 
 - `77a144f9614a6ceb1e653bdd95f79d4303a17d91`: hardened the cash loader so a missing localStorage key correctly defaults to $250 (rather than coercing `null` to zero). This was caught during code review before accepting the persistence fix; the latest watchdog must verify the clean-start balance and persistence together.
+
+
+## Follow-up: fully remove landmark discovery/rewards (2026-10-22)
+
+**Status at handoff update:** source and regression tests changed on branch `coastline-remove-landmark-rewards-v1`; fresh CI is pending. This supersedes the earlier sections above that describe landmark discovery as a retained, rewarding mechanic. Do not interpret the older $150 reward/persistence tests as current intended behavior.
+
+### Source changes
+
+- `game-v3.html`: removed the `discoveredLandmarks` localStorage-backed set, `landmarkDiscoveryState()`, and `checkLandmarkDiscovery()`, including the `cashBalance += 150` payout, cash HUD mutation, persistence write, and discovery telemetry.
+- Removed all calls to `checkLandmarkDiscovery()` from deterministic test stepping and the main runtime update loop.
+- Removed the obsolete discovery API entries from `window.__coastlineTest` and the obsolete landmark toast filter term.
+- Landmark map coordinates/roster remain available as world geography; they no longer grant money or create discovery state.
+
+### Regression coverage
+
+- `tests/landmark-discovery.spec.cjs`: replaced the old “regional landmarks reward exploration” expectation with a regression asserting that visiting a landmark does not change cash, the discovery API is absent, no discovery localStorage state is written, and cash remains unchanged after reload.
+- `tests/gameplay.spec.cjs`: replaced the obsolete assertion expecting a $150 landmark reward and $400 balance with a seeded cash-persistence test ($375 survives reload independently of landmark behavior). Test storage is seeded once per tab, not on every reload.
+- Tests are retained as behavioral coverage; no failure is being hidden by simply deleting the tests.
+
+### Review / failure reporting contract
+
+For each new CI run, report the exact tested commit SHA and link to the workflow and failed browser job. For every failed test, record the test title, source file and line number, exact failed assertion/expected-versus-actual values or timeout location, and a grounded explanation of the failure. Clearly label hypotheses as unconfirmed until logs or traces support them. Do not merge or deploy based on a partial green run.
