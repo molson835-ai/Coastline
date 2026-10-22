@@ -100,6 +100,10 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
   let failNextWorld2Load = false;
   let disposed = false;
 
+  const setWorld2CollisionScope = active => {
+    window.__coastlineWorld2Active = Boolean(active);
+  };
+
   const manager = createTransitionManager({
     onEvent(event) {
       window.dispatchEvent(new CustomEvent(`coastline:${event.type}`, { detail: event }));
@@ -234,12 +238,14 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
     id: 'city',
     name: 'Coastline City',
     load: async ({ reason }) => {
+      setWorld2CollisionScope(false);
       roots.world1Root.visible = reason === 'initial-activation';
       return { id: 'city', root: roots.world1Root };
     },
     unload: async handle => { handle.root.visible = false; },
     captureState: async ({ context }) => ({ player: context.player, vehicle: context.vehicle, vehicleIndex: context.vehicleIndex }),
     restoreState: async (worldState, { handle }) => {
+      setWorld2CollisionScope(false);
       handle.root.visible = true;
       applySnapshot(worldState, handle.root);
     },
@@ -249,6 +255,7 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
     id: 'island',
     name: 'World 2 Blank Shell',
     load: async ({ context, destinationSpawn }) => {
+      setWorld2CollisionScope(true);
       pendingWorld2Root = createBlankWorld2Root();
       roots.addWorldRoot(pendingWorld2Root);
       pendingWorld2Root.visible = true;
@@ -261,11 +268,13 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
       return { id: 'island', root: pendingWorld2Root };
     },
     unload: async handle => {
+      setWorld2CollisionScope(false);
       if (handle.root?.parent) roots.removeWorldRoot(handle.root);
       disposeRoot(handle.root);
       if (pendingWorld2Root === handle.root) pendingWorld2Root = null;
     },
     cleanupFailedLoad: async ({ context }) => {
+      setWorld2CollisionScope(false);
       if (!pendingWorld2Root) return;
       applySnapshot({ player: context.player, vehicle: context.vehicle, vehicleIndex: context.vehicleIndex }, roots.world1Root);
       roots.world1Root.visible = true;
@@ -275,6 +284,7 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
     },
     captureState: async ({ context }) => ({ player: context.player, vehicle: context.vehicle, vehicleIndex: context.vehicleIndex }),
     restoreState: async (worldState, { handle }) => {
+      setWorld2CollisionScope(true);
       handle.root.visible = true;
       moveActiveActor(handle.root);
       applySnapshot(worldState, handle.root);
@@ -298,45 +308,63 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
     button.style.cssText = 'display:none;position:fixed;left:50%;bottom:170px;transform:translateX(-50%);z-index:1000;pointer-events:auto;border:1px solid #a7f4ff88;border-radius:12px;padding:6px 8px;background:#06202aee;color:#effcff;font:800 12px system-ui,sans-serif;letter-spacing:.08em;box-shadow:0 8px 24px #0008';
     button.addEventListener('click', () => {
       const id = manager.getActiveWorldId() === 'city' ? 'city-to-island' : 'island-to-city';
-      transition(id).catch(error => window.dispatchEvent(new CustomEvent('coastline:transition-ui-error', { detail: { message: error.message } })));
+      transition(id).catch(error => {
+        button.textContent = `TRANSITION FAILED: ${error.message}`;
+      });
     });
     document.body.appendChild(button);
+
+    const updatePrompt = () => {
+      const activeWorld = manager.getActiveWorldId();
+      const vehicle = player.mode === 'vehicle' ? player.vehicle : null;
+      if (!vehicle) {
+        button.style.display = 'none';
+        return;
+      }
+      const target = activeWorld === 'city' ? CITY_BRIDGE : WORLD_2_SPAWN;
+      const range = activeWorld === 'city' ? CITY_PROMPT_RANGE : WORLD_2_PROMPT_RANGE;
+      const dx = target.x - player.x;
+      const dz = target.z - player.z;
+      const distance = Math.hypot(dx, dz);
+      const forwardX = Math.sin(player.heading);
+      const forwardZ = Math.cos(player.heading);
+      const dot = distance > 0.001 ? (dx * forwardX + dz * forwardZ) / distance : 1;
+      if (distance > range || dot < 0.72) {
+        button.style.display = 'none';
+        return;
+      }
+      button.textContent = activeWorld === 'city' ? 'CROSS TO WORLD 2' : 'RETURN TO CITY';
+      button.style.display = 'block';
+    };
+
     window.__coastlineTransitionTest = {
       status: () => manager.getStatus(),
-      activeWorld: () => manager.getActiveWorldId(),
-      playerState: () => ({ position: { x: player.x, y: player.y, z: player.z }, heading: player.heading, mode: player.mode, vehicleIndex: player.mode === 'vehicle' ? vehicles.indexOf(player.vehicle) : -1, vehicleSpeed: player.mode === 'vehicle' ? player.vehicle?.speed ?? null : null }),
-      transition: async transitionId => { await transition(transitionId); return manager.getStatus(); },
-      failNextWorld2Load: () => { failNextWorld2Load = true; },
-      rootVisibility: () => ({ cityVisible: roots.world1Root.visible, cityCachedInScene: roots.world1Root.parent === scene, islandVisible: Boolean(pendingWorld2Root?.visible), islandRootResident: Boolean(pendingWorld2Root?.parent) }),
+      playerState: () => ({ position: { x: player.x, y: player.y, z: player.z }, heading: player.heading, mode: player.mode, vehicleIndex: vehicles.indexOf(player.vehicle), vehicleSpeed: player.vehicle?.speed ?? 0 }),
+      rootVisibility: () => ({ cityVisible: roots.world1Root.visible, cityCachedInScene: Boolean(roots.world1Root.parent === scene), islandVisible: Boolean(pendingWorld2Root?.visible), islandRootResident: Boolean(pendingWorld2Root?.parent === scene) }),
+      transition,
       updatePrompt,
+      failNextWorld2Load: () => { failNextWorld2Load = true; },
+      world2Spawn: () => ({ ...WORLD_2_SPAWN }),
+      collisionScope: () => Boolean(window.__coastlineWorld2Active),
     };
-    updatePrompt();
+
+    window.addEventListener('keydown', updatePrompt);
+    setInterval(updatePrompt, 200);
     return manager;
   };
 
-  function isFacingPoint(target, maxDistance, minDot = 0.55) {
-    const dx = target.x - player.x;
-    const dz = target.z - player.z;
-    const distance = Math.hypot(dx, dz);
-    if (distance > maxDistance || distance < 0.001) return false;
-    const length = distance;
-    const forwardX = Math.sin(player.heading || 0);
-    const forwardZ = Math.cos(player.heading || 0);
-    return (forwardX * dx + forwardZ * dz) / length >= minDot;
-  }
-
-  function updatePrompt() {
-    if (disposed) return;
-    const button = document.getElementById('coastlineWorldTransition');
-    if (!button) return;
-    const active = manager.getActiveWorldId();
-    const target = active === 'city' ? CITY_BRIDGE : WORLD_2_SPAWN;
-    const range = active === 'city' ? CITY_PROMPT_RANGE : WORLD_2_PROMPT_RANGE;
-    const available = manager.getStatus().state === 'active' && player.mode === 'vehicle' && isFacingPoint(target, range);
-    button.style.display = available ? 'block' : 'none';
-    button.textContent = active === 'city' ? 'CROSS BRIDGE  →' : 'RETURN TO CITY  →';
-    button.disabled = !available;
-  }
-
-  return { manager, initialize, updatePrompt, dispose() { disposed = true; manager.dispose(); } };
+  const initializePromise = initialize();
+  return {
+    manager,
+    ready: initializePromise,
+    dispose: async () => {
+      disposed = true;
+      setWorld2CollisionScope(false);
+      if (pendingWorld2Root) {
+        roots.removeWorldRoot(pendingWorld2Root);
+        disposeRoot(pendingWorld2Root);
+        pendingWorld2Root = null;
+      }
+    },
+  };
 }
