@@ -7,9 +7,12 @@ test('CTM browser bridge returns serializable status and isolates World 2 city c
   const island = await page.evaluate(() => window.__coastlineTransitionTest.transition('city-to-island'));
   expect(island.activeWorldId).toBe('island');
   expect(await page.evaluate(() => window.__coastlineTransitionTest.collisionScope())).toBe(true);
-  await page.evaluate(() => window.__coastlineTransitionTest.keyDown('w'));
-  await page.evaluate(() => window.__coastlineTransitionTest.advanceTestFrame(1 / 60, 30));
-  await page.evaluate(() => window.__coastlineTransitionTest.keyUp('w'));
+
+  // Drive the actual runtime input path rather than relying on a private test-only keyDown helper.
+  await page.keyboard.down('w');
+  await page.waitForTimeout(700);
+  await page.keyboard.up('w');
+
   const moved = await page.evaluate(() => window.__coastlineTransitionTest.playerState());
   expect(Math.hypot(moved.position.x - 500, moved.position.z - 500)).toBeGreaterThan(0.1);
   const cityReturn = await page.evaluate(() => window.__coastlineTransitionTest.transition('island-to-city'));
