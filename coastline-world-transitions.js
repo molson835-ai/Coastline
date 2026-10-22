@@ -355,7 +355,7 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
   return {
     manager,
     ready: initializePromise,
-    initialize: initializePromise,
+    initialize,
     dispose: async () => {
       disposed = true;
       setWorld2CollisionScope(false);
