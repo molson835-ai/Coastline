@@ -1,4 +1,4 @@
-const CACHE_NAME='coastline-static-v51';
+const CACHE_NAME='coastline-static-v52';
 const CORE=['./','./index.html','./coastline-cinematic-v2.html','./game-v3.html','./vehicle-visual-enhancer.js','./cinematic-world-upgrade.js','./coastline-runtime-fix.js','./coastline-stability-v8.js','./car-customization.js','./world-model.js','./world-engine.js','./living-world.js','./douglassville-layout.js','./realism-library.js','./presentation-runtime.js','./cinematic-visual-library.js','./cinematic-animation-library.js','./cinematic-environment-library.js','./replayability-engine.js','./npc-agency-engine.js','./npc-world-slice.js','./social-rumor-engine.js','./player-reputation-engine.js','./coastline-ai-runtime.js','./coastline-live-ops.js','./transition-manager.js','./transition-manager-browser.js','./coastline-world-transitions.js'];
 const RUNTIME_PATCH='<script id="coastline-runtime-v31" src="./coastline-runtime-fix.js"></script><script id="coastline-stability-v8" src="./coastline-stability-v8.js"></script><script id="coastline-garage-customization" type="module" src="./car-customization.js"></script><script id="coastline-transition-manager" type="module" src="./transition-manager-browser.js"></script>';
 function patchFullBetaHtml(text){
@@ -36,6 +36,11 @@ function patchFullBetaHtml(text){
  out=out.replace('r.position.set(0,3.065,z);r.receiveShadow=true;scene.add(r);','r.position.set(0,3.065,z);r.receiveShadow=true;r.renderOrder=8;r.userData.coastlineRoadLayer=true;r.userData.coastlineAlwaysVisible=true;scene.add(r);');
  out=out.replace('l.position.set(xx,r.position.y+.16,z);scene.add(l)','l.position.set(xx,r.position.y+.16,z);l.renderOrder=20;l.userData.coastlineRoadLayer=true;l.userData.coastlineAlwaysVisible=true;scene.add(l)');
  out=out.replace('edge.position.set(0,r.position.y+.145,z+side*(w/2-.55));scene.add(edge)','edge.position.set(0,r.position.y+.145,z+side*(w/2-.55));edge.renderOrder=20;edge.userData.coastlineRoadLayer=true;edge.userData.coastlineAlwaysVisible=true;scene.add(edge)');
+ // CPU simulation LOD: keep nearby AI/collision fully active while distant actors pause. Rendering remains untouched.
+ out=out.replace('function updateAI(dt){for(const v of vehicles){if(v.occupied||!v.ai)continue;', 'function updateAI(dt){const coastlineProximitySimulationBudget=360,px=player.x,pz=player.z;for(const v of vehicles){if(v.occupied||!v.ai)continue;if(Math.hypot(v.x-px,v.z-pz)>coastlineProximitySimulationBudget)continue;');
+ out=out.replace('function updatePedestrians(dt){for(const p of pedestrians){', 'function updatePedestrians(dt){const coastlineProximitySimulationBudget=260,px=player.x,pz=player.z;for(const p of pedestrians){if(Math.hypot(p.x-px,p.z-pz)>coastlineProximitySimulationBudget)continue;');
+ out=out.replace("for(const v of vehicles){const d=Math.hypot(v.x-p.x,v.z-p.z);if(d<threatD&&Math.abs(v.speed)>12){", "for(const v of vehicles){if(Math.abs(v.x-p.x)>12||Math.abs(v.z-p.z)>12)continue;const d=Math.hypot(v.x-p.x,v.z-p.z);if(d<threatD&&Math.abs(v.speed)>12){");
+ out=out.replace("for(const v of vehicles){if(Math.hypot(v.x-p.x,v.z-p.z)<2.8&&Math.abs(v.speed)>2.5){", "for(const v of vehicles){if(Math.abs(v.x-p.x)>5||Math.abs(v.z-p.z)>5)continue;if(Math.hypot(v.x-p.x,v.z-p.z)<2.8&&Math.abs(v.speed)>2.5){");
  return out;
 }
 self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(CORE).catch(()=>{})).then(()=>self.skipWaiting()))});
