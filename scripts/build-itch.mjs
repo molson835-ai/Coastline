@@ -13,7 +13,8 @@ const files = [
   'cinematic-environment-library.js', 'replayability-engine.js',
   'npc-agency-engine.js', 'npc-world-slice.js', 'social-rumor-engine.js',
   'player-reputation-engine.js', 'coastline-runtime-fix.js',
-  'coastline-stability-v8.js', 'coastline-sw.js'
+  'coastline-stability-v8.js', 'transition-manager.js', 'transition-manager-browser.js',
+  'coastline-sw.js'
 ];
 for (const file of files) {
   if (!existsSync(path.join(root, file))) throw new Error('Missing runtime file: ' + file);
@@ -28,7 +29,7 @@ let sw = await readFile(path.join(output, 'coastline-sw.js'), 'utf8');
 // its own version and cache only files that are actually shipped in this package.
 sw = sw.replace(/const CACHE_NAME='[^']+';/, "const CACHE_NAME='coastline-itch-static-v1';");
 const packagedCore = ['./', './index.html', ...files.map(file => './' + file)];
-sw = sw.replace(/const CORE=\[[^\]]*\];/, "const CORE=[" + packagedCore.map(file => "'" + file + "'").join(',') + "];");
+sw = sw.replace(/const CORE=\[[^\]]*\];/, "const CORE=[" + packagedCore.map(file => "'" + file + "'").join(',') + "]");
 if (!sw.includes("'./index.html'") || !sw.includes('coastline-itch-static-v1')) {
   throw new Error('Unable to configure service-worker cache for the packaged entry point.');
 }
