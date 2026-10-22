@@ -30,10 +30,11 @@ test('live runtime starts in City and supports deterministic City to World 2 and
   expect(island.player.position.z).toBe(500);
 
   const moved = await page.evaluate(async () => {
+    const api = window.__coastlineTest;
     const before = window.__coastlineTransitionTest.playerState();
-    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'w', bubbles: true }));
-    await new Promise(resolve => setTimeout(resolve, 900));
-    window.dispatchEvent(new KeyboardEvent('keyup', { key: 'w', bubbles: true }));
+    api.keyDown('w');
+    api.advanceTestFrame(1 / 60, 60);
+    api.keyUp('w');
     const after = window.__coastlineTransitionTest.playerState();
     return { before, after };
   });
