@@ -77,12 +77,11 @@ test('failed World 2 load cleans partial shell resources, preserves City, and ca
   expect(errors).toEqual([]);
 });
 
-
 test('bridge prompt only appears for a nearby vehicle facing the bridge, with a halved range and compact size', async ({ page }) => {
   await openGame(page);
 
   await page.evaluate(() => {
-    window.__coastlineTest.setVehiclePosition(0, -690, 0);
+    window.__coastlineTest.setVehiclePosition(0, -690, Math.PI);
     window.__coastlineTransitionTest.updatePrompt();
   });
   const facingAway = await page.locator('#coastlineWorldTransition').evaluate(button => ({
@@ -92,7 +91,7 @@ test('bridge prompt only appears for a nearby vehicle facing the bridge, with a 
   expect(facingAway.display).toBe('none');
 
   await page.evaluate(() => {
-    window.__coastlineTest.setVehiclePosition(0, -690, Math.PI);
+    window.__coastlineTest.setVehiclePosition(0, -690, 0);
     window.__coastlineTransitionTest.updatePrompt();
   });
   await expect(page.locator('#coastlineWorldTransition')).toBeVisible();
@@ -102,13 +101,13 @@ test('bridge prompt only appears for a nearby vehicle facing the bridge, with a 
   expect(facingToward.padding).toBe('6px 8px');
 
   await page.evaluate(() => {
-    window.__coastlineTest.setVehiclePosition(0, -670, Math.PI);
+    window.__coastlineTest.setVehiclePosition(0, -670, 0);
     window.__coastlineTransitionTest.updatePrompt();
   });
   await expect(page.locator('#coastlineWorldTransition')).toBeHidden();
 
   await page.evaluate(() => {
-    window.__coastlineTest.setWalkPosition(0, -690, Math.PI);
+    window.__coastlineTest.setWalkPosition(0, -690, 0);
     window.__coastlineTransitionTest.updatePrompt();
   });
   await expect(page.locator('#coastlineWorldTransition')).toBeHidden();
