@@ -97,6 +97,7 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
   let pendingWorld2Root = null;
   let failNextWorld2Load = false;
   let disposed = false;
+  let updatePromptCallback = () => {};
 
   const setWorld2CollisionScope = active => {
     window.__coastlineWorld2Active = Boolean(active);
@@ -312,7 +313,7 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
     });
     document.body.appendChild(button);
 
-    const updatePrompt = () => {
+    updatePromptCallback = () => {
       const activeWorld = manager.getActiveWorldId();
       const vehicle = player.mode === 'vehicle' ? player.vehicle : null;
       if (!vehicle) {
@@ -340,14 +341,14 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
       playerState: () => ({ position: { x: player.x, y: player.y, z: player.z }, heading: player.heading, mode: player.mode, vehicleIndex: vehicles.indexOf(player.vehicle), vehicleSpeed: player.vehicle?.speed ?? 0 }),
       rootVisibility: () => ({ cityVisible: roots.world1Root.visible, cityCachedInScene: Boolean(roots.world1Root.parent === scene), islandVisible: Boolean(pendingWorld2Root?.visible), islandRootResident: Boolean(pendingWorld2Root?.parent === scene) }),
       transition,
-      updatePrompt,
+      updatePrompt: updatePromptCallback,
       failNextWorld2Load: () => { failNextWorld2Load = true; },
       world2Spawn: () => ({ ...WORLD_2_SPAWN }),
       collisionScope: () => Boolean(window.__coastlineWorld2Active),
     };
 
-    window.addEventListener('keydown', updatePrompt);
-    setInterval(updatePrompt, 200);
+    window.addEventListener('keydown', updatePromptCallback);
+    setInterval(() => updatePromptCallback(), 200);
     return manager;
   };
 
@@ -355,7 +356,8 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
   return {
     manager,
     ready: initializePromise,
-    initialize,
+    initialize: () => initializePromise,
+    updatePrompt: () => updatePromptCallback(),
     dispose: async () => {
       disposed = true;
       setWorld2CollisionScope(false);
