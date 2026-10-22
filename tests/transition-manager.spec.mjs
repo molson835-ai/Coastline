@@ -103,3 +103,68 @@ test('restores the last return point after a successful round trip', async () =>
 
   assert.deepEqual(manager.restoreLastReturnPoint(), { x: 99, y: 0, z: 88 });
 });
+
+
+test('passes the validated destination spawn and transition state to the destination adapter', async () => {
+  const manager = createTransitionManager();
+  let loadArgs;
+  manager.registerWorld({ id: 'city', name: 'City', load: async () => ({ id: 'city' }), unload: async () => {} });
+  manager.registerWorld({ id: 'island', name: 'Island', load: async (args) => { loadArgs = args; return { id: 'island' }; }, unload: async () => {} });
+  const destinationSpawn = { x: 120, y: 3, z: -40, rotationY: 1.2 };
+  manager.registerTransition({ id: 'city-to-island', fromWorld: 'city', toWorld: 'island', trigger: 'bridge', destinationSpawn, vehiclePolicy: 'allowed' });
+  await manager.activate('city');
+  const player = { position: { x: 1, y: 0, z: 2 }, rotationY: 0.5 };
+  const vehicle = { id: 'sedan', position: { x: 2, y: 0, z: 3 }, rotationY: 1.25, speed: 12 };
+
+  await manager.transition('city-to-island', { player, vehicle });
+
+  assert.deepEqual(loadArgs.destinationSpawn, destinationSpawn);
+  assert.deepEqual(loadArgs.transitionState.player, player);
+  assert.deepEqual(loadArgs.transitionState.vehicle, vehicle);
+});
+
+test('cleans up partial destination resources when the destination loader fails before returning a handle', async () => {
+  const manager = createTransitionManager();
+  let partialResources = false;
+  let cleanupCalls = 0;
+  manager.registerWorld({ id: 'city', name: 'City', load: async () => ({ id: 'city' }), unload: async () => {} });
+  manager.registerWorld({
+    id: 'island',
+    name: 'Island',
+    load: async () => {
+      partialResources = true;
+      throw new Error('island construction failed');
+    },
+    cleanupFailedLoad: async () => { cleanupCalls += 1; partialResources = false; },
+    unload: async () => {},
+  });
+  manager.registerTransition({ id: 'city-to-island', fromWorld: 'city', toWorld: 'island', trigger: 'bridge', destinationSpawn: { x: 0, y: 0, z: 0 }, vehiclePolicy: 'allowed' });
+  await manager.activate('city');
+
+  await assert.rejects(() => manager.transition('city-to-island', {}), /island construction failed/);
+
+  assert.equal(cleanupCalls, 1);
+  assert.equal(partialResources, false);
+  assert.equal(manager.getActiveWorldId(), 'city');
+  assert.deepEqual(manager.getStatus().residentWorldIds, ['city']);
+});
+
+test('reports source-unload failure and retains accurate resident-world status', async () => {
+  const events = [];
+  const manager = createTransitionManager({ onEvent: (event) => events.push(event) });
+  let destinationUnloadCalls = 0;
+  manager.registerWorld({ id: 'city', name: 'City', load: async () => ({ id: 'city' }), unload: async () => { throw new Error('city disposal failed'); } });
+  manager.registerWorld({ id: 'island', name: 'Island', load: async () => ({ id: 'island' }), unload: async () => { destinationUnloadCalls += 1; } });
+  manager.registerTransition({ id: 'city-to-island', fromWorld: 'city', toWorld: 'island', trigger: 'bridge', destinationSpawn: { x: 0, y: 0, z: 0 }, vehiclePolicy: 'allowed' });
+  await manager.activate('city');
+
+  await assert.rejects(() => manager.transition('city-to-island', {}), /city disposal failed/);
+
+  assert.equal(manager.getActiveWorldId(), 'city');
+  assert.equal(manager.getStatus().state, 'active');
+  assert.deepEqual(manager.getStatus().residentWorldIds, ['city']);
+  assert.equal(destinationUnloadCalls, 1);
+  assert.equal(manager.getStatus().lastFailure.phase, 'source-unload');
+  assert.equal(events.at(-1).type, 'transition:failed');
+  assert.equal(events.at(-1).phase, 'source-unload');
+});
