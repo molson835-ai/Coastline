@@ -27,7 +27,7 @@ await writeFile(path.join(output, 'index.html'), html);
 let sw = await readFile(path.join(output, 'coastline-sw.js'), 'utf8');
 // The website cache may have advanced independently. Give the standalone package
 // its own version and cache only files that are actually shipped in this package.
-sw = sw.replace(/const CACHE_NAME='[^']+';/, "const CACHE_NAME='coastline-itch-static-v1';");
+sw = sw.replace(/const CACHE_NAME='[^']+';/, "const CACHE_NAME='coastline-itch-static-v2';");
 const packagedCore = ['./', './index.html', ...files.map(file => './' + file)];
 sw = sw.replace(/const CORE=\[[^\]]*\];/, "const CORE=[" + packagedCore.map(file => "'" + file + "'").join(',') + "]");
 if (!sw.includes("'./index.html'") || !sw.includes('coastline-itch-static-v1')) {
