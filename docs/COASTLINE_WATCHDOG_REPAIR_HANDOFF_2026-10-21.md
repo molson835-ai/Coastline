@@ -126,7 +126,7 @@ Fix commits on the repair branch:
 
 ## Follow-up: fully remove landmark discovery/rewards (2026-10-22)
 
-**Status at handoff update:** source and regression tests changed on branch `coastline-remove-landmark-rewards-v1`; fresh CI is pending. This supersedes the earlier sections above that describe landmark discovery as a retained, rewarding mechanic. Do not interpret the older $150 reward/persistence tests as current intended behavior.
+**Status at handoff update:** source and regression tests changed on branch `coastline-remove-landmark-rewards-v1`; PR #85 targets `main` to ensure the main-targeted CI workflows execute on the exact candidate commit; fresh CI is pending. This supersedes the earlier sections above that describe landmark discovery as a retained, rewarding mechanic. Do not interpret the older $150 reward/persistence tests as current intended behavior.
 
 ### Source changes
 
