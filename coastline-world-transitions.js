@@ -7,9 +7,6 @@ export function createWorldRootRegistry({ THREE, scene }) {
   world1Root.name = 'coastline-world-1-root';
   originalAdd(world1Root);
 
-  // The existing city runtime is monolithic. Route its current and future scene
-  // additions into a single root so the transition adapter can hide that world
-  // without rewriting the established gameplay/render loop.
   scene.add = function (...objects) {
     for (const object of objects) {
       if (!object) continue;
@@ -41,15 +38,64 @@ function finiteOr(value, fallback = 0) {
 function disposeRoot(root) {
   if (!root) return;
   root.traverse(object => {
-    if (object.geometry && typeof object.geometry.dispose === 'function') object.geometry.dispose();
+    if (object.geometry?.dispose) object.geometry.dispose();
     const materials = Array.isArray(object.material) ? object.material : object.material ? [object.material] : [];
-    for (const material of materials) if (typeof material.dispose === 'function') material.dispose();
+    for (const material of materials) material.dispose?.();
   });
 }
 
+function addBridge(THREE, root, { x, z, y, length = 100 }) {
+  const group = new THREE.Group();
+  group.name = 'coastline-bridge';
+  const deckMaterial = new THREE.MeshStandardMaterial({ color: 0x343c3d, roughness: 0.88 });
+  const railMaterial = new THREE.MeshStandardMaterial({ color: 0x9cc9bd, roughness: 0.72, metalness: 0.04 });
+  const towerMaterial = new THREE.MeshStandardMaterial({ color: 0x66777a, roughness: 0.66, metalness: 0.25 });
+
+  const deck = new THREE.Mesh(new THREE.BoxGeometry(16, 0.28, length), deckMaterial);
+  deck.position.set(x, y + 0.08, z);
+  deck.receiveShadow = true;
+  deck.castShadow = true;
+  group.add(deck);
+
+  for (const side of [-1, 1]) {
+    const rail = new THREE.Mesh(new THREE.BoxGeometry(0.28, 1.15, length), railMaterial);
+    rail.position.set(x + side * 8, y + 0.66, z);
+    rail.castShadow = true;
+    group.add(rail);
+  }
+
+  for (const dz of [-length * 0.38, length * 0.38]) {
+    for (const side of [-1, 1]) {
+      const tower = new THREE.Mesh(new THREE.BoxGeometry(0.7, 6.2, 0.7), towerMaterial);
+      tower.position.set(x + side * 7.2, y + 3.05, z + dz);
+      tower.castShadow = true;
+      group.add(tower);
+    }
+  }
+
+  const cableMaterial = new THREE.LineBasicMaterial({ color: 0xb9d5d5 });
+  for (const side of [-1, 1]) {
+    const points = [];
+    const half = length * 0.5;
+    for (let i = 0; i <= 16; i++) {
+      const t = i / 16;
+      const dz = -half + length * t;
+      const sag = Math.sin(Math.PI * t) * 3.8;
+      points.push(new THREE.Vector3(x + side * 7.2, y + 6.0 - sag, z + dz));
+    }
+    group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), cableMaterial));
+  }
+  root.add(group);
+  return group;
+}
+
 export function createCoastlineWorldTransitions({ THREE, scene, roots, player, vehicles, avatar, groundY }) {
-  const WORLD_2_SPAWN = Object.freeze({ x: 1500, y: finiteOr(groundY(1500, 1500)), z: 1500, rotationY: 0 });
+  // Keep World 2 inside the established gameplay coordinate envelope. It is an
+  // intentionally blank shell, not a second copy of the City's heavy assets.
+  const WORLD_2_SPAWN = Object.freeze({ x: 500, y: finiteOr(groundY(500, 500)), z: 500, rotationY: 0 });
   const CITY_BRIDGE = Object.freeze({ x: 0, z: -680 });
+  const CITY_PROMPT_RANGE = 24;
+  const WORLD_2_PROMPT_RANGE = 36;
   let pendingWorld2Root = null;
   let failNextWorld2Load = false;
   let disposed = false;
@@ -72,13 +118,9 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
     const vehicle = player.vehicle;
     return {
       id: String(vehicle.worldEntityId ?? vehicle.kind ?? 'active-vehicle'),
-      position: {
-        x: finiteOr(vehicle.x, finiteOr(player.x)),
-        y: finiteOr(vehicle.g?.position?.y),
-        z: finiteOr(vehicle.z, finiteOr(player.z)),
-      },
-      rotationY: finiteOr(vehicle.heading, finiteOr(player.heading)),
-      heading: finiteOr(vehicle.heading, finiteOr(player.heading)),
+      position: { x: finiteOr(vehicle.x, player.x), y: finiteOr(vehicle.g?.position?.y), z: finiteOr(vehicle.z, player.z) },
+      rotationY: finiteOr(vehicle.heading, player.heading),
+      heading: finiteOr(vehicle.heading, player.heading),
       speed: finiteOr(vehicle.speed),
     };
   };
@@ -101,13 +143,12 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
     const playerState = state.player || {};
     const position = playerState.position || {};
     player.mode = playerState.mode || player.mode;
-    player.x = finiteOr(position.x, finiteOr(player.x));
+    player.x = finiteOr(position.x, player.x);
     player.y = finiteOr(position.y, 0);
-    player.z = finiteOr(position.z, finiteOr(player.z));
-    player.heading = finiteOr(playerState.rotationY, finiteOr(player.heading));
-    if (Number.isInteger(state.vehicleIndex) && state.vehicleIndex >= 0 && vehicles[state.vehicleIndex]) {
-      player.vehicle = vehicles[state.vehicleIndex];
-    }
+    player.z = finiteOr(position.z, player.z);
+    player.heading = finiteOr(playerState.rotationY, player.heading);
+    if (Number.isInteger(state.vehicleIndex) && state.vehicleIndex >= 0 && vehicles[state.vehicleIndex]) player.vehicle = vehicles[state.vehicleIndex];
+
     const vehicle = player.vehicle;
     if (vehicle && state.vehicle && (player.mode === 'vehicle' || state.vehicleIndex >= 0)) {
       const vehicleState = state.vehicle;
@@ -116,8 +157,8 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
       vehicle.heading = finiteOr(vehicleState.heading, finiteOr(vehicleState.rotationY, player.heading));
       vehicle.speed = finiteOr(vehicleState.speed);
       if (vehicle.g) {
-        vehicle.g.position.set(vehicle.x, finiteOr(vehicleState.position?.y, finiteOr(groundY(vehicle.x, vehicle.z))), vehicle.z);
-        vehicle.g.rotation.y = finiteOr(vehicleState.rotationY, vehicle.heading);
+        vehicle.g.position.set(vehicle.x, finiteOr(vehicleState.position?.y, groundY(vehicle.x, vehicle.z)), vehicle.z);
+        vehicle.g.rotation.y = vehicle.heading;
         if (vehicle.g.parent !== root) root.add(vehicle.g);
       }
     } else if (avatar && avatar.parent !== root) {
@@ -126,22 +167,22 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
 
     if (spawn) {
       const x = finiteOr(spawn.x, player.x);
-      const y = finiteOr(spawn.y, finiteOr(groundY(x, finiteOr(spawn.z, player.z))));
       const z = finiteOr(spawn.z, player.z);
+      const y = finiteOr(spawn.y, finiteOr(groundY(x, z)));
       player.x = x;
-      player.y = 0;
+      player.y = y;
       player.z = z;
       player.heading = finiteOr(spawn.rotationY, player.heading);
       if (player.mode === 'vehicle' && player.vehicle) {
-        const vehicle = player.vehicle;
-        vehicle.x = x;
-        vehicle.z = z;
-        vehicle.heading = player.heading;
-        vehicle.speed = 0;
-        if (vehicle.g) {
-          vehicle.g.position.set(x, y, z);
-          vehicle.g.rotation.y = player.heading;
-          if (vehicle.g.parent !== root) root.add(vehicle.g);
+        const currentVehicle = player.vehicle;
+        currentVehicle.x = x;
+        currentVehicle.z = z;
+        currentVehicle.heading = player.heading;
+        currentVehicle.speed = 0;
+        if (currentVehicle.g) {
+          currentVehicle.g.position.set(x, y, z);
+          currentVehicle.g.rotation.y = player.heading;
+          if (currentVehicle.g.parent !== root) root.add(currentVehicle.g);
         }
       } else if (avatar) {
         avatar.position.set(x, y, z);
@@ -155,21 +196,19 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
     }
   };
 
-  const createWorld2Root = () => {
+  const createBlankWorld2Root = () => {
     const root = new THREE.Group();
-    root.name = 'coastline-world-2-shell';
-    const x = WORLD_2_SPAWN.x, z = WORLD_2_SPAWN.z;
-    const y = finiteOr(groundY(x, z));
+    root.name = 'coastline-world-2-blank-shell';
+    const x = WORLD_2_SPAWN.x, z = WORLD_2_SPAWN.z, y = finiteOr(groundY(x, z));
     const landMaterial = new THREE.MeshStandardMaterial({ color: 0x55785b, roughness: 0.96 });
-    const coastMaterial = new THREE.MeshStandardMaterial({ color: 0x9cc9bd, roughness: 0.72, metalness: 0.04 });
     const roadMaterial = new THREE.MeshStandardMaterial({ color: 0x343c3d, roughness: 0.9 });
-    const lineMaterial = new THREE.MeshStandardMaterial({ color: 0xe5d7a0, roughness: 0.8 });
+    const shoreMaterial = new THREE.MeshStandardMaterial({ color: 0x9cc9bd, roughness: 0.72, metalness: 0.04 });
     const land = new THREE.Mesh(new THREE.PlaneGeometry(480, 480, 48, 48), landMaterial);
     land.rotation.x = -Math.PI / 2;
     land.position.set(x, y - 0.18, z);
     land.receiveShadow = true;
     root.add(land);
-    const shoreline = new THREE.Mesh(new THREE.TorusGeometry(202, 7, 10, 96), coastMaterial);
+    const shoreline = new THREE.Mesh(new THREE.TorusGeometry(202, 7, 10, 96), shoreMaterial);
     shoreline.rotation.x = Math.PI / 2;
     shoreline.position.set(x, y + 0.04, z);
     root.add(shoreline);
@@ -178,31 +217,17 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
     road.receiveShadow = true;
     root.add(road);
     for (const side of [-1, 1]) {
-      const rail = new THREE.Mesh(new THREE.BoxGeometry(0.3, 1.05, 150), coastMaterial);
-      rail.position.set(x + side * 8, y + 0.5, z - 105);
+      const rail = new THREE.Mesh(new THREE.BoxGeometry(0.3, 1.05, 190), shoreMaterial);
+      rail.position.set(x + side * 8, y + 0.5, z - 84);
       root.add(rail);
     }
-    for (let dz = -30; dz >= -140; dz -= 22) {
-      const line = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.025, 8), lineMaterial);
-      line.position.set(x, y + 0.11, z + dz);
-      root.add(line);
-    }
+    addBridge(THREE, root, { x, z, y, length: 100 });
     return root;
   };
 
   const addCityBridgeAffordance = () => {
-    const group = new THREE.Group();
-    group.name = 'coastline-city-bridge-affordance';
-    const x = CITY_BRIDGE.x, z = CITY_BRIDGE.z, y = finiteOr(groundY(x, z));
-    const road = new THREE.Mesh(new THREE.BoxGeometry(16, 0.16, 100), new THREE.MeshStandardMaterial({ color: 0x343c3d, roughness: 0.9 }));
-    road.position.set(x, y + 0.05, z);
-    group.add(road);
-    for (const side of [-1, 1]) {
-      const rail = new THREE.Mesh(new THREE.BoxGeometry(0.3, 1.05, 100), new THREE.MeshStandardMaterial({ color: 0x9cc9bd, roughness: 0.72 }));
-      rail.position.set(x + side * 8, y + 0.55, z);
-      group.add(rail);
-    }
-    roots.world1Root.add(group);
+    const y = finiteOr(groundY(CITY_BRIDGE.x, CITY_BRIDGE.z));
+    addBridge(THREE, roots.world1Root, { x: CITY_BRIDGE.x, z: CITY_BRIDGE.z, y, length: 100 });
   };
 
   const cityWorld = {
@@ -213,11 +238,7 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
       return { id: 'city', root: roots.world1Root };
     },
     unload: async handle => { handle.root.visible = false; },
-    captureState: async ({ context }) => ({
-      player: context.player,
-      vehicle: context.vehicle,
-      vehicleIndex: context.vehicleIndex,
-    }),
+    captureState: async ({ context }) => ({ player: context.player, vehicle: context.vehicle, vehicleIndex: context.vehicleIndex }),
     restoreState: async (worldState, { handle }) => {
       handle.root.visible = true;
       applySnapshot(worldState, handle.root);
@@ -226,17 +247,13 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
 
   const islandWorld = {
     id: 'island',
-    name: 'World 2 Island Shell',
+    name: 'World 2 Blank Shell',
     load: async ({ context, destinationSpawn }) => {
-      pendingWorld2Root = createWorld2Root();
+      pendingWorld2Root = createBlankWorld2Root();
       roots.addWorldRoot(pendingWorld2Root);
       pendingWorld2Root.visible = true;
       moveActiveActor(pendingWorld2Root);
-      applySnapshot({
-        player: context.player,
-        vehicle: context.vehicle,
-        vehicleIndex: context.vehicleIndex,
-      }, pendingWorld2Root, destinationSpawn || WORLD_2_SPAWN);
+      applySnapshot({ player: context.player, vehicle: context.vehicle, vehicleIndex: context.vehicleIndex }, pendingWorld2Root, destinationSpawn || WORLD_2_SPAWN);
       if (failNextWorld2Load) {
         failNextWorld2Load = false;
         throw new Error('injected world 2 load failure');
@@ -249,20 +266,14 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
       if (pendingWorld2Root === handle.root) pendingWorld2Root = null;
     },
     cleanupFailedLoad: async ({ context }) => {
-      if (pendingWorld2Root) {
-        const snapshot = { player: context.player, vehicle: context.vehicle, vehicleIndex: context.vehicleIndex };
-        applySnapshot(snapshot, roots.world1Root);
-        roots.world1Root.visible = true;
-        roots.removeWorldRoot(pendingWorld2Root);
-        disposeRoot(pendingWorld2Root);
-        pendingWorld2Root = null;
-      }
+      if (!pendingWorld2Root) return;
+      applySnapshot({ player: context.player, vehicle: context.vehicle, vehicleIndex: context.vehicleIndex }, roots.world1Root);
+      roots.world1Root.visible = true;
+      roots.removeWorldRoot(pendingWorld2Root);
+      disposeRoot(pendingWorld2Root);
+      pendingWorld2Root = null;
     },
-    captureState: async ({ context }) => ({
-      player: context.player,
-      vehicle: context.vehicle,
-      vehicleIndex: context.vehicleIndex,
-    }),
+    captureState: async ({ context }) => ({ player: context.player, vehicle: context.vehicle, vehicleIndex: context.vehicleIndex }),
     restoreState: async (worldState, { handle }) => {
       handle.root.visible = true;
       moveActiveActor(handle.root);
@@ -272,24 +283,11 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
 
   manager.registerWorld(cityWorld);
   manager.registerWorld(islandWorld);
-  manager.registerTransition({
-    id: 'city-to-island',
-    fromWorld: 'city',
-    toWorld: 'island',
-    trigger: 'bridge',
-    destinationSpawn: WORLD_2_SPAWN,
-    vehiclePolicy: 'allowed',
-  });
-  manager.registerTransition({
-    id: 'island-to-city',
-    fromWorld: 'island',
-    toWorld: 'city',
-    trigger: 'bridge',
-    destinationSpawn: { x: 0, y: 0, z: 0, rotationY: 0 },
-    vehiclePolicy: 'allowed',
-  });
+  manager.registerTransition({ id: 'city-to-island', fromWorld: 'city', toWorld: 'island', trigger: 'bridge', destinationSpawn: WORLD_2_SPAWN, vehiclePolicy: 'allowed' });
+  manager.registerTransition({ id: 'island-to-city', fromWorld: 'island', toWorld: 'city', trigger: 'bridge', destinationSpawn: { x: CITY_BRIDGE.x, y: 0, z: CITY_BRIDGE.z - 70, rotationY: Math.PI }, vehiclePolicy: 'allowed' });
 
   const transition = async transitionId => manager.transition(transitionId, makeContext());
+
   const initialize = async () => {
     addCityBridgeAffordance();
     await manager.activate('city');
@@ -297,12 +295,10 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
     button.id = 'coastlineWorldTransition';
     button.type = 'button';
     button.setAttribute('aria-label', 'Cross bridge between Coastline City and World 2');
-    button.style.cssText = 'display:none;position:fixed;left:50%;bottom:170px;transform:translateX(-50%);z-index:1000;pointer-events:auto;border:1px solid #a7f4ff88;border-radius:12px;padding:12px 16px;background:#06202aee;color:#effcff;font:800 12px system-ui,sans-serif;letter-spacing:.08em;box-shadow:0 8px 24px #0008';
+    button.style.cssText = 'display:none;position:fixed;left:50%;bottom:170px;transform:translateX(-50%);z-index:1000;pointer-events:auto;border:1px solid #a7f4ff88;border-radius:12px;padding:6px 8px;background:#06202aee;color:#effcff;font:800 12px system-ui,sans-serif;letter-spacing:.08em;box-shadow:0 8px 24px #0008';
     button.addEventListener('click', () => {
       const id = manager.getActiveWorldId() === 'city' ? 'city-to-island' : 'island-to-city';
-      transition(id).catch(error => {
-        window.dispatchEvent(new CustomEvent('coastline:transition-ui-error', { detail: { message: error.message } }));
-      });
+      transition(id).catch(error => window.dispatchEvent(new CustomEvent('coastline:transition-ui-error', { detail: { message: error.message } })));
     });
     document.body.appendChild(button);
     window.__coastlineTransitionTest = {
@@ -318,23 +314,29 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
     return manager;
   };
 
+  function isFacingPoint(target, maxDistance, minDot = 0.55) {
+    const dx = target.x - player.x;
+    const dz = target.z - player.z;
+    const distance = Math.hypot(dx, dz);
+    if (distance > maxDistance || distance < 0.001) return false;
+    const length = distance;
+    const forwardX = Math.sin(player.heading || 0);
+    const forwardZ = Math.cos(player.heading || 0);
+    return (forwardX * dx + forwardZ * dz) / length >= minDot;
+  }
+
   function updatePrompt() {
     if (disposed) return;
     const button = document.getElementById('coastlineWorldTransition');
     if (!button) return;
     const active = manager.getActiveWorldId();
-    const nearCityBridge = active === 'city' && Math.hypot(player.x - CITY_BRIDGE.x, player.z - CITY_BRIDGE.z) < 48;
-    const nearIslandBridge = active === 'island' && Math.hypot(player.x - WORLD_2_SPAWN.x, player.z - WORLD_2_SPAWN.z) < 72;
-    const available = manager.getStatus().state === 'active' && (nearCityBridge || nearIslandBridge);
+    const target = active === 'city' ? CITY_BRIDGE : WORLD_2_SPAWN;
+    const range = active === 'city' ? CITY_PROMPT_RANGE : WORLD_2_PROMPT_RANGE;
+    const available = manager.getStatus().state === 'active' && player.mode === 'vehicle' && isFacingPoint(target, range);
     button.style.display = available ? 'block' : 'none';
-    button.textContent = active === 'city' ? 'CROSS BRIDGE  →  ISLAND' : 'RETURN TO CITY  →';
+    button.textContent = active === 'city' ? 'CROSS BRIDGE  →' : 'RETURN TO CITY  →';
     button.disabled = !available;
   }
 
-  return {
-    manager,
-    initialize,
-    updatePrompt,
-    dispose() { disposed = true; manager.dispose(); },
-  };
+  return { manager, initialize, updatePrompt, dispose() { disposed = true; manager.dispose(); } };
 }
