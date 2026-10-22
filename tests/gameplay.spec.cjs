@@ -124,31 +124,18 @@ test('vehicle steering follows left/right input and reverse builds usable negati
   expect(errors, 'vehicle controls should not introduce runtime errors').toEqual([]);
 });
 
-test('landmark discoveries award cash once and persist cash and discoveries across reloads', async ({ page }) => {
+test('cash balance persists across reloads independently of landmark discovery', async ({ page }) => {
   await page.addInitScript(() => {
-    if (sessionStorage.getItem('coastline-landmark-test-reset-v1')) return;
     localStorage.removeItem('coastline-discovered-landmarks-v1');
-    localStorage.removeItem('coastline-cash-balance-v1');
-    sessionStorage.setItem('coastline-landmark-test-reset-v1', '1');
+    localStorage.setItem('coastline-cash-balance-v1', '375');
   });
-  await page.goto('/game-v3.html?beta=landmark-discovery-regression', { waitUntil: 'domcontentloaded' });
+  await page.goto('/game-v3.html?beta=cash-persistence-regression', { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => Boolean(window.__coastlineTest), null, { timeout: 20000 });
-  await page.evaluate(() => localStorage.removeItem('coastline-discovered-landmarks-v1'));
-  await page.reload({ waitUntil: 'commit' });
-  await page.waitForFunction(() => Boolean(window.__coastlineTest), null, { timeout: 20000 });
-  const before = await page.evaluate(() => ({ cash: window.__coastlineTest.state().cashBalance, landmark: window.__coastlineTest.landmarkRoster()[0] }));
-  await page.evaluate(({ x, z }) => {
-    const api = window.__coastlineTest;
-    api.setWalkPosition(x, z, 0);
-    api.checkLandmarkDiscovery();
-  }, before.landmark);
-  const after = await page.evaluate(() => ({ cash: window.__coastlineTest.state().cashBalance, state: window.__coastlineTest.landmarkDiscoveryState() }));
-  expect(after.cash).toBe(before.cash + 150);
-  expect(after.state.discovered).toContain(before.landmark.id);
-  await page.evaluate(() => window.__coastlineTest.checkLandmarkDiscovery());
-  expect(await page.evaluate(() => window.__coastlineTest.state().cashBalance)).toBe(after.cash);
+  expect(await page.evaluate(() => window.__coastlineTest.state().cashBalance)).toBe(375);
+
   await page.reload({ waitUntil: 'commit' });
   await page.waitForFunction(() => Boolean(window.__coastlineTest), null, { timeout: 30000 });
-  expect(await page.evaluate(() => window.__coastlineTest.landmarkDiscoveryState().discovered)).toContain(before.landmark.id);
-  expect(await page.evaluate(() => window.__coastlineTest.state().cashBalance)).toBe(after.cash);
+  expect(await page.evaluate(() => window.__coastlineTest.state().cashBalance)).toBe(375);
+  expect(await page.evaluate(() => typeof window.__coastlineTest.checkLandmarkDiscovery)).toBe('undefined');
+  expect(await page.evaluate(() => localStorage.getItem('coastline-discovered-landmarks-v1'))).toBeNull();
 });
