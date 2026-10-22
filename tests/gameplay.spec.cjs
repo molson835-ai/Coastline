@@ -126,8 +126,10 @@ test('vehicle steering follows left/right input and reverse builds usable negati
 
 test('cash balance persists across reloads independently of landmark discovery', async ({ page }) => {
   await page.addInitScript(() => {
+    if (sessionStorage.getItem('coastline-cash-persistence-seeded-v1')) return;
     localStorage.removeItem('coastline-discovered-landmarks-v1');
     localStorage.setItem('coastline-cash-balance-v1', '375');
+    sessionStorage.setItem('coastline-cash-persistence-seeded-v1', '1');
   });
   await page.goto('/game-v3.html?beta=cash-persistence-regression', { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => Boolean(window.__coastlineTest), null, { timeout: 20000 });
