@@ -63,11 +63,11 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Preinstall local web server
-        run: npx --yes http-server@14.1.1 --version
+        run: npm install --global http-server@14.1.1
 
       - name: Start local web server
         run: |
-          npx http-server . -p 4173 -c-1 > /tmp/coastline-server.log 2>&1 &
+          http-server . -p 4173 -c-1 > /tmp/coastline-server.log 2>&1 &
           for i in {1..30}; do
             curl -fsS http://127.0.0.1:4173/index.html >/dev/null && exit 0
             sleep 1
