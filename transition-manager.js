@@ -39,6 +39,7 @@ export function createTransitionManager({ onEvent } = {}) {
   const transitions = new Map();
   const handles = new Map();
   const savedReturnPoints = new Map();
+  const savedWorldStates = new Map();
   let activeWorldId = null;
   let state = 'idle';
   let activeTransitionId = null;
@@ -58,7 +59,7 @@ export function createTransitionManager({ onEvent } = {}) {
     state,
     activeWorldId,
     activeTransitionId,
-    lastFailure: lastFailure ? { name: lastFailure.name, message: lastFailure.message } : null,
+    lastFailure: lastFailure ? { name: lastFailure.name, message: lastFailure.message, phase: lastFailure.phase ?? null, cleanupError: lastFailure.cleanupError ?? null } : null,
     lastTransitionState: cloneState(lastTransitionState),
     residentWorldIds: [...handles.keys()],
   });
@@ -93,7 +94,7 @@ export function createTransitionManager({ onEvent } = {}) {
 
   const performTransition = async (transitionId, context = {}) => {
     ensureUsable();
-    if (state === 'transitioning' || transitionPromise) throw new Error('transition manager is busy');
+    if (state !== 'active' || transitionPromise) throw new Error(state === 'degraded' ? 'transition manager is degraded' : 'transition manager is busy');
     const transition = transitions.get(transitionId);
     if (!transition) throw new Error(`unknown transition: ${transitionId}`);
     if (activeWorldId !== transition.fromWorld) {
@@ -124,48 +125,55 @@ export function createTransitionManager({ onEvent } = {}) {
     emit('transition:started', { transitionId, fromWorld: transition.fromWorld, toWorld: transition.toWorld });
 
     let destinationHandle = null;
+    let destinationLoadCompleted = false;
+    let phase = 'destination-load';
+    let sourceUnloadStarted = false;
+    let cleanupError = null;
     try {
       emit('transition:loading', { transitionId, fromWorld: transition.fromWorld, toWorld: transition.toWorld });
+      const destinationSpawn = cloneState(savedReturnPoints.get(transition.toWorld) ?? transition.destinationSpawn);
       destinationHandle = await destinationDefinition.load({
         worldId: transition.toWorld,
         context,
         transition,
         transitionState,
+        destinationSpawn,
         reason: 'transition',
       });
       if (!destinationHandle) throw new Error(`world ${transition.toWorld} returned no load handle`);
+      destinationLoadCompleted = true;
 
-      emit('transition:unloading', { transitionId, fromWorld: transition.fromWorld, toWorld: transition.toWorld });
-      if (typeof sourceDefinition.captureState === 'function') {
-        transitionState.worldState = cloneState(await sourceDefinition.captureState({ context, handle: sourceHandle, transition }));
+      const destinationWorldState = savedWorldStates.get(transition.toWorld);
+      if (typeof destinationDefinition.restoreState === 'function' && destinationWorldState !== undefined) {
+        phase = 'destination-restore';
+        await destinationDefinition.restoreState(cloneState(destinationWorldState), { context, handle: destinationHandle, transition, transitionState, destinationSpawn });
       }
-      await sourceDefinition.unload(sourceHandle, { context, transition, transitionState });
-      handles.delete(transition.fromWorld);
-      emit('world:disposed', { worldId: transition.fromWorld });
-
-      // Remember where the player left the source world so a later return can
-      // restore that world-specific entry point instead of the temporary
-      // position used while visiting the destination.
-      if (sourceReturnPoint !== null) savedReturnPoints.set(transition.fromWorld, cloneState(sourceReturnPoint));
-
-      handles.set(transition.toWorld, destinationHandle);
-      activeWorldId = transition.toWorld;
-      lastTransitionState = cloneState(transitionState);
-      lastReturnPoint = cloneState(
-        savedReturnPoints.get(transition.toWorld)
-          ?? transition.returnPoint
-          ?? context.player?.position
-          ?? null,
-      );
 
       if (transition.vehiclePolicy === 'forbidden' && hasVehicle) {
+        phase = 'vehicle-storage';
         await context.storeVehicle(context.vehicle, { transition, sourceWorld: transition.fromWorld, destinationWorld: transition.toWorld });
         context.vehicle = null;
       }
 
-      if (typeof destinationDefinition.restoreState === 'function' && transitionState.worldState !== undefined) {
-        await destinationDefinition.restoreState(transitionState.worldState, { context, handle: destinationHandle, transition });
+      phase = 'source-capture';
+      if (typeof sourceDefinition.captureState === 'function') {
+        transitionState.worldState = cloneState(await sourceDefinition.captureState({ context, handle: sourceHandle, transition }));
       }
+
+      phase = 'source-unload';
+      sourceUnloadStarted = true;
+      emit('transition:unloading', { transitionId, fromWorld: transition.fromWorld, toWorld: transition.toWorld });
+      await sourceDefinition.unload(sourceHandle, { context, transition, transitionState });
+      handles.delete(transition.fromWorld);
+      emit('world:disposed', { worldId: transition.fromWorld });
+
+      if (sourceReturnPoint !== null) savedReturnPoints.set(transition.fromWorld, cloneState(sourceReturnPoint));
+      if (transitionState.worldState !== undefined) savedWorldStates.set(transition.fromWorld, cloneState(transitionState.worldState));
+
+      handles.set(transition.toWorld, destinationHandle);
+      activeWorldId = transition.toWorld;
+      lastTransitionState = cloneState(transitionState);
+      lastReturnPoint = cloneState(savedReturnPoints.get(transition.toWorld) ?? transition.destinationSpawn);
 
       emit('world:activated', { worldId: transition.toWorld });
       state = 'active';
@@ -173,13 +181,43 @@ export function createTransitionManager({ onEvent } = {}) {
       emit('transition:completed', { transitionId, fromWorld: transition.fromWorld, toWorld: transition.toWorld });
       return destinationHandle;
     } catch (error) {
-      lastFailure = error;
-      if (destinationHandle && !handles.has(transition.toWorld)) {
-        try { await destinationDefinition.unload(destinationHandle, { context, transition, failed: true }); } catch {}
+      if (!destinationLoadCompleted) {
+        if (typeof destinationDefinition.cleanupFailedLoad === 'function') {
+          try {
+            await destinationDefinition.cleanupFailedLoad({ worldId: transition.toWorld, context, transition, transitionState, error });
+          } catch (cleanupFailure) {
+            cleanupError = { name: cleanupFailure?.name ?? 'Error', message: cleanupFailure?.message ?? String(cleanupFailure) };
+          }
+        }
+      } else if (destinationHandle && !handles.has(transition.toWorld)) {
+        try {
+          await destinationDefinition.unload(destinationHandle, { context, transition, transitionState, failed: true });
+        } catch (cleanupFailure) {
+          cleanupError = { name: cleanupFailure?.name ?? 'Error', message: cleanupFailure?.message ?? String(cleanupFailure) };
+          // Keep the handle visible in status instead of hiding a staged-world leak.
+          handles.set(transition.toWorld, destinationHandle);
+        }
       }
-      state = activeWorldId ? 'active' : 'idle';
+
+      if (transition.vehiclePolicy === 'forbidden' && hasVehicle && context.vehicle == null) {
+        context.vehicle = cloneState(transitionState.vehicle);
+      }
+      state = sourceUnloadStarted || cleanupError ? 'degraded' : activeWorldId ? 'active' : 'idle';
       activeTransitionId = null;
-      emit('transition:failed', { transitionId, fromWorld: transition.fromWorld, toWorld: transition.toWorld, error: { name: error.name, message: error.message } });
+      lastFailure = {
+        name: error?.name ?? 'Error',
+        message: error?.message ?? String(error),
+        phase,
+        cleanupError,
+      };
+      emit('transition:failed', {
+        transitionId,
+        fromWorld: transition.fromWorld,
+        toWorld: transition.toWorld,
+        phase,
+        cleanupError,
+        error: { name: lastFailure.name, message: lastFailure.message },
+      });
       throw error;
     }
   };
@@ -208,7 +246,7 @@ export function createTransitionManager({ onEvent } = {}) {
     getActiveWorldId() { return activeWorldId; },
     getStatus: status,
     canTransition(transitionId, context = {}) {
-      if (disposed || state === 'transitioning') return false;
+      if (disposed || state !== 'active') return false;
       const transition = transitions.get(transitionId);
       if (!transition || transition.fromWorld !== activeWorldId) return false;
       if (transition.vehiclePolicy === 'required' && !context.vehicle) return false;
@@ -217,7 +255,10 @@ export function createTransitionManager({ onEvent } = {}) {
     },
     activate,
     transition,
-    restoreLastReturnPoint() { return cloneState(lastReturnPoint); },
+    restoreLastReturnPoint(worldId) {
+      if (worldId !== undefined) return cloneState(savedReturnPoints.get(worldId) ?? null);
+      return cloneState(lastReturnPoint);
+    },
     dispose() {
       disposed = true;
       state = 'disposed';
@@ -226,6 +267,7 @@ export function createTransitionManager({ onEvent } = {}) {
       transitions.clear();
       handles.clear();
       savedReturnPoints.clear();
+      savedWorldStates.clear();
       activeWorldId = null;
     },
   };
