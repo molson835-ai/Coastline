@@ -13,7 +13,7 @@ export function createWorldRootRegistry({ THREE, scene }) {
   scene.add = function (...objects) {
     for (const object of objects) {
       if (!object) continue;
-      if (object === world1Root || object.isLight || object.isCamera) originalAdd(object);
+      if (object === world1Root || object.isCamera || object.userData?.coastlineGlobal || object.isAmbientLight || object.isHemisphereLight || object.isDirectionalLight) originalAdd(object);
       else world1Root.add(object);
     }
     return this;
@@ -309,8 +309,9 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
       status: () => manager.getStatus(),
       activeWorld: () => manager.getActiveWorldId(),
       playerState: () => ({ position: { x: player.x, y: player.y, z: player.z }, heading: player.heading, mode: player.mode, vehicleIndex: player.mode === 'vehicle' ? vehicles.indexOf(player.vehicle) : -1, vehicleSpeed: player.mode === 'vehicle' ? player.vehicle?.speed ?? null : null }),
-      transition,
+      transition: async transitionId => { await transition(transitionId); return manager.getStatus(); },
       failNextWorld2Load: () => { failNextWorld2Load = true; },
+      rootVisibility: () => ({ cityVisible: roots.world1Root.visible, cityCachedInScene: roots.world1Root.parent === scene, islandVisible: Boolean(pendingWorld2Root?.visible), islandRootResident: Boolean(pendingWorld2Root?.parent) }),
       updatePrompt,
     };
     updatePrompt();
