@@ -30,7 +30,7 @@ let sw = await readFile(path.join(output, 'coastline-sw.js'), 'utf8');
 sw = sw.replace(/const CACHE_NAME='[^']+';/, "const CACHE_NAME='coastline-itch-static-v2';");
 const packagedCore = ['./', './index.html', ...files.map(file => './' + file)];
 sw = sw.replace(/const CORE=\[[^\]]*\];/, "const CORE=[" + packagedCore.map(file => "'" + file + "'").join(',') + "]");
-if (!sw.includes("'./index.html'") || !sw.includes('coastline-itch-static-v1')) {
+if (!sw.includes("'./index.html'") || !sw.includes('coastline-itch-static-v2')) {
   throw new Error('Unable to configure service-worker cache for the packaged entry point.');
 }
 await writeFile(path.join(output, 'coastline-sw.js'), sw);
