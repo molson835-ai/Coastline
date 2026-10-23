@@ -1,16 +1,17 @@
 name: temporary bridge runtime fix
 on:
   push:
-    branches: [feat/ctm-world2-live-integration]
+    branches:
+      - feat/ctm-world2-live-integration
 permissions:
   contents: write
 jobs:
   fix:
-    if: github.event.head_commit.message != 'fix: allow vehicle bridge buffer outside city bounds'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Apply bridge runtime buffer
+        shell: bash
         run: |
           python - <<'PY'
           from pathlib import Path
@@ -21,7 +22,6 @@ jobs:
           if old not in s:
               raise SystemExit('transition replacement target not found')
           p.write_text(s.replace(old, new, 1))
-
           p = Path('game-v3.html')
           s = p.read_text()
           old = "const ox=v.x,oz=v.z,nx=THREE.MathUtils.clamp(v.x+Math.sin(v.heading)*v.speed*dt,-720,720),nz=THREE.MathUtils.clamp(v.z+Math.cos(v.heading)*v.speed*dt,-720,720);"
@@ -37,9 +37,11 @@ jobs:
           p.write_text(s)
           PY
       - name: Commit runtime fix
+        shell: bash
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add coastline-world-transitions.js game-v3.html
+          git diff --cached --quiet && exit 0
           git commit -m 'fix: allow vehicle bridge buffer outside city bounds'
           git push
