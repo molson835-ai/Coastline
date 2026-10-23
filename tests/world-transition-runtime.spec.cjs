@@ -9,73 +9,60 @@ async function openGame(page) {
   return errors;
 }
 
-test('live runtime starts in City and supports deterministic City to World 2 and return transitions', async ({ page }) => {
+test('live runtime starts naked island and crosses one-block bridge into City', async ({ page }) => {
   const errors = await openGame(page);
   const initial = await page.evaluate(() => ({
     status: window.__coastlineTransitionTest.status(),
     roots: window.__coastlineTransitionTest.rootVisibility(),
-    visual: window.__coastlineTransitionTest.visualIdentity(),
-  }));
-  expect(initial.status.activeWorldId).toBe('city');
-  expect(initial.status.residentWorldIds).toEqual(['city']);
-  expect(initial.roots).toMatchObject({ cityVisible: true, cityCachedInScene: true, islandVisible: false, islandRootResident: false });
-
-  const cityStart = await page.evaluate(() => window.__coastlineTransitionTest.playerState());
-  await page.evaluate(() => window.__coastlineTransitionTest.transition('city-to-island'));
-  const island = await page.evaluate(() => ({
-    status: window.__coastlineTransitionTest.status(),
     player: window.__coastlineTransitionTest.playerState(),
-    roots: window.__coastlineTransitionTest.rootVisibility(),
-    spawn: window.__coastlineTransitionTest.world2Spawn(),
     layout: window.__coastlineTransitionTest.world2Layout(),
+    spawn: window.__coastlineTransitionTest.world2Spawn(),
     visual: window.__coastlineTransitionTest.visualIdentity(),
     vehicleVisible: window.__coastlineTransitionTest.activeVehicleVisible(),
   }));
-  expect(island.status.activeWorldId).toBe('island');
-  expect(island.status.residentWorldIds).toEqual(['island']);
-  expect(island.roots).toMatchObject({ cityVisible: false, cityCachedInScene: true, islandVisible: true, islandRootResident: true });
-  expect(island.player.position.x).toBe(island.spawn.x);
-  expect(island.player.position.z).toBe(island.spawn.z);
-  expect(island.layout.bounds.width).toBeLessThanOrEqual(260);
-  expect(island.layout.bounds.depth).toBeLessThanOrEqual(260);
-  expect(island.layout.spawnToIslandBridge).toBeLessThanOrEqual(50);
-  expect(island.layout.palm.name).toBe('coastline-world2-bridge-palm');
-  expect(island.layout.palm.offRoad).toBe(true);
-  expect(island.layout.palm.distanceToIslandBridge).toBeLessThanOrEqual(45);
-  expect(island.visual).toEqual(initial.visual);
-  expect(island.vehicleVisible).toBe(true);
+  expect(initial.status.activeWorldId).toBe('island');
+  expect(initial.status.residentWorldIds).toEqual(['island']);
+  expect(initial.roots).toMatchObject({ cityVisible: false, cityCachedInScene: true, islandVisible: true, islandRootResident: true });
+  expect(initial.player.mode).toBe('vehicle');
+  expect(initial.player.position.x).toBe(initial.spawn.x);
+  expect(initial.player.position.z).toBe(initial.spawn.z);
+  expect(initial.layout.bounds.width).toBeLessThanOrEqual(260);
+  expect(initial.layout.bounds.depth).toBeLessThanOrEqual(260);
+  expect(initial.layout.bridgeLength).toBe(100);
+  expect(initial.layout.palm).toBeNull();
+  expect(initial.layout.bridgeIslandEdge).toBeCloseTo(initial.layout.bounds.minZ, 0);
+  expect(initial.layout.bridgeCityEdge).toBeCloseTo(initial.layout.bounds.minZ - 100, 0);
+  expect(initial.layout.spawnToIslandBridge).toBeLessThanOrEqual(50);
+  expect(initial.vehicleVisible).toBe(true);
 
-  const moved = await page.evaluate(async () => {
+  const cityStart = await page.evaluate(() => window.__coastlineTransitionTest.cityBridgeContract());
+  expect(cityStart.bridgeLength).toBe(100);
+  expect(cityStart.cityEdge).toBeCloseTo(cityStart.cityMapEdge, 0);
+
+  await page.evaluate(async () => {
     const api = window.__coastlineTest;
-    const before = window.__coastlineTransitionTest.playerState();
+    api.setVehiclePosition(500, 400, 0);
     api.keyDown('w');
-    api.advanceTestFrame(1 / 60, 60);
+    api.advanceTestFrame(1 / 60, 240);
     api.keyUp('w');
-    const after = window.__coastlineTransitionTest.playerState();
-    return { before, after };
+    await window.__coastlineTransitionTest.flushAutoTransition();
   });
-  expect(moved.after.position.z).toBeGreaterThan(moved.before.position.z + 0.25);
-  expect(moved.after.position.x).toBeGreaterThanOrEqual(370);
-  expect(moved.after.position.x).toBeLessThanOrEqual(630);
-  expect(moved.after.position.z).toBeGreaterThanOrEqual(370);
-  expect(moved.after.position.z).toBeLessThanOrEqual(630);
-  expect(island.player.vehicleIndex).toBe(cityStart.vehicleIndex);
 
-  await page.evaluate(() => window.__coastlineTransitionTest.transition('island-to-city'));
-  const returned = await page.evaluate(() => ({
+  const crossed = await page.evaluate(() => ({
     status: window.__coastlineTransitionTest.status(),
     player: window.__coastlineTransitionTest.playerState(),
     roots: window.__coastlineTransitionTest.rootVisibility(),
+    visual: window.__coastlineTransitionTest.visualIdentity(),
   }));
-  expect(returned.status.activeWorldId).toBe('city');
-  expect(returned.status.residentWorldIds).toEqual(['city']);
-  expect(returned.roots).toMatchObject({ cityVisible: true, cityCachedInScene: true, islandVisible: false, islandRootResident: false });
-  expect(returned.player.position.x).toBe(cityStart.position.x);
-  expect(returned.player.position.z).toBe(cityStart.position.z);
+  expect(crossed.status.activeWorldId).toBe('city');
+  expect(crossed.status.residentWorldIds).toEqual(['city']);
+  expect(crossed.roots).toMatchObject({ cityVisible: true, cityCachedInScene: true, islandVisible: false, islandRootResident: false });
+  expect(crossed.player.vehicleIndex).toBe(initial.player.vehicleIndex);
+  expect(crossed.visual).toEqual(initial.visual);
   expect(errors).toEqual([]);
 });
 
-test('failed World 2 load cleans partial shell resources, preserves City, and can be retried', async ({ page }) => {
+test('failed island load cleans partial shell resources, preserves City, and can be retried', async ({ page }) => {
   const errors = await openGame(page);
   await page.evaluate(() => window.__coastlineTransitionTest.failNextWorld2Load());
   await expect(page.evaluate(() => window.__coastlineTransitionTest.transition('city-to-island'))).rejects.toThrow(/injected world 2 load failure/i);
