@@ -63,7 +63,7 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
   const ISLAND_BRIDGE_END_Z = ISLAND_BRIDGE_START_Z - BRIDGE_LENGTH;
   const CITY_MAP_EDGE_Z = -550;
   const CITY_BRIDGE_START_Z = CITY_MAP_EDGE_Z;
-  const CITY_BRIDGE_END_Z = CITY_BRIDGE_START_Z + BRIDGE_LENGTH;
+  const CITY_BRIDGE_END_Z = CITY_BRIDGE_START_Z - BRIDGE_LENGTH;
   const ISLAND_START = Object.freeze({ x: 500, y: finiteOr(groundY(500, 420)), z: 420, rotationY: Math.PI });
   const ISLAND_APPROACH = Object.freeze({ x: 500, z: ISLAND_BRIDGE_END_Z + 5, rotationY: Math.PI });
   const CITY_APPROACH = Object.freeze({ x: 0, z: CITY_BRIDGE_END_Z - 5, rotationY: Math.PI });
@@ -91,7 +91,7 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
     const landMaterial = new THREE.MeshStandardMaterial({ color: 0x55785b, roughness: 0.96 }), shoreMaterial = new THREE.MeshStandardMaterial({ color: 0x9cc9bd, roughness: 0.72, metalness: 0.04 }), roadMaterial = new THREE.MeshStandardMaterial({ color: 0x343c3d, roughness: 0.9 });
     const shape = createRoundedSquareShape(THREE, 110, 20); const land = new THREE.Mesh(new THREE.ShapeGeometry(shape, 4), landMaterial); land.rotation.x = -Math.PI / 2; land.position.set(x, y - 0.18, z); land.receiveShadow = true; root.add(land);
     const shoreline = new THREE.Mesh(new THREE.ShapeGeometry(shape, 4), shoreMaterial); shoreline.rotation.x = -Math.PI / 2; shoreline.scale.setScalar(1.025); shoreline.position.set(x, y - 0.04, z); root.add(shoreline);
-    const road = new THREE.Mesh(new THREE.BoxGeometry(16, 0.16, 55), roadMaterial); road.position.set(x, y + 0.02, z + 27.5); road.receiveShadow = true; root.add(road);
+    const road = new THREE.Mesh(new THREE.BoxGeometry(16, 0.16, 55), roadMaterial); road.position.set(x, y + 0.02, z - 82.5); road.receiveShadow = true; root.add(road);
     addBridge(THREE, root, { x, startZ: ISLAND_BRIDGE_START_Z, y, length: BRIDGE_LENGTH });
     return root;
   };
