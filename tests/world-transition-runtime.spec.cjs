@@ -70,8 +70,8 @@ test('live runtime starts in City and supports deterministic City to World 2 and
   expect(returned.status.activeWorldId).toBe('city');
   expect(returned.status.residentWorldIds).toEqual(['city']);
   expect(returned.roots).toMatchObject({ cityVisible: true, cityCachedInScene: true, islandVisible: false, islandRootResident: false });
-  expect(returned.player.position.x).toBe(0);
-  expect(returned.player.position.z).toBe(-540);
+  expect(returned.player.position.x).toBe(cityStart.position.x);
+  expect(returned.player.position.z).toBe(cityStart.position.z);
   expect(errors).toEqual([]);
 });
 
