@@ -61,15 +61,61 @@ function addBridge(THREE, root, { x, z, y, length = 100 }) {
   return group;
 }
 
+function createRoundedSquareShape(THREE, halfExtent = 110, cornerRadius = 20) {
+  const edge = halfExtent;
+  const inner = edge - cornerRadius;
+  const shape = new THREE.Shape();
+  shape.moveTo(-inner, -edge);
+  shape.lineTo(inner, -edge);
+  shape.quadraticCurveTo(edge, -edge, edge, -inner);
+  shape.lineTo(edge, inner);
+  shape.quadraticCurveTo(edge, edge, inner, edge);
+  shape.lineTo(-inner, edge);
+  shape.quadraticCurveTo(-edge, edge, -edge, inner);
+  shape.lineTo(-edge, -inner);
+  shape.quadraticCurveTo(-edge, -edge, -inner, -edge);
+  return shape;
+}
+
+function addWorld2Palm(THREE, root, { x, z, y }) {
+  const palm = new THREE.Group();
+  palm.name = 'coastline-world2-bridge-palm';
+  palm.userData.coastlineAlwaysVisible = true;
+  const trunkMaterial = new THREE.MeshStandardMaterial({ color: 0x765538, roughness: 0.92 });
+  const leafMaterial = new THREE.MeshStandardMaterial({ color: 0x3d7545, roughness: 0.9, side: THREE.DoubleSide });
+  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(1.3, 1.8, 12, 8), trunkMaterial);
+  trunk.position.y = 6;
+  trunk.castShadow = true;
+  palm.add(trunk);
+  const crown = new THREE.Group();
+  crown.position.y = 12;
+  for (let i = 0; i < 7; i++) {
+    const leaf = new THREE.Mesh(new THREE.ConeGeometry(1.9, 8, 5), leafMaterial);
+    const angle = (i / 7) * Math.PI * 2;
+    leaf.rotation.z = Math.PI / 2;
+    leaf.rotation.y = angle;
+    leaf.position.set(Math.cos(angle) * 2.5, -0.4, Math.sin(angle) * 2.5);
+    leaf.scale.y = 1.5;
+    leaf.castShadow = true;
+    crown.add(leaf);
+  }
+  palm.add(crown);
+  palm.position.set(x, y, z);
+  root.add(palm);
+  return palm;
+}
+
 export function createCoastlineWorldTransitions({ THREE, scene, roots, player, vehicles, avatar, groundY }) {
   // Each world has a distinct playable side of the bridge. The transition fires at the
   // far end of the physical bridge, never at the destination spawn itself.
   const CITY_BRIDGE = Object.freeze({ x: 0, z: -600 });
   const ISLAND_BRIDGE = Object.freeze({ x: 500, z: 500 });
-  const WORLD_2_SPAWN = Object.freeze({ x: 500, y: finiteOr(groundY(500, 400)), z: 400, rotationY: 0 });
+  const WORLD_2_SPAWN = Object.freeze({ x: 500, y: finiteOr(groundY(500, 420)), z: 420, rotationY: 0 });
   const CITY_APPROACH = Object.freeze({ x: 0, z: -645, rotationY: Math.PI });
   const ISLAND_APPROACH = Object.freeze({ x: 500, z: 445, rotationY: 0 });
   const BRIDGE_TRIGGER_RANGE = 10;
+  const WORLD_2_BOUNDS = Object.freeze({ minX: 390, maxX: 610, minZ: 390, maxZ: 610, width: 220, depth: 220 });
+  const WORLD_2_PALM = Object.freeze({ x: 526, z: 455 });
   let pendingWorld2Root = null;
   let failNextWorld2Load = false;
   let updatePromptCallback = () => {};
@@ -91,6 +137,16 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
   };
   const makeContext = () => ({ player: capturePlayer(), vehicle: captureVehicle(), vehicleIndex: player.mode === 'vehicle' ? vehicles.indexOf(player.vehicle) : -1 });
   const activeActor = () => player.mode === 'vehicle' && player.vehicle?.g ? player.vehicle.g : avatar;
+  const hierarchySignature = root => {
+    if (!root) return null;
+    let descendants = 0, meshes = 0, visibleMeshes = 0;
+    root.traverse(node => { descendants += 1; if (node.isMesh) { meshes += 1; if (node.visible !== false) visibleMeshes += 1; } });
+    return { name: String(root.name || 'unnamed'), descendants, meshes, visibleMeshes };
+  };
+  const visualIdentity = () => ({
+    vehicle: player.vehicle ? { id: String(player.vehicle.worldEntityId ?? player.vehicle.kind ?? 'active-vehicle'), kind: String(player.vehicle.kind ?? ''), hierarchy: hierarchySignature(player.vehicle.g) } : null,
+    hero: hierarchySignature(avatar),
+  });
   const makeVehicleRenderable = vehicle => {
     if (!vehicle?.g) return;
     vehicle.g.visible = true;
@@ -122,16 +178,20 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
   };
 
   const createBlankWorld2Root = () => {
-    const root = new THREE.Group(); root.name = 'coastline-world-2-blank-shell';
+    const root = new THREE.Group(); root.name = 'coastline-world-2-compact-shell';
     const x = ISLAND_BRIDGE.x, z = ISLAND_BRIDGE.z, y = finiteOr(groundY(x, z));
     const landMaterial = new THREE.MeshStandardMaterial({ color: 0x55785b, roughness: 0.96 });
-    const roadMaterial = new THREE.MeshStandardMaterial({ color: 0x343c3d, roughness: 0.9 });
     const shoreMaterial = new THREE.MeshStandardMaterial({ color: 0x9cc9bd, roughness: 0.72, metalness: 0.04 });
-    const land = new THREE.Mesh(new THREE.PlaneGeometry(480, 480, 48, 48), landMaterial); land.rotation.x = -Math.PI / 2; land.position.set(x, y - 0.18, z); land.receiveShadow = true; root.add(land);
-    const shoreline = new THREE.Mesh(new THREE.TorusGeometry(202, 7, 10, 96), shoreMaterial); shoreline.rotation.x = Math.PI / 2; shoreline.position.set(x, y + 0.04, z); root.add(shoreline);
-    const road = new THREE.Mesh(new THREE.BoxGeometry(16, 0.16, 190), roadMaterial); road.position.set(x, y + 0.02, z - 84); road.receiveShadow = true; root.add(road);
-    for (const side of [-1, 1]) { const rail = new THREE.Mesh(new THREE.BoxGeometry(0.3, 1.05, 190), shoreMaterial); rail.position.set(x + side * 8, y + 0.5, z - 84); root.add(rail); }
+    const roadMaterial = new THREE.MeshStandardMaterial({ color: 0x343c3d, roughness: 0.9 });
+    const shape = createRoundedSquareShape(THREE, 110, 20);
+    const land = new THREE.Mesh(new THREE.ShapeGeometry(shape, 4), landMaterial);
+    land.rotation.x = -Math.PI / 2; land.position.set(x, y - 0.18, z); land.receiveShadow = true; root.add(land);
+    const shoreline = new THREE.Mesh(new THREE.ShapeGeometry(shape, 4), shoreMaterial);
+    shoreline.rotation.x = -Math.PI / 2; shoreline.scale.setScalar(1.025); shoreline.position.set(x, y - 0.04, z); root.add(shoreline);
+    const road = new THREE.Mesh(new THREE.BoxGeometry(16, 0.16, 150), roadMaterial); road.position.set(x, y + 0.02, z - 55); road.receiveShadow = true; root.add(road);
+    for (const side of [-1, 1]) { const rail = new THREE.Mesh(new THREE.BoxGeometry(0.3, 1.05, 150), shoreMaterial); rail.position.set(x + side * 8, y + 0.5, z - 55); root.add(rail); }
     addBridge(THREE, root, { x, z, y, length: 100 });
+    addWorld2Palm(THREE, root, { x: WORLD_2_PALM.x, z: WORLD_2_PALM.z, y });
     return root;
   };
 
@@ -141,10 +201,10 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
     load: async ({ reason }) => { setWorld2CollisionScope(false); roots.world1Root.visible = reason === 'initial-activation' || roots.world1Root.visible; return { id: 'city', root: roots.world1Root }; },
     unload: async handle => { handle.root.visible = false; },
     captureState: async ({ context }) => ({ player: context.player, vehicle: context.vehicle, vehicleIndex: context.vehicleIndex }),
-    restoreState: async (worldState, { handle }) => { setWorld2CollisionScope(false); handle.root.visible = true; applySnapshot(worldState, handle.root); },
+    restoreState: async (worldState, { handle, destinationSpawn }) => { setWorld2CollisionScope(false); handle.root.visible = true; applySnapshot(worldState, handle.root, destinationSpawn); },
   };
   const islandWorld = {
-    id: 'island', name: 'World 2 Blank Shell',
+    id: 'island', name: 'World 2 Compact Shell',
     load: async ({ context, destinationSpawn }) => {
       setWorld2CollisionScope(true); pendingWorld2Root = createBlankWorld2Root(); roots.addWorldRoot(pendingWorld2Root); pendingWorld2Root.visible = true; moveActiveActor(pendingWorld2Root);
       applySnapshot({ player: context.player, vehicle: context.vehicle, vehicleIndex: context.vehicleIndex }, pendingWorld2Root, destinationSpawn || WORLD_2_SPAWN);
@@ -207,7 +267,19 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
       failNextWorld2Load: () => { failNextWorld2Load = true; },
       world2Spawn: () => ({ ...WORLD_2_SPAWN }),
       bridgeZones: () => ({ cityApproach: { ...CITY_APPROACH }, islandApproach: { ...ISLAND_APPROACH } }),
-      activeVehicleVisible: () => Boolean(player.vehicle?.g?.visible && player.vehicle.g.visible && [...(player.vehicle.g.children || [])].every(child => child.visible !== false)),
+      world2Layout: () => {
+        const palm = pendingWorld2Root?.getObjectByName('coastline-world2-bridge-palm');
+        const distanceToIslandBridge = Math.hypot(WORLD_2_PALM.x - ISLAND_BRIDGE.x, WORLD_2_PALM.z - ISLAND_BRIDGE.z);
+        return {
+          bounds: { ...WORLD_2_BOUNDS },
+          spawn: { ...WORLD_2_SPAWN },
+          islandBridge: { ...ISLAND_BRIDGE },
+          spawnToIslandBridge: Math.hypot(WORLD_2_SPAWN.x - ISLAND_BRIDGE.x, WORLD_2_SPAWN.z - ISLAND_BRIDGE.z),
+          palm: { name: String(palm?.name || ''), x: WORLD_2_PALM.x, z: WORLD_2_PALM.z, distanceToIslandBridge, offRoad: Math.abs(WORLD_2_PALM.x - ISLAND_BRIDGE.x) > 10 },
+        };
+      },
+      visualIdentity,
+      activeVehicleVisible: () => Boolean(player.vehicle?.g && player.vehicle.g.visible && (() => { let hidden = false; player.vehicle.g.traverse(node => { if (node.visible === false) hidden = true; }); return !hidden; })()),
       collisionScope: () => Boolean(window.__coastlineWorld2Active),
     };
     window.addEventListener('keydown', updatePromptCallback);
