@@ -98,7 +98,7 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
   const addCityBridgeAffordance = () => addBridge(THREE, roots.world1Root, { x: 0, startZ: CITY_BRIDGE_START_Z, y: finiteOr(groundY(0, CITY_BRIDGE_START_Z)), length: BRIDGE_LENGTH });
   const cityWorld = {
     id: 'city', name: 'Coastline City',
-    load: async ({ reason }) => { setIslandCollisionScope(false); roots.world1Root.visible = reason === 'initial-activation' || roots.world1Root.visible; return { id: 'city', root: roots.world1Root }; },
+    load: async () => { setIslandCollisionScope(false); roots.world1Root.visible = true; return { id: 'city', root: roots.world1Root }; },
     unload: async handle => { handle.root.visible = false; },
     captureState: async ({ context }) => ({ player: context.player, vehicle: context.vehicle, vehicleIndex: context.vehicleIndex }),
     restoreState: async (worldState, { handle, destinationSpawn }) => { setIslandCollisionScope(false); handle.root.visible = true; applySnapshot(worldState, handle.root, destinationSpawn); },
