@@ -9,7 +9,21 @@ async function openGame(page) {
   return errors;
 }
 
-test('live runtime starts naked island and crosses one-block bridge into City', async ({ page }) => {
+async function driveAcrossBridge(page) {
+  await page.evaluate(async () => {
+    const api = window.__coastlineTest;
+    api.keyDown('w');
+    for (let i = 0; i < 40; i += 1) {
+      api.advanceTestFrame(1 / 60, 10);
+      window.__coastlineTransitionTest.updatePrompt();
+      if (window.__coastlineTransitionTest.status().activeWorldId !== 'island') break;
+    }
+    api.keyUp('w');
+    await window.__coastlineTransitionTest.flushAutoTransition();
+  });
+}
+
+test('live runtime starts naked island and crosses one-block bridge into a protected City buffer', async ({ page }) => {
   const errors = await openGame(page);
   const initial = await page.evaluate(() => ({
     status: window.__coastlineTransitionTest.status(),
@@ -38,19 +52,12 @@ test('live runtime starts naked island and crosses one-block bridge into City', 
   const cityStart = await page.evaluate(() => window.__coastlineTransitionTest.cityBridgeContract());
   expect(cityStart.bridgeLength).toBe(100);
   expect(cityStart.cityEdge).toBeCloseTo(cityStart.cityMapEdge, 0);
+  expect(cityStart.cityMapEdge).toBe(-750);
+  expect(cityStart.bridgeEnd).toBe(-850);
+  expect(cityStart.destination.z).toBe(-850);
+  expect(cityStart.destination.rotationY).toBe(0);
 
-  await page.evaluate(async () => {
-    const api = window.__coastlineTest;
-    api.setVehiclePosition(500, 400, Math.PI);
-    api.keyDown('w');
-    for (let i = 0; i < 40; i += 1) {
-      api.advanceTestFrame(1 / 60, 10);
-      window.__coastlineTransitionTest.updatePrompt();
-      if (window.__coastlineTransitionTest.status().activeWorldId === 'city') break;
-    }
-    api.keyUp('w');
-    await window.__coastlineTransitionTest.flushAutoTransition();
-  });
+  await driveAcrossBridge(page);
 
   const crossed = await page.evaluate(() => ({
     status: window.__coastlineTransitionTest.status(),
@@ -62,7 +69,40 @@ test('live runtime starts naked island and crosses one-block bridge into City', 
   expect(crossed.status.residentWorldIds).toEqual(['city']);
   expect(crossed.roots).toMatchObject({ cityVisible: true, cityCachedInScene: true, islandVisible: false, islandRootResident: false });
   expect(crossed.player.vehicleIndex).toBe(initial.player.vehicleIndex);
+  expect(crossed.player.position.z).toBe(-850);
+  expect(crossed.player.heading).toBe(0);
   expect(crossed.visual).toEqual(initial.visual);
+  expect(errors).toEqual([]);
+});
+
+test('City bridge crossing returns to the island bridge buffer instead of spawning inside the island', async ({ page }) => {
+  const errors = await openGame(page);
+  await driveAcrossBridge(page);
+  expect(await page.evaluate(() => window.__coastlineTransitionTest.status().activeWorldId)).toBe('city');
+
+  await page.evaluate(async () => {
+    const api = window.__coastlineTest;
+    api.setVehiclePosition(0, -740, Math.PI);
+    api.keyDown('w');
+    for (let i = 0; i < 30; i += 1) {
+      api.advanceTestFrame(1 / 60, 10);
+      window.__coastlineTransitionTest.updatePrompt();
+      if (window.__coastlineTransitionTest.status().activeWorldId === 'island') break;
+    }
+    api.keyUp('w');
+    await window.__coastlineTransitionTest.flushAutoTransition();
+  });
+
+  const returned = await page.evaluate(() => ({
+    status: window.__coastlineTransitionTest.status(),
+    player: window.__coastlineTransitionTest.playerState(),
+    roots: window.__coastlineTransitionTest.rootVisibility(),
+  }));
+  expect(returned.status.activeWorldId).toBe('island');
+  expect(returned.status.residentWorldIds).toEqual(['island']);
+  expect(returned.player.position.z).toBe(290);
+  expect(returned.player.heading).toBe(0);
+  expect(returned.roots).toMatchObject({ cityVisible: false, cityCachedInScene: true, islandVisible: true, islandRootResident: true });
   expect(errors).toEqual([]);
 });
 
@@ -84,6 +124,7 @@ test('failed island load cleans partial shell resources, preserves City, and can
   expect(retried.activeWorldId).toBe('island');
   expect(retried.residentWorldIds).toEqual(['island']);
   expect(await page.evaluate(() => window.__coastlineTransitionTest.rootVisibility())).toMatchObject({ cityVisible: false, cityCachedInScene: true, islandVisible: true, islandRootResident: true });
+  expect((await page.evaluate(() => window.__coastlineTransitionTest.playerState())).position.z).toBe(290);
   expect(errors).toEqual([]);
 });
 
