@@ -116,8 +116,8 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
     restoreState: async (worldState, { handle }) => { setIslandCollisionScope(true); handle.root.visible = true; moveActiveActor(handle.root); applySnapshot(worldState, handle.root); },
   };
   manager.registerWorld(cityWorld); manager.registerWorld(islandWorld);
-  manager.registerTransition({ id: 'city-to-island', fromWorld: 'city', toWorld: 'island', trigger: 'bridge', destinationSpawn: ISLAND_BRIDGE_DESTINATION, vehiclePolicy: 'allowed' });
-  manager.registerTransition({ id: 'island-to-city', fromWorld: 'island', toWorld: 'city', trigger: 'bridge', destinationSpawn: CITY_BRIDGE_DESTINATION, vehiclePolicy: 'allowed' });
+  manager.registerTransition({ id: 'city-to-island', fromWorld: 'city', toWorld: 'island', trigger: 'bridge', spawn: 'fixed', destinationSpawn: ISLAND_BRIDGE_DESTINATION, vehiclePolicy: 'allowed' });
+  manager.registerTransition({ id: 'island-to-city', fromWorld: 'island', toWorld: 'city', trigger: 'bridge', spawn: 'fixed', destinationSpawn: CITY_BRIDGE_DESTINATION, vehiclePolicy: 'allowed' });
   const transition = async transitionId => { if (autoTransitionPromise) return autoTransitionPromise; lastBridgeCheckZ = null; autoTransitionPromise = manager.transition(transitionId, makeContext()).finally(() => { autoTransitionPromise = null; lastBridgeCheckZ = null; }); return autoTransitionPromise; };
   const initialize = async () => {
     addCityBridgeAffordance(); roots.world1Root.visible = false; await manager.activate('island', makeContext());
@@ -135,7 +135,7 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
     };
     window.__coastlineTransitionTest = {
       status: () => manager.getStatus(), playerState: () => ({ position: { x: player.x, y: player.y, z: player.z }, heading: player.heading, mode: player.mode, vehicleIndex: vehicles.indexOf(player.vehicle), vehicleSpeed: player.vehicle?.speed ?? 0 }), rootVisibility: () => ({ cityVisible: roots.world1Root.visible, cityCachedInScene: Boolean(roots.world1Root.parent === scene), islandVisible: Boolean(pendingIslandRoot?.visible), islandRootResident: Boolean(pendingIslandRoot?.parent === scene) }), transition, updatePrompt: updatePromptCallback, flushAutoTransition: async () => { if (autoTransitionPromise) await autoTransitionPromise; }, failNextWorld2Load: () => { failNextIslandLoad = true; }, world2Spawn: () => ({ ...ISLAND_START }), bridgeZones: () => ({ cityApproach: { ...CITY_APPROACH }, islandApproach: { ...ISLAND_APPROACH } }),
-      cityBridgeContract: () => ({ bridgeLength: BRIDGE_LENGTH, cityMapEdge: CITY_MAP_EDGE_Z, cityEdge: CITY_BRIDGE_START_Z, bridgeEnd: CITY_BRIDGE_END_Z, playableCityMinZ: CITY_MAP_EDGE_Z, outsideBufferLength: BRIDGE_LENGTH, destination: { ...CITY_BRIDGE_DESTINATION } }),
+      cityBridgeContract: () => ({ bridgeLength: BRIDGE_LENGTH, cityMapEdge: CITY_MAP_EDGE_Z, cityEdge: CITY_BRIDGE_START_Z, bridgeEnd: CITY_BRIDGE_END_Z, playableCityMinZ: CITY_MAP_EDGE_Z, outsideBufferLength: BRIDGE_LENGTH, destination: { ...CITY_BRIDGE_DESTINATION }, spawnPolicy: 'fixed' }),
       world2Layout: () => ({ bounds: { ...ISLAND_BOUNDS }, spawn: { ...ISLAND_START }, islandBridge: { x: ISLAND_CENTER.x, z: ISLAND_BRIDGE_START_Z }, islandBridgeDestination: { ...ISLAND_BRIDGE_DESTINATION }, spawnToIslandBridge: Math.hypot(ISLAND_START.x - ISLAND_CENTER.x, ISLAND_START.z - ISLAND_BRIDGE_START_Z), bridgeLength: BRIDGE_LENGTH, bridgeIslandEdge: ISLAND_BRIDGE_START_Z, bridgeCityEdge: ISLAND_BRIDGE_END_Z, palm: null }),
       visualIdentity, activeVehicleVisible: () => Boolean(player.vehicle?.g && player.vehicle.g.visible && (() => { let hidden = false; player.vehicle.g.traverse(node => { if (node.visible === false) hidden = true; }); return !hidden; })()), collisionScope: () => Boolean(window.__coastlineWorld2Active),
     };
