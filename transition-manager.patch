@@ -1,0 +1,116 @@
+--- a/transition-manager.js
++++ b/transition-manager.js
+@@ -23,6 +23,9 @@
+   }
+   if (!VALID_TRIGGERS.has(definition.trigger)) throw new Error(`transition ${definition.id} has an invalid trigger`);
+   if (!VALID_VEHICLE_POLICIES.has(definition.vehiclePolicy)) throw new Error(`transition ${definition.id} has an invalid vehicle policy`);
++  if (definition.spawn !== undefined && definition.spawn !== 'return-point' && definition.spawn !== 'fixed') {
++    throw new Error(`transition ${definition.id} has an invalid spawn policy`);
++  }
+   if (!definition.destinationSpawn || typeof definition.destinationSpawn !== 'object') {
+     throw new Error(`transition ${definition.id} requires destinationSpawn`);
+   }
+@@ -31,7 +34,13 @@
+ 
+ function cloneState(value) {
+   if (value === undefined) return undefined;
+-  return structuredClone(value);
++  try {
++    return structuredClone(value);
++  } catch (error) {
++    const wrapped = new Error(`transition state must be plain data (numbers, strings, arrays, plain objects); pass snapshots, not game or Three.js objects: ${error.message}`, { cause: error });
++    wrapped.name = 'TransitionStateError';
++    throw wrapped;
++  }
+ }
+ 
+ export function createTransitionManager({ onEvent } = {}) {
+@@ -48,10 +57,18 @@
+   let lastReturnPoint = null;
+   let disposed = false;
+   let transitionPromise = null;
++  let activationPromise = null;
++  let activatingWorldId = null;
+ 
+   const emit = (type, data = {}) => {
+     const event = Object.freeze({ type, ...data });
+-    if (typeof onEvent === 'function') onEvent(event);
++    if (typeof onEvent === 'function') {
++      try {
++        onEvent(event);
++      } catch (listenerError) {
++        if (typeof console !== 'undefined') console.error('transition manager event listener failed', type, listenerError);
++      }
++    }
+     return event;
+   };
+ 
+@@ -71,25 +88,36 @@
+   const activate = async (worldId, context = {}) => {
+     ensureUsable();
+     if (!worlds.has(worldId)) throw new Error(`unknown world: ${worldId}`);
++    if (state === 'loading') {
++      if (activatingWorldId === worldId && activationPromise) return activationPromise;
++      throw new Error('transition manager is busy');
++    }
+     if (state === 'transitioning') throw new Error('transition manager is busy');
+     if (activeWorldId === worldId) return handles.get(worldId);
+     if (activeWorldId) throw new Error(`world ${activeWorldId} is already active`);
+ 
+     state = 'loading';
++    activatingWorldId = worldId;
+     const definition = worlds.get(worldId);
+-    try {
+-      const handle = await definition.load({ worldId, context, reason: 'initial-activation' });
+-      if (!handle) throw new Error(`world ${worldId} returned no load handle`);
+-      handles.set(worldId, handle);
+-      activeWorldId = worldId;
+-      state = 'active';
+-      emit('world:activated', { worldId });
+-      return handle;
+-    } catch (error) {
+-      state = 'idle';
+-      lastFailure = error;
+-      throw error;
+-    }
++    activationPromise = (async () => {
++      try {
++        const handle = await definition.load({ worldId, context, reason: 'initial-activation' });
++        if (!handle) throw new Error(`world ${worldId} returned no load handle`);
++        handles.set(worldId, handle);
++        activeWorldId = worldId;
++        state = 'active';
++        emit('world:activated', { worldId });
++        return handle;
++      } catch (error) {
++        state = 'idle';
++        lastFailure = error;
++        throw error;
++      } finally {
++        activatingWorldId = null;
++        activationPromise = null;
++      }
++    })();
++    return activationPromise;
+   };
+ 
+   const performTransition = async (transitionId, context = {}) => {
+@@ -136,7 +164,8 @@
+ 
+       emit('transition:loading', { transitionId, fromWorld: transition.fromWorld, toWorld: transition.toWorld });
+       phase = 'destination-load';
+-      const destinationSpawn = cloneState(savedReturnPoints.get(transition.toWorld) ?? transition.destinationSpawn);
++      const savedSpawn = transition.spawn === 'fixed' ? undefined : savedReturnPoints.get(transition.toWorld);
++      const destinationSpawn = cloneState(savedSpawn ?? transition.destinationSpawn);
+       destinationHandle = await destinationDefinition.load({
+         worldId: transition.toWorld,
+         context,
+@@ -173,7 +202,7 @@
+       handles.set(transition.toWorld, destinationHandle);
+       activeWorldId = transition.toWorld;
+       lastTransitionState = cloneState(transitionState);
+-      lastReturnPoint = cloneState(savedReturnPoints.get(transition.toWorld) ?? transition.destinationSpawn);
++      lastReturnPoint = cloneState(destinationSpawn);
+ 
+       emit('world:activated', { worldId: transition.toWorld });
+       state = 'active';
