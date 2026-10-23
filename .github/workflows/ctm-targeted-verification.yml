@@ -1,6 +1,8 @@
 name: CTM targeted verification
 
 on:
+  push:
+    branches: [feat/ctm-world2-live-integration]
   pull_request:
     branches: [main]
   workflow_dispatch:
