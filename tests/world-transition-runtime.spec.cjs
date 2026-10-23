@@ -87,13 +87,13 @@ test('bridge prompt only appears for a nearby vehicle facing the island bridge, 
   await openGame(page);
 
   await page.evaluate(() => {
-    window.__coastlineTest.setVehiclePosition(500, 390, 0);
+    window.__coastlineTest.setVehiclePosition(500, 400, 0);
     window.__coastlineTransitionTest.updatePrompt();
   });
   await expect(page.locator('#coastlineWorldTransition')).toBeHidden();
 
   await page.evaluate(() => {
-    window.__coastlineTest.setVehiclePosition(500, 390, Math.PI);
+    window.__coastlineTest.setVehiclePosition(500, 400, Math.PI);
     window.__coastlineTransitionTest.updatePrompt();
   });
   await expect(page.locator('#coastlineWorldTransition')).toBeVisible();
@@ -108,7 +108,7 @@ test('bridge prompt only appears for a nearby vehicle facing the island bridge, 
   await expect(page.locator('#coastlineWorldTransition')).toBeHidden();
 
   await page.evaluate(() => {
-    window.__coastlineTest.setWalkPosition(500, 390, Math.PI);
+    window.__coastlineTest.setWalkPosition(500, 400, Math.PI);
     window.__coastlineTransitionTest.updatePrompt();
   });
   await expect(page.locator('#coastlineWorldTransition')).toBeHidden();
