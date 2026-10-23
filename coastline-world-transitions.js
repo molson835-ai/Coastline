@@ -219,7 +219,7 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
 
   manager.registerWorld(cityWorld); manager.registerWorld(islandWorld);
   manager.registerTransition({ id: 'city-to-island', fromWorld: 'city', toWorld: 'island', trigger: 'bridge', destinationSpawn: WORLD_2_SPAWN, vehiclePolicy: 'allowed' });
-  manager.registerTransition({ id: 'island-to-city', fromWorld: 'island', toWorld: 'city', trigger: 'bridge', destinationSpawn: { x: 0, y: finiteOr(groundY(0, -540)), z: -540, rotationY: Math.PI }, vehiclePolicy: 'allowed' });
+  manager.registerTransition({ id: 'island-to-city', fromWorld: 'island', toWorld: 'city', trigger: 'bridge', destinationSpawn: { x: 0, y: finiteOr(groundY(0, -540)), z: -540, rotationY: Math.PI }, spawn: 'fixed', vehiclePolicy: 'allowed' });
 
   const transition = async transitionId => {
     if (autoTransitionPromise) return autoTransitionPromise;
