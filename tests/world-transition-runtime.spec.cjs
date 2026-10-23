@@ -38,7 +38,7 @@ test('live runtime starts in City and supports deterministic City to World 2 and
   expect(island.player.position.z).toBe(island.spawn.z);
   expect(island.layout.bounds.width).toBeLessThanOrEqual(260);
   expect(island.layout.bounds.depth).toBeLessThanOrEqual(260);
-  expect(island.layout.spawnToIslandBridge).toBeLessThanOrEqual(80);
+  expect(island.layout.spawnToIslandBridge).toBeLessThanOrEqual(50);
   expect(island.layout.palm.name).toBe('coastline-world2-bridge-palm');
   expect(island.layout.palm.offRoad).toBe(true);
   expect(island.layout.palm.distanceToIslandBridge).toBeLessThanOrEqual(45);
