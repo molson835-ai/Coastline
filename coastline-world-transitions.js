@@ -110,12 +110,12 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
   // far end of the physical bridge, never at the destination spawn itself.
   const CITY_BRIDGE = Object.freeze({ x: 0, z: -600 });
   const ISLAND_BRIDGE = Object.freeze({ x: 500, z: 500 });
-  const WORLD_2_SPAWN = Object.freeze({ x: 500, y: finiteOr(groundY(500, 420)), z: 420, rotationY: 0 });
+  const WORLD_2_SPAWN = Object.freeze({ x: 500, y: finiteOr(groundY(500, 400)), z: 400, rotationY: 0 });
   const CITY_APPROACH = Object.freeze({ x: 0, z: -645, rotationY: Math.PI });
   const ISLAND_APPROACH = Object.freeze({ x: 500, z: 445, rotationY: 0 });
   const BRIDGE_TRIGGER_RANGE = 10;
   const WORLD_2_BOUNDS = Object.freeze({ minX: 390, maxX: 610, minZ: 390, maxZ: 610, width: 220, depth: 220 });
-  const WORLD_2_PALM = Object.freeze({ x: 526, z: 455 });
+  const WORLD_2_PALM = Object.freeze({ x: 520, z: 460 });
   let pendingWorld2Root = null;
   let failNextWorld2Load = false;
   let updatePromptCallback = () => {};
@@ -269,12 +269,12 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
       bridgeZones: () => ({ cityApproach: { ...CITY_APPROACH }, islandApproach: { ...ISLAND_APPROACH } }),
       world2Layout: () => {
         const palm = pendingWorld2Root?.getObjectByName('coastline-world2-bridge-palm');
-        const distanceToIslandBridge = Math.hypot(WORLD_2_PALM.x - ISLAND_BRIDGE.x, WORLD_2_PALM.z - ISLAND_BRIDGE.z);
+        const distanceToIslandBridge = Math.hypot(WORLD_2_PALM.x - ISLAND_APPROACH.x, WORLD_2_PALM.z - ISLAND_APPROACH.z);
         return {
           bounds: { ...WORLD_2_BOUNDS },
           spawn: { ...WORLD_2_SPAWN },
           islandBridge: { ...ISLAND_BRIDGE },
-          spawnToIslandBridge: Math.hypot(WORLD_2_SPAWN.x - ISLAND_BRIDGE.x, WORLD_2_SPAWN.z - ISLAND_BRIDGE.z),
+          spawnToIslandBridge: Math.hypot(WORLD_2_SPAWN.x - ISLAND_APPROACH.x, WORLD_2_SPAWN.z - ISLAND_APPROACH.z),
           palm: { name: String(palm?.name || ''), x: WORLD_2_PALM.x, z: WORLD_2_PALM.z, distanceToIslandBridge, offRoad: Math.abs(WORLD_2_PALM.x - ISLAND_BRIDGE.x) > 10 },
         };
       },
