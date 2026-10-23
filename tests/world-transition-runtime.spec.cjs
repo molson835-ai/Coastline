@@ -43,8 +43,9 @@ test('live runtime starts naked island and crosses one-block bridge into City', 
     const api = window.__coastlineTest;
     api.setVehiclePosition(500, 400, Math.PI);
     api.keyDown('w');
-    api.advanceTestFrame(1 / 60, 240);
+    api.advanceTestFrame(1 / 60, 315);
     api.keyUp('w');
+    window.__coastlineTransitionTest.updatePrompt();
     await window.__coastlineTransitionTest.flushAutoTransition();
   });
 
