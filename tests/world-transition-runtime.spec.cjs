@@ -22,12 +22,13 @@ test('live runtime starts in City and supports deterministic City to World 2 and
     status: window.__coastlineTransitionTest.status(),
     player: window.__coastlineTransitionTest.playerState(),
     roots: window.__coastlineTransitionTest.rootVisibility(),
+    spawn: window.__coastlineTransitionTest.world2Spawn(),
   }));
   expect(island.status.activeWorldId).toBe('island');
   expect(island.status.residentWorldIds).toEqual(['island']);
   expect(island.roots).toMatchObject({ cityVisible: false, cityCachedInScene: true, islandVisible: true, islandRootResident: true });
-  expect(island.player.position.x).toBe(500);
-  expect(island.player.position.z).toBe(500);
+  expect(island.player.position.x).toBe(island.spawn.x);
+  expect(island.player.position.z).toBe(island.spawn.z);
 
   const moved = await page.evaluate(async () => {
     const api = window.__coastlineTest;
@@ -82,7 +83,7 @@ test('bridge prompt only appears for a nearby vehicle facing the bridge, with a 
   await openGame(page);
 
   await page.evaluate(() => {
-    window.__coastlineTest.setVehiclePosition(0, -690, Math.PI);
+    window.__coastlineTest.setVehiclePosition(0, -620, Math.PI);
     window.__coastlineTransitionTest.updatePrompt();
   });
   const facingAway = await page.locator('#coastlineWorldTransition').evaluate(button => ({
@@ -92,23 +93,21 @@ test('bridge prompt only appears for a nearby vehicle facing the bridge, with a 
   expect(facingAway.display).toBe('none');
 
   await page.evaluate(() => {
-    window.__coastlineTest.setVehiclePosition(0, -690, 0);
+    window.__coastlineTest.setVehiclePosition(0, -620, 0);
     window.__coastlineTransitionTest.updatePrompt();
   });
   await expect(page.locator('#coastlineWorldTransition')).toBeVisible();
-  const facingToward = await page.locator('#coastlineWorldTransition').evaluate(button => ({
-    padding: getComputedStyle(button).padding,
-  }));
+  const facingToward = await page.locator('#coastlineWorldTransition').evaluate(button => ({ padding: getComputedStyle(button).padding }));
   expect(facingToward.padding).toBe('6px 8px');
 
   await page.evaluate(() => {
-    window.__coastlineTest.setVehiclePosition(0, -670, 0);
+    window.__coastlineTest.setVehiclePosition(0, -570, 0);
     window.__coastlineTransitionTest.updatePrompt();
   });
   await expect(page.locator('#coastlineWorldTransition')).toBeHidden();
 
   await page.evaluate(() => {
-    window.__coastlineTest.setWalkPosition(0, -690, 0);
+    window.__coastlineTest.setWalkPosition(0, -620, 0);
     window.__coastlineTransitionTest.updatePrompt();
   });
   await expect(page.locator('#coastlineWorldTransition')).toBeHidden();
