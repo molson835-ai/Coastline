@@ -64,9 +64,9 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
   const CITY_MAP_EDGE_Z = -550;
   const CITY_BRIDGE_START_Z = CITY_MAP_EDGE_Z;
   const CITY_BRIDGE_END_Z = CITY_BRIDGE_START_Z + BRIDGE_LENGTH;
-  const ISLAND_START = Object.freeze({ x: 500, y: finiteOr(groundY(500, 420)), z: 420, rotationY: 0 });
-  const ISLAND_APPROACH = Object.freeze({ x: 500, z: 395, rotationY: 0 });
-  const CITY_APPROACH = Object.freeze({ x: 0, z: CITY_BRIDGE_START_Z + 5, rotationY: Math.PI });
+  const ISLAND_START = Object.freeze({ x: 500, y: finiteOr(groundY(500, 420)), z: 420, rotationY: Math.PI });
+  const ISLAND_APPROACH = Object.freeze({ x: 500, z: ISLAND_BRIDGE_END_Z + 5, rotationY: Math.PI });
+  const CITY_APPROACH = Object.freeze({ x: 0, z: CITY_BRIDGE_END_Z - 5, rotationY: Math.PI });
   let pendingIslandRoot = null, failNextIslandLoad = false, updatePromptCallback = () => {}, autoTransitionPromise = null;
   const setIslandCollisionScope = active => { window.__coastlineWorld2Active = Boolean(active); };
   const manager = createTransitionManager({ onEvent: event => window.dispatchEvent(new CustomEvent(`coastline:${event.type}`, { detail: event })) });
@@ -113,11 +113,11 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
   };
   manager.registerWorld(cityWorld); manager.registerWorld(islandWorld);
   manager.registerTransition({ id: 'city-to-island', fromWorld: 'city', toWorld: 'island', trigger: 'bridge', destinationSpawn: ISLAND_START, vehiclePolicy: 'allowed' });
-  manager.registerTransition({ id: 'island-to-city', fromWorld: 'island', toWorld: 'city', trigger: 'bridge', destinationSpawn: { x: 0, y: finiteOr(groundY(0, CITY_BRIDGE_END_Z)), z: CITY_BRIDGE_END_Z, rotationY: Math.PI }, vehiclePolicy: 'allowed' });
+  manager.registerTransition({ id: 'island-to-city', fromWorld: 'island', toWorld: 'city', trigger: 'bridge', destinationSpawn: { x: 0, y: finiteOr(groundY(0, CITY_BRIDGE_END_Z)), z: CITY_BRIDGE_END_Z, rotationY: 0 }, vehiclePolicy: 'allowed' });
   const transition = async transitionId => { if (autoTransitionPromise) return autoTransitionPromise; autoTransitionPromise = manager.transition(transitionId, makeContext()).finally(() => { autoTransitionPromise = null; }); return autoTransitionPromise; };
   const nearAndFacing = (target, range, heading) => { const dx = target.x - player.x, dz = target.z - player.z, distance = Math.hypot(dx, dz); if (distance > range) return false; const forwardX = Math.sin(heading), forwardZ = Math.cos(heading); return distance < 0.001 || ((dx * forwardX + dz * forwardZ) / distance) > 0.45; };
   const initialize = async () => {
-    addCityBridgeAffordance(); await manager.activate('island', makeContext());
+    addCityBridgeAffordance(); roots.world1Root.visible = false; await manager.activate('island', makeContext());
     const button = document.createElement('button'); button.id = 'coastlineWorldTransition'; button.type = 'button'; button.setAttribute('aria-label', 'Cross bridge between Coastline Island and City'); button.style.cssText = 'display:none;position:fixed;left:50%;bottom:170px;transform:translateX(-50%);z-index:1000;pointer-events:auto;border:1px solid #a7f4ff88;border-radius:12px;padding:6px 8px;background:#06202aee;color:#effcff;font:800 12px system-ui,sans-serif;letter-spacing:.08em;box-shadow:0 8px 24px #0008';
     button.addEventListener('click', () => transition(manager.getActiveWorldId() === 'city' ? 'city-to-island' : 'island-to-city').catch(error => { button.textContent = `TRANSITION FAILED: ${error.message}`; })); document.body.appendChild(button);
     updatePromptCallback = () => {
