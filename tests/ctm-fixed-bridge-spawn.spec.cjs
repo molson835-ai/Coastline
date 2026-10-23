@@ -12,16 +12,12 @@ test('bridge destinations remain fixed after gameplay frames and a round trip', 
 
   await page.evaluate(() => api().transition('island-to-city'));
   expect((await page.evaluate(() => api().playerState())).position.z).toBe(-850);
-
-  // The CTM destination is intentionally outside the normal City bounds.
-  // Run real gameplay frames: the vehicle must remain on the bridge buffer,
-  // rather than being clamped back into the City.
   await page.evaluate(() => window.__coastlineTest.advanceTestFrame(1 / 60, 5));
   const afterArrivalFrames = await page.evaluate(() => api().playerState());
   expect(afterArrivalFrames.position.z).toBe(-850);
 
-  // Deliberately move into the City before returning so the manager has a
-  // non-buffer source position available; fixed bridge spawns must ignore it.
+  // Deliberately move into the City before returning so fixed bridge spawns
+  // cannot accidentally reuse the prior City position.
   await page.evaluate(() => window.__coastlineTest.setVehiclePosition(0, -700, Math.PI));
   await page.evaluate(() => api().transition('city-to-island'));
   expect((await page.evaluate(() => api().playerState())).position.z).toBe(290);
