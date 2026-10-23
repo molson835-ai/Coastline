@@ -1,0 +1,34 @@
+name: Apply CTM corrections
+on:
+  push:
+    branches: [feat/ctm-world2-live-integration]
+permissions:
+  contents: write
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/ctm-world2-live-integration
+      - name: Apply verified CTM corrections
+        run: |
+          set -euo pipefail
+          git apply transition-manager.patch
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('game-v3.html')
+          s = p.read_text()
+          old = "for(const o of vehicles){if(o===v||airborne)continue;"
+          new = "for(const o of vehicles){if(o===v||airborne||o.g?.parent!==v.g?.parent)continue;"
+          if s.count(old) != 1:
+              raise SystemExit(f'expected exactly one vehicle-collision loop, found {s.count(old)}')
+          p.write_text(s.replace(old, new))
+          PY
+          rm -f transition-manager.patch .github/workflows/apply-ctm-corrections.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add transition-manager.js game-v3.html transition-manager.patch .github/workflows/apply-ctm-corrections.yml
+          git commit -m 'fix: harden CTM state and isolate world collision scope'
+          git push origin HEAD:feat/ctm-world2-live-integration
