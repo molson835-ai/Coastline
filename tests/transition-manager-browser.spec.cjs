@@ -17,6 +17,7 @@ test('live game runtime exposes the CTM bridge and returns to the preserved City
   expect(before.roots).toMatchObject({ cityVisible: true, islandVisible: false });
 
   const cityStart = await page.evaluate(() => window.__coastlineTransitionTest.playerState());
+  const world2Spawn = await page.evaluate(() => window.__coastlineTransitionTest.world2Spawn());
   await page.evaluate(() => window.__coastlineTransitionTest.transition('city-to-island'));
   const island = await page.evaluate(() => ({
     status: window.__coastlineTransitionTest.status(),
@@ -27,7 +28,7 @@ test('live game runtime exposes the CTM bridge and returns to the preserved City
   expect(island.status.activeWorldId).toBe('island');
   expect(island.status.residentWorldIds).toEqual(['island']);
   expect(island.roots).toMatchObject({ cityVisible: false, islandVisible: true, islandRootResident: true });
-  expect(island.player.position).toMatchObject({ x: 500, z: 500 });
+  expect(island.player.position).toMatchObject({ x: world2Spawn.x, z: world2Spawn.z });
   expect(island.player.vehicleIndex).toBe(cityStart.vehicleIndex);
 
   await page.evaluate(() => window.__coastlineTransitionTest.transition('island-to-city'));
