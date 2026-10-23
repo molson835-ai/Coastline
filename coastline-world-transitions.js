@@ -61,12 +61,14 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
   const BRIDGE_LENGTH = 100;
   const ISLAND_BRIDGE_START_Z = ISLAND_BOUNDS.minZ;
   const ISLAND_BRIDGE_END_Z = ISLAND_BRIDGE_START_Z - BRIDGE_LENGTH;
-  const CITY_MAP_EDGE_Z = -550;
+  // The city model is 1500 units across, so its actual playable edge is +/-750.
+  // Keep the bridge entirely outside that boundary so CTM arrival cannot land in City geometry.
+  const CITY_MAP_EDGE_Z = -750;
   const CITY_BRIDGE_START_Z = CITY_MAP_EDGE_Z;
   const CITY_BRIDGE_END_Z = CITY_BRIDGE_START_Z - BRIDGE_LENGTH;
   const ISLAND_START = Object.freeze({ x: 500, y: finiteOr(groundY(500, 420)), z: 420, rotationY: Math.PI });
   const ISLAND_APPROACH = Object.freeze({ x: 500, z: ISLAND_BRIDGE_END_Z + 5, rotationY: Math.PI });
-  const CITY_APPROACH = Object.freeze({ x: 0, z: CITY_BRIDGE_END_Z - 5, rotationY: Math.PI });
+  const CITY_APPROACH = Object.freeze({ x: 0, z: CITY_BRIDGE_END_Z - 5, rotationY: 0 });
   let pendingIslandRoot = null, failNextIslandLoad = false, updatePromptCallback = () => {}, autoTransitionPromise = null, lastBridgeCheckZ = null;
   const setIslandCollisionScope = active => { window.__coastlineWorld2Active = Boolean(active); };
   const manager = createTransitionManager({ onEvent: event => window.dispatchEvent(new CustomEvent(`coastline:${event.type}`, { detail: event })) });
@@ -84,7 +86,7 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
     if (Number.isInteger(state.vehicleIndex) && state.vehicleIndex >= 0 && vehicles[state.vehicleIndex]) player.vehicle = vehicles[state.vehicleIndex];
     const vehicle = player.vehicle;
     if (vehicle && state.vehicle && (player.mode === 'vehicle' || state.vehicleIndex >= 0)) { const vehicleState = state.vehicle; vehicle.x = finiteOr(vehicleState.position?.x, player.x); vehicle.z = finiteOr(vehicleState.position?.z, player.z); vehicle.heading = finiteOr(vehicleState.heading, finiteOr(vehicleState.rotationY, player.heading)); vehicle.speed = finiteOr(vehicleState.speed); if (vehicle.g) { vehicle.g.position.set(vehicle.x, finiteOr(vehicleState.position?.y, groundY(vehicle.x, vehicle.z)), vehicle.z); vehicle.g.rotation.y = vehicle.heading; if (vehicle.g.parent !== root) root.add(vehicle.g); makeVehicleRenderable(vehicle); } } else if (avatar && avatar.parent !== root) root.add(avatar);
-    if (spawn) { const x = finiteOr(spawn.x, player.x), z = finiteOr(spawn.z, player.z), y = finiteOr(spawn.y, groundY(x, z)); player.x = x; player.y = y; player.z = z; player.heading = finiteOr(spawn.rotationY, player.heading); if (player.mode === 'vehicle' && player.vehicle) { const currentVehicle = player.vehicle; currentVehicle.x = x; currentVehicle.z = z; currentVehicle.heading = player.heading; currentVehicle.speed = 0; if (currentVehicle.g) { currentVehicle.g.position.set(x, y, z); currentVehicle.g.rotation.y = player.heading; if (currentVehicle.g.parent !== root) root.add(currentVehicle.g); makeVehicleRenderable(currentVehicle); } } else if (avatar) { avatar.position.set(x, y, z); avatar.rotation.y = player.heading; if (avatar.parent !== root) root.add(avatar); } } else if (player.mode !== 'vehicle' && avatar) { avatar.position.set(player.x, groundY(player.x, player.z), player.z); avatar.rotation.y = player.heading; if (avatar.parent !== root) root.add(avatar); }
+    if (spawn) { const x = finiteOr(spawn.x, player.x), z = finiteOr(spawn.z, player.z), y = finiteOr(spawn.y, groundY(x, z)); player.x = x; player.y = y; player.z = z; player.heading = finiteOr(spawn.rotationY, player.heading); if (player.mode === 'vehicle' && player.vehicle) { const currentVehicle = player.vehicle; currentVehicle.x = x; currentVehicle.z = z; currentVehicle.heading = player.heading; currentVehicle.speed = 0; if (currentVehicle.g) { currentVehicle.g.position.set(x, y, z); currentVehicle.g.rotation.y = player.heading; if (currentVehicle.g.parent !== root) root.add(currentVehicle.g); makeVehicleRenderable(currentVehicle); } } else if (avatar) { avatar.position.set(x, y, z); avatar.rotation.y = player.heading; if (avatar.parent !== root) avatar.parent.add(avatar); } } else if (player.mode !== 'vehicle' && avatar) { avatar.position.set(player.x, groundY(player.x, player.z), player.z); avatar.rotation.y = player.heading; if (avatar.parent !== root) root.add(avatar); }
   };
   const createNakedIslandRoot = () => {
     const root = new THREE.Group(); root.name = 'coastline-island-start-root'; const x = ISLAND_CENTER.x, z = ISLAND_CENTER.z, y = finiteOr(groundY(x, z));
@@ -132,7 +134,7 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
     };
     window.__coastlineTransitionTest = {
       status: () => manager.getStatus(), playerState: () => ({ position: { x: player.x, y: player.y, z: player.z }, heading: player.heading, mode: player.mode, vehicleIndex: vehicles.indexOf(player.vehicle), vehicleSpeed: player.vehicle?.speed ?? 0 }), rootVisibility: () => ({ cityVisible: roots.world1Root.visible, cityCachedInScene: Boolean(roots.world1Root.parent === scene), islandVisible: Boolean(pendingIslandRoot?.visible), islandRootResident: Boolean(pendingIslandRoot?.parent === scene) }), transition, updatePrompt: updatePromptCallback, flushAutoTransition: async () => { if (autoTransitionPromise) await autoTransitionPromise; }, failNextWorld2Load: () => { failNextIslandLoad = true; }, world2Spawn: () => ({ ...ISLAND_START }), bridgeZones: () => ({ cityApproach: { ...CITY_APPROACH }, islandApproach: { ...ISLAND_APPROACH } }),
-      cityBridgeContract: () => ({ bridgeLength: BRIDGE_LENGTH, cityMapEdge: CITY_MAP_EDGE_Z, cityEdge: CITY_BRIDGE_START_Z, bridgeEnd: CITY_BRIDGE_END_Z }),
+      cityBridgeContract: () => ({ bridgeLength: BRIDGE_LENGTH, cityMapEdge: CITY_MAP_EDGE_Z, cityEdge: CITY_BRIDGE_START_Z, bridgeEnd: CITY_BRIDGE_END_Z, playableCityMinZ: CITY_MAP_EDGE_Z, outsideBufferLength: BRIDGE_LENGTH }),
       world2Layout: () => ({ bounds: { ...ISLAND_BOUNDS }, spawn: { ...ISLAND_START }, islandBridge: { x: ISLAND_CENTER.x, z: ISLAND_BRIDGE_START_Z }, spawnToIslandBridge: Math.hypot(ISLAND_START.x - ISLAND_CENTER.x, ISLAND_START.z - ISLAND_BRIDGE_START_Z), bridgeLength: BRIDGE_LENGTH, bridgeIslandEdge: ISLAND_BRIDGE_START_Z, bridgeCityEdge: ISLAND_BRIDGE_END_Z, palm: null }),
       visualIdentity, activeVehicleVisible: () => Boolean(player.vehicle?.g && player.vehicle.g.visible && (() => { let hidden = false; player.vehicle.g.traverse(node => { if (node.visible === false) hidden = true; }); return !hidden; })()), collisionScope: () => Boolean(window.__coastlineWorld2Active),
     };
