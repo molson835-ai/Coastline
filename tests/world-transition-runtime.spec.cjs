@@ -41,7 +41,7 @@ test('live runtime starts naked island and crosses one-block bridge into City', 
 
   await page.evaluate(async () => {
     const api = window.__coastlineTest;
-    api.setVehiclePosition(500, 400, 0);
+    api.setVehiclePosition(500, 400, Math.PI);
     api.keyDown('w');
     api.advanceTestFrame(1 / 60, 240);
     api.keyUp('w');
@@ -64,8 +64,10 @@ test('live runtime starts naked island and crosses one-block bridge into City', 
 
 test('failed island load cleans partial shell resources, preserves City, and can be retried', async ({ page }) => {
   const errors = await openGame(page);
+  await page.evaluate(() => window.__coastlineTransitionTest.transition('island-to-city'));
+  expect(await page.evaluate(() => window.__coastlineTransitionTest.status().activeWorldId)).toBe('city');
   await page.evaluate(() => window.__coastlineTransitionTest.failNextWorld2Load());
-  await expect(page.evaluate(() => window.__coastlineTransitionTest.transition('city-to-island'))).rejects.toThrow(/injected world 2 load failure/i);
+  await expect(page.evaluate(() => window.__coastlineTransitionTest.transition('city-to-island'))).rejects.toThrow(/injected island load failure/i);
 
   const failed = await page.evaluate(() => window.__coastlineTransitionTest.status());
   expect(failed.activeWorldId).toBe('city');
@@ -81,35 +83,32 @@ test('failed island load cleans partial shell resources, preserves City, and can
   expect(errors).toEqual([]);
 });
 
-test('bridge prompt only appears for a nearby vehicle facing the bridge, with a halved range and compact size', async ({ page }) => {
+test('bridge prompt only appears for a nearby vehicle facing the island bridge, and walking cannot trigger it', async ({ page }) => {
   await openGame(page);
 
   await page.evaluate(() => {
-    window.__coastlineTest.setVehiclePosition(0, -620, Math.PI);
-    window.__coastlineTransitionTest.updatePrompt();
-  });
-  const facingAway = await page.locator('#coastlineWorldTransition').evaluate(button => ({
-    display: getComputedStyle(button).display,
-    padding: getComputedStyle(button).padding,
-  }));
-  expect(facingAway.display).toBe('none');
-
-  await page.evaluate(() => {
-    window.__coastlineTest.setVehiclePosition(0, -620, 0);
-    window.__coastlineTransitionTest.updatePrompt();
-  });
-  await expect(page.locator('#coastlineWorldTransition')).toBeVisible();
-  const facingToward = await page.locator('#coastlineWorldTransition').evaluate(button => ({ padding: getComputedStyle(button).padding }));
-  expect(facingToward.padding).toBe('6px 8px');
-
-  await page.evaluate(() => {
-    window.__coastlineTest.setVehiclePosition(0, -570, 0);
+    window.__coastlineTest.setVehiclePosition(500, 390, 0);
     window.__coastlineTransitionTest.updatePrompt();
   });
   await expect(page.locator('#coastlineWorldTransition')).toBeHidden();
 
   await page.evaluate(() => {
-    window.__coastlineTest.setWalkPosition(0, -620, 0);
+    window.__coastlineTest.setVehiclePosition(500, 390, Math.PI);
+    window.__coastlineTransitionTest.updatePrompt();
+  });
+  await expect(page.locator('#coastlineWorldTransition')).toBeVisible();
+  const facingToward = await page.locator('#coastlineWorldTransition').evaluate(button => ({ padding: getComputedStyle(button).padding, text: button.textContent }));
+  expect(facingToward.padding).toBe('6px 8px');
+  expect(facingToward.text).toBe('CROSS TO CITY');
+
+  await page.evaluate(() => {
+    window.__coastlineTest.setVehiclePosition(500, 350, Math.PI);
+    window.__coastlineTransitionTest.updatePrompt();
+  });
+  await expect(page.locator('#coastlineWorldTransition')).toBeHidden();
+
+  await page.evaluate(() => {
+    window.__coastlineTest.setWalkPosition(500, 390, Math.PI);
     window.__coastlineTransitionTest.updatePrompt();
   });
   await expect(page.locator('#coastlineWorldTransition')).toBeHidden();
