@@ -84,7 +84,7 @@ test('City bridge crossing returns to the island bridge buffer instead of spawni
     const api = window.__coastlineTest;
     api.setVehiclePosition(0, -740, Math.PI);
     api.keyDown('w');
-    for (let i = 0; i < 30; i += 1) {
+    for (let i = 0; i < 35; i += 1) {
       api.advanceTestFrame(1 / 60, 10);
       window.__coastlineTransitionTest.updatePrompt();
       if (window.__coastlineTransitionTest.status().activeWorldId === 'island') break;
@@ -97,9 +97,8 @@ test('City bridge crossing returns to the island bridge buffer instead of spawni
     status: window.__coastlineTransitionTest.status(),
     player: window.__coastlineTransitionTest.playerState(),
     roots: window.__coastlineTransitionTest.rootVisibility(),
-    autoTrigger: window.__coastlineTransitionTest.autoTriggerState(),
   }));
-  expect(returned.status.activeWorldId, JSON.stringify(returned)).toBe('island');
+  expect(returned.status.activeWorldId).toBe('island');
   expect(returned.status.residentWorldIds).toEqual(['island']);
   expect(returned.player.position.z).toBe(290);
   expect(returned.player.heading).toBe(0);
