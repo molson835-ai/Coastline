@@ -1,6 +1,8 @@
 const { test, expect } = require('@playwright/test');
 
 test('mobile driving controls are visible and operate the vehicle', async ({ page }) => {
+  const pageErrors = [];
+  page.on('pageerror', error => pageErrors.push(error.message));
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/game-v3.html', { waitUntil: 'domcontentloaded' });
   await expect(page.locator('canvas').first()).toBeAttached({ timeout: 30000 });
@@ -68,9 +70,10 @@ test('mobile driving controls are visible and operate the vehicle', async ({ pag
   const afterSteer = await page.evaluate(() => window.__coastlineTest.state());
   expect(Math.abs(afterSteer.heading - headingBeforeSteer), 'left control should steer the car').toBeGreaterThan(0.01);
 
-  await action.click();
+  await action.click({ force: true });
   await expect(page.locator('#mode')).toHaveText('ON FOOT');
   await expect(action).toHaveText('USE');
   const afterExit = await page.evaluate(() => window.__coastlineTest.state());
   expect(afterExit.avatarVisible, 'mobile exit control should show the player avatar').toBe(true);
+  expect(pageErrors).toEqual([]);
 });
