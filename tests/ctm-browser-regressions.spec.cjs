@@ -28,8 +28,8 @@ test('the physical bridge end zones automatically transition island to City and 
   await openGame(page);
   const zones = await page.evaluate(() => window.__coastlineTransitionTest.bridgeZones());
 
-  await page.evaluate(({ x, z, heading }) => {
-    window.__coastlineTest.setVehiclePosition(x, z, heading);
+  await page.evaluate(({ x, z, rotationY }) => {
+    window.__coastlineTest.setVehiclePosition(x, z, rotationY);
     window.__coastlineTransitionTest.updatePrompt();
   }, zones.islandApproach);
   await expect.poll(() => page.evaluate(() => window.__coastlineTransitionTest.status().activeWorldId), { timeout: 3000 }).toBe('city');
@@ -37,8 +37,8 @@ test('the physical bridge end zones automatically transition island to City and 
   await page.waitForTimeout(250);
   expect(await page.evaluate(() => window.__coastlineTransitionTest.status().activeWorldId)).toBe('city');
 
-  await page.evaluate(({ x, z, heading }) => {
-    window.__coastlineTest.setVehiclePosition(x, z, heading);
+  await page.evaluate(({ x, z, rotationY }) => {
+    window.__coastlineTest.setVehiclePosition(x, z, rotationY);
     window.__coastlineTransitionTest.updatePrompt();
   }, zones.cityApproach);
   await expect.poll(() => page.evaluate(() => window.__coastlineTransitionTest.status().activeWorldId), { timeout: 3000 }).toBe('island');

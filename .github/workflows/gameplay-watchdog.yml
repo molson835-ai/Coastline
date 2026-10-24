@@ -2,9 +2,13 @@ name: Coastline gameplay watchdog
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+      - fix/ctm-directional-trigger-traffic-lanes
   pull_request:
-    branches: [main]
+    branches:
+      - main
+      - feat/ctm-world2-live-integration
   workflow_dispatch:
   schedule:
     - cron: '17 */6 * * *'
