@@ -36,3 +36,24 @@
 3. Re-run all targeted CTM browser tests, then the full gameplay browser gate and relevant system/engine/package checks on the **same exact SHA**.
 4. Re-check the City-side return spawn, mesh descendant visibility after spatial-budget reparenting, and World 2 local collision ownership.
 5. Do not merge PR #87 or present the old Vercel deployment as a fresh beta. Publish/test the exact corrected head first.
+
+## CTM repair follow-up — 2026-10-24
+
+### Confirmed defects addressed in the isolated repair branch
+
+- **Destination spawn was not applied during the first City load.** `cityWorld.load()` previously made the cached City root visible but did not apply the fixed `destinationSpawn`. It now applies the source snapshot and fixed destination as part of load, before CTM activates the City.
+- **Saved world state could overwrite fixed bridge spawns.** The island's `restoreState()` previously ignored `destinationSpawn`, so a saved island snapshot could replace the configured bridge arrival at z=290 with the older island start at z=420. Island restoration now reapplies the fixed destination after restoring saved state. City restoration already accepted a destination spawn; its first-load path is now consistent.
+- **Bridge auto-transition depended on a fragile frame-to-frame crossing sample.** The periodic prompt updater could replace the prior z sample before a crossing was observed. Automatic transitions now use a directional end-zone check around the physical bridge endpoint, with the car facing along the outward bridge direction. The City-side approach is explicitly oriented toward the island. The arrival heading faces back into the destination world, preventing an immediate reverse transition.
+- **City collision probes were globally disabled whenever the island was active.** The bypass is now restricted to the island footprint and its bridge approach (x 380–620, z 280–620). City building, tree, lamp, sign, and traffic-signal collision probes remain active at City coordinates while the City root is resident but hidden.
+- **Added a regression assertion** that a fixed City arrival does not immediately bounce back to the island.
+
+### Vercel safety guard
+
+The repository's Git integration automatically created previews on branch pushes. A branch-specific `vercel.json` guard now disables automatic deployments for `fix/ctm-bridge-*` and `feat/ctm-world2-live-integration`. Keep this guard in place while the CTM browser tests are being repaired. Remove it only when the user authorizes a Vercel preview after the required test gates pass. The four already-created intermediate previews are not verification results and must not be presented as a tested build.
+
+### Verification status — do not overstate
+
+- Latest pre-repair browser run: **35 passed, 7 failed** (workflow run 40047532130; tested merge commit 3aca545b8dc061b267db37b963e18a90813ff341).
+- The source and regression-test changes in this follow-up have **not yet been executed by the browser suite**. Treat them as unverified until CI runs against the exact resulting head SHA.
+- Required next gates: run the seven CTM/collision failures, then the complete browser suite, engine tests, system tests, vehicle tests, and itch package check. Confirm exact commit SHA for every result.
+- Do not merge PR #87 into the default branch, do not publish a Vercel preview, and do not ask for Android playtesting until the full test gate passes. After tests pass, get user acceptance of a fresh preview and verify the physical round trip: populated City → physical bridge → island → return bridge → populated City, with no blank world, collision bypass, or spawn inside a building.
