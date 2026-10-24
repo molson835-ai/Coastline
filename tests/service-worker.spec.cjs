@@ -9,7 +9,7 @@ test('service worker activates and caches every same-origin gameplay module', as
     const registration = await navigator.serviceWorker.ready;
     const cacheNames = await caches.keys();
     const activeName = cacheNames.find(name => /^coastline-static-v\d+$/.test(name));
-    if (!activeName) return { supported: true, scope: registration.scope, scriptURL: registration.active?.scriptURL ?? '', cacheNames, cached: [] };
+    if (!activeName) return { supported: true, scope: registration.scope, scriptURL: registration.active?.scriptURL ?? '', cacheNames, cached: [], runtimePatches: {} };
     const cache = await caches.open(activeName);
     const coreFiles = [
       './game-v3.html',
@@ -32,13 +32,20 @@ test('service worker activates and caches every same-origin gameplay module', as
       path,
       present: Boolean(await cache.match(new URL(path, location.origin + '/').href))
     })));
+    const response = await fetch(new URL('./game-v3.html', location.origin + '/'), { cache: 'no-store' });
+    const html = await response.text();
     return {
       supported: true,
       scope: registration.scope,
       scriptURL: registration.active?.scriptURL ?? '',
       cacheNames,
       activeName,
-      cached
+      cached,
+      runtimePatches: {
+        pointerCaptureSafety: html.includes('__coastlineSafePointerCapture'),
+        transitionManager: html.includes('coastline-transition-manager'),
+        proximitySimulationBudget: html.includes('coastlineProximitySimulationBudget')
+      }
     };
   });
 
@@ -47,4 +54,7 @@ test('service worker activates and caches every same-origin gameplay module', as
   expect(result.scope).toContain('/');
   expect(result.activeName).toMatch(/^coastline-static-v\d+$/);
   expect(result.cached.filter(file => !file.present).map(file => file.path)).toEqual([]);
+  expect(result.runtimePatches.pointerCaptureSafety).toBe(true);
+  expect(result.runtimePatches.transitionManager).toBe(true);
+  expect(result.runtimePatches.proximitySimulationBudget).toBe(true);
 });

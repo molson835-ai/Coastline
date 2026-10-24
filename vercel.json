@@ -1,0 +1,9 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "git": {
+    "deploymentEnabled": {
+      "fix/ctm-bridge-*": false,
+      "feat/ctm-world2-live-integration": false
+    }
+  }
+}
