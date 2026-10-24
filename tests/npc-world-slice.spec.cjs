@@ -1,6 +1,8 @@
 const { test, expect } = require('@playwright/test');
 
 test('public-works NPC reacts to a nearby player and begins a character-specific repair story', async ({ page }) => {
+  // The full 3D runtime can stall briefly during reload under software-rendered CI.
+  test.setTimeout(90000);
   await page.addInitScript(() => { if (!sessionStorage.getItem('coastline-npc-test-reset')) { localStorage.removeItem('coastline-npc-world-slice-v1'); sessionStorage.setItem('coastline-npc-test-reset', '1'); } });
   await page.goto('/game-v3.html', { waitUntil: 'domcontentloaded' });
   await expect(page.locator('canvas').first()).toBeAttached({ timeout: 30000 });
