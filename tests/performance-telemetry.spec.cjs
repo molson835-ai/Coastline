@@ -23,6 +23,14 @@ test('performance telemetry is available and includes renderer and entity counte
   expect(perf.triangles).toBeGreaterThan(0);
   expect(perf.geometries).toBeGreaterThan(0);
   expect(perf.textures).toBeGreaterThanOrEqual(0);
+  expect(perf.systemTimings).toBeTruthy();
+  for (const name of ['aiTraffic', 'pedestrians', 'worldRegistrySync', 'render']) {
+    expect(perf.systemTimings[name], `${name} timing should be exposed`).toBeTruthy();
+    expect(perf.systemTimings[name].averageMs).toBeGreaterThanOrEqual(0);
+    expect(perf.systemTimings[name].p95Ms).toBeGreaterThanOrEqual(0);
+    expect(perf.systemTimings[name].maxMs).toBeGreaterThanOrEqual(0);
+    expect(perf.systemTimings[name].samples).toBeGreaterThan(0);
+  }
   expect(perf.entities.buildings).toBe(state.buildingCount);
   expect(perf.entities.vehicles).toBe(state.vehicleCount);
   expect(perf.entities.pedestrians).toBe(state.pedestrianCount);

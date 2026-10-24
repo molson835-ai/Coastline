@@ -18,6 +18,7 @@ test('traffic stays in road lanes and vehicles collide with trees and streetligh
       trafficCount: traffic.length,
       trafficOnRoad: traffic.filter(v => v.onRoad).length,
       trafficAxes: traffic.map(v => v.axis),
+      offRoadTraffic: traffic.filter(v => !v.onRoad),
       errors: api.state().errors
     };
   });
@@ -29,7 +30,7 @@ test('traffic stays in road lanes and vehicles collide with trees and streetligh
   expect(initial.treeBlocked).toBe(true);
   expect(initial.lampBlocked).toBe(true);
   expect(initial.trafficCount).toBe(20);
-  expect(initial.trafficOnRoad).toBe(initial.trafficCount);
+  expect(initial.trafficOnRoad, JSON.stringify(initial.offRoadTraffic)).toBe(initial.trafficCount);
   expect(initial.trafficAxes).toContain('z');
   expect(initial.trafficAxes).toContain('x');
   expect(initial.errors).toEqual([]);
