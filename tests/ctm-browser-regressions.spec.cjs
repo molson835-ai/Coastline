@@ -30,6 +30,7 @@ test('the physical bridge end zones automatically transition island to City and 
 
   await page.evaluate(({ x, z, rotationY }) => {
     window.__coastlineTest.setVehiclePosition(x, z, rotationY);
+    window.__coastlineTransitionTest.updatePrompt();
   }, zones.islandApproach);
   await expect.poll(() => page.evaluate(() => window.__coastlineTransitionTest.status().activeWorldId), { timeout: 3000 }).toBe('city');
   // A fixed City arrival faces back into the City and must not immediately bounce to the island.
@@ -38,6 +39,7 @@ test('the physical bridge end zones automatically transition island to City and 
 
   await page.evaluate(({ x, z, rotationY }) => {
     window.__coastlineTest.setVehiclePosition(x, z, rotationY);
+    window.__coastlineTransitionTest.updatePrompt();
   }, zones.cityApproach);
   await expect.poll(() => page.evaluate(() => window.__coastlineTransitionTest.status().activeWorldId), { timeout: 3000 }).toBe('island');
 });
