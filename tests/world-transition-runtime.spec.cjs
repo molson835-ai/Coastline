@@ -97,8 +97,9 @@ test('City bridge crossing returns to the island bridge buffer instead of spawni
     status: window.__coastlineTransitionTest.status(),
     player: window.__coastlineTransitionTest.playerState(),
     roots: window.__coastlineTransitionTest.rootVisibility(),
+    autoTrigger: window.__coastlineTransitionTest.autoTriggerState(),
   }));
-  expect(returned.status.activeWorldId).toBe('island');
+  expect(returned.status.activeWorldId, JSON.stringify(returned)).toBe('island');
   expect(returned.status.residentWorldIds).toEqual(['island']);
   expect(returned.player.position.z).toBe(290);
   expect(returned.player.heading).toBe(0);
