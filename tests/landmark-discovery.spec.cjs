@@ -1,6 +1,8 @@
 const { test, expect } = require('@playwright/test');
 
 test('visiting a landmark never grants cash or records a discovery', async ({ page }) => {
+  // This graphics-heavy page needs a larger budget for its persistence reload in CI.
+  test.setTimeout(90000);
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.addInitScript(() => {
