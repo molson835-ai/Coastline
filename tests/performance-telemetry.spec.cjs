@@ -28,6 +28,7 @@ test('performance telemetry is available and includes renderer and entity counte
     expect(perf.systemTimings[name], `${name} timing should be exposed`).toBeTruthy();
     expect(perf.systemTimings[name].averageMs).toBeGreaterThanOrEqual(0);
     expect(perf.systemTimings[name].p95Ms).toBeGreaterThanOrEqual(0);
+    expect(perf.systemTimings[name].maxMs).toBeGreaterThanOrEqual(0);
     expect(perf.systemTimings[name].samples).toBeGreaterThan(0);
   }
   expect(perf.entities.buildings).toBe(state.buildingCount);
