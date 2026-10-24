@@ -47,3 +47,12 @@ The source-level hypotheses above are not a measured root-cause conclusion. Do n
 - A single vehicle-id lookup map avoids scanning the full vehicle array to resolve spatial-query candidates.
 - No graphics, shadows, post-processing, world dimensions, or vehicle count were changed.
 - Validation plan: Playwright startup/state test, existing gameplay and NPC collision/reaction tests, then a repeated Android drive test with the same visual settings. The change is not considered verified until CI and device-side before/after results are reviewed.
+
+
+## Follow-up — per-pass renderer attribution
+
+The player's 2026-10-24 18:50 UTC Android report shows 44 pedestrians and pedestrian-update average/p95 of 0.684/1.0 ms, while the enclosing render section averages 76.657 ms (p95 148.7 ms). The previous report's render timing was 0.087 ms, so the old metric did not reliably represent the actual rendering cost. The latest report's 12,190 draw calls and 1,742,908 triangles are collected across the full EffectComposer frame and should not be interpreted as unique scene-only counts.
+
+The follow-up diagnostic change attributes renderer draw-call/triangle counters and CPU submission duration separately to the scene render, bloom pipeline, and output pass. Renderer counters are reset between passes, then summed for the overall frame totals. Per-pass durations are explicitly labelled CPU submission time, **not GPU execution time**; GPU work can be asynchronous. This adds diagnostics only: it does not change graphics settings, shadows, population, or world content.
+
+Validation is pending CI and a device report from the updated preview. Do not claim a rendering root cause or performance improvement from these counters alone. If CPU pass timings do not explain the long frame time, the next diagnostic step is asynchronous WebGL GPU timing (where supported) and targeted inspection of shadow-map/render-target work, without calling `gl.finish()` in the gameplay loop.
