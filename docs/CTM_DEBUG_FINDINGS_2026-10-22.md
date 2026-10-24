@@ -57,3 +57,11 @@ The repository's Git integration automatically created previews on branch pushes
 - The source and regression-test changes in this follow-up have **not yet been executed by the browser suite**. Treat them as unverified until CI runs against the exact resulting head SHA.
 - Required next gates: run the seven CTM/collision failures, then the complete browser suite, engine tests, system tests, vehicle tests, and itch package check. Confirm exact commit SHA for every result.
 - Do not merge PR #87 into the default branch, do not publish a Vercel preview, and do not ask for Android playtesting until the full test gate passes. After tests pass, get user acceptance of a fresh preview and verify the physical round trip: populated City → physical bridge → island → return bridge → populated City, with no blank world, collision bypass, or spawn inside a building.
+
+### Follow-up hardening — 2026-10-24, serializable test API result
+
+- **Additional regression found by code inspection:** the test-facing `window.__coastlineTransitionTest.transition()` wrapper returned the raw destination handle from the manager. That handle contains a Three.js root, so Playwright can be forced to serialize the scene graph when a test awaits the transition result. This matches the documented earlier browser-test stall/timeout failure mode.
+- The wrapper now returns `manager.getStatus()` after transition completion instead of the world handle.
+- `tests/ctm-fixed-bridge-spawn.spec.cjs` now asserts that transition results contain serializable CTM status (`activeWorldId`, `state`, `residentWorldIds`) and no `root` property.
+- Follow-up branch: `fix/ctm-bridge-serializable-status`; first code commit `964775c489360f43f2b22c035860f8df3927c910`, regression test commit `18cf67f6a77e4812c04f82d801e77089b89c439b`.
+- The previous gameplay browser run against `ed87934a44887a1e7e6262736538357dcd0fea2d` was still in progress at time of this note. It is not a verification result for this follow-up commit.

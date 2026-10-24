@@ -9,7 +9,9 @@ test('bridge destinations remain fixed after gameplay frames and a round trip', 
 
   expect((await page.evaluate(() => window.__coastlineTransitionTest.status())).activeWorldId).toBe('island');
 
-  await page.evaluate(() => window.__coastlineTransitionTest.transition('island-to-city'));
+  const firstTransitionResult = await page.evaluate(() => window.__coastlineTransitionTest.transition('island-to-city'));
+  expect(firstTransitionResult).toMatchObject({ state: 'active', activeWorldId: 'city', residentWorldIds: ['city'] });
+  expect(firstTransitionResult).not.toHaveProperty('root');
   expect((await page.evaluate(() => window.__coastlineTransitionTest.playerState())).position.z).toBe(-850);
   await page.evaluate(() => window.__coastlineTest.advanceTestFrame(1 / 60, 5));
   const afterArrivalFrames = await page.evaluate(() => window.__coastlineTransitionTest.playerState());
