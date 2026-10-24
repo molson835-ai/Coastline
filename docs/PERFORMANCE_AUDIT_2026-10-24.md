@@ -37,3 +37,13 @@ PR #92 corrects draw-call/triangle telemetry across the full EffectComposer fram
 ## Verification caveat
 
 The source-level hypotheses above are not a measured root-cause conclusion. Do not mark the performance issue fixed until fresh device evidence shows which subsystem is responsible and a repeat test demonstrates improvement.
+
+
+## Follow-up optimization candidate — pedestrian broad phase and population
+
+- Implemented on branch `perf/pedestrian-spatial-broadphase-and-population`, stacked on the diagnostic branch so subsystem telemetry remains available for the before/after comparison.
+- Ambient pedestrian population reduced from 110 to 44 (60% reduction), while keeping the same pedestrian model, activity behavior, collisions, fleeing logic, and social-rumor initialization for the remaining residents.
+- Each active pedestrian now queries the existing world spatial registry for candidate vehicles within a 12-unit broad-phase radius, then runs the original exact live-position distance and speed checks on those candidates. The 12-unit radius is deliberately wider than the 8-unit flee radius and 2.8-unit collision radius to tolerate the registry's end-of-frame position synchronization.
+- A single vehicle-id lookup map avoids scanning the full vehicle array to resolve spatial-query candidates.
+- No graphics, shadows, post-processing, world dimensions, or vehicle count were changed.
+- Validation plan: Playwright startup/state test, existing gameplay and NPC collision/reaction tests, then a repeated Android drive test with the same visual settings. The change is not considered verified until CI and device-side before/after results are reviewed.
