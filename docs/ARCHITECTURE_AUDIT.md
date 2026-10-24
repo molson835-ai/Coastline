@@ -50,3 +50,18 @@ Represent an activity as data and explicit states: discoverable, available, acti
 - Do not claim visual or real-device validation from headless tests.
 - No paid APIs, services, or new recurring costs without explicit approval.
 - Any donor code must have a verified compatible license and required attribution; asset licenses must be checked separately.
+
+
+## Performance investigation update — 2026-10-24
+
+### Android diagnostic evidence
+
+A physical Android 10 / Chrome 155 session on the per-pass diagnostic preview (runtime 119 seconds, viewport 384×721, DPR 2.8125) reported 6 FPS, 172.74 ms average frame time, 350.5 ms p95 frame time, 13,420 aggregate draw calls, 1,775,414 aggregate triangles, 14,081 geometries, and 77 textures. The scene pass reported 13,406 draw calls and a rolling CPU submission average of 169.617 ms (p95 345.3 ms); bloom averaged 0.276 ms and output 0.046 ms. Non-render simulation subsystems remained comparatively small. These measurements strongly localize the problem to scene rendering/submission, but CPU submission time is not GPU execution time and does not alone prove whether GPU work, driver overhead, or synchronization dominates.
+
+The scene currently uses a 4096×4096 directional-light shadow map. This is a candidate for controlled measurement, not a reason to lower shadow quality without evidence. Repeated static geometry/material batching or instancing remains the preferred quality-preserving optimization candidate once the GPU profile and category-level costs are clearer.
+
+### Next diagnostic step
+
+PR #99 adds optional `EXT_disjoint_timer_query_webgl2` measurements around the full EffectComposer render. It samples every fourth frame, polls results asynchronously, discards disjoint samples, and never waits on the GPU with `gl.finish()`. If the browser/device does not support the extension, the report must say so explicitly and return null GPU timing values rather than inventing measurements. No shadow, resolution, population, post-processing, or world-detail settings were changed.
+
+The first CI run exposed a stale source-order assertion in `tests/world-engine-map.spec.mjs` that expected `composer.render()` immediately after the map draw. The render loop now includes diagnostics between those operations; the assertion was updated to check the map cadence and the non-blocking GPU-timing wrapper separately. Re-run CI before considering this change validated. A fresh Android report is still required.
