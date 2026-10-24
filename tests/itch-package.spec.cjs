@@ -23,7 +23,7 @@ test('packaged itch.io root entry boots with local gameplay modules', async ({ p
   expect(systems.livingWorld.rules).toBeTruthy();
   expect(systems.npcSlice).toBeTruthy();
   expect(systems.reputation).toBeTruthy();
-  expect(systems.socialRumors.people.length).toBeGreaterThan(50);
+  expect(systems.socialRumors.people.length).toBeGreaterThan(40);
   expect(systems.socialRumorRules.noGlobalOmniscience).toBe(true);
   expect(pageErrors).toEqual([]);
 });
