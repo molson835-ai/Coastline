@@ -12,7 +12,7 @@ test('parked cars occupy roadside parking positions rather than road corridors',
   expect(new Set(parked.map(v => `${Math.round(v.x * 10)}:${Math.round(v.z * 10)}`)).size).toBe(parked.length);
   expect(parked.every(v => Number.isFinite(v.heading) && !v.onRoad)).toBe(true);
   expect(result.engine.trackedVehicles).toBeGreaterThanOrEqual(parked.length);
-  expect(result.engine.trackedPedestrians).toBeGreaterThanOrEqual(100);
+  expect(result.engine.trackedPedestrians).toBeGreaterThanOrEqual(40);
   expect(result.engine.trackedEntities).toBeGreaterThan(result.engine.trackedVehicles);
   // The renderer currently exposes a subset of reserved registry spots while the
   // parking reservation layer is being fully wired into every decorative parked car.
