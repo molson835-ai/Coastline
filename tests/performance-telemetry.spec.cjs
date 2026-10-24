@@ -21,6 +21,19 @@ test('performance telemetry is available and includes renderer and entity counte
   expect(perf.loadingMs).toBeGreaterThan(0);
   expect(perf.drawCalls).toBeGreaterThan(0);
   expect(perf.triangles).toBeGreaterThan(0);
+  expect(perf.renderPassMetrics).toBeTruthy();
+  for (const name of ['scene', 'bloom', 'output']) {
+    const metrics = perf.renderPassMetrics[name];
+    const timing = perf.renderPassTimings?.[name];
+    expect(metrics, `${name} pass metrics should be exposed`).toBeTruthy();
+    expect(metrics.drawCalls).toBeGreaterThan(0);
+    expect(metrics.triangles).toBeGreaterThanOrEqual(0);
+    expect(metrics.cpuSubmitMs).toBeGreaterThanOrEqual(0);
+    expect(timing, `${name} pass timing should be exposed`).toBeTruthy();
+    expect(timing.samples).toBeGreaterThan(0);
+    expect(timing.averageCpuSubmitMs).toBeGreaterThanOrEqual(0);
+    expect(timing.p95CpuSubmitMs).toBeGreaterThanOrEqual(0);
+  }
   expect(perf.geometries).toBeGreaterThan(0);
   expect(perf.textures).toBeGreaterThanOrEqual(0);
   expect(perf.systemTimings).toBeTruthy();
