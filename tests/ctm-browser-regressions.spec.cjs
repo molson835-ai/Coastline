@@ -32,6 +32,7 @@ test('the physical bridge end zones automatically transition island to City and 
     window.__coastlineTest.setVehiclePosition(x, z, heading);
     window.__coastlineTransitionTest.updatePrompt();
   }, zones.islandApproach);
+  expect(await page.evaluate(() => window.__coastlineTransitionTest.autoTriggerState())).toMatchObject({ eligible: true, reason: 'ready', world: 'island', transitionId: 'island-to-city' });
   await expect.poll(() => page.evaluate(() => window.__coastlineTransitionTest.status().activeWorldId), { timeout: 3000, message: 'island-to-City auto trigger diagnostic: ' + JSON.stringify(await page.evaluate(() => window.__coastlineTransitionTest.autoTriggerState())) }).toBe('city');
   // A fixed City arrival faces back into the City and must not immediately bounce to the island.
   await page.waitForTimeout(250);
@@ -41,5 +42,6 @@ test('the physical bridge end zones automatically transition island to City and 
     window.__coastlineTest.setVehiclePosition(x, z, heading);
     window.__coastlineTransitionTest.updatePrompt();
   }, zones.cityApproach);
-  await expect.poll(() => page.evaluate(() => window.__coastlineTransitionTest.status().activeWorldId), { timeout: 3000 }).toBe('island');
+  expect(await page.evaluate(() => window.__coastlineTransitionTest.autoTriggerState())).toMatchObject({ eligible: true, reason: 'ready', world: 'city', transitionId: 'city-to-island' });
+  await expect.poll(() => page.evaluate(() => window.__coastlineTransitionTest.status().activeWorldId), { timeout: 3000, message: 'City-to-island auto trigger diagnostic: ' + JSON.stringify(await page.evaluate(() => window.__coastlineTransitionTest.autoTriggerState())) }).toBe('island');
 });
