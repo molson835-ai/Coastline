@@ -28,7 +28,7 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
   const ISLAND_CENTER=Object.freeze({x:500,z:500}), ISLAND_BOUNDS=Object.freeze({minX:390,maxX:610,minZ:390,maxZ:610,width:220,depth:220}), BRIDGE_LENGTH=100;
   const ISLAND_BRIDGE_START_Z=ISLAND_BOUNDS.minZ, ISLAND_BRIDGE_END_Z=ISLAND_BRIDGE_START_Z-BRIDGE_LENGTH;
   const CITY_MAP_EDGE_Z=-750, CITY_BRIDGE_START_Z=CITY_MAP_EDGE_Z, CITY_BRIDGE_END_Z=CITY_BRIDGE_START_Z-BRIDGE_LENGTH;
-  const ISLAND_START=Object.freeze({x:500,y:finiteOr(groundY(500,420)),z:420,rotationY:Math.PI}), ISLAND_APPROACH=Object.freeze({x:500,z:ISLAND_BRIDGE_END_Z+5,rotationY:Math.PI}), CITY_APPROACH=Object.freeze({x:0,z:CITY_BRIDGE_END_Z-5,rotationY:0});
+  const ISLAND_START=Object.freeze({x:500,y:finiteOr(groundY(500,420)),z:420,rotationY:Math.PI}), ISLAND_APPROACH=Object.freeze({x:500,z:ISLAND_BRIDGE_END_Z+5,rotationY:Math.PI}), CITY_APPROACH=Object.freeze({x:0,z:CITY_BRIDGE_END_Z-5,rotationY:Math.PI});
   const ISLAND_BRIDGE_DESTINATION=Object.freeze({x:500,y:finiteOr(groundY(500,ISLAND_BRIDGE_END_Z)),z:ISLAND_BRIDGE_END_Z,rotationY:0}), CITY_BRIDGE_DESTINATION=Object.freeze({x:0,y:finiteOr(groundY(0,CITY_BRIDGE_END_Z)),z:CITY_BRIDGE_END_Z,rotationY:0});
   let pendingIslandRoot=null,failNextIslandLoad=false,updatePromptCallback=()=>{},autoTransitionPromise=null;
   const setIslandCollisionScope=active=>{window.__coastlineWorld2Active=Boolean(active);};
