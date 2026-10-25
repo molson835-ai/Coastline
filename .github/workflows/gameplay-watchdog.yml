@@ -9,6 +9,7 @@ on:
     branches:
       - main
       - feat/ctm-world2-live-integration
+      - 'perf/**'
   workflow_dispatch:
   schedule:
     - cron: '17 */6 * * *'
