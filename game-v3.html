@@ -600,11 +600,12 @@ for(const t of treePositions){
   scene.add(proxy);t.proxy=proxy;
 }
 const renderCullingEntries=[
-  ...buildings.map((b,i)=>({id:'building:'+i,kind:'building',detailRoot:b.group,proxyRoot:b.lodProxy,position:{x:b.x,z:b.z},detailDistance:440,renderDistance:1180,isSuppressed:()=>player.interiorBuilding===b})),
-  ...treePositions.map((t,i)=>({id:'tree:'+i,kind:'tree',detailRoot:t.g,proxyRoot:t.proxy,getPosition:()=>({x:t.g.position.x,z:t.g.position.z}),detailDistance:340,renderDistance:660})),
-  ...vehicles.map((v,i)=>({id:'vehicle:'+i,kind:'vehicle',detailRoot:v.g,getPosition:()=>({x:v.x,z:v.z}),detailDistance:520,renderDistance:520,alwaysVisible:()=>player.vehicle===v})),
-  ...pedestrians.map((p,i)=>({id:'pedestrian:'+i,kind:'pedestrian',detailRoot:p.g,getPosition:()=>({x:p.x,z:p.z}),detailDistance:220,renderDistance:220})),
-  ...wildlife.map((a,i)=>({id:'wildlife:'+i,kind:'wildlife',detailRoot:a.g,getPosition:()=>({x:a.x,z:a.z}),detailDistance:340,renderDistance:340})),
+  // Keep detailed shadows close to the player; retain full nearby geometry and materials.
+  ...buildings.map((b,i)=>({id:'building:'+i,kind:'building',detailRoot:b.group,proxyRoot:b.lodProxy,position:{x:b.x,z:b.z},detailDistance:440,renderDistance:1180,shadowDistance:210,isSuppressed:()=>player.interiorBuilding===b})),
+  ...treePositions.map((t,i)=>({id:'tree:'+i,kind:'tree',detailRoot:t.g,proxyRoot:t.proxy,getPosition:()=>({x:t.g.position.x,z:t.g.position.z}),detailDistance:340,renderDistance:660,shadowDistance:150})),
+  ...vehicles.map((v,i)=>({id:'vehicle:'+i,kind:'vehicle',detailRoot:v.g,getPosition:()=>({x:v.x,z:v.z}),detailDistance:520,renderDistance:520,shadowDistance:140,alwaysVisible:()=>player.vehicle===v})),
+  ...pedestrians.map((p,i)=>({id:'pedestrian:'+i,kind:'pedestrian',detailRoot:p.g,getPosition:()=>({x:p.x,z:p.z}),detailDistance:220,renderDistance:220,shadowDistance:85})),
+  ...wildlife.map((a,i)=>({id:'wildlife:'+i,kind:'wildlife',detailRoot:a.g,getPosition:()=>({x:a.x,z:a.z}),detailDistance:340,renderDistance:340,shadowDistance:100})),
   ...birdFlocks.map((b,i)=>({id:'bird-flock:'+i,kind:'bird-flock',detailRoot:b.g,getPosition:()=>({x:b.g.position.x,z:b.g.position.z}),detailDistance:820,renderDistance:820}))
 ];
 renderCuller=createRenderCuller({getPlayerPosition:()=>({x:player.x,z:player.z}),entries:renderCullingEntries,intervalMs:180,hysteresis:24});
