@@ -5,12 +5,16 @@ async function openGame(page) {
   await page.waitForFunction(() => Boolean(window.__coastlineTransitionTest), null, { timeout: 30000 });
 }
 
-test('island start keeps the active vehicle visible and movable after CTM activation', async ({ page }) => {
+test('City-first startup keeps the active vehicle visible and movable after CTM activation', async ({ page }) => {
   await openGame(page);
-  const island = await page.evaluate(() => window.__coastlineTransitionTest.playerState());
+  const city = await page.evaluate(() => window.__coastlineTransitionTest.playerState());
+  expect(await page.evaluate(() => window.__coastlineTransitionTest.status().activeWorldId)).toBe('city');
+  expect(await page.evaluate(() => window.__coastlineTransitionTest.collisionScope())).toBe(false);
+  expect(await page.evaluate(() => window.__coastlineTransitionTest.activeVehicleVisible())).toBe(true);
+
+  await page.evaluate(() => window.__coastlineTransitionTest.transition('city-to-island'));
   expect(await page.evaluate(() => window.__coastlineTransitionTest.status().activeWorldId)).toBe('island');
   expect(await page.evaluate(() => window.__coastlineTransitionTest.collisionScope())).toBe(true);
-  expect(await page.evaluate(() => window.__coastlineTransitionTest.activeVehicleVisible())).toBe(true);
 
   await page.evaluate(() => {
     window.__coastlineTest.setVehiclePosition(500, 400, Math.PI);
@@ -20,8 +24,8 @@ test('island start keeps the active vehicle visible and movable after CTM activa
   });
 
   const moved = await page.evaluate(() => window.__coastlineTransitionTest.playerState());
-  expect(Math.hypot(moved.position.x - island.position.x, moved.position.z - island.position.z)).toBeGreaterThan(0.1);
-  expect(moved.vehicleIndex).toBe(island.vehicleIndex);
+  expect(Math.hypot(moved.position.x - 500, moved.position.z - 400)).toBeGreaterThan(0.1);
+  expect(moved.vehicleIndex).toBe(city.vehicleIndex);
 });
 
 test('the physical bridge end zones automatically transition island to City and back', async ({ page }) => {
