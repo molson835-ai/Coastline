@@ -5,6 +5,7 @@ test('public-works NPC reacts to a nearby player and begins a character-specific
   await page.goto('/game-v3.html', { waitUntil: 'domcontentloaded' });
   await expect(page.locator('canvas').first()).toBeAttached({ timeout: 30000 });
   await page.waitForFunction(() => Boolean(window.__coastlineTest?.npcWorldSliceState), null, { timeout: 30000 });
+  await page.waitForFunction(() => !document.getElementById('coastlineStartupWatchdog'), null, { timeout: 60000 });
 
   const before = await page.evaluate(() => window.__coastlineTest.npcWorldSliceState());
   expect(before.npc.name).toBe('Mara Ellis');
@@ -31,6 +32,7 @@ test('public-works NPC reacts to a nearby player and begins a character-specific
 
   await page.reload({ waitUntil: 'commit' });
   await page.waitForFunction(() => Boolean(window.__coastlineTest?.npcWorldSliceState), null, { timeout: 30000 });
+  await page.waitForFunction(() => !document.getElementById('coastlineStartupWatchdog'), null, { timeout: 60000 });
   const restored = await page.evaluate(() => window.__coastlineTest.npcWorldSliceState());
   expect(restored.phase).toBe('complete');
   expect(restored.agency.outcomes.some(event => event.type === 'signal_restored')).toBe(true);
