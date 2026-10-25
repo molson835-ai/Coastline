@@ -2,7 +2,7 @@ const { test, expect } = require('@playwright/test');
 
 test.setTimeout(90000);
 
-test('pedestrian population is reduced and spatial-query runtime remains healthy', async ({ page }) => {
+test('pedestrian population is bounded and spatial-query runtime remains healthy', async ({ page }) => {
   const pageErrors = [];
   page.on('pageerror', error => pageErrors.push(error.message));
   await page.goto('/game-v3.html?beta=pedestrian-spatial-broadphase', { waitUntil: 'domcontentloaded' });
@@ -13,8 +13,8 @@ test('pedestrian population is reduced and spatial-query runtime remains healthy
     state: window.__coastlineTest.state(),
     engine: window.__coastlineTest.worldEngineState()
   }));
-  expect(initial.state.pedestrianCount).toBe(44);
-  expect(initial.engine.trackedPedestrians).toBe(44);
+  expect(initial.state.pedestrianCount).toBe(16);
+  expect(initial.engine.trackedPedestrians).toBe(16);
   expect(initial.engine.trackedVehicles).toBe(initial.state.vehicleCount);
   expect(initial.state.vehicleCount).toBeGreaterThan(1);
 
@@ -23,8 +23,8 @@ test('pedestrian population is reduced and spatial-query runtime remains healthy
     state: window.__coastlineTest.state(),
     engine: window.__coastlineTest.worldEngineState()
   }));
-  expect(after.state.pedestrianCount).toBe(44);
-  expect(after.engine.trackedPedestrians).toBe(44);
+  expect(after.state.pedestrianCount).toBe(16);
+  expect(after.engine.trackedPedestrians).toBe(16);
   expect(after.state.performance.systemTimings.pedestrians.samples).toBeGreaterThan(0);
   expect(pageErrors, 'uncaught errors during pedestrian simulation').toEqual([]);
 });
