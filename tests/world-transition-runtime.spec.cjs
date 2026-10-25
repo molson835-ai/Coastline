@@ -253,6 +253,7 @@ test('four-region CTM route reaches distinct Residential, Waterfront and Port wo
   expect(await page.evaluate(() => window.__coastlineTest.buildingBlocked(500, 417, 1.6))).toBe(false);
   expect(await page.evaluate(() => window.__coastlineTest.vehicleBlocked(500, 500, 1.6))).toBe(false);
   expect(await page.evaluate(() => window.__coastlineTest.pedestrianBlocked(500, 500, 1.6))).toBe(false);
+  expect(await page.evaluate(() => window.__coastlineTest.buildingBlocked(750, 500, 1.6))).toBe(true);
 
   await page.evaluate(() => {
     window.__coastlineTest.setVehiclePosition(710, 500, Math.PI / 2);
@@ -265,6 +266,8 @@ test('four-region CTM route reaches distinct Residential, Waterfront and Port wo
   }));
   expect(state.status.residentWorldIds).toEqual(['waterfront']);
   expect(state.roots.waterfront.meshes).toBeGreaterThan(25);
+  expect(await page.evaluate(() => window.__coastlineTest.buildingBlocked(290, 500, 1.6))).toBe(false);
+  expect(await page.evaluate(() => window.__coastlineTest.buildingBlocked(750, 500, 1.6))).toBe(true);
   expect(await page.evaluate(() => window.__coastlineTransitionTest.activeWorldColliderCount())).toBeGreaterThan(0);
 
   await page.evaluate(() => {
@@ -278,6 +281,8 @@ test('four-region CTM route reaches distinct Residential, Waterfront and Port wo
   }));
   expect(state.status.residentWorldIds).toEqual(['port']);
   expect(state.roots.port.meshes).toBeGreaterThan(25);
+  expect(await page.evaluate(() => window.__coastlineTest.buildingBlocked(290, 500, 1.6))).toBe(false);
+  expect(await page.evaluate(() => window.__coastlineTest.buildingBlocked(750, 500, 1.6))).toBe(true);
   expect(await page.evaluate(() => window.__coastlineTransitionTest.activeWorldColliderCount())).toBeGreaterThan(0);
 
   await page.evaluate(() => {
