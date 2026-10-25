@@ -34,7 +34,7 @@ test('packaged itch.io root entry boots with local gameplay modules', async ({ p
   expect(systems.livingWorld.rules).toBeTruthy();
   expect(systems.npcSlice).toBeTruthy();
   expect(systems.reputation).toBeTruthy();
-  expect(systems.socialRumors.people.length).toBeGreaterThan(40);
+  expect(systems.socialRumors.people.length).toBe(16); // aligns the dormant rumor roster with the enforced pedestrian budget
   expect(systems.socialRumorRules.noGlobalOmniscience).toBe(true);
   expect(pageErrors).toEqual([]);
 });

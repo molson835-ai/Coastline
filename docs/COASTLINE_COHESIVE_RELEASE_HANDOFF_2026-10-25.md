@@ -84,3 +84,6 @@ Before ending any work session, update this file with current head SHA, PR numbe
 - PR #118: https://github.com/molson835-ai/Coastline/pull/118 (draft, not merged).
 - Head `9a8d66415a12b5b8dcd0a8832f016102af57508d`: graphics-quality guard passed; gameplay watchdog engine-tests failed at the newly wired manifest suite because duplicate-ID input masked as an unknown-neighbor error; systems tests passed; browser smoke was still running at the last check; Babylon browser smoke was still running.
 - Corrective action: change manifest validation to check the full ID set before validating neighbor targets. Keep the regression test intact.
+
+
+- Follow-up CI inspection found two legacy packaged/social-rumor assertions requiring more than 40 rumor participants. Since the foundation phase deliberately caps City pedestrians at 16 and keeps advanced rumor behavior dormant, those tests now assert the bounded 16-person roster while retaining their system-presence, rumor-rule, and behavior assertions. This is a contract update, not a claim that advanced rumor simulation is re-enabled.
