@@ -234,3 +234,69 @@ test('crossing back from World 2 restores the populated City buffer', async ({ p
   expect(returned.roots).toMatchObject({ cityVisible: true, cityCachedInScene: true, islandVisible: false, islandRootResident: false });
   expect(errors).toEqual([]);
 });
+
+
+test('four-region CTM route reaches distinct Residential, Waterfront and Port worlds and returns to City', async ({ page }) => {
+  const errors = await openGame(page);
+  const api = () => window.__coastlineTransitionTest;
+  expect(await page.evaluate(() => window.__coastlineTransitionTest.worldIds())).toEqual(['city', 'island', 'waterfront', 'port']);
+
+  await page.evaluate(() => window.__coastlineTransitionTest.transition('city-to-island'));
+  let state = await page.evaluate(() => ({
+    status: window.__coastlineTransitionTest.status(),
+    roots: window.__coastlineTransitionTest.regionRoots(),
+  }));
+  expect(state.status).toMatchObject({ activeWorldId: 'island', residentWorldIds: ['island'] });
+  expect(state.roots.residential.meshes).toBeGreaterThan(25);
+
+  await page.evaluate(() => {
+    window.__coastlineTest.setVehiclePosition(710, 500, Math.PI / 2);
+    window.__coastlineTransitionTest.updatePrompt();
+  });
+  await expect.poll(() => page.evaluate(() => window.__coastlineTransitionTest.status().activeWorldId), { timeout: 3000 }).toBe('waterfront');
+  state = await page.evaluate(() => ({
+    status: window.__coastlineTransitionTest.status(),
+    roots: window.__coastlineTransitionTest.regionRoots(),
+  }));
+  expect(state.status.residentWorldIds).toEqual(['waterfront']);
+  expect(state.roots.waterfront.meshes).toBeGreaterThan(25);
+
+  await page.evaluate(() => {
+    window.__coastlineTest.setVehiclePosition(710, 500, Math.PI / 2);
+    window.__coastlineTransitionTest.updatePrompt();
+  });
+  await expect.poll(() => page.evaluate(() => window.__coastlineTransitionTest.status().activeWorldId), { timeout: 3000 }).toBe('port');
+  state = await page.evaluate(() => ({
+    status: window.__coastlineTransitionTest.status(),
+    roots: window.__coastlineTransitionTest.regionRoots(),
+  }));
+  expect(state.status.residentWorldIds).toEqual(['port']);
+  expect(state.roots.port.meshes).toBeGreaterThan(25);
+
+  await page.evaluate(() => {
+    window.__coastlineTest.setVehiclePosition(290, 500, -Math.PI / 2);
+    window.__coastlineTransitionTest.updatePrompt();
+  });
+  await expect.poll(() => page.evaluate(() => window.__coastlineTransitionTest.status().activeWorldId), { timeout: 3000 }).toBe('waterfront');
+
+  await page.evaluate(() => {
+    window.__coastlineTest.setVehiclePosition(290, 500, -Math.PI / 2);
+    window.__coastlineTransitionTest.updatePrompt();
+  });
+  await expect.poll(() => page.evaluate(() => window.__coastlineTransitionTest.status().activeWorldId), { timeout: 3000 }).toBe('island');
+
+  await page.evaluate(() => {
+    window.__coastlineTest.setVehiclePosition(500, 290, Math.PI);
+    window.__coastlineTransitionTest.updatePrompt();
+  });
+  await expect.poll(() => page.evaluate(() => window.__coastlineTransitionTest.status().activeWorldId), { timeout: 3000 }).toBe('city');
+  const returned = await page.evaluate(() => ({
+    status: window.__coastlineTransitionTest.status(),
+    roots: window.__coastlineTransitionTest.rootVisibility(),
+    vehicle: window.__coastlineTransitionTest.activeVehicleVisible(),
+  }));
+  expect(returned.status.residentWorldIds).toEqual(['city']);
+  expect(returned.roots.cityContent.visibleMeshes).toBeGreaterThan(100);
+  expect(returned.vehicle).toBe(true);
+  expect(errors).toEqual([]);
+});
