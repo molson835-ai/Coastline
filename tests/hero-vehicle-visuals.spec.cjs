@@ -15,9 +15,12 @@ test('hero vehicle uses one visual shell and retains mapped damage parts', async
     const root = vehicle.g;
     const info = root.userData.coastlineHeroVehicle;
     const parts = vehicle.damageParts || {};
+    const visualRoot = info.parts.visualRoot;
     return {
       rootChildCount: root.children.length,
-      rootChildrenAreOnlyHeroRoot: root.children.length === 1 && root.children[0] === info.parts.visualRoot,
+      visualRootName: visualRoot?.name,
+      rootContainsHeroShell: root.children.length === 1 &&
+        root.children[0]?.name === 'coastline-hero-white-single-shell',
       supersededMeshCount: info.supersededMeshCount,
       paintColor: info.paintColor,
       hasDuplicateRootMeshes: root.children.some(child => child.isMesh),
@@ -30,7 +33,8 @@ test('hero vehicle uses one visual shell and retains mapped damage parts', async
   });
 
   expect(snapshot.rootChildCount).toBe(1);
-  expect(snapshot.rootChildrenAreOnlyHeroRoot).toBe(true);
+  expect(snapshot.rootContainsHeroShell).toBe(true);
+  expect(snapshot.visualRootName).toBe('coastline-hero-white-single-shell');
   expect(snapshot.supersededMeshCount).toBeGreaterThan(0);
   expect(snapshot.paintColor).toBe('white');
   expect(snapshot.hasDuplicateRootMeshes).toBe(false);
