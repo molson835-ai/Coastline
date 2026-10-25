@@ -47,10 +47,10 @@
 
 ## Known unresolved engineering work
 
-- Integrate the four-island manifest into CTM and build actual island roots/physical connections; the current manifest alone is not implementation.
+- Verify the newly added four-world route in Playwright; inspect any route, spawn, active-root or collision-scope failures and fix them before calling the PR green.
 - Reconcile/implement minimal removal call paths in runtime and tests, not just remove UI assertions.
 - Audit and fix remaining smoketest failures, especially stale mission/NPC expectations versus the approved foundation scope.
-- Enforce per-world simulation budgets and resource disposal.
+- Enforce per-world simulation budgets in traffic/pedestrian spawn/update lifecycle; geometry is world-scoped but population caps are not yet wired into spawn systems.
 - Profile lag using the existing telemetry; don't claim a performance gain without comparable device measurements.
 - Verify exact-head CI and a fresh preview before asking for Android acceptance.
 
