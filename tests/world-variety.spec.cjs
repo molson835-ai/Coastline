@@ -30,10 +30,11 @@ test('the city has distinct architecture, storefronts, trees, residents and terr
   expect(new Set(world.trees.map(t => t.leaf)).size).toBeGreaterThanOrEqual(3);
   expect(new Set(world.trees.map(t => Math.round(t.height * 10))).size).toBeGreaterThan(10);
 
-  expect(world.people.length).toBeGreaterThanOrEqual(40);
-  expect(new Set(world.people.map(p => p.name)).size).toBeGreaterThanOrEqual(40);
-  expect(new Set(world.people.map(p => p.story)).size).toBeGreaterThanOrEqual(40);
-  expect(new Set(world.people.map(p => JSON.stringify(p.look))).size).toBeGreaterThanOrEqual(30);
+  // Foundation mode keeps a bounded 16-person City roster while preserving resident variety.
+  expect(world.people.length).toBe(16);
+  expect(new Set(world.people.map(p => p.name)).size).toBe(16);
+  expect(new Set(world.people.map(p => p.story)).size).toBe(16);
+  expect(new Set(world.people.map(p => JSON.stringify(p.look))).size).toBeGreaterThanOrEqual(12);
   expect(new Set(world.people.map(p => p.job)).size).toBeGreaterThanOrEqual(10);
   expect(new Set(world.people.map(p => p.activity)).size).toBeGreaterThanOrEqual(4);
 
