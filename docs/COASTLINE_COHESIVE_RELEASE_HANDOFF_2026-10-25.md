@@ -24,6 +24,15 @@
 - Added Node tests for region identity, neighbor targets, budget bounds, and invalid-manifest rejection.
 - These files are **foundation/configuration only**. They do not yet make all four islands playable or wire all manifest routes into CTM.
 
+## Latest implementation and CI checkpoint
+
+- Latest code/test head before this handoff-only update: `96631aac8c90be68163a273a840a6245e2066f91`.
+- Passed on that exact code head: engine tests, deterministic system tests, graphics-quality guard, Babylon preview validation, itch package build, and packaged Chromium smoke test.
+- Full Playwright gameplay watchdog for that head was queued/running at checkpoint time; it is the remaining gate and must be checked after this commit. The latest browser job is not a green result yet.
+- Vercel deployments for this feature branch: none observed. Do not create a preview until required CI is green.
+- No Android physical bridge drive has been performed by the agent; user acceptance is still required after a fresh preview.
+- This commit updates the handoff only. Fresh CI must still pass on the resulting branch head before the PR can be called green.
+
 ## Known source-of-truth status
 
 - `COASTLINE_FOUNDATION_RESET_PLAN.md` is the approved design plan and explicitly says the four-region layout is not yet implemented.
@@ -48,8 +57,8 @@
 ## Known unresolved engineering work
 
 - Verify the newly added four-world route in Playwright; inspect any route, spawn, active-root or collision-scope failures and fix them before calling the PR green.
-- Reconcile/implement minimal removal call paths in runtime and tests, not just remove UI assertions.
-- Audit and fix remaining smoketest failures, especially stale mission/NPC expectations versus the approved foundation scope.
+- Code-level minimal removals are now applied: mission/task prompt is inert/hidden, live-loop mission/replayability calls are disabled, and advanced NPC story/social-rumor updates are disabled while basic City traffic and pedestrian updates remain. The revised NPC test asserts this scope and retains core population checks.
+- Audit any remaining smoketest failures against the current exact-head run; do not restore intentionally retired story systems just to satisfy stale expectations.
 - Enforce per-world simulation budgets in traffic/pedestrian spawn/update lifecycle; geometry is world-scoped but population caps are not yet wired into spawn systems.
 - Profile lag using the existing telemetry; don't claim a performance gain without comparable device measurements.
 - Verify exact-head CI and a fresh preview before asking for Android acceptance.
