@@ -66,3 +66,26 @@
 ## Recovery discipline
 
 Before ending any work session, update this file with current head SHA, PR number/state, exact CI run URLs and outcomes, unresolved failures, and the next smallest action. Never report a change as verified without evidence from the exact head.
+
+
+## Continuation after PR #117 merge — 2026-10-25
+
+- PR #117 was squash-merged to `main` as `2da96d469ebf6fb3930eba8b11b87b61ff9727d7`.
+- Vercel deployment observed for that exact commit: `https://coastline-babylon-beta-kwoc8tm36-molson835-3446.vercel.app`, state READY, target production. This confirms a deployment exists; it does not establish real-device acceptance.
+- No post-merge GitHub Actions runs were returned for the merge SHA by the commit-run lookup. Do not treat PR-head CI as post-merge CI.
+- Working branch created from the merge commit: `fix/coastline-117-world-population-budget-enforcement`. No additional merge or deployment promotion is authorized.
+- This continuation enforces the shared City population caps at spawn: 12 AI traffic vehicles and 16 pedestrians; the browser regression test asserts those exact counts. The island manifest test is now included in `npm run test:engine`.
+- The test harness now advances pedestrians only while City is active, matching the production loop's active-world simulation boundary.
+- Remaining: verify exact-head CI, inspect transition collider scoping and world-route behavior, capture Android diagnostics on the current deployment, then prepare a reviewable PR. No measured Android performance improvement is claimed; physical bridge acceptance remains pending.
+
+
+### PR #118 first CI result
+
+- PR #118: https://github.com/molson835-ai/Coastline/pull/118 (draft, not merged).
+- Head `9a8d66415a12b5b8dcd0a8832f016102af57508d`: graphics-quality guard passed; gameplay watchdog engine-tests failed at the newly wired manifest suite because duplicate-ID input masked as an unknown-neighbor error; systems tests passed; browser smoke was still running at the last check; Babylon browser smoke was still running.
+- Corrective action: change manifest validation to check the full ID set before validating neighbor targets. Keep the regression test intact.
+
+
+- Follow-up CI inspection found two legacy packaged/social-rumor assertions requiring more than 40 rumor participants. Since the foundation phase deliberately caps City pedestrians at 16 and keeps advanced rumor behavior dormant, those tests now assert the bounded 16-person roster while retaining their system-presence, rumor-rule, and behavior assertions. This is a contract update, not a claim that advanced rumor simulation is re-enabled.
+
+- Cache invalidation: bumped the static service-worker cache from v55 to v56 so clients do not keep the previous cached `game-v3.html` after population-limit changes.
