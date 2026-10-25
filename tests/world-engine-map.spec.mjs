@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
 const html = await readFile(new URL('../game-v3.html', import.meta.url), 'utf8');
+const worldModel = await readFile(new URL('../world-model.js', import.meta.url), 'utf8');
 
 test('foundation build omits the interactive minimap and waypoint UI', () => {
   assert.doesNotMatch(html, /id="coastMap"/);
@@ -19,6 +20,7 @@ test('foundation build omits waypoint selection and route drawing', () => {
 });
 
 test('removing the map leaves the shared world street grid intact', () => {
-  assert.match(html, /for\(let v=-600;v<=600;v\+=200\)/);
-  assert.match(html, /Math\.round\(v\/200\)\*200/);
+  assert.match(worldModel, /roadSpacing = 200/);
+  assert.match(worldModel, /Math\.round\(x\/roadSpacing\)\*roadSpacing/);
+  assert.match(worldModel, /Math\.round\(z\/roadSpacing\)\*roadSpacing/);
 });
