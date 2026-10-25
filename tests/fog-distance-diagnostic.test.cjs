@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 
+// These assertions guard the opt-in diagnostics; baseline visuals must remain the default.
 const source = fs.readFileSync(path.join(__dirname, '..', 'game-v3.html'), 'utf8');
 
 test('fog/view-distance diagnostics preserve baseline unless explicitly requested', () => {
