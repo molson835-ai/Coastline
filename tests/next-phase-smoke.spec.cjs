@@ -25,7 +25,8 @@ test('public beta boots the full Coastline world without map-only UI', async ({ 
   expect(systems.state.errors).toEqual([]);
   expect(systems.state.mode).toBe('vehicle');
   expect(systems.state.vehicleCount).toBeGreaterThan(10);
-  expect(systems.state.pedestrianCount).toBeGreaterThan(50);
+  // Foundation mode uses bounded active-world population rather than the retired high-density target.
+  expect(systems.state.pedestrianCount).toBeGreaterThan(40);
   expect(systems.world.trackedEntities).toBeGreaterThan(50);
   expect(systems.world.trackedVehicles).toBeGreaterThan(10);
   expect(systems.buildings.enterable).toBeGreaterThan(0);
