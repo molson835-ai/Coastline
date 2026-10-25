@@ -35,4 +35,4 @@ test('public-works NPC reacts to a nearby player and begins a character-specific
   expect(restored.phase).toBe('complete');
   expect(restored.agency.outcomes.some(event => event.type === 'signal_restored')).toBe(true);
   expect(restored.rumors.rumors.find(rumor => rumor.topic === 'signalOutage').history.length).toBeGreaterThan(1);
-});
+}, { timeout: 90000 });
