@@ -65,6 +65,122 @@ export function getCoastlineIslandRegion(id) {
   return COASTLINE_ISLAND_REGIONS.find(region => region.id === id) ?? null;
 }
 
+/**
+ * Build a themed, self-contained island scene. The host runtime owns world
+ * activation, collision, transition gates and disposal; this factory only
+ * creates the region's renderable root and never starts background simulation.
+ */
+export function createCoastlineIslandRoot({ THREE, region, groundY = () => 0, addBridge }) {
+  if (!THREE || !region) throw new Error('THREE and an island region are required');
+  const center = { x: 500, z: 500 };
+  const half = region.bounds.halfWidth;
+  const edgeY = Number.isFinite(groundY(center.x, center.z)) ? groundY(center.x, center.z) : 0;
+  const root = new THREE.Group();
+  root.name = `coastline-island-${region.id}-root`;
+
+  const material = (color, roughness = 0.9, metalness = 0) =>
+    new THREE.MeshStandardMaterial({ color, roughness, metalness });
+  const landMat = material(region.theme === 'working-harbor' ? 0x777b70 : 0x55785b, 0.96);
+  const sandMat = material(0xc2b28b, 0.9);
+  const roadMat = material(0x343c3d, 0.9);
+  const concreteMat = material(0x777c7a, 0.88);
+  const shape = new THREE.Shape();
+  const corner = region.bounds.cornerRadius;
+  const inner = half - corner;
+  shape.moveTo(-inner, -half); shape.lineTo(inner, -half);
+  shape.quadraticCurveTo(half, -half, half, -inner);
+  shape.lineTo(half, inner); shape.quadraticCurveTo(half, half, inner, half);
+  shape.lineTo(-inner, half); shape.quadraticCurveTo(-half, half, -half, inner);
+  shape.lineTo(-half, -inner); shape.quadraticCurveTo(-half, -half, -inner, -half);
+
+  const land = new THREE.Mesh(new THREE.ShapeGeometry(shape, 4), landMat);
+  land.name = `coastline-${region.id}-land`;
+  land.rotation.x = -Math.PI / 2;
+  land.position.set(center.x, edgeY - 0.18, center.z);
+  land.receiveShadow = true;
+  root.add(land);
+  const shore = new THREE.Mesh(new THREE.ShapeGeometry(shape, 4), sandMat);
+  shore.name = `coastline-${region.id}-shoreline`;
+  shore.rotation.x = -Math.PI / 2;
+  shore.scale.setScalar(1.025);
+  shore.position.set(center.x, edgeY - 0.04, center.z);
+  root.add(shore);
+
+  const addBox = (name, x, y, z, width, height, depth, mat, castShadow = true) => {
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(width, height, depth), mat);
+    mesh.name = name;
+    mesh.position.set(x, y, z);
+    mesh.castShadow = castShadow;
+    mesh.receiveShadow = true;
+    root.add(mesh);
+    return mesh;
+  };
+  addBox(`coastline-${region.id}-main-road`, center.x, edgeY + 0.02, center.z - 82.5, 16, 0.16, 55, roadMat, false);
+
+  if (region.theme === 'urban-core') {
+    const glass = material(0x668b98, 0.32, 0.18);
+    const stone = material(0xb5b6b0, 0.8);
+    for (let i = 0; i < 8; i++) {
+      const x = center.x - 70 + (i % 4) * 46;
+      const z = center.z - 28 + Math.floor(i / 4) * 48;
+      const h = 18 + (i % 3) * 12;
+      addBox(`coastline-downtown-tower-${i + 1}`, x, edgeY + h / 2, z, 18 + (i % 2) * 4, h, 18 + (i % 3) * 2, i % 2 ? glass : stone);
+    }
+  } else if (region.theme === 'coastal-neighborhood') {
+    const walls = [material(0xd8c7a8), material(0xe5dfcf), material(0xc9d8d2)];
+    const roofs = material(0x76594a, 0.86);
+    for (let i = 0; i < 8; i++) {
+      const x = center.x - 66 + (i % 4) * 44;
+      const z = center.z - 16 + Math.floor(i / 4) * 50;
+      addBox(`coastline-residential-home-${i + 1}`, x, edgeY + 3, z, 18, 6, 16, walls[i % walls.length]);
+      addBox(`coastline-residential-roof-${i + 1}`, x, edgeY + 6.4, z, 19, 0.8, 17, roofs);
+    }
+    const grass = material(0x3e7848, 0.98);
+    addBox('coastline-residential-park', center.x - 48, edgeY + 0.03, center.z + 58, 48, 0.08, 26, grass, false);
+  } else if (region.theme === 'resort-marina') {
+    const boardwalk = material(0x92765a, 0.92);
+    const water = material(0x438c9a, 0.36, 0.08);
+    addBox('coastline-waterfront-boardwalk', center.x, edgeY + 0.04, center.z + 40, 120, 0.2, 10, boardwalk);
+    addBox('coastline-waterfront-marina-water', center.x + 42, edgeY - 0.02, center.z + 65, 48, 0.08, 30, water, false);
+    for (let i = 0; i < 4; i++) addBox(`coastline-waterfront-dock-${i + 1}`, center.x + 20 + i * 12, edgeY + 0.1, center.z + 65, 2.4, 0.25, 32, boardwalk);
+    const resort = material(0xf0e7d4, 0.78);
+    addBox('coastline-waterfront-resort', center.x - 42, edgeY + 7, center.z - 5, 26, 14, 22, resort);
+  } else if (region.theme === 'working-harbor') {
+    const containerColors = [0x9a4f3e, 0x3f6979, 0xc19a4e, 0x657d67].map(color => material(color, 0.82, 0.12));
+    const warehouse = material(0xaaa99f, 0.86, 0.08);
+    addBox('coastline-port-warehouse', center.x - 42, edgeY + 5, center.z - 8, 42, 10, 28, warehouse);
+    for (let i = 0; i < 12; i++) {
+      const x = center.x + 12 + (i % 4) * 16;
+      const z = center.z - 32 + Math.floor(i / 4) * 20;
+      addBox(`coastline-port-container-${i + 1}`, x, edgeY + 2.5, z, 14, 5, 8, containerColors[i % containerColors.length]);
+    }
+    const crane = material(0xd6ad58, 0.62, 0.22);
+    addBox('coastline-port-crane-mast', center.x + 66, edgeY + 12, center.z + 12, 2.4, 24, 2.4, crane);
+    addBox('coastline-port-crane-boom', center.x + 54, edgeY + 23, center.z + 12, 26, 2.4, 2.4, crane);
+  }
+
+  if (region.visual?.vegetation !== 'sparse-coastal') {
+    const trunk = material(0x79583d, 0.96);
+    const leaves = material(0x2f7047, 0.94);
+    for (let i = 0; i < 8; i++) {
+      const x = center.x - 82 + (i % 4) * 54;
+      const z = center.z + (i < 4 ? -72 : 76);
+      const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.5, 5.5, 7), trunk);
+      stem.name = `coastline-${region.id}-palm-trunk-${i + 1}`;
+      stem.position.set(x, edgeY + 2.75, z);
+      stem.castShadow = true;
+      root.add(stem);
+      const crown = new THREE.Mesh(new THREE.SphereGeometry(2.5, 7, 5), leaves);
+      crown.name = `coastline-${region.id}-palm-crown-${i + 1}`;
+      crown.position.set(x, edgeY + 5.7, z);
+      crown.scale.set(1.4, 0.5, 1.4);
+      root.add(crown);
+    }
+  }
+  if (typeof addBridge === 'function') addBridge(THREE, root, { x: center.x, startZ: center.z - half, y: edgeY, length: 100 });
+  return root;
+}
+
 export function validateCoastlineIslandManifest(regions = COASTLINE_ISLAND_REGIONS) {
   const ids = new Set();
   for (const region of regions) {
