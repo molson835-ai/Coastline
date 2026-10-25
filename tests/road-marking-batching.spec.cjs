@@ -1,8 +1,9 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { readFileSync } = require('node:fs');
+const path = require('node:path');
 
-const html = readFileSync(new URL('../game-v3.html', import.meta.url), 'utf8');
+const html = readFileSync(path.join(__dirname, '..', 'game-v3.html'), 'utf8');
 
 test('static grid lane dashes and edge markings use instanced meshes', () => {
   const start = html.indexOf('function buildGridRoadMarkings()');
