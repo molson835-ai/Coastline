@@ -248,6 +248,9 @@ test('four-region CTM route reaches distinct Residential, Waterfront and Port wo
   }));
   expect(state.status).toMatchObject({ activeWorldId: 'island', residentWorldIds: ['island'] });
   expect(state.roots.residential.meshes).toBeGreaterThan(25);
+  expect(await page.evaluate(() => window.__coastlineTransitionTest.activeWorldColliderCount())).toBeGreaterThan(0);
+  expect(await page.evaluate(() => window.__coastlineTest.buildingBlocked(434, 484, 1.6))).toBe(true);
+  expect(await page.evaluate(() => window.__coastlineTest.buildingBlocked(500, 417, 1.6))).toBe(false);
 
   await page.evaluate(() => {
     window.__coastlineTest.setVehiclePosition(710, 500, Math.PI / 2);
@@ -260,6 +263,7 @@ test('four-region CTM route reaches distinct Residential, Waterfront and Port wo
   }));
   expect(state.status.residentWorldIds).toEqual(['waterfront']);
   expect(state.roots.waterfront.meshes).toBeGreaterThan(25);
+  expect(await page.evaluate(() => window.__coastlineTransitionTest.activeWorldColliderCount())).toBeGreaterThan(0);
 
   await page.evaluate(() => {
     window.__coastlineTest.setVehiclePosition(710, 500, Math.PI / 2);
@@ -272,6 +276,7 @@ test('four-region CTM route reaches distinct Residential, Waterfront and Port wo
   }));
   expect(state.status.residentWorldIds).toEqual(['port']);
   expect(state.roots.port.meshes).toBeGreaterThan(25);
+  expect(await page.evaluate(() => window.__coastlineTransitionTest.activeWorldColliderCount())).toBeGreaterThan(0);
 
   await page.evaluate(() => {
     window.__coastlineTest.setVehiclePosition(290, 500, -Math.PI / 2);
