@@ -3,6 +3,8 @@ const { test, expect } = require('@playwright/test');
 test('packaged itch.io root entry boots with local gameplay modules', async ({ page }) => {
   const pageErrors = [];
   page.on('pageerror', error => pageErrors.push(error.message));
+  const modelResponse = await page.request.get('/assets/vehicles/Range%20Rover%20by%20IvOfficial%20-%208zk4o6nALW.glb');
+  expect(modelResponse.ok(), 'Range Rover model asset should be present in the packaged output').toBe(true);
   await page.goto('/', { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => Boolean(window.__coastlineTest), null, { timeout: 30000 });
   await expect(page.locator('canvas').first()).toBeAttached();
