@@ -23,6 +23,39 @@ function addBridge(THREE, root, { x, startZ, y, length = 100 }) {
   root.add(group); return group;
 }
 
+function addSideBridge(THREE, root, { edgeX, z, y, length = 100, direction = 1, name = 'coastal-link' }) {
+  const group = new THREE.Group();
+  group.name = `coastline-bridge-${name}`;
+  const centerX = edgeX + direction * length * 0.5;
+  const deckMaterial = new THREE.MeshStandardMaterial({ color: 0x343c3d, roughness: 0.88 });
+  const railMaterial = new THREE.MeshStandardMaterial({ color: 0x9cc9bd, roughness: 0.72, metalness: 0.04 });
+  const towerMaterial = new THREE.MeshStandardMaterial({ color: 0x66777a, roughness: 0.66, metalness: 0.25 });
+  const deck = new THREE.Mesh(new THREE.BoxGeometry(length, 0.28, 16), deckMaterial);
+  deck.position.set(centerX, y + 0.08, z);
+  deck.receiveShadow = true; deck.castShadow = true; group.add(deck);
+  for (const side of [-1, 1]) {
+    const rail = new THREE.Mesh(new THREE.BoxGeometry(length, 1.15, 0.28), railMaterial);
+    rail.position.set(centerX, y + 0.66, z + side * 8);
+    rail.castShadow = true; group.add(rail);
+  }
+  for (const end of [-0.38, 0.38]) for (const side of [-1, 1]) {
+    const tower = new THREE.Mesh(new THREE.BoxGeometry(0.7, 6.2, 0.7), towerMaterial);
+    tower.position.set(edgeX + direction * length * (0.5 + end), y + 3.05, z + side * 7.2);
+    tower.castShadow = true; group.add(tower);
+  }
+  const cableMaterial = new THREE.LineBasicMaterial({ color: 0xb9d5d5 });
+  for (const side of [-1, 1]) {
+    const points = [];
+    for (let i = 0; i <= 16; i++) {
+      const t = i / 16;
+      points.push(new THREE.Vector3(edgeX + direction * length * t, y + 6 - Math.sin(Math.PI * t) * 3.8, z + side * 7.2));
+    }
+    group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), cableMaterial));
+  }
+  root.add(group);
+  return group;
+}
+
 function createRoundedSquareShape(THREE, halfExtent=110, cornerRadius=20) { const edge=halfExtent,inner=edge-cornerRadius,shape=new THREE.Shape(); shape.moveTo(-inner,-edge);shape.lineTo(inner,-edge);shape.quadraticCurveTo(edge,-edge,edge,-inner);shape.lineTo(edge,inner);shape.quadraticCurveTo(edge,edge,inner,edge);shape.lineTo(-inner,edge);shape.quadraticCurveTo(-edge,edge,-edge,inner);shape.lineTo(-edge,-inner);shape.quadraticCurveTo(-edge,-edge,-inner,-edge);return shape; }
 
 export function createCoastlineWorldTransitions({ THREE, scene, roots, player, vehicles, avatar, groundY }) {
@@ -43,7 +76,7 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
   const makeVehicleRenderable=vehicle=>{if(!vehicle?.g)return;vehicle.g.visible=true;vehicle.g.traverse(node=>{node.visible=true;node.userData.coastlineAlwaysVisible=true;});};
   const moveActiveActor=root=>{const actor=activeActor();if(actor&&actor.parent!==root)root.add(actor);if(player.vehicle)makeVehicleRenderable(player.vehicle);};
   const applySnapshot=(snapshot,root,spawn=null)=>{if(!snapshot)return;const state=snapshot.player?snapshot:{player:snapshot},playerState=state.player||{},position=playerState.position||{};player.mode=playerState.mode||player.mode;player.x=finiteOr(position.x,player.x);player.y=finiteOr(position.y,0);player.z=finiteOr(position.z,player.z);player.heading=finiteOr(playerState.rotationY,player.heading);if(Number.isInteger(state.vehicleIndex)&&state.vehicleIndex>=0&&vehicles[state.vehicleIndex])player.vehicle=vehicles[state.vehicleIndex];const vehicle=player.vehicle;if(vehicle&&state.vehicle&&(player.mode==='vehicle'||state.vehicleIndex>=0)){const vehicleState=state.vehicle;vehicle.x=finiteOr(vehicleState.position?.x,player.x);vehicle.z=finiteOr(vehicleState.position?.z,player.z);vehicle.heading=finiteOr(vehicleState.heading,finiteOr(vehicleState.rotationY,player.heading));vehicle.speed=finiteOr(vehicleState.speed);if(vehicle.g){vehicle.g.position.set(vehicle.x,finiteOr(vehicleState.position?.y,groundY(vehicle.x,vehicle.z)),vehicle.z);vehicle.g.rotation.y=vehicle.heading;if(vehicle.g.parent!==root)root.add(vehicle.g);makeVehicleRenderable(vehicle);}}else if(avatar&&avatar.parent!==root)root.add(avatar);if(spawn){const x=finiteOr(spawn.x,player.x),z=finiteOr(spawn.z,player.z),y=finiteOr(spawn.y,groundY(x,z));player.x=x;player.y=y;player.z=z;player.heading=finiteOr(spawn.rotationY,player.heading);if(player.mode==='vehicle'&&player.vehicle){const currentVehicle=player.vehicle;currentVehicle.x=x;currentVehicle.z=z;currentVehicle.heading=player.heading;currentVehicle.speed=0;if(currentVehicle.g){currentVehicle.g.position.set(x,y,z);currentVehicle.g.rotation.y=player.heading;if(currentVehicle.g.parent!==root)root.add(currentVehicle.g);makeVehicleRenderable(currentVehicle);}}else if(avatar){avatar.position.set(x,y,z);avatar.rotation.y=player.heading;if(avatar.parent!==root)root.add(avatar);}}else if(player.mode!=='vehicle'&&avatar){avatar.position.set(player.x,groundY(player.x,player.z),player.z);avatar.rotation.y=player.heading;if(avatar.parent!==root)root.add(avatar);}};
-  const createNakedIslandRoot=()=>createCoastlineIslandRoot({THREE,region:getCoastlineIslandRegion('residential'),groundY,addBridge});
+  const createNakedIslandRoot=()=>createCoastlineIslandRoot({THREE,region:getCoastlineIslandRegion('residential'),groundY,addBridge,addSideBridge});
   const addCityBridgeAffordance=()=>addBridge(THREE,roots.world1Root,{x:0,startZ:CITY_BRIDGE_START_Z,y:finiteOr(groundY(0,CITY_BRIDGE_START_Z)),length:BRIDGE_LENGTH});
   const cityWorld={id:'city',name:'Coastline City',load:async({context,destinationSpawn})=>{setIslandCollisionScope(false);roots.world1Root.visible=true;if(destinationSpawn)applySnapshot({player:context.player,vehicle:context.vehicle,vehicleIndex:context.vehicleIndex},roots.world1Root,destinationSpawn);return{id:'city',root:roots.world1Root};},unload:async handle=>{handle.root.visible=false;},captureState:async({context})=>({player:context.player,vehicle:context.vehicle,vehicleIndex:context.vehicleIndex}),restoreState:async(worldState,{handle,destinationSpawn})=>{setIslandCollisionScope(false);handle.root.visible=true;applySnapshot(worldState,handle.root,destinationSpawn);}};
   const islandWorld={id:'island',name:'Coastline Island Start',load:async({context,destinationSpawn})=>{setIslandCollisionScope(true);pendingIslandRoot=createNakedIslandRoot();roots.addWorldRoot(pendingIslandRoot);pendingIslandRoot.visible=true;moveActiveActor(pendingIslandRoot);applySnapshot({player:context.player,vehicle:context.vehicle,vehicleIndex:context.vehicleIndex},pendingIslandRoot,destinationSpawn||ISLAND_START);if(failNextIslandLoad){failNextIslandLoad=false;throw new Error('injected island load failure');}return{id:'island',root:pendingIslandRoot};},unload:async handle=>{setIslandCollisionScope(false);if(handle.root?.parent)roots.removeWorldRoot(handle.root);disposeRoot(handle.root);if(pendingIslandRoot===handle.root)pendingIslandRoot=null;},cleanupFailedLoad:async({context})=>{setIslandCollisionScope(false);if(!pendingIslandRoot)return;applySnapshot({player:context.player,vehicle:context.vehicle,vehicleIndex:context.vehicleIndex},roots.world1Root);roots.world1Root.visible=true;roots.removeWorldRoot(pendingIslandRoot);disposeRoot(pendingIslandRoot);pendingIslandRoot=null;},captureState:async({context})=>({player:context.player,vehicle:context.vehicle,vehicleIndex:context.vehicleIndex}),restoreState:async(worldState,{handle,destinationSpawn})=>{setIslandCollisionScope(true);handle.root.visible=true;moveActiveActor(handle.root);applySnapshot(worldState,handle.root,destinationSpawn);}};
