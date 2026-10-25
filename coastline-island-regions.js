@@ -77,6 +77,8 @@ export function createCoastlineIslandRoot({ THREE, region, groundY = () => 0, ad
   const edgeY = Number.isFinite(groundY(center.x, center.z)) ? groundY(center.x, center.z) : 0;
   const root = new THREE.Group();
   root.name = `coastline-island-${region.id}-root`;
+  const colliders = [];
+  root.userData.coastlineColliders = colliders;
 
   const material = (color, roughness = 0.9, metalness = 0) =>
     new THREE.MeshStandardMaterial({ color, roughness, metalness });
@@ -106,16 +108,17 @@ export function createCoastlineIslandRoot({ THREE, region, groundY = () => 0, ad
   shore.position.set(center.x, edgeY - 0.04, center.z);
   root.add(shore);
 
-  const addBox = (name, x, y, z, width, height, depth, mat, castShadow = true) => {
+  const addBox = (name, x, y, z, width, height, depth, mat, castShadow = true, collidable = true) => {
     const mesh = new THREE.Mesh(new THREE.BoxGeometry(width, height, depth), mat);
     mesh.name = name;
     mesh.position.set(x, y, z);
     mesh.castShadow = castShadow;
     mesh.receiveShadow = true;
     root.add(mesh);
+    if (collidable) colliders.push({ name, x, z, w: width, d: depth });
     return mesh;
   };
-  addBox(`coastline-${region.id}-main-road`, center.x, edgeY + 0.02, center.z - 82.5, 16, 0.16, 55, roadMat, false);
+  addBox(`coastline-${region.id}-main-road`, center.x, edgeY + 0.02, center.z - 82.5, 16, 0.16, 55, roadMat, false, false);
 
   if (region.theme === 'urban-core') {
     const glass = material(0x668b98, 0.32, 0.18);
@@ -136,12 +139,12 @@ export function createCoastlineIslandRoot({ THREE, region, groundY = () => 0, ad
       addBox(`coastline-residential-roof-${i + 1}`, x, edgeY + 6.4, z, 19, 0.8, 17, roofs);
     }
     const grass = material(0x3e7848, 0.98);
-    addBox('coastline-residential-park', center.x - 48, edgeY + 0.03, center.z + 58, 48, 0.08, 26, grass, false);
+    addBox('coastline-residential-park', center.x - 48, edgeY + 0.03, center.z + 58, 48, 0.08, 26, grass, false, false);
   } else if (region.theme === 'resort-marina') {
     const boardwalk = material(0x92765a, 0.92);
     const water = material(0x438c9a, 0.36, 0.08);
     addBox('coastline-waterfront-boardwalk', center.x, edgeY + 0.04, center.z + 40, 120, 0.2, 10, boardwalk);
-    addBox('coastline-waterfront-marina-water', center.x + 42, edgeY - 0.02, center.z + 65, 48, 0.08, 30, water, false);
+    addBox('coastline-waterfront-marina-water', center.x + 42, edgeY - 0.02, center.z + 65, 48, 0.08, 30, water, false, false);
     for (let i = 0; i < 4; i++) addBox(`coastline-waterfront-dock-${i + 1}`, center.x + 20 + i * 12, edgeY + 0.1, center.z + 65, 2.4, 0.25, 32, boardwalk);
     const resort = material(0xf0e7d4, 0.78);
     addBox('coastline-waterfront-resort', center.x - 42, edgeY + 7, center.z - 5, 26, 14, 22, resort);
@@ -170,6 +173,7 @@ export function createCoastlineIslandRoot({ THREE, region, groundY = () => 0, ad
       stem.position.set(x, edgeY + 2.75, z);
       stem.castShadow = true;
       root.add(stem);
+      colliders.push({ name: stem.name, x, z, w: 2.4, d: 2.4 });
       const crown = new THREE.Mesh(new THREE.SphereGeometry(2.5, 7, 5), leaves);
       crown.name = `coastline-${region.id}-palm-crown-${i + 1}`;
       crown.position.set(x, edgeY + 5.7, z);
