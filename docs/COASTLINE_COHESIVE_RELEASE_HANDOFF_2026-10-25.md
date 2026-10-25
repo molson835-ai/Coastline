@@ -77,3 +77,10 @@ Before ending any work session, update this file with current head SHA, PR numbe
 - This continuation enforces the shared City population caps at spawn: 12 AI traffic vehicles and 16 pedestrians; the browser regression test asserts those exact counts. The island manifest test is now included in `npm run test:engine`.
 - The test harness now advances pedestrians only while City is active, matching the production loop's active-world simulation boundary.
 - Remaining: verify exact-head CI, inspect transition collider scoping and world-route behavior, capture Android diagnostics on the current deployment, then prepare a reviewable PR. No measured Android performance improvement is claimed; physical bridge acceptance remains pending.
+
+
+### PR #118 first CI result
+
+- PR #118: https://github.com/molson835-ai/Coastline/pull/118 (draft, not merged).
+- Head `9a8d66415a12b5b8dcd0a8832f016102af57508d`: graphics-quality guard passed; gameplay watchdog engine-tests failed at the newly wired manifest suite because duplicate-ID input masked as an unknown-neighbor error; systems tests passed; browser smoke was still running at the last check; Babylon browser smoke was still running.
+- Corrective action: change manifest validation to check the full ID set before validating neighbor targets. Keep the regression test intact.

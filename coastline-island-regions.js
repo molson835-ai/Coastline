@@ -195,12 +195,19 @@ export function createCoastlineIslandRoot({ THREE, region, groundY = () => 0, ad
 
 export function validateCoastlineIslandManifest(regions = COASTLINE_ISLAND_REGIONS) {
   const ids = new Set();
+
+  // Validate the complete identity set first. This ensures a duplicate id is
+  // reported as such instead of masking it as a missing-neighbor error on an
+  // earlier region whose target was overwritten by the duplicate.
   for (const region of regions) {
     if (!region || typeof region.id !== 'string' || !region.id.trim()) {
       throw new Error('each Coastline island must have a non-empty id');
     }
     if (ids.has(region.id)) throw new Error(`duplicate Coastline island id: ${region.id}`);
     ids.add(region.id);
+  }
+
+  for (const region of regions) {
     if (!region.title || !region.theme || !region.purpose) {
       throw new Error(`island ${region.id} is missing its identity or design purpose`);
     }
@@ -213,7 +220,7 @@ export function validateCoastlineIslandManifest(regions = COASTLINE_ISLAND_REGIO
         throw new Error(`island ${region.id} has an invalid ${key} budget`);
       }
     }
-    if (!ids.has(region.bridge?.target) && !regions.some(candidate => candidate.id === region.bridge?.target)) {
+    if (!ids.has(region.bridge?.target)) {
       throw new Error(`island ${region.id} targets an unknown neighboring island`);
     }
   }
