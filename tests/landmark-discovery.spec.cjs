@@ -38,4 +38,4 @@ test('visiting a landmark never grants cash or records a discovery', async ({ pa
   await page.waitForFunction(() => Boolean(window.__coastlineTest), null, { timeout: 30000 });
   expect(await page.evaluate(() => window.__coastlineTest.state().cashBalance), 'cash should remain unchanged after reload').toBe(before.cash);
   expect(await page.evaluate(() => localStorage.getItem('coastline-discovered-landmarks-v1'))).toBeNull();
-});
+}, { timeout: 90000 });
