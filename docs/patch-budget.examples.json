@@ -1,0 +1,49 @@
+{
+  "valid": [
+    {
+      "patchClass": "micro",
+      "riskAreas": ["none"],
+      "systemsTouched": 1,
+      "expectedVerification": "markdown review",
+      "budgetUnits": 0.25
+    },
+    {
+      "patchClass": "small",
+      "riskAreas": ["player-physics"],
+      "systemsTouched": 1,
+      "expectedVerification": "targeted steering regression + affected browser shard",
+      "budgetUnits": 1.5
+    },
+    {
+      "patchClass": "large",
+      "riskAreas": ["ctm", "renderer-assets"],
+      "systemsTouched": 3,
+      "expectedVerification": "CTM, renderer, and World 1 regression gates",
+      "budgetUnits": 4
+    },
+    {
+      "patchClass": "oversized",
+      "riskAreas": ["ctm", "npc-simulation", "performance"],
+      "systemsTouched": 5,
+      "expectedVerification": "decomposition review before submission",
+      "budgetUnits": 6,
+      "overrideReason": "Emergency recovery patch only; all three surfaces are required for one atomic rollback."
+    }
+  ],
+  "invalid": [
+    {
+      "patchClass": "oversized",
+      "riskAreas": ["ctm"],
+      "systemsTouched": 4,
+      "expectedVerification": "full gate",
+      "budgetUnits": 6
+    },
+    {
+      "patchClass": "small",
+      "riskAreas": ["not-a-risk-area"],
+      "systemsTouched": 1,
+      "expectedVerification": "targeted test",
+      "budgetUnits": 1
+    }
+  ]
+}

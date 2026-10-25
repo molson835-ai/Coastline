@@ -1,0 +1,1 @@
+Vehicle model assets for Coastline Drive. Please preserve applicable attribution and license notices for third-party models.

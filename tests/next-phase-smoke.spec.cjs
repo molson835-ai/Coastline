@@ -1,6 +1,6 @@
 const { test, expect } = require('@playwright/test');
 
-test('public beta boots the full Coastline world and exposes its advanced systems', async ({ page }) => {
+test('public beta boots the full Coastline world without map-only UI', async ({ page }) => {
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.goto('/', { waitUntil: 'domcontentloaded' });
@@ -9,19 +9,14 @@ test('public beta boots the full Coastline world and exposes its advanced system
   await expect(page.locator('canvas').first()).toBeAttached({ timeout: 30000 });
   await expect(page.locator('canvas').first()).toBeVisible();
   await expect(page.locator('#mode')).toHaveText('DRIVING');
-  await expect(page.locator('#coastMap')).toBeVisible();
+  await expect(page.locator('#coastMap')).toHaveCount(0);
+  await expect(page.getByText('TAP MAP · SET DESTINATION')).toHaveCount(0);
 
   const systems = await page.evaluate(() => {
     const api = window.__coastlineTest;
     return {
       state: api.state(),
       world: api.worldEngineState(),
-      living: api.livingWorldState(),
-      npcSlice: api.npcWorldSliceState(),
-      reputation: api.playerReputationState(),
-      rumors: api.socialRumorState(),
-      rumorRules: api.socialRumorRules(),
-      rideables: api.rideableState(),
       sky: api.skyState(),
       graphics: api.graphicsState(),
       buildings: api.buildingState()
@@ -30,17 +25,12 @@ test('public beta boots the full Coastline world and exposes its advanced system
   expect(systems.state.errors).toEqual([]);
   expect(systems.state.mode).toBe('vehicle');
   expect(systems.state.vehicleCount).toBeGreaterThan(10);
+  // Foundation mode uses bounded active-world population rather than the retired high-density target.
   expect(systems.state.pedestrianCount).toBeGreaterThan(40);
   expect(systems.world.trackedEntities).toBeGreaterThan(50);
   expect(systems.world.trackedVehicles).toBeGreaterThan(10);
-  expect(systems.npcSlice).toBeTruthy();
-  expect(systems.reputation).toBeTruthy();
-  expect(systems.rumors.people.length).toBeGreaterThan(40);
-  expect(systems.rumorRules.noGlobalOmniscience).toBe(true);
-  expect(systems.rideables.map(item => item.kind)).toEqual(expect.arrayContaining(['bicycle', 'motorcycle', 'aircraft']));
   expect(systems.buildings.enterable).toBeGreaterThan(0);
   expect(systems.graphics.shadows).toBe(true);
   expect(systems.sky.weather).toBeTruthy();
-  expect(systems.living.rules).toBeTruthy();
   expect(errors).toEqual([]);
 });

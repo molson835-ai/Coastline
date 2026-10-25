@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const output = path.join(root, 'dist', 'itch-html');
 const files = [
-  'game-v3.html', 'vehicle-visual-enhancer.js', 'cinematic-world-upgrade.js',
+  'game-v3.html', 'range-rover-fleet.js', 'assets/vehicles/Range Rover by IvOfficial - 8zk4o6nALW.glb', 'vehicle-visual-enhancer.js', 'cinematic-world-upgrade.js',
   'car-customization.js', 'world-model.js', 'world-engine.js', 'living-world.js',
   'douglassville-layout.js', 'realism-library.js', 'presentation-runtime.js',
   'cinematic-visual-library.js', 'cinematic-animation-library.js',
@@ -21,7 +21,11 @@ for (const file of files) {
 }
 await rm(output, { recursive: true, force: true });
 await mkdir(output, { recursive: true });
-for (const file of files) await copyFile(path.join(root, file), path.join(output, file));
+for (const file of files) {
+  const destination = path.join(output, file);
+  await mkdir(path.dirname(destination), { recursive: true });
+  await copyFile(path.join(root, file), destination);
+}
 const html = await readFile(path.join(root, 'game-v3.html'), 'utf8');
 await writeFile(path.join(output, 'index.html'), html);
 let sw = await readFile(path.join(output, 'coastline-sw.js'), 'utf8');

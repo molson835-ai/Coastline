@@ -41,8 +41,6 @@ test('on-foot character has a basic rig, face detail, and gait animation', () =>
   assert.match(html, /avatarArms\.forEach/);
 });
 
-test('map marker smoothing is driven by elapsed frame time', () => {
-  assert.match(html, /let mapVisualX=player\.x,mapVisualZ=player\.z/);
-  assert.match(html, /mapVisualX\+=\(player\.x-mapVisualX\)\*\(1-Math\.exp\(-dt\*13\)\)/);
-  assert.match(html, /const me=mapPoint\(mapVisualX,mapVisualZ\)/);
+test('map-only smoothing and redraw work are absent in the foundation build', () => {
+  assert.doesNotMatch(html, /mapVisualX|mapVisualZ|mapPoint|drawCoastMap|lastMapDraw/);
 });
