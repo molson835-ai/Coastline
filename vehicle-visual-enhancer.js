@@ -184,30 +184,6 @@ function buildHero(group) {
   return parts;
 }
 
-function looksLikeVehicleMesh(object) {
-  const p = object?.geometry?.parameters;
-  if (!p) return false;
-  const width = +p.width || 0, height = +p.height || 0, depth = +p.depth || 0;
-  return width > 1.4 && width < 2.7 && depth > 3.4 && depth < 6.3 && height > 0.35 && height < 1.1;
-}
-
-function hook() {
-  const prototype = THREE.Group.prototype;
-  if (prototype.__coastlineHeroV22) return;
-  prototype.__coastlineHeroV22 = true;
-  const addOriginal = prototype.add;
-  prototype.add = function (...objects) {
-    const result = addOriginal.apply(this, objects);
-    if (!this[DONE] && !this.userData?.coastlineHeroVehicle &&
-        (objects.some(object => object?.isMesh && looksLikeVehicleMesh(object)) ||
-         /vehicle|car|traffic/i.test(this.name || '')) && !used) {
-      used = true;
-      setTimeout(() => enhanceCar(this), 0);
-    }
-    return result;
-  };
-}
-
 export function enhanceCar(group) {
   if (!group) return null;
   if (group[DONE]) return group.userData?.coastlineHeroVehicle?.parts || null;
@@ -218,7 +194,6 @@ export function enhanceCar(group) {
 export function installVehicleVisualEnhancer() {
   if (globalThis[INST]) return;
   globalThis[INST] = true;
-  hook();
   globalThis.__coastlineHeroVehicleVisuals = {
     version: 22,
     installed: true,
