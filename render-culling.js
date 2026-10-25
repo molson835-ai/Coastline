@@ -8,9 +8,14 @@ export function createRenderCuller({
   if (!Array.isArray(entries) && typeof entries !== 'function') throw new TypeError('entries must be an array or function');
 
   const states = new Map();
+  const shadowStates = new Map();
+  const shadowMeshes = new Map();
   let lastUpdateAt = -Infinity;
   let updateCount = 0;
-  let lastSnapshot = { updateCount, visibleDetail: 0, visibleProxy: 0, culled: 0, byKind: {} };
+  let lastSnapshot = {
+    updateCount, visibleDetail: 0, visibleProxy: 0, culled: 0,
+    trackedShadowCastersEnabled: 0, trackedShadowCastersDisabled: 0, byKind: {}
+  };
 
   function chooseTier(entry, distance, previousTier) {
     if (entry.isSuppressed?.()) return 'hidden';
@@ -34,6 +39,39 @@ export function createRenderCuller({
     return 'hidden';
   }
 
+  function collectShadowMeshes(root) {
+    const meshes = [];
+    const visit = node => {
+      if (!node) return;
+      if (node.castShadow === true) meshes.push(node);
+      if (Array.isArray(node.children)) for (const child of node.children) visit(child);
+    };
+    visit(root);
+    return meshes;
+  }
+
+  function updateShadows(entry, distance, tier, counts) {
+    if (!Number.isFinite(entry.shadowDistance)) return;
+    let casters = shadowMeshes.get(entry.id);
+    if (!casters) {
+      casters = collectShadowMeshes(entry.detailRoot);
+      shadowMeshes.set(entry.id, casters);
+    }
+
+    const limit = Math.max(0, entry.shadowDistance);
+    const previous = shadowStates.get(entry.id);
+    const withinShadowRange = previous === true
+      ? distance <= limit + hysteresis
+      : distance < Math.max(0, limit - hysteresis);
+    const enabled = tier === 'detail' && withinShadowRange;
+    if (previous !== enabled) {
+      for (const mesh of casters) mesh.castShadow = enabled;
+      shadowStates.set(entry.id, enabled);
+    }
+    if (enabled) counts.trackedShadowCastersEnabled += casters.length;
+    else counts.trackedShadowCastersDisabled += casters.length;
+  }
+
   function update(now, force = false) {
     if (!force && now - lastUpdateAt < intervalMs) return lastSnapshot;
     lastUpdateAt = now;
@@ -42,7 +80,10 @@ export function createRenderCuller({
     const player = getPlayerPosition() || { x: 0, z: 0 };
     const px = Number.isFinite(player.x) ? player.x : 0;
     const pz = Number.isFinite(player.z) ? player.z : 0;
-    const counts = { visibleDetail: 0, visibleProxy: 0, culled: 0, byKind: {} };
+    const counts = {
+      visibleDetail: 0, visibleProxy: 0, culled: 0,
+      trackedShadowCastersEnabled: 0, trackedShadowCastersDisabled: 0, byKind: {}
+    };
 
     for (const entry of (typeof entries === 'function' ? entries() : entries)) {
       if (!entry?.detailRoot || !entry.id) continue;
@@ -54,6 +95,7 @@ export function createRenderCuller({
       states.set(entry.id, tier);
       entry.detailRoot.visible = tier === 'detail';
       if (entry.proxyRoot) entry.proxyRoot.visible = tier === 'proxy';
+      updateShadows(entry, distance, tier, counts);
 
       const kind = entry.kind || 'other';
       counts.byKind[kind] ||= { detail: 0, proxy: 0, hidden: 0 };
@@ -68,7 +110,10 @@ export function createRenderCuller({
   }
 
   function snapshot() {
-    return { ...lastSnapshot, byKind: Object.fromEntries(Object.entries(lastSnapshot.byKind).map(([kind, counts]) => [kind, { ...counts }])) };
+    return {
+      ...lastSnapshot,
+      byKind: Object.fromEntries(Object.entries(lastSnapshot.byKind).map(([kind, counts]) => [kind, { ...counts }]))
+    };
   }
 
   return { update, snapshot };
