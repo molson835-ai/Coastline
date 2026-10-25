@@ -13,6 +13,7 @@ export function createRenderCuller({
   let lastSnapshot = { updateCount, visibleDetail: 0, visibleProxy: 0, culled: 0, byKind: {} };
 
   function chooseTier(entry, distance, previousTier) {
+    if (entry.isSuppressed?.()) return 'hidden';
     if (entry.alwaysVisible?.()) return entry.detailRoot ? 'detail' : (entry.proxyRoot ? 'proxy' : 'hidden');
     const detailDistance = Math.max(0, entry.detailDistance ?? entry.renderDistance ?? 0);
     const renderDistance = Math.max(detailDistance, entry.renderDistance ?? detailDistance);
