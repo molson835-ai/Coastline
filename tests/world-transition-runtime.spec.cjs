@@ -135,3 +135,102 @@ test('bridge prompt only appears for a nearby vehicle facing the island bridge, 
   });
   await expect(page.locator('#coastlineWorldTransition')).toBeHidden();
 });
+
+
+async function driveAcrossBridge(page) {
+  await page.evaluate(async () => {
+    const api = window.__coastlineTest;
+    api.setVehiclePosition(0, -740, Math.PI);
+    api.keyDown('w');
+    for (let i = 0; i < 40; i += 1) {
+      api.advanceTestFrame(1 / 60, 10);
+      window.__coastlineTransitionTest.updatePrompt();
+      if (window.__coastlineTransitionTest.status().activeWorldId !== 'city') break;
+    }
+    api.keyUp('w');
+    await window.__coastlineTransitionTest.flushAutoTransition();
+  });
+}
+
+test('live runtime starts in populated City and crosses the bridge into World 2', async ({ page }) => {
+  const errors = await openGame(page);
+  const initial = await page.evaluate(() => ({
+    status: window.__coastlineTransitionTest.status(),
+    roots: window.__coastlineTransitionTest.rootVisibility(),
+    player: window.__coastlineTransitionTest.playerState(),
+    layout: window.__coastlineTransitionTest.world2Layout(),
+    spawn: window.__coastlineTransitionTest.world2Spawn(),
+    visual: window.__coastlineTransitionTest.visualIdentity(),
+    vehicleVisible: window.__coastlineTransitionTest.activeVehicleVisible(),
+  }));
+  expect(initial.status.activeWorldId).toBe('city');
+  expect(initial.status.residentWorldIds).toEqual(['city']);
+  expect(initial.roots).toMatchObject({ cityVisible: true, cityCachedInScene: true, islandVisible: false, islandRootResident: false });
+  expect(initial.roots.cityContent.meshes).toBeGreaterThan(100);
+  expect(initial.roots.cityContent.visibleMeshes).toBeGreaterThan(100);
+  expect(initial.player.mode).toBe('vehicle');
+    expect(initial.layout.bounds.width).toBeLessThanOrEqual(260);
+  expect(initial.layout.bounds.depth).toBeLessThanOrEqual(260);
+  expect(initial.layout.bridgeLength).toBe(100);
+  expect(initial.layout.palm).toBeNull();
+  expect(initial.layout.bridgeIslandEdge).toBeCloseTo(initial.layout.bounds.minZ, 0);
+  expect(initial.layout.bridgeCityEdge).toBeCloseTo(initial.layout.bounds.minZ - 100, 0);
+  expect(initial.layout.spawnToIslandBridge).toBeLessThanOrEqual(50);
+  expect(initial.vehicleVisible).toBe(true);
+
+  const cityStart = await page.evaluate(() => window.__coastlineTransitionTest.cityBridgeContract());
+  expect(cityStart.bridgeLength).toBe(100);
+  expect(cityStart.cityEdge).toBeCloseTo(cityStart.cityMapEdge, 0);
+  expect(cityStart.cityMapEdge).toBe(-750);
+  expect(cityStart.bridgeEnd).toBe(-850);
+  expect(cityStart.destination.z).toBe(-850);
+  expect(cityStart.destination.rotationY).toBe(0);
+
+  await driveAcrossBridge(page);
+
+  const crossed = await page.evaluate(() => ({
+    status: window.__coastlineTransitionTest.status(),
+    player: window.__coastlineTransitionTest.playerState(),
+    roots: window.__coastlineTransitionTest.rootVisibility(),
+    visual: window.__coastlineTransitionTest.visualIdentity(),
+  }));
+  expect(crossed.status.activeWorldId).toBe('island');
+  expect(crossed.status.residentWorldIds).toEqual(['island']);
+  expect(crossed.roots).toMatchObject({ cityVisible: false, cityCachedInScene: true, islandVisible: true, islandRootResident: true });
+  expect(crossed.player.vehicleIndex).toBe(initial.player.vehicleIndex);
+  expect(crossed.player.position.z).toBe(290);
+  expect(crossed.player.heading).toBe(0);
+  expect(crossed.visual).toEqual(initial.visual);
+  expect(errors).toEqual([]);
+});
+
+test('crossing back from World 2 restores the populated City buffer', async ({ page }) => {
+  const errors = await openGame(page);
+  await driveAcrossBridge(page);
+  expect(await page.evaluate(() => window.__coastlineTransitionTest.status().activeWorldId)).toBe('island');
+
+  await page.evaluate(async () => {
+    const api = window.__coastlineTest;
+    api.setVehiclePosition(500, 310, Math.PI);
+    api.keyDown('w');
+    for (let i = 0; i < 35; i += 1) {
+      api.advanceTestFrame(1 / 60, 10);
+      window.__coastlineTransitionTest.updatePrompt();
+      if (window.__coastlineTransitionTest.status().activeWorldId === 'city') break;
+    }
+    api.keyUp('w');
+    await window.__coastlineTransitionTest.flushAutoTransition();
+  });
+
+  const returned = await page.evaluate(() => ({
+    status: window.__coastlineTransitionTest.status(),
+    player: window.__coastlineTransitionTest.playerState(),
+    roots: window.__coastlineTransitionTest.rootVisibility(),
+  }));
+  expect(returned.status.activeWorldId).toBe('city');
+  expect(returned.status.residentWorldIds).toEqual(['city']);
+  expect(returned.player.position.z).toBe(-850);
+  expect(returned.player.heading).toBe(0);
+  expect(returned.roots).toMatchObject({ cityVisible: true, cityCachedInScene: true, islandVisible: false, islandRootResident: false });
+  expect(errors).toEqual([]);
+});
