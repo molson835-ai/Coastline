@@ -45,6 +45,16 @@ test('hides objects beyond render distance and re-enters without threshold flick
   assert.equal(tree.proxyRoot.visible, false);
 });
 
+test('gameplay-suppressed roots stay hidden even inside the detail range', () => {
+  const building = entry('interior-building', 5, 0, { proxy: true });
+  building.isSuppressed = () => true;
+  const culler = createRenderCuller({ getPlayerPosition: () => ({ x: 0, z: 0 }), entries: [building] });
+  culler.update(0, true);
+  assert.equal(building.detailRoot.visible, false);
+  assert.equal(building.proxyRoot.visible, false);
+  assert.equal(culler.snapshot().culled, 1);
+});
+
 test('always-visible player vehicle is retained regardless of distance', () => {
   const vehicle = entry('player-car', 5000, 0, { kind: 'vehicle', alwaysVisible: () => true });
   const culler = createRenderCuller({ getPlayerPosition: () => ({ x: 0, z: 0 }), entries: [vehicle] });
