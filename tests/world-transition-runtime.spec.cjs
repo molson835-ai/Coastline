@@ -38,6 +38,8 @@ test('live runtime starts in populated City and crosses the bridge into World 2'
   expect(initial.status.activeWorldId).toBe('city');
   expect(initial.status.residentWorldIds).toEqual(['city']);
   expect(initial.roots).toMatchObject({ cityVisible: true, cityCachedInScene: true, islandVisible: false, islandRootResident: false });
+  expect(initial.roots.cityContent.meshes).toBeGreaterThan(100);
+  expect(initial.roots.cityContent.visibleMeshes).toBeGreaterThan(100);
   expect(initial.player.mode).toBe('vehicle');
     expect(initial.layout.bounds.width).toBeLessThanOrEqual(260);
   expect(initial.layout.bounds.depth).toBeLessThanOrEqual(260);
