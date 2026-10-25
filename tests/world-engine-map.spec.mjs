@@ -24,3 +24,10 @@ test('removing the map leaves the shared world street grid intact', () => {
   assert.match(worldModel, /Math\.round\(x\/roadSpacing\)\*roadSpacing/);
   assert.match(worldModel, /Math\.round\(z\/roadSpacing\)\*roadSpacing/);
 });
+
+test('foundation phase keeps courier missions and landmark discovery inactive', () => {
+  assert.match(html, /const ENABLE_COURIER_MISSION=false/);
+  assert.match(html, /function startMission\(\)\{if\(!ENABLE_COURIER_MISSION\|\|missionState==='deliver'\)return false/);
+  assert.doesNotMatch(html, /function checkLandmarkDiscovery\(/);
+  assert.doesNotMatch(html, /Landmark discovered:/);
+});
