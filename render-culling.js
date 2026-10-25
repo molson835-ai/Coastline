@@ -60,9 +60,11 @@ export function createRenderCuller({
 
     const limit = Math.max(0, entry.shadowDistance);
     const previous = shadowStates.get(entry.id);
-    const withinShadowRange = previous === true
-      ? distance <= limit + hysteresis
-      : distance < Math.max(0, limit - hysteresis);
+    const withinShadowRange = previous === undefined
+      ? distance <= limit
+      : previous
+        ? distance <= limit + hysteresis
+        : distance < Math.max(0, limit - hysteresis);
     const enabled = tier === 'detail' && withinShadowRange;
     if (previous !== enabled) {
       for (const mesh of casters) mesh.castShadow = enabled;
