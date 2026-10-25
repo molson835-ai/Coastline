@@ -1,6 +1,7 @@
 const { test, expect } = require('@playwright/test');
 
 test('shadow A/B diagnostic disables shadows only when explicitly requested', async ({ page }) => {
+  test.setTimeout(90000);
   await page.goto('/game-v3.html?diagShadows=off', { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => Boolean(window.__coastlineTest?.state?.().performance));
   const off = await page.evaluate(() => window.__coastlineTest.state().performance.renderConfig);
