@@ -29,7 +29,8 @@ test('performance telemetry is available and includes renderer and entity counte
   expect(perf.gpuTiming.averageGpuMs === null || Number.isFinite(perf.gpuTiming.averageGpuMs)).toBe(true);
   expect(perf.gpuTiming.p95GpuMs === null || Number.isFinite(perf.gpuTiming.p95GpuMs)).toBe(true);
   expect(perf.gpuTiming.disjointEvents).toBeGreaterThanOrEqual(0);
-  for (const name of ['scene', 'bloom', 'output']) {
+  const bloomEnabled = perf.renderConfig?.bloomEnabled !== false;
+  for (const name of ['scene', 'output']) {
     const metrics = perf.renderPassMetrics[name];
     const timing = perf.renderPassTimings?.[name];
     expect(metrics, `${name} pass metrics should be exposed`).toBeTruthy();
@@ -40,6 +41,20 @@ test('performance telemetry is available and includes renderer and entity counte
     expect(timing.samples).toBeGreaterThan(0);
     expect(timing.averageCpuSubmitMs).toBeGreaterThanOrEqual(0);
     expect(timing.p95CpuSubmitMs).toBeGreaterThanOrEqual(0);
+  }
+  if (bloomEnabled) {
+    const metrics = perf.renderPassMetrics.bloom;
+    const timing = perf.renderPassTimings?.bloom;
+    expect(metrics, 'bloom pass metrics should be exposed when bloom is enabled').toBeTruthy();
+    expect(metrics.drawCalls).toBeGreaterThan(0);
+    expect(metrics.triangles).toBeGreaterThanOrEqual(0);
+    expect(metrics.cpuSubmitMs).toBeGreaterThanOrEqual(0);
+    expect(timing, 'bloom pass timing should be exposed when bloom is enabled').toBeTruthy();
+    expect(timing.samples).toBeGreaterThan(0);
+    expect(timing.averageCpuSubmitMs).toBeGreaterThanOrEqual(0);
+    expect(timing.p95CpuSubmitMs).toBeGreaterThanOrEqual(0);
+  } else {
+    expect(perf.renderPassMetrics.bloom).toBeFalsy();
   }
   expect(perf.geometries).toBeGreaterThan(0);
   expect(perf.textures).toBeGreaterThanOrEqual(0);
