@@ -70,7 +70,7 @@ export function getCoastlineIslandRegion(id) {
  * activation, collision, transition gates and disposal; this factory only
  * creates the region's renderable root and never starts background simulation.
  */
-export function createCoastlineIslandRoot({ THREE, region, groundY = () => 0, addBridge }) {
+export function createCoastlineIslandRoot({ THREE, region, groundY = () => 0, addBridge, addSideBridge }) {
   if (!THREE || !region) throw new Error('THREE and an island region are required');
   const center = { x: 500, z: 500 };
   const half = region.bounds.halfWidth;
@@ -178,6 +178,10 @@ export function createCoastlineIslandRoot({ THREE, region, groundY = () => 0, ad
     }
   }
   if (typeof addBridge === 'function') addBridge(THREE, root, { x: center.x, startZ: center.z - half, y: edgeY, length: 100 });
+  if (typeof addSideBridge === 'function') {
+    addSideBridge(THREE, root, { edgeX: center.x - half, z: center.z, y: edgeY, length: 100, direction: -1, name: `${region.id}-west` });
+    addSideBridge(THREE, root, { edgeX: center.x + half, z: center.z, y: edgeY, length: 100, direction: 1, name: `${region.id}-east` });
+  }
   return root;
 }
 
