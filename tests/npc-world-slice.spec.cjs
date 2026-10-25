@@ -16,12 +16,14 @@ test('foundation mode keeps basic traffic and pedestrians while advanced NPC sto
 
   const before = await page.evaluate(() => ({
     core: window.__coastlineTest.state(),
+    trafficCount: window.__coastlineTest.trafficState().length,
     npc: window.__coastlineTest.npcWorldSliceState(),
     world: window.__coastlineTransitionTest.status(),
   }));
   expect(before.world.activeWorldId).toBe('city');
-  expect(before.core.vehicleCount).toBeGreaterThan(10);
-  expect(before.core.pedestrianCount).toBeGreaterThan(0);
+  expect(before.core.vehicleCount).toBeGreaterThan(10); // includes parked vehicles
+  expect(before.trafficCount).toBe(12); // enforced City traffic budget
+  expect(before.core.pedestrianCount).toBe(16); // enforced City pedestrian budget
   expect(before.npc.phase).toBe('idle');
 
   await page.evaluate(({ x, z }) => window.__coastlineTest.setVehiclePosition(x, z, 0), before.npc.target);
@@ -29,12 +31,14 @@ test('foundation mode keeps basic traffic and pedestrians while advanced NPC sto
 
   const after = await page.evaluate(() => ({
     core: window.__coastlineTest.state(),
+    trafficCount: window.__coastlineTest.trafficState().length,
     npc: window.__coastlineTest.npcWorldSliceState(),
   }));
   expect(after.npc.phase).toBe('idle');
   expect(after.npc.npc.flags.signalOutage).not.toBe(true);
-  expect(after.core.vehicleCount).toBeGreaterThan(10);
-  expect(after.core.pedestrianCount).toBeGreaterThan(0);
+  expect(after.core.vehicleCount).toBeGreaterThan(10); // includes parked vehicles
+  expect(after.trafficCount).toBe(12);
+  expect(after.core.pedestrianCount).toBe(16);
   await expect(page.locator('.mission')).toBeHidden();
   expect(errors).toEqual([]);
 });
