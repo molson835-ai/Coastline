@@ -177,7 +177,7 @@ export function createCoastlineIslandRoot({ THREE, region, groundY = () => 0, ad
       root.add(crown);
     }
   }
-  if (typeof addBridge === 'function') addBridge(THREE, root, { x: center.x, startZ: center.z - half, y: edgeY, length: 100 });
+  if (region.id === 'residential' && typeof addBridge === 'function') addBridge(THREE, root, { x: center.x, startZ: center.z - half, y: edgeY, length: 100 });
   if (typeof addSideBridge === 'function') {
     addSideBridge(THREE, root, { edgeX: center.x - half, z: center.z, y: edgeY, length: 100, direction: -1, name: `${region.id}-west` });
     addSideBridge(THREE, root, { edgeX: center.x + half, z: center.z, y: edgeY, length: 100, direction: 1, name: `${region.id}-east` });
