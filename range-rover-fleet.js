@@ -1,9 +1,54 @@
 import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/loaders/GLTFLoader.js';
 
 /**
- * Replaces the procedural car body with the licensed Range Rover model.
- * Keeps each vehicle's existing root Group and gameplay state intact.
+ * Replaces procedural traffic-car visuals with the licensed Range Rover model.
+ * Keeps each vehicle's gameplay root intact. For the player hero car, the
+ * imported model stays inside the named hero visual shell and its damage-part
+ * references are rebound to meshes in the imported model (the GLB loads async).
  */
+function bindHeroParts(THREE, vehicle, visual, model, heroInfo) {
+  const meshes = [];
+  model.traverse(node => {
+    if (node.isMesh) meshes.push(node);
+  });
+  if (!meshes.length) return;
+
+  const named = pattern => meshes.find(mesh => pattern.test(String(mesh.name || '')));
+  const paintable = meshes.find(mesh =>
+    mesh.material && !Array.isArray(mesh.material) && mesh.material.color
+  );
+  const first = paintable || meshes[0];
+  const last = meshes[meshes.length - 1];
+  const body = named(/body|chassis|exterior|paint|shell/i) || first;
+  const cab = named(/glass|window|windshield|windscreen|cabin|interior/i) || body;
+  const hood = named(/hood|bonnet/i) || body;
+  const trunk = named(/trunk|boot|tailgate/i) || body;
+  const roof = named(/roof/i) || cab;
+  const frontBumper = named(/front.*bumper|bumper.*front/i) || body;
+  const rearBumper = named(/rear.*bumper|bumper.*rear/i) || last;
+  let wheels = meshes.filter(mesh => /wheel|tire|tyre|rim/i.test(String(mesh.name || '')));
+  if (wheels.length < 4) {
+    const fallback = meshes.filter(mesh => mesh !== body && mesh !== cab);
+    wheels = [...wheels, ...fallback.filter(mesh => !wheels.includes(mesh))];
+  }
+  if (wheels.length < 4) wheels = [...wheels, ...meshes.filter(mesh => !wheels.includes(mesh))];
+  wheels = wheels.slice(0, 4);
+  while (wheels.length > 0 && wheels.length < 4) wheels.push(wheels[wheels.length - 1]);
+
+  visual.name = 'coastline-hero-white-single-shell';
+  const parts = {
+    body, cab, hood, trunk, roof, frontBumper, rearBumper, wheels, visualRoot: visual
+  };
+  heroInfo.parts = parts;
+  vehicle.g.userData.coastlineHeroVehicle = heroInfo;
+  vehicle.damageParts = parts;
+  if (body.material && !Array.isArray(body.material) && body.material.color) {
+    vehicle.basePaint = body.material.color.clone();
+  }
+  // Keep the metadata's requested default paint consistent with the imported hero.
+  heroInfo.paintColor = 'white';
+}
+
 export async function applyRangeRoverFleet(THREE, vehicles, onStatus = () => {}) {
   const url = './assets/vehicles/Range%20Rover%20by%20IvOfficial%20-%208zk4o6nALW.glb';
   const loader = new GLTFLoader();
@@ -34,7 +79,9 @@ export async function applyRangeRoverFleet(THREE, vehicles, onStatus = () => {})
   let replaced = 0;
   for (const vehicle of vehicles) {
     if (!vehicle || vehicle.kind !== 'car' || !vehicle.g) continue;
+    const heroInfo = vehicle.g.userData?.coastlineHeroVehicle;
     const visual = new THREE.Group();
+    if (heroInfo?.singleShell) visual.name = 'coastline-hero-white-single-shell';
     const model = source.clone(true);
     model.scale.setScalar(scale);
     model.updateMatrixWorld(true);
@@ -58,6 +105,7 @@ export async function applyRangeRoverFleet(THREE, vehicles, onStatus = () => {})
     vehicle.rangeRoverVisual = visual;
     vehicle.rangeRoverModel = model;
     vehicle.rangeRoverScale = scale;
+    if (heroInfo?.singleShell) bindHeroParts(THREE, vehicle, visual, model, heroInfo);
     replaced++;
   }
   onStatus({ ok: true, replaced, sourceSize: { x: size.x, y: size.y, z: size.z }, scale });
