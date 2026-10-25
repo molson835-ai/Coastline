@@ -109,13 +109,13 @@ test('bridge prompt only appears for a nearby vehicle facing the island bridge, 
   await page.evaluate(() => window.__coastlineTransitionTest.transition('city-to-island'));
 
   await page.evaluate(() => {
-    window.__coastlineTest.setVehiclePosition(500, 290, 0);
+    window.__coastlineTest.setVehiclePosition(500, 370, Math.PI);
     window.__coastlineTransitionTest.updatePrompt();
   });
   await expect(page.locator('#coastlineWorldTransition')).toBeHidden();
 
   await page.evaluate(() => {
-    window.__coastlineTest.setVehiclePosition(500, 290, Math.PI);
+    window.__coastlineTest.setVehiclePosition(500, 370, 0);
     window.__coastlineTransitionTest.updatePrompt();
   });
   await expect(page.locator('#coastlineWorldTransition')).toBeVisible();
@@ -124,7 +124,7 @@ test('bridge prompt only appears for a nearby vehicle facing the island bridge, 
   expect(facingToward.text).toBe('CROSS TO CITY');
 
   await page.evaluate(() => {
-    window.__coastlineTest.setVehiclePosition(500, 350, Math.PI);
+    window.__coastlineTest.setVehiclePosition(500, 350, 0);
     window.__coastlineTransitionTest.updatePrompt();
   });
   await expect(page.locator('#coastlineWorldTransition')).toBeHidden();
