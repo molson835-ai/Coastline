@@ -8,6 +8,7 @@ Status: implementation on the `perf/spatial-render-culling` branch; not merged o
 - Keep detailed trees nearby; swap distant trees to one shared-geometry crown proxy, then cull beyond the tree range.
 - Distance-cull non-player vehicles, pedestrians, wildlife, and bird flocks. The current player vehicle is always retained.
 - Use a 180 ms update interval and 24-world-unit hysteresis to avoid doing a distance check on every frame and reduce threshold flicker.
+- Respect explicit gameplay visibility overrides, including hiding a building exterior while its interior is open.
 - Culling is render visibility only: it does not delete entities, remove collision data, alter save state, or stop simulation updates.
 
 ## Initial thresholds (world units)
