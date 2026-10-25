@@ -31,6 +31,10 @@ test('public-works NPC reacts to a nearby player and begins a character-specific
   expect(townRumor.history.length).toBeGreaterThan(1);
   expect(completed.rumors.people.filter(person => person.knowledge.signalOutage).length).toBeGreaterThan(1);
 
+  const persisted = await page.evaluate(() => JSON.parse(localStorage.getItem('coastline-npc-world-slice-v1') || 'null'));
+  expect(persisted?.phase).toBe('complete');
+  expect(persisted?.agency?.outcomes?.some(event => event.type === 'signal_restored')).toBe(true);
+
   await page.reload({ waitUntil: 'commit' });
   await page.waitForFunction(() => Boolean(window.__coastlineTest?.npcWorldSliceState), null, { timeout: 30000 });
   const restored = await page.evaluate(() => window.__coastlineTest.npcWorldSliceState());
