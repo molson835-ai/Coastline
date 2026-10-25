@@ -1,11 +1,18 @@
 const { test, expect } = require('@playwright/test');
 
-test('hero vehicle uses one visual shell and retains mapped damage parts', async ({ page }) => {
+test('hero vehicle uses one visual shell and retains mapped damage parts after the Range Rover fleet loads', async ({ page }) => {
   const pageErrors = [];
   page.on('pageerror', error => pageErrors.push(error.message));
   await page.goto('/game-v3.html', { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(
     () => window.__coastlinePlayer?.vehicle?.g?.userData?.coastlineHeroVehicle?.singleShell === true,
+    null,
+    { timeout: 30000 }
+  );
+  // The fleet GLB loads asynchronously and previously replaced the hero shell
+  // after the first wait, leaving its damage references pointed at disposed meshes.
+  await page.waitForFunction(
+    () => window.__coastlineRangeRoverFleetStatus?.ok === true,
     null,
     { timeout: 30000 }
   );
@@ -28,7 +35,8 @@ test('hero vehicle uses one visual shell and retains mapped damage parts', async
         .every(key => parts[key] && parts[key] === info.parts[key]),
       wheelPartsMapped: Array.isArray(parts.wheels) && parts.wheels.length === 4 &&
         parts.wheels.every((wheel, index) => wheel === info.parts.wheels[index]),
-      vehicleStillDrivable: vehicle.drivable === true && vehicle.kind === 'car'
+      vehicleStillDrivable: vehicle.drivable === true && vehicle.kind === 'car',
+      rangeRoverFleetReplaced: window.__coastlineRangeRoverFleetStatus.replaced > 0
     };
   });
 
@@ -41,5 +49,6 @@ test('hero vehicle uses one visual shell and retains mapped damage parts', async
   expect(snapshot.damagePartsMapped).toBe(true);
   expect(snapshot.wheelPartsMapped).toBe(true);
   expect(snapshot.vehicleStillDrivable).toBe(true);
+  expect(snapshot.rangeRoverFleetReplaced).toBe(true);
   expect(pageErrors).toEqual([]);
 });
