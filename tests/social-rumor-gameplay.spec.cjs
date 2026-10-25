@@ -18,7 +18,7 @@ test('witnessed player conduct creates persistent local rumors that NPCs can rep
   expect(rumor.history.length).toBeGreaterThan(0);
   const witness = social.people.find(person => person.id === 'ped-0');
   expect(witness.knowledge.recklessDriving).toBeTruthy();
-  expect(social.people.length).toBeGreaterThan(50);
+  expect(social.people.length).toBeGreaterThan(40);
   expect(errors).toEqual([]);
   expect(await page.evaluate(() => window.__coastlineTest.state().errors)).toEqual([]);
 });

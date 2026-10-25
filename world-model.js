@@ -46,12 +46,13 @@ export function createWorldModel({ citySize = 1500, roadSpacing = 200, roadWidth
 
   const regionKey = (x,z,chunkSize=200) => `${Math.floor((x+halfSize)/chunkSize)}:${Math.floor((z+halfSize)/chunkSize)}`;
   const cellBounds = (x,z,cellSize=200) => { const cx=Math.floor((x+halfSize)/cellSize),cz=Math.floor((z+halfSize)/cellSize); return {cx,cz,key:`${cx}:${cz}`,minX:cx*cellSize-halfSize,maxX:(cx+1)*cellSize-halfSize,minZ:cz*cellSize-halfSize,maxZ:(cz+1)*cellSize-halfSize}; };
-  const inBounds = (x,z,margin=0) => Math.abs(x)<=halfSize-margin&&Math.abs(z)<=halfSize-margin;
+  const bridgeBuffer = (x,z,margin=0) => Math.abs(x)<=10+margin && z>=-860-margin && z<=-700+margin;
+  const inBounds = (x,z,margin=0) => bridgeBuffer(x,z,margin) || (Math.abs(x)<=halfSize-margin&&Math.abs(z)<=halfSize-margin);
   const roadId = (x,z) => { const r=nearestRoad(x,z); return `${r.axis}:${Math.round((r.axis==='vertical'?r.x:r.z)/roadSpacing)}:${Math.round((r.axis==='vertical'?r.z:r.x)/roadSpacing)}`; };
   const roadLane = (x,z,laneOffset=4.2) => { const r=nearestRoad(x,z); return r.axis==='vertical'?{x:r.x+laneOffset,z,axis:r.axis}:{x,z:r.z+laneOffset,axis:r.axis}; };
   const sidewalk = (x,z,side=1,inset=11.5) => { const r=nearestRoad(x,z); return r.axis==='vertical'?{x:r.x+side*inset,z,axis:r.axis}:{x:inset?x:x,z:r.z+side*inset,axis:r.axis}; };
   const shoulder = (x,z,side=1,inset=9.3) => { const r=nearestRoad(x,z); return r.axis==='vertical'?{x:r.x+side*inset,z,axis:r.axis}:{x,z:r.z+side*inset,axis:r.axis}; };
   const parking = (x,z,side=1,slot=0,spacing=8) => { const r=nearestRoad(x,z), along=Math.round((r.axis==='vertical'?z:x)/spacing)*spacing+slot*spacing, curbToSpot=roadHalfWidth+10.5, p=r.axis==='vertical'?{x:r.x+side*curbToSpot,z:along}:{x:along,z:r.z+side*curbToSpot}; return {...p,axis:r.axis,side,slot,roadId:roadId(x,z),rotation:r.axis==='vertical'?(side>0?Math.PI/2:-Math.PI/2):(side>0?0:Math.PI)}; };
   const roadNodes = () => { const nodes=[]; for(let x=-halfSize;x<=halfSize;x+=roadSpacing) for(let z=-halfSize;z<=halfSize;z+=roadSpacing) nodes.push({id:`n:${Math.round(x)}:${Math.round(z)}`,x,z,type:'intersection',region:regionAt(x,z)}); return nodes; };
-  return Object.freeze({citySize,halfSize,roadSpacing,roadWidth,roadSurfaceY,seed,groundY,groundNormal,landscapeHeight,terrainProfile,isRoadCorridor,roadOffset,regionAt,regionKey,cellBounds,inBounds,nearestRoad,roadId,roadLane,sidewalk,shoulder,parking,roadNodes,hash});
+  return Object.freeze({citySize,halfSize,roadSpacing,roadWidth,roadSurfaceY,seed,groundY,groundNormal,landscapeHeight,terrainProfile,isRoadCorridor,roadOffset,regionAt,regionKey,cellBounds,inBounds,bridgeBuffer,nearestRoad,roadId,roadLane,sidewalk,shoulder,parking,roadNodes,hash});
 }

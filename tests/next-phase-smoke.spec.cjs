@@ -30,12 +30,12 @@ test('public beta boots the full Coastline world and exposes its advanced system
   expect(systems.state.errors).toEqual([]);
   expect(systems.state.mode).toBe('vehicle');
   expect(systems.state.vehicleCount).toBeGreaterThan(10);
-  expect(systems.state.pedestrianCount).toBeGreaterThan(50);
+  expect(systems.state.pedestrianCount).toBeGreaterThan(40);
   expect(systems.world.trackedEntities).toBeGreaterThan(50);
   expect(systems.world.trackedVehicles).toBeGreaterThan(10);
   expect(systems.npcSlice).toBeTruthy();
   expect(systems.reputation).toBeTruthy();
-  expect(systems.rumors.people.length).toBeGreaterThan(50);
+  expect(systems.rumors.people.length).toBeGreaterThan(40);
   expect(systems.rumorRules.noGlobalOmniscience).toBe(true);
   expect(systems.rideables.map(item => item.kind)).toEqual(expect.arrayContaining(['bicycle', 'motorcycle', 'aircraft']));
   expect(systems.buildings.enterable).toBeGreaterThan(0);

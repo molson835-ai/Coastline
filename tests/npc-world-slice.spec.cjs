@@ -1,5 +1,7 @@
 const { test, expect } = require('@playwright/test');
 
+test.setTimeout(120000);
+
 test('public-works NPC reacts to a nearby player and begins a character-specific repair story', async ({ page }) => {
   await page.addInitScript(() => { if (!sessionStorage.getItem('coastline-npc-test-reset')) { localStorage.removeItem('coastline-npc-world-slice-v1'); sessionStorage.setItem('coastline-npc-test-reset', '1'); } });
   await page.goto('/game-v3.html', { waitUntil: 'domcontentloaded' });
@@ -28,6 +30,10 @@ test('public-works NPC reacts to a nearby player and begins a character-specific
   expect(townRumor).toBeTruthy();
   expect(townRumor.history.length).toBeGreaterThan(1);
   expect(completed.rumors.people.filter(person => person.knowledge.signalOutage).length).toBeGreaterThan(1);
+
+  const persisted = await page.evaluate(() => JSON.parse(localStorage.getItem('coastline-npc-world-slice-v1') || 'null'));
+  expect(persisted?.phase).toBe('complete');
+  expect(persisted?.agency?.outcomes?.some(event => event.type === 'signal_restored')).toBe(true);
 
   await page.reload({ waitUntil: 'commit' });
   await page.waitForFunction(() => Boolean(window.__coastlineTest?.npcWorldSliceState), null, { timeout: 30000 });

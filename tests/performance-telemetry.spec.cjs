@@ -21,8 +21,36 @@ test('performance telemetry is available and includes renderer and entity counte
   expect(perf.loadingMs).toBeGreaterThan(0);
   expect(perf.drawCalls).toBeGreaterThan(0);
   expect(perf.triangles).toBeGreaterThan(0);
+  expect(perf.renderPassMetrics).toBeTruthy();
+  expect(perf.gpuTiming).toBeTruthy();
+  expect(typeof perf.gpuTiming.supported).toBe('boolean');
+  expect(Number.isFinite(perf.gpuTiming.samples)).toBe(true);
+  expect(perf.gpuTiming.samples).toBeGreaterThanOrEqual(0);
+  expect(perf.gpuTiming.averageGpuMs === null || Number.isFinite(perf.gpuTiming.averageGpuMs)).toBe(true);
+  expect(perf.gpuTiming.p95GpuMs === null || Number.isFinite(perf.gpuTiming.p95GpuMs)).toBe(true);
+  expect(perf.gpuTiming.disjointEvents).toBeGreaterThanOrEqual(0);
+  for (const name of ['scene', 'bloom', 'output']) {
+    const metrics = perf.renderPassMetrics[name];
+    const timing = perf.renderPassTimings?.[name];
+    expect(metrics, `${name} pass metrics should be exposed`).toBeTruthy();
+    expect(metrics.drawCalls).toBeGreaterThan(0);
+    expect(metrics.triangles).toBeGreaterThanOrEqual(0);
+    expect(metrics.cpuSubmitMs).toBeGreaterThanOrEqual(0);
+    expect(timing, `${name} pass timing should be exposed`).toBeTruthy();
+    expect(timing.samples).toBeGreaterThan(0);
+    expect(timing.averageCpuSubmitMs).toBeGreaterThanOrEqual(0);
+    expect(timing.p95CpuSubmitMs).toBeGreaterThanOrEqual(0);
+  }
   expect(perf.geometries).toBeGreaterThan(0);
   expect(perf.textures).toBeGreaterThanOrEqual(0);
+  expect(perf.systemTimings).toBeTruthy();
+  for (const name of ['aiTraffic', 'pedestrians', 'worldRegistrySync', 'render']) {
+    expect(perf.systemTimings[name], `${name} timing should be exposed`).toBeTruthy();
+    expect(perf.systemTimings[name].averageMs).toBeGreaterThanOrEqual(0);
+    expect(perf.systemTimings[name].p95Ms).toBeGreaterThanOrEqual(0);
+    expect(perf.systemTimings[name].maxMs).toBeGreaterThanOrEqual(0);
+    expect(perf.systemTimings[name].samples).toBeGreaterThan(0);
+  }
   expect(perf.entities.buildings).toBe(state.buildingCount);
   expect(perf.entities.vehicles).toBe(state.vehicleCount);
   expect(perf.entities.pedestrians).toBe(state.pedestrianCount);

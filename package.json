@@ -3,7 +3,7 @@
   "private": true,
   "scripts": {
     "test:gameplay": "playwright test",
-    "test:engine": "node --test tests/world-engine*.spec.mjs",
+    "test:engine": "node --test tests/world-engine*.spec.mjs tests/transition-manager-hardening.spec.mjs tests/fog-distance-diagnostic.test.cjs tests/render-culling.spec.mjs tests/road-marking-batching.spec.cjs",
     "test:systems": "node --test tests/replayability-engine.spec.mjs tests/npc-agency-engine.spec.mjs tests/social-rumor-engine.spec.mjs tests/player-reputation-engine.spec.mjs",
     "test:vehicle": "node --test tests/vehicle-dynamics-v1.spec.cjs",
     "test": "npm run test:engine && npm run test:systems && npm run test:vehicle && npm run test:gameplay",

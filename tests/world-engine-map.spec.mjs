@@ -22,5 +22,6 @@ test('waypoint navigation draws a route and reports distance from player', () =>
 test('map uses the same 200-metre orthogonal street grid as the world', () => {
   assert.match(html, /for\(let v=-600;v<=600;v\+=200\)/);
   assert.match(html, /Math\.round\(v\/200\)\*200/);
-  assert.match(html, /if\(now-lastMapDraw>=100\)\{drawCoastMap\(\);lastMapDraw=now\}composer\.render\(\)/);
+  assert.match(html, /if\(now-lastMapDraw>=100\)\{drawCoastMap\(\);lastMapDraw=now\}/);
+  assert.match(html, /pollGpuTimerQueries\(\);const gpuQuery=beginGpuTimer\(\);try\{composer\.render\(\)\}finally\{endGpuTimer\(gpuQuery\)\}/);
 });

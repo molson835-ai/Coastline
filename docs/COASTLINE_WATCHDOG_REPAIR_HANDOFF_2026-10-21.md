@@ -1,4 +1,82 @@
-# Coastline Gameplay Watchdog Repair Handoff — 2026-10-21
+# Coastline Master Handoff — Current Resume Point
+
+> **Read this current status first.** This section is the live resume point for the next AI. Older notes below preserve history and may be superseded by this section. Update this handoff again before ending a future session.
+
+## Active task: PR #87 — physical City ↔ World 2 bridge/runtime
+
+- **Repository:** https://github.com/molson835-ai/Coastline
+- **PR:** https://github.com/molson835-ai/Coastline/pull/87
+- **Branch:** `feat/ctm-world2-live-integration`
+- **Code SHA tested by the latest targeted workflow:** `d34b65ea20ae76e5094c76e4b949a2e5d47c12a4`
+- **State:** Open/draft, **not merged**. Do not merge, promote, or claim it is fixed yet.
+- **Latest targeted browser run:** [GitHub Actions run 39884933989](https://github.com/molson835-ai/Coastline/actions/runs/39884933989) — **FAILED: 5 passed, 1 failed**. The full gameplay browser gate was skipped because the focused CTM suite failed.
+- **Failure artifact:** [ctm-targeted-verification artifact 12472516510](https://github.com/molson835-ai/Coastline/actions/runs/39884933989/artifacts/12472516510). The `verify` job is `120190781512`.
+- Workflow execution time in logs is 2026-10-23 UTC; it was the evening of 2026-10-22 US Eastern.
+
+### What is verified in that run
+
+Passing tests (5/6):
+1. `tests/ctm-browser-regressions.spec.cjs`: active World 2 vehicle remains visible and movable.
+2. `tests/ctm-browser-regressions.spec.cjs`: bridge-end trigger test automatically transitions City ↔ World 2 and back.
+3. `tests/world-transition-runtime.spec.cjs`: direct City → World 2 → City lifecycle/state restoration test.
+4. `tests/world-transition-runtime.spec.cjs`: failed World 2 load cleans partial shell resources, preserves City, and can be retried.
+5. `tests/world-transition-runtime.spec.cjs`: bridge prompt is limited to a nearby vehicle facing the bridge.
+
+Failing test:
+- `tests/transition-manager-browser.spec.cjs:30`, test title: **“live game runtime exposes the CTM bridge and returns to the preserved City state”**.
+- Exact mismatch: test hard-codes expected player position `{x: 500, z: 500}`, but the new intended World 2 spawn is `{x: 500, z: 400}`.
+- This is a **stale test expectation**, not evidence that the runtime's new spawn value itself is wrong: `coastline-world-transitions.js` defines a `world2Spawn()` diagnostic and intentionally moved the World 2 spawn beyond the bridge. Fix the test to derive its expected position from `window.__coastlineTransitionTest.world2Spawn()` (or the shared source of truth). Do **not** revert the runtime spawn to z=500 just to satisfy the old assertion without checking the bridge geometry/trigger zone.
+- Since the targeted suite stopped on this failure, the full gameplay gate did not run. No full-suite green result exists for this exact SHA.
+
+### User's actual beta report — treat as the acceptance requirement
+
+The previous beta felt broken after entering World 2: bridge button moved the player to the edge/spawn but did not create a route; the player could not physically return to City; the active car was not visible; and driving hit invisible walls/poles. The player was left waiting for a button to return. This was a real integration failure, not user error.
+
+The required outcome is:
+1. Start in City in the same active vehicle.
+2. Drive along a **physical, continuous bridge/road** to its City-side end trigger; CTM transitions automatically.
+3. Arrive in World 2 with the same vehicle mesh visible and controllable.
+4. Vehicle movement works and cached City-only collision data does not block the island.
+5. Drive to the World 2-side bridge trigger; transition automatically back to City.
+6. Arrive at a sensible City-side bridge location with the vehicle still visible/controllable.
+7. No page errors, leaked resident worlds, stuck CTM state, teleport-only dependency, or unexpected collision walls.
+
+The automated passing bridge-zone test demonstrates the trigger/CTM path under the harness; it does **not** replace a human drive across the complete route on a fresh build. Do not claim that the user's original field issue is resolved until that human playtest succeeds.
+
+### Implemented in the current PR branch (not yet accepted)
+
+- Reworked `coastline-world-transitions.js` with bridge end zones, a guarded automatic transition request, bridge/World 2 shell geometry, and diagnostic helpers.
+- World 2 spawn moved to `{x: 500, z: 400, rotationY: 0}`; island bridge center is around `{x: 500, z: 500}`. City bridge/approach uses the `z ≈ -600` region.
+- Active vehicle is explicitly made visible after reparenting; World 2 active scope is signaled with `window.__coastlineWorld2Active`.
+- Added browser regressions for vehicle visibility/movement and automatic bridge-zone transitions.
+- World 2 remains a **blank shell**; the current city-collision bypass is a temporary scope boundary, not a finished island-local collision system.
+
+### Remaining risks / checks the next AI must not skip
+
+1. **Fix the single stale spawn assertion first**, then rerun the focused CTM browser tests on the resulting exact SHA.
+2. Inspect whether `.github/workflows/ctm-targeted-verification.yml` still exists in the remote branch. The workflow's cleanup step committed a deletion only inside the Actions checkout; its push failed with **non-fast-forward** (`fetch first`). Do not assume remote cleanup succeeded.
+3. Run the **full gameplay browser gate plus relevant system/engine/package checks** on one exact head. Do not call the PR green if only the 5/6 targeted suite is green.
+4. Review the bridge runtime restoration path. A known open concern is that `restoreState` may ignore the transition's `destinationSpawn`; verify that returning from World 2 lands at the intended City-side bridge/return point rather than silently restoring an unrelated saved position.
+5. Inspect `coastline-runtime-fix.js`: the implementation plan called for full `scene.traverse()` restoration so meshes hidden by the spatial budget can be restored after reparenting. The current transition code force-enables the active vehicle hierarchy, but verify actual descendant meshes render; a visible root flag alone is not enough.
+6. Verify that World 2 collision evaluation really excludes City-only collision arrays. Current scope bypasses City `buildingBlocked()` checks while `__coastlineWorld2Active` is true; World 2 still needs its own collision data before real props/buildings are added.
+7. Only after automated tests pass, publish a fresh **exact-head** preview and ask the user to test that URL. The previously visible Vercel deployment `https://coastline-rchht5pd8-molson835-3446.vercel.app` was built from old commit `0b4244be06a7b1ef19118adfc97edfec5a080f5d`; it is **not** the current PR build and must not be provided as the corrected beta.
+8. Keep PR #87 unmerged until the complete round trip and user-side playtest pass. Do not reduce visual quality, weaken movement/collision assertions, or replace the physical route with a teleport-only button to clear tests.
+
+### Important project/product guardrails
+
+- CTM is responsible for world lifecycle/state transfer; the world adapter owns each world’s geometry, movement/collision scope, and transition triggers.
+- Keep the plain-data snapshot contract. Do not return live Three.js scene/world handles from `page.evaluate()` diagnostics; it can recursively serialize `parent → Scene → root` and stall for 60–100 seconds. Diagnostic transitions should await the real transition and return a compact serializable status object.
+- Missions and landmark discovery/reward popups were previously removed from the current scope. Do not resurrect landmark cash rewards/tests; cash persistence should remain independent of landmark discovery.
+- Do not use a broad visual downgrade as a lag fix. The user wants high visual fidelity with scoped/split worlds and mobile performance.
+- The longer architecture goal is streamed independent world segments (City, island/mansion, apartment, garage/interiors), loading expensive systems only in the active/nearby segment. World 2 is the first real-world test, not a finished feature.
+
+**Next bounded task:** update `tests/transition-manager-browser.spec.cjs:30` to use the spawn helper/source of truth; verify whether the temporary workflow remains in the remote branch; run the targeted suite, then the full gate on the exact new SHA; inspect resulting logs/artifacts before changing anything else.
+
+---
+
+## Historical watchdog repair notes
+
+### Historical watchdog-repair handoff — 2026-10-21
 
 **Status:** In progress; browser watchdog has two failures, not field-proven  
 **PR:** https://github.com/molson835-ai/Coastline/pull/84  
@@ -144,3 +222,54 @@ Fix commits on the repair branch:
 ### Review / failure reporting contract
 
 For each new CI run, report the exact tested commit SHA and link to the workflow and failed browser job. For every failed test, record the test title, source file and line number, exact failed assertion/expected-versus-actual values or timeout location, and a grounded explanation of the failure. Clearly label hypotheses as unconfirmed until logs or traces support them. Do not merge or deploy based on a partial green run.
+
+
+## CTM + World 2 live integration — 2026-10-22
+
+**Workstream:** [Draft PR #87](https://github.com/molson835-ai/Coastline/pull/87)  
+**Branch:** `feat/ctm-world2-live-integration`  
+**Latest code/test commit at this note:** `f6a514ff86aafd7efd97eebf4a46ee32f4c58e79`  
+**Status:** implementation in progress; do not merge or deploy.
+
+### Implemented on the feature branch
+
+- Hardened CTM failure phases, per-world saved state/return points, destination-spawn delivery, partial-load cleanup hook, and degraded-state reporting for source-disposal failure.
+- Added a scene-root registry and a live adapter imported by `game-v3.html`; City and a bounded World 2 island shell now use CTM lifecycle adapters.
+- Added a city bridge affordance and a proximity-gated transition button; World 2 arrival is deterministic at `(1500, groundY(1500,1500), 1500)`.
+- Added City → Island → City and injected-load-failure/retry browser coverage. Transition test hooks return serializable status instead of Three.js scene handles.
+- While Island is active, city NPC/traffic/mission/wildlife/debris updates and city entity-index updates are paused. The runtime spatial-budget traversal skips invisible world roots. Local point lights are grouped with City; shared sky and player fill light remain global.
+- Added the adapter to the service-worker cache and itch.io package. Bumped their cache versions.
+- Made the gameplay, Babylon preview, and itch package workflows preinstall `http-server@14.1.1` before readiness polling to eliminate the observed asynchronous `npx` install race.
+
+### Verification evidence and current state
+
+- **CTM/engine tests:** 38 passed, 0 failed in the engine job of workflow run [39711380929](https://github.com/molson835-ai/Coastline/actions/runs/39711380929), tested commit `701d1a07ec4a620da800cee603c5ac44992ac868`.
+- **Itch package:** run #476 ([39711381035](https://github.com/molson835-ai/Coastline/actions/runs/39711381035)) passed the packaged Chromium smoke test before the final adapter/test-hook refinements. Newer run #481 is in progress.
+- **Babylon preview validation:** run #171 ([39711380985](https://github.com/molson835-ai/Coastline/actions/runs/39711380985)) failed in the repository-server startup step because `npx http-server` was still downloading while the 30-second readiness loop ran. The preinstall fix is in the branch; rerun #176 is in progress.
+- **Gameplay watchdog:** run #909 ([39711380929](https://github.com/molson835-ai/Coastline/actions/runs/39711380929)) was cancelled as the branch advanced. Before cancellation, 31 tests passed and the CTM runtime test was still in progress. Failures seen before cancellation were `landmark-discovery.spec.cjs`, `npc-world-slice.spec.cjs`, `performance-budget.spec.cjs`, and the old `transition-manager-browser.spec.cjs` expectation for the placeholder `world-1/world-2` IDs. The CTM browser test was updated to exercise live `city/island` adapters and return state. These results are not a final full-suite verdict.
+- **Latest gameplay watchdog:** run #914 ([39712612206](https://github.com/molson835-ai/Coastline/actions/runs/39712612206)) is in progress for the updated browser tests. Read its final logs before claiming the CTM browser tests pass.
+- Vercel preview creation remains blocked by the account's free daily deployment quota; no preview URL was produced. No production deployment or merge occurred.
+
+### Implementation rulings / limitations
+
+1. **City root caching:** `game-v3.html` currently builds City as one monolithic runtime and has no safe world-builder function to recreate it on return. The adapter hides and caches the City root while Island is active; CTM reports one active world handle and only one visible world root, but City resources remain allocated in memory. This is a deliberate phase-one compromise to preserve return-state continuity, **not proof of true single-world memory unloading**. Cost if wrong: memory use will not scale linearly as more worlds are added. Before claiming true memory streaming or adding many large worlds, refactor City construction into an explicit reloadable builder/teardown lifecycle and update tests to assert actual resource disposal.
+2. **CI server startup:** workflows now preinstall the exact server binary in the foreground before starting it. Cost if wrong: one extra cached/download step; this removes the race without adding a project runtime dependency.
+
+### Next bounded actions
+
+1. Wait for gameplay watchdog #914, itch package #481, and Babylon preview #176 to finish on the current code. Record exact outcomes.
+2. If the two CTM browser tests fail, inspect their Playwright traces and fix the actual root cause; do not weaken assertions.
+3. Keep the three pre-existing watchdog failures above visible as separate blockers; inspect their trace artifacts before changing behavior. In particular, the NPC repair-story timeout remains relevant to the earlier loader-test handoff.
+4. Perform the final whole-branch self-review (no reviewer subagent is available in this session), then update this handoff with final run IDs and deferred blockers.
+5. Do not merge or deploy until the CTM browser tests and package checks are green and the City-memory-caching limitation is explicitly accepted or resolved.
+
+
+### CI follow-up — 2026-10-22 02:50 UTC
+
+- Reviewed gameplay watchdog #916 (run `39713058275`): the `browser-smoke-test` job failed in **Start local web server**, before gameplay assertions. Logs confirm the `npx http-server` server process never opened port 4173 during the 30-second loop; `npx` attempted another install after the preceding `--version` step. This is a workflow setup failure, not a CTM test verdict.
+- Corrected all three browser workflows on this branch: use `npm install --global http-server@14.1.1` as a completed installation step, then invoke the installed `http-server` executable directly. Commits:
+  - gameplay watchdog: `c2a413511944046cf178b268df180e6b06b5d7b0`
+  - Babylon preview: `c2bfd97c76863443f7f5fd4e613b3dc88a425c61`
+  - itch package: `24fb2c775d7f6b79aa5e18bb0f06f3ad6b0c0fdc`
+- Latest CI triggered by these changes: itch package #484, run [39713498991](https://github.com/molson835-ai/Coastline/actions/runs/39713498991); Babylon preview #179, run [39713498992](https://github.com/molson835-ai/Coastline/actions/runs/39713498992); gameplay watchdog #917, run [39713498888](https://github.com/molson835-ai/Coastline/actions/runs/39713498888). At the last check these were still pending/in progress; no green result has been confirmed.
+- The prior gameplay run's engine/system jobs were still running when checked; their verdicts are unknown. Do not infer they passed. Continue by checking these latest run IDs and collecting final job conclusions. If global npm installation is also unexpectedly slow, increase no test assertions; inspect the specific step and use a lockfile-managed dev dependency only if justified.
