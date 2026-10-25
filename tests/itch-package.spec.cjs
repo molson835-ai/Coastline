@@ -4,7 +4,7 @@ test('packaged itch.io root entry boots with local gameplay modules', async ({ p
   const pageErrors = [];
   const consoleErrors = [];
   const failedRequests = [];
-  page.on('pageerror', error => pageErrors.push(error.message));
+  page.on('pageerror', error => pageErrors.push({ message: error.message, stack: error.stack }));
   page.on('console', message => { if (message.type() === 'error') consoleErrors.push(message.text()); });
   page.on('requestfailed', request => failedRequests.push(`${request.url()} :: ${request.failure()?.errorText || 'request failed'}`));
   const modelResponse = await page.request.get('/assets/vehicles/Range%20Rover%20by%20IvOfficial%20-%208zk4o6nALW.glb');
