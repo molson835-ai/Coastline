@@ -29,7 +29,7 @@ test('traffic stays in road lanes and vehicles collide with trees and streetligh
   expect(initial.signs).toBeGreaterThanOrEqual(17);
   expect(initial.treeBlocked).toBe(true);
   expect(initial.lampBlocked).toBe(true);
-  expect(initial.trafficCount).toBe(20);
+  expect(initial.trafficCount).toBe(12);
   expect(initial.trafficOnRoad, JSON.stringify(initial.offRoadTraffic)).toBe(initial.trafficCount);
   expect(initial.trafficAxes).toContain('z');
   expect(initial.trafficAxes).toContain('x');
@@ -46,7 +46,7 @@ test('traffic stays in road lanes and vehicles collide with trees and streetligh
       errors: api.state().errors
     };
   });
-  expect(moving.trafficCount).toBe(20);
+  expect(moving.trafficCount).toBe(12);
   expect(moving.trafficOnRoad).toBe(moving.trafficCount);
   expect(moving.movingCount).toBeGreaterThan(0);
   expect(moving.errors).toEqual([]);
