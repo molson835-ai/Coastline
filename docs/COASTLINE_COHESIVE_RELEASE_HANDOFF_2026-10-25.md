@@ -87,3 +87,5 @@ Before ending any work session, update this file with current head SHA, PR numbe
 
 
 - Follow-up CI inspection found two legacy packaged/social-rumor assertions requiring more than 40 rumor participants. Since the foundation phase deliberately caps City pedestrians at 16 and keeps advanced rumor behavior dormant, those tests now assert the bounded 16-person roster while retaining their system-presence, rumor-rule, and behavior assertions. This is a contract update, not a claim that advanced rumor simulation is re-enabled.
+
+- Cache invalidation: bumped the static service-worker cache from v55 to v56 so clients do not keep the previous cached `game-v3.html` after population-limit changes.
