@@ -42,7 +42,7 @@ function mimeFor(name) {
 function removeVisualChildren(root) {
   for (const child of [...root.children]) {
     root.remove(child);
-    // Cloned FBX geometry/materials are shared with the cached source; do not dispose shared resources here.
+    child.traverse?.(node => { if (node.geometry && !node.userData?.coastlineSharedGeometry) node.geometry.dispose?.(); });
   }
 }
 function getBounds(THREE, root) {
@@ -51,6 +51,7 @@ function getBounds(THREE, root) {
 }
 function fitVehicle(THREE, source, target = { width:2.05, length:4.25, height:2.05 }) {
   const model = source.clone(true);
+  model.traverse(node => { if (node.isMesh) node.userData.coastlineSharedGeometry = true; });
   let bounds = getBounds(THREE, model);
   let size = new THREE.Vector3();
   bounds.getSize(size);
