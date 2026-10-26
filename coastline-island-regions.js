@@ -264,7 +264,7 @@ export function createCoastlineIslandRoot({ THREE, region, groundY = () => 0, ad
   // remain open; the movement boundary is still enforced by the shared shoreline predicate.
   const perimeterPoints = createIslandShape(THREE, region, 0.985).getPoints(48);
   const perimeterPlacements = perimeterPoints.filter(point => {
-    const x = point.x, z = point.y;
+    const x = point.x, z = -point.y;
     if (region.id === 'residential' && z < -half * 0.9) return false; // City bridge landing
     if ((region.id === 'residential' || region.id === 'waterfront') && x > half * 0.9 && Math.abs(z) < 10) return false;
     if ((region.id === 'waterfront' || region.id === 'port') && x < -half * 0.9 && Math.abs(z) < 10) return false;
@@ -277,7 +277,7 @@ export function createCoastlineIslandRoot({ THREE, region, groundY = () => 0, ad
   shorelineRocks.name = `coastline-${region.id}-landscape-boundary-rocks`;
   const shorelineDummy = new THREE.Object3D();
   perimeterPlacements.forEach((point, i) => {
-    shorelineDummy.position.set(center.x + point.x, edgeY + 0.12 + (i % 3) * 0.035, center.z + point.y);
+    shorelineDummy.position.set(center.x + point.x, edgeY + 0.12 + (i % 3) * 0.035, center.z - point.y);
     shorelineDummy.scale.set(1.15 + (i % 4) * 0.24, 0.5 + (i % 3) * 0.13, 0.95 + (i % 2) * 0.22);
     shorelineDummy.rotation.set((i % 3) * 0.08, i * 0.73, (i % 4) * 0.06);
     shorelineDummy.updateMatrix(); shorelineRocks.setMatrixAt(i, shorelineDummy.matrix);
