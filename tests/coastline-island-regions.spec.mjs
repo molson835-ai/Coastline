@@ -51,3 +51,12 @@ test('other CTM island regions retain bounded shorelines', () => {
   assert.equal(isCoastlineIslandPointInside(650, 500, 'waterfront'), false);
   assert.equal(isCoastlineIslandPointInside(500, 500, 'unknown'), false);
 });
+
+
+test('all islands use developed-quality scenery while retaining bounded population budgets', () => {
+  for (const region of COASTLINE_ISLAND_REGIONS) {
+    assert.equal(region.contentDensity, 'developed', region.id + ' should not be an empty placeholder');
+    assert.equal(region.visual.waterline, true);
+    assert.ok(region.visual.vegetation && region.visual.vegetation.length > 0);
+  }
+});

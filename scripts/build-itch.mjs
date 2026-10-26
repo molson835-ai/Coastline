@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const output = path.join(root, 'dist', 'itch-html');
 const files = [
-  'game-v3.html', 'coastline-asset-swap.js', 'assets/Free Low Poly Vehicles Pack by Rgsdev.zip', 'assets/grab3d-cozy-character.glb', 'ASSET_CREDITS.md', 'vehicle-visual-enhancer.js', 'cinematic-world-upgrade.js',
+  'game-v3.html', 'coastline-asset-swap.js', 'coastline-vehicle-sizing.js', 'assets/Free Low Poly Vehicles Pack by Rgsdev.zip', 'assets/grab3d-cozy-character.glb', 'ASSET_CREDITS.md', 'vehicle-visual-enhancer.js', 'cinematic-world-upgrade.js',
   'car-customization.js', 'world-model.js', 'world-engine.js', 'living-world.js',
   'douglassville-layout.js', 'realism-library.js', 'presentation-runtime.js',
   'cinematic-visual-library.js', 'cinematic-animation-library.js',
@@ -14,7 +14,7 @@ const files = [
   'npc-agency-engine.js', 'npc-world-slice.js', 'social-rumor-engine.js',
   'player-reputation-engine.js', 'coastline-runtime-fix.js',
   'coastline-stability-v8.js', 'transition-manager.js', 'transition-manager-browser.js',
-  'coastline-sw.js', 'coastline-world-transitions.js', 'coastline-island-regions.js', 'coastline-homey-garage.js', 'render-culling.js'
+  'coastline-sw.js', 'coastline-world-transitions.js', 'coastline-island-regions.js', 'coastline-homey-garage.js', 'coastline-homey-house-interior.js', 'render-culling.js'
 ];
 for (const file of files) {
   if (!existsSync(path.join(root, file))) throw new Error('Missing runtime file: ' + file);
@@ -31,10 +31,10 @@ await writeFile(path.join(output, 'index.html'), html);
 let sw = await readFile(path.join(output, 'coastline-sw.js'), 'utf8');
 // The website cache may have advanced independently. Give the standalone package
 // its own version and cache only files that are actually shipped in this package.
-sw = sw.replace(/const CACHE_NAME='[^']+';/, "const CACHE_NAME='coastline-itch-static-v2';");
+sw = sw.replace(/const CACHE_NAME='[^']+';/, "const CACHE_NAME='coastline-itch-static-v3';");
 const packagedCore = ['./', './index.html', ...files.map(file => './' + file)];
 sw = sw.replace(/const CORE=\[[^\]]*\];/, "const CORE=[" + packagedCore.map(file => "'" + file + "'").join(',') + "]");
-if (!sw.includes("'./index.html'") || !sw.includes('coastline-itch-static-v2')) {
+if (!sw.includes("'./index.html'") || !sw.includes('coastline-itch-static-v3')) {
   throw new Error('Unable to configure service-worker cache for the packaged entry point.');
 }
 await writeFile(path.join(output, 'coastline-sw.js'), sw);

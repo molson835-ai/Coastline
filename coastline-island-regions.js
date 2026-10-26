@@ -1,10 +1,10 @@
 /**
  * Coastline's canonical four-island design manifest.
  *
- * These are world-segment contracts, not a claim that all four regions are
- * currently rendered/playable. Keep world identity, transition targets and
- * population budgets here rather than scattering them through runtime code.
- * Only the active region should own live simulation; distant regions are scenery.
+ * These four world-segment contracts define distinct islands at the same visual
+ * quality bar as the City. Keep identity, transition targets, content density,
+ * and population budgets here rather than scattering them through runtime code.
+ * Only the active region owns live simulation; inactive islands are streamed scenery.
  */
 export const COASTLINE_ISLAND_REGIONS = Object.freeze([
   Object.freeze({
@@ -41,7 +41,7 @@ export const COASTLINE_ISLAND_REGIONS = Object.freeze([
     bridge: Object.freeze({ entry: 'west', exit: 'east', target: 'port' }),
     population: Object.freeze({ traffic: 10, pedestrians: 16 }),
     visual: Object.freeze({ landmark: 'marina', vegetation: 'beach-palms', waterline: true }),
-    contentDensity: 'sparse',
+    contentDensity: 'developed',
   }),
   Object.freeze({
     id: 'port',
@@ -52,8 +52,8 @@ export const COASTLINE_ISLAND_REGIONS = Object.freeze([
     bounds: Object.freeze({ halfWidth: 110, halfDepth: 110, cornerRadius: 20 }),
     bridge: Object.freeze({ entry: 'west', exit: 'west', target: 'waterfront' }),
     population: Object.freeze({ traffic: 8, pedestrians: 10 }),
-    visual: Object.freeze({ landmark: 'container-cranes', vegetation: 'sparse-coastal', waterline: true }),
-    contentDensity: 'sparse',
+    visual: Object.freeze({ landmark: 'container-cranes', vegetation: 'harbor-palms', waterline: true }),
+    contentDensity: 'developed',
   }),
 ]);
 
@@ -233,6 +233,58 @@ export function createCoastlineIslandRoot({ THREE, region, groundY = () => 0, ad
     return mesh;
   };
   addBox(`coastline-${region.id}-main-road`, center.x, edgeY + 0.02, center.z - 82.5, 16, 0.16, 55, roadMat, false, false);
+  // Reuse the City's road-edge language on every island: concrete sidewalks,
+  // painted center dashes, street lamps and benches, all with instancing where practical.
+  const sidewalkMat = material(0x858987, 0.94);
+  const stripeMat = material(0xe7e1c9, 0.82);
+  for (const side of [-1, 1]) addBox(`coastline-${region.id}-main-road-sidewalk-${side}`, center.x + side * 10.1, edgeY + 0.12, center.z - 82.5, 3.2, 0.2, 55, sidewalkMat, false, false);
+  for (let dash = 0; dash < 6; dash++) addBox(`coastline-${region.id}-main-road-center-dash-${dash + 1}`, center.x, edgeY + 0.12, center.z - 104 + dash * 8.5, .16, .035, 4.0, stripeMat, false, false);
+  const lampMetal = material(0x3b4545, 0.68, 0.28);
+  const lampGlow = new THREE.MeshStandardMaterial({ color: 0xffe4ad, emissive: 0xffc56d, emissiveIntensity: 1.05, roughness: .35 });
+  const streetLampCount = 6;
+  const streetLamps = new THREE.InstancedMesh(new THREE.CylinderGeometry(.07, .12, 4.4, 6), lampMetal, streetLampCount);
+  const streetLampHeads = new THREE.InstancedMesh(new THREE.BoxGeometry(.55, .12, .24), lampGlow, streetLampCount);
+  streetLamps.name = `coastline-${region.id}-street-lamp-posts`;
+  streetLampHeads.name = `coastline-${region.id}-street-lamp-heads`;
+  const streetDummy = new THREE.Object3D();
+  for (let i = 0; i < streetLampCount; i++) {
+    const side = i % 2 === 0 ? -1 : 1, z = center.z - 102 + Math.floor(i / 2) * 20;
+    streetDummy.position.set(center.x + side * 12.4, edgeY + 2.2, z); streetDummy.rotation.set(0, 0, 0); streetDummy.scale.set(1, 1, 1); streetDummy.updateMatrix(); streetLamps.setMatrixAt(i, streetDummy.matrix);
+    streetDummy.position.set(center.x + side * 12.4, edgeY + 4.42, z); streetDummy.updateMatrix(); streetLampHeads.setMatrixAt(i, streetDummy.matrix);
+  }
+  streetLamps.instanceMatrix.needsUpdate = true; streetLampHeads.instanceMatrix.needsUpdate = true;
+  streetLamps.castShadow = false; streetLampHeads.castShadow = false; root.add(streetLamps, streetLampHeads);
+  for (let i = 0; i < 4; i++) {
+    const side = i % 2 === 0 ? -1 : 1, z = center.z - 73 + Math.floor(i / 2) * 18;
+    addBox(`coastline-${region.id}-street-bench-seat-${i + 1}`, center.x + side * 13.1, edgeY + .62, z, 1.8, .14, .52, material(0x876348, .88), false, false);
+    addBox(`coastline-${region.id}-street-bench-back-${i + 1}`, center.x + side * 13.1, edgeY + .96, z - .2, 1.8, .5, .12, material(0x876348, .88), false, false);
+  }
+
+  // Every island receives a visible natural shoreline rim. Bridge landing gaps
+  // remain open; the movement boundary is still enforced by the shared shoreline predicate.
+  const perimeterPoints = createIslandShape(THREE, region, 0.985).getPoints(16);
+  const perimeterPlacements = perimeterPoints.filter(point => {
+    const x = point.x, z = -point.y;
+    if (region.id === 'residential' && z < -half * 0.9) return false; // City bridge landing
+    if ((region.id === 'residential' || region.id === 'waterfront') && x > half * 0.9 && Math.abs(z) < 10) return false;
+    if ((region.id === 'waterfront' || region.id === 'port') && x < -half * 0.9 && Math.abs(z) < 10) return false;
+    if (region.id === 'waterfront' && x > half * 0.9 && Math.abs(z) < 10) return false;
+    return true;
+  });
+  const shorelineRockMaterial = material(region.theme === 'working-harbor' ? 0x666c6a : 0x77766c, 0.98);
+  const shorelineRockGeometry = new THREE.DodecahedronGeometry(1, 0);
+  const shorelineRocks = new THREE.InstancedMesh(shorelineRockGeometry, shorelineRockMaterial, perimeterPlacements.length);
+  shorelineRocks.name = `coastline-${region.id}-landscape-boundary-rocks`;
+  const shorelineDummy = new THREE.Object3D();
+  perimeterPlacements.forEach((point, i) => {
+    shorelineDummy.position.set(center.x + point.x, edgeY + 0.12 + (i % 3) * 0.035, center.z - point.y);
+    shorelineDummy.scale.set(1.15 + (i % 4) * 0.24, 0.5 + (i % 3) * 0.13, 0.95 + (i % 2) * 0.22);
+    shorelineDummy.rotation.set((i % 3) * 0.08, i * 0.73, (i % 4) * 0.06);
+    shorelineDummy.updateMatrix(); shorelineRocks.setMatrixAt(i, shorelineDummy.matrix);
+  });
+  shorelineRocks.instanceMatrix.needsUpdate = true;
+  shorelineRocks.castShadow = false; shorelineRocks.receiveShadow = true;
+  root.add(shorelineRocks);
 
   // Sparse regions still need a live collision perimeter. Keep gaps centered on
   // the side-bridge landings so the route remains traversable between worlds.
@@ -423,7 +475,7 @@ export function createCoastlineIslandRoot({ THREE, region, groundY = () => 0, ad
 
   }
 
-  if (region.contentDensity === 'developed' && region.visual?.vegetation !== 'sparse-coastal') {
+  if (region.contentDensity === 'developed') {
     const trunk = material(0x79583d, 0.96);
     const leaves = material(0x2f7047, 0.94);
     const coconutMat = material(0x6b5635, 0.92);

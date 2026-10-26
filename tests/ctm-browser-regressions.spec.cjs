@@ -191,3 +191,81 @@ test('Homey garage opens only when a vehicle crosses the open threshold and pres
   expect(outside.position.y).toBeCloseTo(await page.evaluate(() => window.__coastlineTest.groundY(483, 484)), 1);
   expect(outside.vehicleIndex).toBe(originalIndex);
 });
+
+
+test('Homey garage includes an overhead roll-up door and an on-foot house doorway', async ({ page }) => {
+  await openGame(page);
+  await page.waitForFunction(() => window.__coastlineVehicleAssetSwapStatus?.ok === true, null, { timeout: 45000 });
+  await page.evaluate(async () => {
+    await window.__coastlineTransitionTest.transition('city-to-island');
+    await window.__coastlineTransitionTest.transition('island-to-homey-garage');
+  });
+  const garage = await page.evaluate(() => window.__coastlineTransitionTest.garageState());
+  expect(garage.garageDoorSlatCount).toBeGreaterThanOrEqual(12);
+  expect(garage.houseDoorPresent).toBe(true);
+  expect(garage.root.meshes).toBeGreaterThan(50);
+});
+
+test('walking through the house doorway instantly streams the detailed home interior and back', async ({ page }) => {
+  await openGame(page);
+  await page.waitForFunction(() => window.__coastlineVehicleAssetSwapStatus?.ok === true, null, { timeout: 45000 });
+  const entry = await page.evaluate(async () => {
+    await window.__coastlineTransitionTest.transition('city-to-island');
+    await window.__coastlineTransitionTest.transition('island-to-homey-garage');
+    const index = window.__coastlineTransitionTest.garageState().vehicleIndex;
+    // A vehicle crossing the house threshold must not transition.
+    window.__coastlineTest.setVehiclePosition(483, 515, 0);
+    window.__coastlineTransitionTest.updatePrompt();
+    window.__coastlineTest.setVehiclePosition(483, 516, 0);
+    window.__coastlineTransitionTest.updatePrompt();
+    const vehicleWorld = window.__coastlineTransitionTest.status().activeWorldId;
+    // The same crossing on foot must transition immediately.
+    window.__coastlineTest.setWalkPosition(483, 515, 0);
+    window.__coastlineTransitionTest.updatePrompt();
+    window.__coastlineTest.setWalkPosition(483, 516, 0);
+    window.__coastlineTransitionTest.updatePrompt();
+    return { index, vehicleWorld };
+  });
+  const parkedVehicleIndex = entry.index;
+  expect(entry.vehicleWorld).toBe('homey-garage');
+  await expect.poll(() => page.evaluate(() => window.__coastlineTransitionTest.status().activeWorldId), { timeout: 5000 }).toBe('home-interior');
+  const inside = await page.evaluate(() => ({
+    house: window.__coastlineTransitionTest.houseState(),
+    player: window.__coastlineTransitionTest.playerState(),
+  }));
+  expect(inside.house.root.meshes).toBeGreaterThan(35);
+  expect(inside.house.parkedVehicleHidden).toBe(true);
+  expect(inside.player.mode).toBe('walk');
+  expect(inside.player.position.z).toBeCloseTo(500, 1);
+  await page.evaluate(() => {
+    window.__coastlineTest.setWalkPosition(483, 512.5, 0);
+    window.__coastlineTransitionTest.updatePrompt();
+    window.__coastlineTest.setWalkPosition(483, 513.5, 0);
+    window.__coastlineTransitionTest.updatePrompt();
+  });
+  await expect.poll(() => page.evaluate(() => window.__coastlineTransitionTest.status().activeWorldId), { timeout: 5000 }).toBe('homey-garage');
+  expect(await page.evaluate(() => window.__coastlineTransitionTest.playerState().mode)).toBe('walk');
+  expect(await page.evaluate(() => window.__coastlineTransitionTest.garageState().vehicleIndex)).toBe(parkedVehicleIndex);
+});
+
+test('residential, waterfront, and port islands have developed detail and landscape boundaries', async ({ page }) => {
+  await openGame(page);
+  const details = await page.evaluate(async () => {
+    const results = {};
+    await window.__coastlineTransitionTest.transition('city-to-island');
+    results.residential = window.__coastlineTransitionTest.islandDetailState().residential;
+    await window.__coastlineTransitionTest.transition('island-to-waterfront');
+    results.waterfront = window.__coastlineTransitionTest.islandDetailState().waterfront;
+    await window.__coastlineTransitionTest.transition('waterfront-to-port');
+    results.port = window.__coastlineTransitionTest.islandDetailState().port;
+    return results;
+  });
+  for (const island of ['residential', 'waterfront', 'port']) {
+    expect(details[island].meshes).toBeGreaterThan(25);
+    expect(details[island].boundary).toBe(true);
+    expect(details[island].lamps).toBe(true);
+    expect(details[island].benches).toBeGreaterThanOrEqual(4);
+  }
+  const densities = await page.evaluate(() => window.__coastlineTransitionTest.worldDefinitions().filter(world => ['island','waterfront','port'].includes(world.id)).map(world => world.content.density));
+  expect(densities.every(density => density === 'developed')).toBe(true);
+});
