@@ -256,31 +256,53 @@ export function createCoastlineIslandRoot({ THREE, region, groundY = () => 0, ad
     addBox('coastline-villa-front-garden-bed', center.x + 7, edgeY + 0.06, center.z - 17, 18, 0.12, 3.2, lawn, false, false);
     addBox('coastline-villa-front-walk', center.x + 4, edgeY + 0.08, center.z - 20, 4, 0.16, 8, deck, false, false);
     const bushMat = material(0x2e6740, 0.98);
-    const flowerMats = [material(0xf0c7ce, 0.75), material(0xf4d98a, 0.75), material(0xf6f1e5, 0.75)];
+    const flowerMats = [0xf0c7ce, 0xf4d98a, 0xf6f1e5];
+    const gardenDummy = new THREE.Object3D();
+    const bushGeometry = new THREE.SphereGeometry(1, 7, 5);
+    const bushes = new THREE.InstancedMesh(bushGeometry, bushMat, 18);
+    bushes.name = 'coastline-villa-garden-bushes';
+    const flowerGeometry = new THREE.SphereGeometry(0.2, 6, 4);
+    const flowers = new THREE.InstancedMesh(flowerGeometry, material(0xffffff, 0.75), 18);
+    flowers.name = 'coastline-villa-garden-flowers';
     for (let i = 0; i < 18; i++) {
       const x = center.x - 1 + (i % 9) * 2.2;
       const z = center.z - 18 - Math.floor(i / 9) * 2.4;
-      const bush = new THREE.Mesh(new THREE.SphereGeometry(0.62, 7, 5), bushMat);
-      bush.name = `coastline-villa-garden-bush-${i + 1}`;
-      bush.position.set(x, edgeY + 0.52, z); bush.scale.set(1.2, 0.72, 0.9); root.add(bush);
-      const flower = new THREE.Mesh(new THREE.SphereGeometry(0.2, 6, 4), flowerMats[i % flowerMats.length]);
-      flower.name = `coastline-villa-garden-flower-${i + 1}`;
-      flower.position.set(x + 0.2, edgeY + 0.9, z - 0.2); root.add(flower);
+      gardenDummy.position.set(x, edgeY + 0.52, z);
+      gardenDummy.scale.set(0.74, 0.52, 0.56);
+      gardenDummy.rotation.set(0, (i % 4) * 0.2, 0);
+      gardenDummy.updateMatrix(); bushes.setMatrixAt(i, gardenDummy.matrix);
+      gardenDummy.position.set(x + 0.2, edgeY + 0.9, z - 0.2);
+      gardenDummy.scale.setScalar(1);
+      gardenDummy.rotation.set(0, 0, 0);
+      gardenDummy.updateMatrix(); flowers.setMatrixAt(i, gardenDummy.matrix);
+      flowers.setColorAt(i, new THREE.Color(flowerMats[i % flowerMats.length]));
     }
+    bushes.instanceMatrix.needsUpdate = true; flowers.instanceMatrix.needsUpdate = true;
+    bushes.castShadow = false; bushes.receiveShadow = true;
+    flowers.castShadow = false;
+    root.add(bushes, flowers);
+
     const lampPostMat = material(0x393c3a, 0.72, 0.18);
     const lampGlowMat = new THREE.MeshStandardMaterial({ color: 0xffdf9b, emissive: 0xffbd63, emissiveIntensity: 1.1, roughness: 0.4 });
+    const lampPosts = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.09, 0.13, 1.45, 6), lampPostMat, 10);
+    const lampBulbs = new THREE.InstancedMesh(new THREE.SphereGeometry(0.22, 6, 5), lampGlowMat, 10);
+    lampPosts.name = 'coastline-villa-path-light-posts';
+    lampBulbs.name = 'coastline-villa-path-light-bulbs';
     for (let i = 0; i < 5; i++) {
       for (const side of [-1, 1]) {
+        const index = i * 2 + (side === 1 ? 1 : 0);
         const x = center.x - 17 + side * 5.5;
         const z = center.z - 17 - i * 7.5;
-        const post = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.13, 1.45, 6), lampPostMat);
-        post.name = `coastline-villa-path-light-post-${i + 1}-${side}`;
-        post.position.set(x, edgeY + 0.8, z); root.add(post);
-        const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.22, 6, 5), lampGlowMat);
-        bulb.name = `coastline-villa-path-light-bulb-${i + 1}-${side}`;
-        bulb.position.set(x, edgeY + 1.55, z); root.add(bulb);
+        gardenDummy.position.set(x, edgeY + 0.8, z);
+        gardenDummy.scale.set(1, 1, 1); gardenDummy.rotation.set(0, 0, 0);
+        gardenDummy.updateMatrix(); lampPosts.setMatrixAt(index, gardenDummy.matrix);
+        gardenDummy.position.set(x, edgeY + 1.55, z);
+        gardenDummy.updateMatrix(); lampBulbs.setMatrixAt(index, gardenDummy.matrix);
       }
     }
+    lampPosts.instanceMatrix.needsUpdate = true; lampBulbs.instanceMatrix.needsUpdate = true;
+    lampPosts.castShadow = false; lampBulbs.castShadow = false;
+    root.add(lampPosts, lampBulbs);
     // The garden is deliberately modest so the mobile scene remains inexpensive.
     addBox('coastline-residential-park', center.x + 42, edgeY + 0.03, center.z - 51, 24, 0.08, 18, lawn, false, false);
   } else if (region.theme === 'resort-marina') {
@@ -308,50 +330,64 @@ export function createCoastlineIslandRoot({ THREE, region, groundY = () => 0, ad
   if (region.visual?.vegetation !== 'sparse-coastal') {
     const trunk = material(0x79583d, 0.96);
     const leaves = material(0x2f7047, 0.94);
-    const coconuts = material(0x6b5635, 0.92);
+    const coconutMat = material(0x6b5635, 0.92);
     const treeOffsets = region.id === 'residential'
       ? [[-82,-56],[-63,-80],[-28,-88],[34,-88],[72,-68],[91,-8],[78,48],[46,82],[-12,88],[-58,73],[-86,32]]
       : Array.from({ length: 8 }, (_, i) => [-82 + (i % 4) * 54, i < 4 ? -72 : 76]);
+    const treeDummy = new THREE.Object3D();
+    const trunks = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.35, 0.5, 5.5, 7), trunk, treeOffsets.length);
+    const crowns = new THREE.InstancedMesh(new THREE.SphereGeometry(1.05, 7, 5), leaves, treeOffsets.length);
+    const fronds = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.035, 0.14, 4.8, 5), leaves, treeOffsets.length * 7);
+    const coconuts = new THREE.InstancedMesh(new THREE.SphereGeometry(0.22, 5, 4), coconutMat, treeOffsets.length * 3);
+    trunks.name = `coastline-${region.id}-palm-trunks`;
+    crowns.name = `coastline-${region.id}-palm-crowns`;
+    fronds.name = `coastline-${region.id}-palm-fronds`;
+    coconuts.name = `coastline-${region.id}-palm-coconuts`;
+    let frondIndex = 0, coconutIndex = 0;
     treeOffsets.forEach(([dx, dz], i) => {
       const x = center.x + dx, z = center.z + dz;
-      const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.5, 5.5, 7), trunk);
-      stem.name = `coastline-${region.id}-palm-trunk-${i + 1}`;
-      stem.position.set(x, edgeY + 2.75, z);
-      stem.castShadow = true; stem.receiveShadow = true; root.add(stem);
-      colliders.push({ name: stem.name, x, z, w: 2.0, d: 2.0 });
-      const crown = new THREE.Mesh(new THREE.SphereGeometry(1.05, 7, 5), leaves);
-      crown.name = `coastline-${region.id}-palm-crown-${i + 1}`;
-      crown.position.set(x, edgeY + 5.6, z);
-      crown.scale.set(1.25, 0.62, 1.25); root.add(crown);
+      const stem = new THREE.Object3D();
+      stem.position.set(x, edgeY + 2.75, z); stem.updateMatrix(); trunks.setMatrixAt(i, stem.matrix);
+      treeDummy.position.set(x, edgeY + 5.6, z);
+      treeDummy.scale.set(1.25, 0.62, 1.25); treeDummy.rotation.set(0, 0, 0);
+      treeDummy.updateMatrix(); crowns.setMatrixAt(i, treeDummy.matrix);
+      colliders.push({ name: `coastline-${region.id}-palm-trunk-${i + 1}`, x, z, w: 2.0, d: 2.0 });
       for (let frond = 0; frond < 7; frond++) {
         const angle = frond * Math.PI * 2 / 7 + (i % 3) * 0.18;
         const direction = new THREE.Vector3(Math.cos(angle), -0.48 - (frond % 2) * 0.08, Math.sin(angle)).normalize();
-        const leaf = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.14, 4.8, 5), leaves);
-        leaf.name = `coastline-${region.id}-palm-frond-${i + 1}-${frond + 1}`;
-        leaf.position.set(x + direction.x * 1.9, edgeY + 6.25 + direction.y * 1.9, z + direction.z * 1.9);
-        leaf.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction);
-        leaf.castShadow = true; root.add(leaf);
+        treeDummy.position.set(x + direction.x * 1.9, edgeY + 6.25 + direction.y * 1.9, z + direction.z * 1.9);
+        treeDummy.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction);
+        treeDummy.scale.set(1, 1, 1); treeDummy.updateMatrix();
+        fronds.setMatrixAt(frondIndex++, treeDummy.matrix);
       }
       for (let nut = 0; nut < 3; nut++) {
         const angle = nut * Math.PI * 2 / 3;
-        const coconut = new THREE.Mesh(new THREE.SphereGeometry(0.22, 5, 4), coconuts);
-        coconut.name = `coastline-${region.id}-palm-coconut-${i + 1}-${nut + 1}`;
-        coconut.position.set(x + Math.cos(angle) * 0.48, edgeY + 5.45, z + Math.sin(angle) * 0.48);
-        root.add(coconut);
+        treeDummy.position.set(x + Math.cos(angle) * 0.48, edgeY + 5.45, z + Math.sin(angle) * 0.48);
+        treeDummy.quaternion.set(0, 0, 0, 1); treeDummy.scale.set(1, 1, 1); treeDummy.updateMatrix();
+        coconuts.setMatrixAt(coconutIndex++, treeDummy.matrix);
       }
     });
-    // A few low coastal rocks soften the sand/land boundary without crowding the drive.
+    for (const mesh of [trunks, crowns, fronds, coconuts]) {
+      mesh.instanceMatrix.needsUpdate = true;
+      mesh.castShadow = mesh === trunks;
+      mesh.receiveShadow = mesh === trunks;
+      root.add(mesh);
+    }
+    // Instanced shoreline rocks preserve the rough beach edge with a handful of draw calls.
     if (region.id === 'residential') {
       const rockMat = material(0x77756c, 0.98);
+      const rockGeometry = new THREE.DodecahedronGeometry(1, 0);
+      const rocks = new THREE.InstancedMesh(rockGeometry, rockMat, 18);
+      rocks.name = 'coastline-residential-shore-rocks';
       for (let i = 0; i < 18; i++) {
         const angle = i * Math.PI * 2 / 18;
-        const x = center.x + Math.cos(angle) * 103;
-        const z = center.z + Math.sin(angle) * 103;
-        const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(0.8 + (i % 3) * 0.22, 0), rockMat);
-        rock.name = `coastline-residential-shore-rock-${i + 1}`;
-        rock.position.set(x, edgeY + 0.02, z); rock.scale.set(1.4, 0.55, 1.05);
-        rock.rotation.y = angle; root.add(rock);
+        treeDummy.position.set(center.x + Math.cos(angle) * 103, edgeY + 0.02, center.z + Math.sin(angle) * 103);
+        treeDummy.scale.set(1.12 + (i % 3) * 0.22, 0.44 + (i % 2) * 0.12, 0.9);
+        treeDummy.rotation.set(0, angle, 0); treeDummy.updateMatrix();
+        rocks.setMatrixAt(i, treeDummy.matrix);
       }
+      rocks.instanceMatrix.needsUpdate = true;
+      rocks.castShadow = false; rocks.receiveShadow = true; root.add(rocks);
     }
   }
   if (region.id === 'residential' && typeof addBridge === 'function') addBridge(THREE, root, { x: center.x, startZ: center.z - half, y: edgeY, length: 100 });
