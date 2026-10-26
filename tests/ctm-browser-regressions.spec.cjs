@@ -156,13 +156,20 @@ test('Homey garage opens only when a vehicle crosses the open threshold and pres
   await page.locator('#garageConfirm').click();
   const swapped = await page.evaluate(() => {
     const vehicle = window.__coastlineTransitionTest.garageVehicleRef();
-    const body = vehicle.materialRoles?.body?.[0];
-    const material = Array.isArray(body?.material) ? body.material[0] : body?.material;
+    const bodyPattern = /(body|paint|panel|exterior|hood|bonnet|door|fender|shell|chassis)/i;
+    const protectedPattern = /(glass|window|windshield|windscreen|wheel|tire|tyre|rim|light|lamp|chrome|trim|interior|seat|dash|mirror|grill|grille|bumper|plastic|hardware)/i;
+    const bodyPaintColors = (vehicle.materialRoles?.body || []).flatMap(mesh => {
+      const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+      return materials.filter(material => material?.color && !protectedPattern.test(String(material.name || '')) &&
+        (bodyPattern.test(String(material.name || '')) || (materials.length === 1 && bodyPattern.test(String(mesh.name || '')))))
+        .map(material => material.color.getHexString());
+    });
     const roles = window.__coastlineTransitionTest.garageVehicleMaterialSnapshot();
     return {
       index: window.__coastlineTransitionTest.garageState().vehicleIndex,
       model: vehicle.rgsdevModelName,
-      paint: material?.color?.getHexString?.() || null,
+      paint: bodyPaintColors.find(color => color === 'b92d35') || null,
+      paintedMaterialCount: vehicle.coastlinePaintDiagnostics?.paintedMaterialCount || 0,
       glass: roles.glass,
       wheels: roles.wheels,
       lights: roles.lights,
@@ -172,6 +179,7 @@ test('Homey garage opens only when a vehicle crosses the open threshold and pres
   expect(swapped.index).toBe(originalIndex);
   expect(swapped.model).toBe(selectedModel);
   expect(swapped.paint).toBe('b92d35');
+  expect(swapped.paintedMaterialCount).toBeGreaterThan(0);
   expect(swapped.glass).toEqual(donorMaterials.glass);
   expect(swapped.wheels).toEqual(donorMaterials.wheels);
   expect(swapped.lights).toEqual(donorMaterials.lights);

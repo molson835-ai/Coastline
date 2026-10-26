@@ -90,13 +90,13 @@ export function buildHomeyGarageInterior(THREE, { centerX = 483, centerZ = 500, 
     addBox(`garage-warm-perimeter-light-${side}`, centerX + side * 8.65, floorY + 4.85, centerZ + 2.5, .08, .06, 26.5, amberMat);
   }
   // Collector-style wall cabinets, slatwall and a service bench.
-  addBox('garage-workbench', centerX + 4.95, floorY + 1.05, centerZ + 7.5, 2.7, .18, 5.6, warmWood);
+  addBox('garage-workbench', centerX + 4.95, floorY + 1.05, centerZ + 7.5, 2.7, .18, 5.6, warmWood, true);
   addBox('garage-tool-wall', centerX + 6.45, floorY + 2.65, centerZ + 7.5, .12, 2.9, 5.8, trimMat);
   for (let i = 0; i < 5; i++) {
     addBox(`garage-tool-slat-${i + 1}`, centerX + 6.36, floorY + 1.55 + i * .48, centerZ + 5.2, .08, .035, 4.7, cabinetMat);
   }
   for (let i = 0; i < 3; i++) {
-    addBox(`garage-upper-cabinet-${i + 1}`, centerX + 4.95, floorY + 3.55, centerZ + 5.5 + i * 1.85, 2.55, 1.0, 1.45, cabinetMat);
+    addBox(`garage-upper-cabinet-${i + 1}`, centerX + 4.95, floorY + 3.55, centerZ + 5.5 + i * 1.85, 2.55, 1.0, 1.45, cabinetMat, true);
     addBox(`garage-cabinet-handle-${i + 1}`, centerX + 3.63, floorY + 3.55, centerZ + 5.5 + i * 1.85, .06, .22, .12, ledMat);
   }
   // Low-profile lift pads and wheel guides frame the drive-out position.
@@ -188,13 +188,13 @@ export function buildHomeyGarageInterior(THREE, { centerX = 483, centerZ = 500, 
   addBox('garage-clock-hour-hand', centerX - 6.48, floorY + 3.75, centerZ + 9.3, .035, .26, .025, trimMat);
   addBox('garage-clock-minute-hand', centerX - 6.47, floorY + 3.82, centerZ + 9.4, .025, .035, .22, trimMat);
   // Rear shelf with fluid cans and compact parts bins; all stay outside the vehicle's turn-in envelope.
-  addBox('garage-parts-shelf-top', centerX, floorY + 2.0, centerZ + 11.6, 3.4, .12, .75, cabinetMat);
-  addBox('garage-parts-shelf-bottom', centerX, floorY + .95, centerZ + 11.6, 3.4, .12, .75, cabinetMat);
+  addBox('garage-parts-shelf-top', centerX, floorY + 2.0, centerZ + 11.6, 3.4, .12, .75, cabinetMat, true);
+  addBox('garage-parts-shelf-bottom', centerX, floorY + .95, centerZ + 11.6, 3.4, .12, .75, cabinetMat, true);
   for (let i = 0; i < 5; i++) {
     const x = centerX - 1.3 + i * .65;
     addBox(`garage-fluid-can-${i + 1}`, x, floorY + 2.35, centerZ + 11.6, .34, .55, .38,
-      [mat(0x2679a7, .45, .12), mat(0xd2a22c, .45, .12), mat(0x3d8958, .45, .12), mat(0xb83b32, .45, .12), mat(0x65727c, .45, .12)][i]);
-    addBox(`garage-parts-bin-${i + 1}`, x, floorY + 1.3, centerZ + 11.6, .45, .5, .48, cabinetMat);
+      [mat(0x2679a7, .45, .12), mat(0xd2a22c, .45, .12), mat(0x3d8958, .45, .12), mat(0xb83b32, .45, .12), mat(0x65727c, .45, .12)][i], true);
+    addBox(`garage-parts-bin-${i + 1}`, x, floorY + 1.3, centerZ + 11.6, .45, .5, .48, cabinetMat, true);
   }
   // A discreet wall-mounted badge adds a premium workshop identity.
   addBox('garage-brand-plaque', centerX - 6.68, floorY + 3.9, centerZ - 4.5, .08, .8, 3.2, amberMat);
