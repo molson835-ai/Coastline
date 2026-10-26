@@ -262,7 +262,7 @@ export function createCoastlineIslandRoot({ THREE, region, groundY = () => 0, ad
 
   // Every island receives a visible natural shoreline rim. Bridge landing gaps
   // remain open; the movement boundary is still enforced by the shared shoreline predicate.
-  const perimeterPoints = createIslandShape(THREE, region, 0.985).getPoints(48);
+  const perimeterPoints = createIslandShape(THREE, region, 0.985).getPoints(16);
   const perimeterPlacements = perimeterPoints.filter(point => {
     const x = point.x, z = -point.y;
     if (region.id === 'residential' && z < -half * 0.9) return false; // City bridge landing
