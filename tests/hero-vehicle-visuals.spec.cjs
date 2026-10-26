@@ -27,10 +27,12 @@ test('hero vehicle uses the replacement RGSDev model and keeps damage/material h
       rootChildCount: root.children.length,
       modelName: vehicle.rgsdevModelName,
       visualMeshCount: visualMeshes.length,
-      damagePartsMapped: ['body', 'cab', 'hood', 'trunk', 'roof', 'frontBumper', 'rearBumper']
-        .every(key => parts[key] && parts[key].isObject3D),
+      damagePartsMapped: Boolean(parts.body?.isObject3D),
+      missingBumpersRemainUnmapped: (!parts.frontBumper || parts.frontBumper.isObject3D) && (!parts.rearBumper || parts.rearBumper.isObject3D),
       materialGroupsMapped: Boolean(materialGroups.body?.length && materialGroups.glass?.length && materialGroups.wheels?.length),
       orangeBodyPaint: hasOrangePaint,
+      sourcePaintPreserved: !visualMeshes.some(mesh => (Array.isArray(mesh.material) ? mesh.material : [mesh.material]).some(material => material?.color?.getHex?.() === 0xff7a1a)),
+      bodyStillAttached: Boolean(parts.body && visualMeshes.includes(parts.body)),
       vehicleStillDrivable: vehicle.drivable === true && vehicle.kind === 'car',
       replacementFleetLoaded: window.__coastlineVehicleAssetSwapStatus.replaced > 0,
       oldHeroShellPresent: root.children.some(child => child.name === 'coastline-hero-white-single-shell')
@@ -60,8 +62,11 @@ test('hero vehicle uses the replacement RGSDev model and keeps damage/material h
   expect(snapshot.modelName).not.toBe('neutral-fallback');
   expect(snapshot.visualMeshCount).toBeGreaterThan(0);
   expect(snapshot.damagePartsMapped).toBe(true);
+  expect(snapshot.missingBumpersRemainUnmapped).toBe(true);
   expect(snapshot.materialGroupsMapped).toBe(true);
-  expect(snapshot.orangeBodyPaint).toBe(true);
+  expect(snapshot.orangeBodyPaint).toBe(false);
+  expect(snapshot.sourcePaintPreserved).toBe(true);
+  expect(snapshot.bodyStillAttached).toBe(true);
   expect(snapshot.vehicleStillDrivable).toBe(true);
   expect(snapshot.replacementFleetLoaded).toBe(true);
   expect(snapshot.oldHeroShellPresent).toBe(false);
