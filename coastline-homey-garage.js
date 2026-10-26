@@ -33,19 +33,31 @@ export function buildHomeyGarageInterior(THREE, { centerX = 483, centerZ = 500, 
     return mesh;
   };
   // Interior is aligned to Homey Island's existing open bay (front at z = centerZ - 12).
-  addBox('garage-showroom-epoxy-floor', centerX, floorY - .08, centerZ + 1, 13.2, .16, 24, floorMat);
-  addBox('garage-left-wall', centerX - 6.9, floorY + 2.7, centerZ + 1, .3, 5.4, 24, wallMat, true);
-  addBox('garage-right-wall', centerX + 6.9, floorY + 2.7, centerZ + 1, .3, 5.4, 24, wallMat, true);
-  addBox('garage-rear-wall', centerX, floorY + 2.7, centerZ + 13, 13.8, 5.4, .3, wallMat, true);
-  addBox('garage-ceiling', centerX, floorY + 5.45, centerZ + 1, 13.8, .25, 24.5, trimMat);
-  addBox('garage-entry-header', centerX, floorY + 5.05, centerZ - 11, 13.8, .45, .55, trimMat);
+  addBox('garage-showroom-epoxy-floor', centerX, floorY - .08, centerZ + 2.5, 18, .16, 31, floorMat);
+  addBox('garage-left-wall', centerX - 9.3, floorY + 2.7, centerZ + 2.5, .3, 5.4, 31, wallMat, true);
+  addBox('garage-right-wall', centerX + 9.3, floorY + 2.7, centerZ + 2.5, .3, 5.4, 31, wallMat, true);
+  addBox('garage-house-wall-left', centerX - 5.5, floorY + 2.7, centerZ + 16, 7.6, 5.4, .3, wallMat, true);
+  addBox('garage-house-wall-right', centerX + 5.5, floorY + 2.7, centerZ + 16, 7.6, 5.4, .3, wallMat, true);
+  addBox('garage-house-door-lintel', centerX, floorY + 4.75, centerZ + 16, 3.4, 1.3, .3, wallMat);
+  addBox('garage-house-door-jamb-left', centerX - 1.7, floorY + 2.1, centerZ + 15.82, .16, 4.2, .22, amberMat);
+  addBox('garage-house-door-jamb-right', centerX + 1.7, floorY + 2.1, centerZ + 15.82, .16, 4.2, .22, amberMat);
+  const houseDoor = addBox('garage-house-door-open-leaf', centerX + 1.55, floorY + 2.1, centerZ + 16, 3.0, 4.15, .12, warmWood);
+  houseDoor.rotation.y = Math.PI / 2;
+  addBox('garage-house-door-handle', centerX + 1.58, floorY + 2.0, centerZ + 17.2, .08, .3, .08, amberMat);
+  addBox('garage-ceiling', centerX, floorY + 5.45, centerZ + 2.5, 18.6, .25, 31.5, trimMat);
+  addBox('garage-entry-header', centerX, floorY + 5.05, centerZ - 12, 18.6, .45, .55, trimMat);
+  // Sectional door slats are parked overhead so the vehicle threshold remains open.
+  for (let slat = 0; slat < 14; slat++) addBox('garage-rollup-door-slat-' + (slat + 1), centerX, floorY + 4.55, centerZ - 11.4 + slat * .19, 16.8, .105, .14, slat % 2 ? cabinetMat : trimMat);
+  addBox('garage-door-roller-housing', centerX, floorY + 4.88, centerZ - 9.9, 17.1, .24, .28, trimMat);
+  addBox('garage-door-left-track', centerX - 8.15, floorY + 2.25, centerZ - 10.1, .12, 4.4, .16, trimMat);
+  addBox('garage-door-right-track', centerX + 8.15, floorY + 2.25, centerZ - 10.1, .12, 4.4, .16, trimMat);
   // Six crisp luminous ceiling strips and a warm perimeter accent keep the bay premium without heavy lighting.
   for (let i = 0; i < 3; i++) {
-    const x = centerX - 4 + i * 4;
-    addBox(`garage-led-ceiling-strip-${i + 1}`, x, floorY + 5.28, centerZ + 1, .16, .035, 19.5, ledMat);
+    const x = centerX - 5 + i * 5;
+    addBox(`garage-led-ceiling-strip-${i + 1}`, x, floorY + 5.28, centerZ + 2.5, .16, .035, 26.5, ledMat);
   }
   for (const side of [-1, 1]) {
-    addBox(`garage-warm-perimeter-light-${side}`, centerX + side * 6.3, floorY + 4.85, centerZ + 1, .08, .06, 20, amberMat);
+    addBox(`garage-warm-perimeter-light-${side}`, centerX + side * 8.65, floorY + 4.85, centerZ + 2.5, .08, .06, 26.5, amberMat);
   }
   // Collector-style wall cabinets, slatwall and a service bench.
   addBox('garage-workbench', centerX + 4.95, floorY + 1.05, centerZ + 7.5, 2.7, .18, 5.6, warmWood);
@@ -66,15 +78,15 @@ export function buildHomeyGarageInterior(THREE, { centerX = 483, centerZ = 500, 
   addBox('garage-drive-out-guide-left', centerX - 4.2, floorY + .025, centerZ + 1.6, .08, .05, 8.8, amberMat);
   addBox('garage-drive-out-guide-right', centerX + 4.2, floorY + .025, centerZ + 1.6, .08, .05, 8.8, amberMat);
   // A physical, illuminated key board is mounted on the right-hand wall.
-  addBox('garage-key-board-frame', centerX + 6.45, floorY + 2.65, centerZ + 1.0, .2, 2.5, 3.5, warmWood);
-  addBox('garage-key-board-face', centerX + 6.32, floorY + 2.65, centerZ + 1.0, .12, 2.25, 3.25, cabinetMat);
-  addBox('garage-key-board-title-plate', centerX + 6.22, floorY + 3.45, centerZ + 1.0, .08, .34, 2.7, amberMat);
+  addBox('garage-key-board-frame', centerX + 8.8, floorY + 2.65, centerZ + 2.5, .2, 2.5, 3.5, warmWood);
+  addBox('garage-key-board-face', centerX + 8.67, floorY + 2.65, centerZ + 2.5, .12, 2.25, 3.25, cabinetMat);
+  addBox('garage-key-board-title-plate', centerX + 8.57, floorY + 3.45, centerZ + 2.5, .08, .34, 2.7, amberMat);
   for (let i = 0; i < 8; i++) {
     const row = Math.floor(i / 4), col = i % 4;
     const z = centerZ + .15 + col * .55;
     const y = floorY + 2.8 - row * .78;
-    addBox(`garage-key-hook-${i + 1}`, centerX + 6.15, y, z, .16, .12, .12, ledMat);
-    addBox(`garage-key-fob-${i + 1}`, centerX + 6.02, y - .17, z, .1, .25, .16, amberMat);
+    addBox(`garage-key-hook-${i + 1}`, centerX + 8.4, y, z, .16, .12, .12, ledMat);
+    addBox(`garage-key-fob-${i + 1}`, centerX + 8.27, y - .17, z, .1, .25, .16, amberMat);
   }
   // Real workshop clutter, placed against the left/rear perimeter so the parking lane stays clear.
   addBox('garage-red-mechanics-tool-chest', centerX - 5.05, floorY + .72, centerZ + 9.1, 1.45, 1.25, 2.25, mat(0xa8322d, .38, .24), true);
@@ -141,8 +153,9 @@ export function buildHomeyGarageInterior(THREE, { centerX = 483, centerZ = 500, 
   root.userData.coastlineGarageDecorCount = root.children.filter(node => /^garage-(red-mechanics|stacked-tire|wall-hose|fire-extinguisher|wall-service-clock|parts-shelf|fluid-can|parts-bin|low-profile-floor-jack|axle-stand)/.test(node.name)).length;
   root.userData.coastlineGarageContract = {
     id: 'homey-garage',
-    threshold: { x: centerX, z: centerZ - 12, halfWidth: 5.8 },
-    board: { x: centerX + 4.7, z: centerZ + 1 },
+    threshold: { x: centerX, z: centerZ - 12, halfWidth: 7.2 },
+    houseDoor: { x: centerX, z: centerZ + 16, halfWidth: 1.7 },
+    board: { x: centerX + 8.6, z: centerZ + 2.5 },
     driveOut: { x: centerX, y: floorY, z: centerZ + 1, rotationY: Math.PI },
     returnOutside: { x: centerX, y: floorY, z: centerZ - 16, rotationY: Math.PI },
   };
