@@ -54,10 +54,10 @@ test('on-foot default speed equals former run speed in both directions and no ru
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/game-v3.html?beta=default-walk-speed', { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => Boolean(window.__coastlineTest), null, { timeout: 20000 });
-  await page.evaluate(() => window.__coastlineTest.exitVehicle());
-  await expect(page.locator('[data-k="shift"][data-foot-only]')).toHaveCount(0);
   const open = await page.evaluate(() => window.__coastlineTest.findOpenWalkPosition());
   expect(open, 'an open walking test position should exist').not.toBeNull();
+  await page.evaluate(({ x, z }) => window.__coastlineTest.setWalkPosition(x, z, 0), open);
+  await expect(page.locator('[data-k="shift"][data-foot-only]')).toHaveCount(0);
   const move = async (key) => {
     await page.evaluate(({ x, z }) => window.__coastlineTest.setWalkPosition(x, z, 0), open);
     const before = await page.evaluate(() => window.__coastlineTest.state());
