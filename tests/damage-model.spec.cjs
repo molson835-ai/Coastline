@@ -5,6 +5,7 @@ test('collision damage scales with impact energy and can detach a bumper', async
   page.on('pageerror', error => pageErrors.push(error.message));
   await page.goto('/game-v3.html', { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => Boolean(window.__coastlineTest), null, { timeout: 30000 });
+  await page.waitForFunction(() => window.__coastlineVehicleAssetSwapStatus?.ok === true, null, { timeout: 30000 });
 
   const result = await page.evaluate(() => {
     const api = window.__coastlineTest;
