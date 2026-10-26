@@ -144,4 +144,18 @@ export function openGarageVehicleChooser({ vehicles, currentVehicle, onConfirm, 
   return { close: () => overlay.remove(), models };
 }
 
+export function didCrossGarageThreshold(previous, current, { x, z, halfWidth = 5.8, direction = 'in' } = {}) {
+  if (!previous || !current || ![previous.x, previous.z, current.x, current.z, current.heading, x, z].every(Number.isFinite)) return false;
+  if (Math.abs(previous.x - x) > halfWidth || Math.abs(current.x - x) > halfWidth) return false;
+  if (direction === 'in') return previous.z < z && current.z >= z && Math.cos(current.heading) > .45;
+  if (direction === 'out') return previous.z > z && current.z <= z && Math.cos(current.heading) < -.45;
+  return false;
+}
+
+export function canUseGarageKeyBoard({ worldId, mode, player, board, maxDistance = 8.5 } = {}) {
+  if (worldId !== 'homey-garage' || mode !== 'walk' || !player || !board) return false;
+  if (![player.x, player.z, board.x, board.z].every(Number.isFinite)) return false;
+  return Math.hypot(player.x - board.x, player.z - board.z) <= maxDistance;
+}
+
 export const HOMEY_GARAGE_PAINT_COLORS = GARAGE_COLORS;
