@@ -8,6 +8,7 @@ test('service worker activates a fresh cache generation after deployment', () =>
   assert.match(worker, /const CACHE_NAME='coastline-static-v61'/);
   assert.match(worker, /'\.\/coastline-homey-garage\.js'/);
   assert.match(worker, /'\.\/coastline-homey-house-interior\.js'/);
+  assert.match(worker, /'\.\/coastline-vehicle-sizing\.js'/);
   assert.match(worker, /keys\.filter\(k=>k!==CACHE_NAME\)/);
 });
 
