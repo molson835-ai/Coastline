@@ -609,7 +609,34 @@ function reactToImpact(p,v){trafficAccidentPauseUntil=Math.max(trafficAccidentPa
 function updatePedestrians(dt){for(const p of pedestrians){if(p.cozyActor){const anim=p.state==='hit'?'jump':p.state==='flee'||p.activity==='jog'?'run':p.speed>.2&&!['wait','phone','coffee','look around'].includes(p.activity)?'walk':'idle';setCozyCharacterAnimation(p.cozyActor,anim);const near=Math.hypot(p.x-player.x,p.z-player.z)<70;if(near||p.state==='hit')p.cozyActor.mixer.update(dt);else if((p.id+Math.floor(performance.now()/250))%4===0)p.cozyActor.mixer.update(dt*4)}p.activityTimer-=dt;if(p.activityTimer<=0&&p.state!=='hit'&&p.state!=='recover'){p.activity=chooseResidentActivity({id:p.id,daylight:environment.daylight,weather:environment.weather,timeSlice:Math.floor(performance.now()/10000)});p.activityTimer=4+worldModel.hash(p.id,Math.floor(p.z),15)*13;p.phone.visible=p.activity==='phone';p.cup.visible=p.activity==='coffee';p.speed=p.baseSpeed*(p.activity==='jog'?1.65:p.activity==='wait'||p.activity==='phone'||p.activity==='coffee'||p.activity==='look around'?0.25:1);if(p.activity==='look around')p.g.rotation.y+=.9}if(p.state==='hit'){p.hitTime-=dt;p.x+=p.vx*dt;p.z+=p.vz*dt;p.vx*=Math.pow(.16,dt);p.vz*=Math.pow(.16,dt);p.lift=Math.max(0,p.lift-3.8*dt);p.g.position.set(p.x,groundY(p.x,p.z)+p.lift,p.z);p.g.rotation.x*=Math.pow(.95,dt);p.g.rotation.z*=Math.pow(.95,dt);if(p.hitTime<=0){p.state='recover';p.timer=.9}continue}if(p.state==='recover'){p.timer-=dt;p.g.position.set(p.x,groundY(p.x,p.z),p.z);p.g.rotation.x=THREE.MathUtils.damp(p.g.rotation.x,0,5,dt);p.g.rotation.z=THREE.MathUtils.damp(p.g.rotation.z,0,5,dt);if(p.timer<=0){p.g.rotation.set(0,p.g.rotation.y,0);p.state='wander';p.timer=1+Math.random()*3}continue}const nearbyVehicles=worldArchitecture.runtime.queryNearby(p.x,p.z,12).filter(entity=>entity.type==='vehicle').map(entity=>vehicleByWorldEntityId.get(entity.id)).filter(Boolean);let threat=null,threatD=8;for(const v of nearbyVehicles){const d=Math.hypot(v.x-p.x,v.z-p.z);if(d<threatD&&Math.abs(v.speed)>12){threat=v;threatD=d}}if(threat&&p.state!=='flee'){p.state='flee';p.timer=1.3;const a=Math.atan2(p.x-threat.x,p.z-threat.z);p.goalX=THREE.MathUtils.clamp(p.x+Math.sin(a)*9,-700,700);p.goalZ=THREE.MathUtils.clamp(p.z+Math.cos(a)*9,-700,700)}for(const v of nearbyVehicles){if(Math.hypot(v.x-p.x,v.z-p.z)<2.8&&Math.abs(v.speed)>2.5){reactToImpact(p,v);break}}if(p.state==='hit')continue;p.timer-=dt;if(p.timer<=0){p.state='wander';p.timer=2+Math.random()*5;const side=Math.random()<.5?-1:1;p.goalX=THREE.MathUtils.clamp(p.x+side*(12+Math.random()*35),-700,700);p.goalZ=THREE.MathUtils.clamp(p.z+(Math.random()-.5)*35,-700,700)}const dx=p.goalX-p.x,dz=p.goalZ-p.z,d=Math.hypot(dx,dz);if(d>.4){const nx=p.x+dx/d*p.speed*dt,nz=p.z+dz/d*p.speed*dt;if(player.mode==='walk'&&Math.hypot(nx-player.x,nz-player.z)<1.25){const away=Math.atan2(p.x-player.x,p.z-player.z);p.goalX=THREE.MathUtils.clamp(p.x+Math.sin(away)*8,-700,700);p.goalZ=THREE.MathUtils.clamp(p.z+Math.cos(away)*8,-700,700);p.timer=1}else{p.x=nx;p.z=nz}}else p.timer=0;p.g.position.set(p.x,groundY(p.x,p.z),p.z);if(d>.4)p.g.rotation.y=Math.atan2(dx,dz);const limbSet=p.g.userData.limbs;if(limbSet){const stride=d>.4?Math.sin(performance.now()*.009+p.id)*.42:0;limbSet.legs[0].rotation.x=stride;limbSet.legs[1].rotation.x=-stride;limbSet.arms[0].rotation.x=-stride*.72;limbSet.arms[1].rotation.x=stride*.72}}}
 function missionUpdate(){const activeGarage=garageProgress.active;if(activeGarage&&activeGarage.chainStage<3){const task=activeGarage.tasks[activeGarage.chainStage];if(Math.hypot(player.x-task.x,player.z-task.z)<10)finishGarageStep()}if(missionState==='deliver'){const d=Math.hypot(player.x-mission.target.x,player.z-mission.target.z);if(d<9){missionState='done';missionCompleteUntil=performance.now()+8500;cashBalance+=mission.pay;persistCashBalance();$('mission').textContent='MISSION COMPLETE';$('objective').textContent='Courier delivered. Return to City Hall when you are ready for another job.';$('cash').textContent=String(cashBalance);diagEvent('courier mission completed; reward '+mission.pay);toast('Mission complete, reward '+mission.pay)}}}
 function updateMissionPrompt(){const card=document.querySelector('.mission');if(card)card.style.display='none'}
-function cameraUpdate(dt){let target,desired,rate;if(player.mode==='vehicle'){target=player.vehicle.g.position.clone();target.y+=1.3;const behind=player.heading+Math.PI;desired=new THREE.Vector3(target.x+Math.sin(behind)*10,target.y+4.5,target.z+Math.cos(behind)*10);rate=6.8}else if(player.mode==='interior'){target=new THREE.Vector3(player.x,player.y+1.15,player.z);desired=new THREE.Vector3(target.x-Math.sin(camYaw)*5,target.y+1.0,target.z-Math.cos(camYaw)*5);rate=8}else{target=new THREE.Vector3(player.x,player.y+1.35,player.z);desired=new THREE.Vector3(target.x-Math.sin(camYaw)*7,target.y+3.0,target.z-Math.cos(camYaw)*7);rate=7.5}const smoothing=1-Math.exp(-Math.max(0,dt)*rate);camera.position.lerp(desired,smoothing);camera.lookAt(target)}
+function cameraUpdate(dt){
+  const inHomeyGarage=window.__coastlineActiveWorldId==='homey-garage';
+  let target,desired,rate;
+  if(player.mode==='vehicle'){
+    target=player.vehicle.g.position.clone();
+    target.y+=inHomeyGarage?1.0:1.3;
+    const behind=player.heading+Math.PI;
+    const distance=inHomeyGarage?5.7:10;
+    desired=new THREE.Vector3(target.x+Math.sin(behind)*distance+(inHomeyGarage?Math.sin(camYaw)*.7:0),target.y+(inHomeyGarage?2.55:4.5),target.z+Math.cos(behind)*distance);
+    rate=inHomeyGarage?9.5:6.8;
+    if(inHomeyGarage)target.add(new THREE.Vector3(Math.sin(player.heading)*1.2,.15,Math.cos(player.heading)*1.2));
+  }else if(inHomeyGarage){
+    target=new THREE.Vector3(player.x,player.y+1.15,player.z);
+    desired=new THREE.Vector3(target.x-Math.sin(camYaw)*4.2,target.y+1.8,target.z-Math.cos(camYaw)*4.2);
+    rate=9.5;
+  }else if(player.mode==='interior'){
+    target=new THREE.Vector3(player.x,player.y+1.15,player.z);
+    desired=new THREE.Vector3(target.x-Math.sin(camYaw)*5,target.y+1.0,target.z-Math.cos(camYaw)*5);
+    rate=8;
+  }else{
+    target=new THREE.Vector3(player.x,player.y+1.35,player.z);
+    desired=new THREE.Vector3(target.x-Math.sin(camYaw)*7,target.y+3.0,target.z-Math.cos(camYaw)*7);
+    rate=7.5;
+  }
+  const smoothing=1-Math.exp(-Math.max(0,dt)*rate);
+  camera.position.lerp(desired,smoothing);
+  camera.lookAt(target);
+}
 const coastlineTransitions=createCoastlineWorldTransitions({THREE,scene,roots:coastlineWorldRoots,player,vehicles,avatar,groundY});await coastlineTransitions.initialize();if(window.__coastlineTransitionTest){const coastlineTransitionTestRaw=window.__coastlineTransitionTest.transition;window.__coastlineTransitionTest.transition=async transitionId=>{await coastlineTransitionTestRaw(transitionId);return window.__coastlineTransitionTest.status()}}
 // Distance-based render LOD: detailed facades and trees stay intact nearby; distant silhouettes use cheap proxies.
 for(const b of buildings){
