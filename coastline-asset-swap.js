@@ -119,6 +119,18 @@ function applyVehicleMaterialRoles(THREE, vehicle, visual) {
     if (upperPart) glassMeshes = [upperPart.mesh];
   }
 
+  // FBX part/material labels can overlap (for example, a shared "body"
+  // material name on window meshes). Give glass/wheels/lights priority so later
+  // role passes cannot repaint the orange shell or erase its paint assertion.
+  const protectedMeshes = new Set([...glassMeshes, ...wheelMeshes, ...lightMeshes]);
+  bodyMeshes = bodyMeshes.filter(mesh => !protectedMeshes.has(mesh));
+  if (!bodyMeshes.length && descriptors.length) {
+    const shell = [...descriptors]
+      .filter(item => !protectedMeshes.has(item.mesh))
+      .sort((a, b) => b.volume - a.volume)[0];
+    if (shell) bodyMeshes = [shell.mesh];
+  }
+
   for (const mesh of bodyMeshes) forMaterials(mesh, material => {
     setMaterialColor(material, COASTLINE_STARTING_PAINT);
     material.roughness = Math.min(material.roughness ?? .55, .55);
