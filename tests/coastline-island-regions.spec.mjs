@@ -5,6 +5,7 @@ import {
   COASTLINE_WORLD_POPULATION_LIMITS,
   getCoastlineIslandRegion,
   validateCoastlineIslandManifest,
+  isCoastlineIslandPointInside,
 } from '../coastline-island-regions.js';
 
 test('four-island manifest defines four distinct, named coastal regions', () => {
@@ -33,4 +34,20 @@ test('manifest validator rejects duplicate ids and invalid population budgets', 
   assert.throws(() => validateCoastlineIslandManifest([
     { ...first, population: { traffic: -1, pedestrians: 2 } }, second, ...rest,
   ]), /invalid traffic budget/i);
+});
+
+
+test('residential island shoreline is irregular while its CTM bridge landings remain connected', () => {
+  assert.equal(isCoastlineIslandPointInside(500, 390, 'residential'), true);
+  assert.equal(isCoastlineIslandPointInside(610, 500, 'residential'), true);
+  assert.equal(isCoastlineIslandPointInside(500, 500, 'residential'), true);
+  assert.equal(isCoastlineIslandPointInside(610, 610, 'residential'), false);
+  assert.equal(isCoastlineIslandPointInside(390, 610, 'residential'), false);
+  assert.equal(isCoastlineIslandPointInside(Number.NaN, 500, 'residential'), false);
+});
+
+test('other CTM island regions retain bounded shorelines', () => {
+  assert.equal(isCoastlineIslandPointInside(500, 500, 'waterfront'), true);
+  assert.equal(isCoastlineIslandPointInside(650, 500, 'waterfront'), false);
+  assert.equal(isCoastlineIslandPointInside(500, 500, 'unknown'), false);
 });
