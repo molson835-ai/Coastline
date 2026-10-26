@@ -19,11 +19,7 @@ export function buildHomeyHouseInterior(THREE, { centerX = 483, centerZ = 500, f
 
   const addBox = (name, x, y, z, w, h, d, material, collider = false) => {
     const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), material);
-    mesh.name = name;
-    mesh.position.set(x, y, z);
-    mesh.castShadow = h > .25;
-    mesh.receiveShadow = true;
-    root.add(mesh);
+    mesh.name = name; mesh.position.set(x, y, z); mesh.castShadow = h > .25; mesh.receiveShadow = true; root.add(mesh);
     if (collider) colliders.push({ name, x, z, w, d });
     return mesh;
   };
@@ -33,9 +29,7 @@ export function buildHomeyHouseInterior(THREE, { centerX = 483, centerZ = 500, f
     if (collider) colliders.push({ name, x, z, w: radius * 2, d: radius * 2 });
     return mesh;
   };
-  const addInteraction = (id, label, x, z, radius, extra = {}) => {
-    interactions.push({ id, label, x, z, radius, ...extra });
-  };
+  const addInteraction = (id, label, x, z, radius, extra = {}) => interactions.push({ id, label, x, z, radius, ...extra });
   const addWindow = (side, z, width = 2.6) => {
     const x = centerX + (side === 'left' ? -8.78 : 8.78);
     addBox(`house-window-frame-${side}-${z}`, x, floorY + 3.05, centerZ + z, .1, 1.9, width + .3, trim);
@@ -51,57 +45,49 @@ export function buildHomeyHouseInterior(THREE, { centerX = 483, centerZ = 500, f
     addBox(`${name}-handle`, x + width / 2 - .35, floorY + 2.05, z + .16, .08, .28, .08, brass);
   };
 
-  // Envelope: simple perimeter colliders only. Furniture gets its own intentional footprints below.
   addBox('house-interior-floor', centerX, floorY - .08, centerZ, 18, .16, 26, floor);
   addBox('house-left-wall', centerX - 9, floorY + 2.65, centerZ, .3, 5.3, 26, wall, true);
   addBox('house-right-wall', centerX + 9, floorY + 2.65, centerZ, .3, 5.3, 26, wall, true);
   addBox('house-back-wall', centerX, floorY + 2.65, centerZ - 13, 18, 5.3, .3, wall, true);
 
-  // Garage-side entry: wide, visually obvious American doorway.
   addBox('house-entry-wall-left', centerX - 5.45, floorY + 2.65, centerZ + 13, 7.1, 5.3, .3, wall, true);
   addBox('house-entry-wall-right', centerX + 5.45, floorY + 2.65, centerZ + 13, 7.1, 5.3, .3, wall, true);
   addBox('house-entry-lintel', centerX, floorY + 4.75, centerZ + 13, 3.8, 1.1, .3, wall);
   addBox('house-entry-jamb-left', centerX - 1.9, floorY + 2.1, centerZ + 12.82, .15, 4.2, .18, wood);
   addBox('house-entry-jamb-right', centerX + 1.9, floorY + 2.1, centerZ + 12.82, .15, 4.2, .18, wood);
-  const openDoor = addBox('house-entry-open-door', centerX + 1.72, floorY + 2.05, centerZ + 13, 3.2, 4.05, .12, wood);
-  openDoor.rotation.y = Math.PI / 2;
+  const openDoor = addBox('house-entry-open-door', centerX + 1.72, floorY + 2.05, centerZ + 13, 3.2, 4.05, .12, wood); openDoor.rotation.y = Math.PI / 2;
   addBox('house-entry-handle', centerX + 1.75, floorY + 2, centerZ + 14.25, .07, .28, .07, brass);
   addBox('house-entry-threshold', centerX, floorY + .04, centerZ + 12.82, 3.8, .08, .5, trim);
-
   addBox('house-ceiling', centerX, floorY + 5.35, centerZ, 18, .2, 26, mat(0xbab6aa));
   addBox('house-ceiling-light-main', centerX, floorY + 5.18, centerZ - 1, 3.4, .08, 1.2, warmLight);
   addBox('house-ceiling-light-hall', centerX, floorY + 5.18, centerZ + 4.8, 1.7, .08, .55, warmLight);
 
-  // ---------------- Living room ----------------
-  // Sofa, coffee table and TV share a direct viewing axis.
+  // Living room: one direct viewing axis from sofa through coffee table to TV.
   addBox('house-living-room-rug', centerX - 3.25, floorY + .025, centerZ - 2.0, 6.8, .05, 6.8, mat(0x607c7a, .99));
   addBox('house-sofa-base', centerX - 4.9, floorY + .55, centerZ - 2.0, 3.2, .62, 1.55, fabric);
   addBox('house-sofa-back', centerX - 4.9, floorY + 1.25, centerZ - 2.58, 3.2, .9, .32, fabric);
   for (const side of [-1, 1]) addBox(`house-sofa-arm-${side}`, centerX - 4.9 + side * 1.48, floorY + .95, centerZ - 2.0, .3, .8, 1.6, fabric);
   addBox('house-sofa-footprint', centerX - 4.9, floorY + .05, centerZ - 2.0, 3.8, .1, 2.15, trim, true);
-
   addBox('house-coffee-table-top', centerX - 1.55, floorY + .62, centerZ - 2.0, 2.5, .16, 1.35, wood);
   for (const x of [centerX - 2.45, centerX - .65]) for (const z of [centerZ - 2.52, centerZ - 1.48]) addBox('house-coffee-table-leg', x, floorY + .3, z, .1, .6, .1, trim);
   addBox('house-coffee-table-footprint', centerX - 1.55, floorY + .04, centerZ - 2.0, 2.9, .08, 1.7, trim, true);
   addBox('house-coffee-table-book', centerX - 1.55, floorY + .73, centerZ - 2.05, .75, .04, .5, mat(0xeee3cf));
   addBox('house-coffee-table-mug', centerX - .72, floorY + .78, centerZ - 1.72, .16, .14, .16, white);
-
   addBox('house-tv-console', centerX + 5.15, floorY + .45, centerZ - 2.0, 5.2, .75, 1.0, wood);
   addBox('house-tv-screen', centerX + 5.15, floorY + 2.0, centerZ - 2.0, 4.3, 2.15, .14, dark);
   addBox('house-tv-display', centerX + 5.15, floorY + 2.0, centerZ - 1.91, 4.02, 1.87, .035, mat(0x254b5a, .22, .2));
   addBox('house-tv-remote', centerX + 4.1, floorY + .86, centerZ - 1.72, .12, .04, .32, dark);
   addInteraction('tv', 'Use TV', centerX + 4.1, centerZ - 1.3, 2.2, { type: 'display' });
 
-  // ---------------- Dining + kitchen ----------------
+  // Dining and kitchen remain connected but do not occupy the walking corridor.
   addBox('house-dining-rug', centerX + 4.0, floorY + .025, centerZ + 5.25, 6.2, .05, 4.3, mat(0x857866, .99));
   addBox('house-dining-table', centerX + 3.9, floorY + .92, centerZ + 5.2, 4.0, .16, 2.1, wood);
   addBox('house-dining-table-footprint', centerX + 3.9, floorY + .04, centerZ + 5.2, 4.6, .08, 2.8, trim, true);
-  for (const [x, z, rot] of [[2.25, 4.35, 0], [5.55, 4.35, 0], [2.25, 6.05, Math.PI], [5.55, 6.05, Math.PI]]) {
+  for (const [x, z] of [[2.25, 4.35], [5.55, 4.35], [2.25, 6.05], [5.55, 6.05]]) {
     addBox('house-dining-chair-seat', centerX + x, floorY + .52, centerZ + z, .78, .15, .78, fabric);
-    const back = addBox('house-dining-chair-back', centerX + x, floorY + 1.05, centerZ + z + (rot ? -.34 : .34), .78, .95, .14, wood); back.rotation.y = rot;
+    addBox('house-dining-chair-back', centerX + x, floorY + 1.05, centerZ + z + (z < centerZ + 5 ? .34 : -.34), .78, .95, .14, wood);
   }
   addBox('house-dining-bowl', centerX + 3.9, floorY + 1.05, centerZ + 5.2, .6, .12, .6, white);
-
   addBox('house-kitchen-counter', centerX - 4.8, floorY + 1.35, centerZ + 9.15, 6.2, .18, 1.5, counter);
   addBox('house-kitchen-cabinet', centerX - 4.8, floorY + .72, centerZ + 9.15, 6.0, 1.2, 1.35, cabinet);
   addBox('house-kitchen-backsplash', centerX - 4.8, floorY + 2.15, centerZ + 10, 6.0, 1.1, .08, glass);
@@ -115,18 +101,14 @@ export function buildHomeyHouseInterior(THREE, { centerX = 483, centerZ = 500, f
   addInteraction('fridge', 'Use refrigerator', centerX - 7.1, centerZ + 5.7, 2.0, { type: 'storage' });
   addInteraction('kitchen', 'Use kitchen', centerX - 4.8, centerZ + 9.0, 2.2, { type: 'utility' });
 
-  // ---------------- Hallway + bedroom ----------------
-  // A short hall keeps the bedroom private and gives the house a natural American floor plan.
+  // Private bedroom at the back-right, accessed through a normal interior doorway.
   addBox('house-hall-runner', centerX, floorY + .025, centerZ + 3.9, 2.35, .05, 7.0, mat(0x9b8a74, .99));
-  addInteriorDoor('house-bedroom-door', centerX + 4.2, centerZ - 7.0, 1.65);
   addBox('house-bedroom-wall-left', centerX + 1.2, floorY + 2.65, centerZ - 8.9, 5.9, 5.3, wall, true);
   addBox('house-bedroom-wall-back', centerX + 5.9, floorY + 2.65, centerZ - 9.0, 6.2, 5.3, wall, true);
   addBox('house-bedroom-wall-right', centerX + 8.75, floorY + 2.65, centerZ - 6.0, .3, 5.3, wall, true);
   addBox('house-bedroom-wall-front', centerX + 5.7, floorY + 2.65, centerZ - 4.0, 6.3, 5.3, wall, true);
-  // Re-open the bedroom doorway in the front wall using jambs rather than a solid blocker.
-  addBox('house-bedroom-doorway-left', centerX + 3.35, floorY + 2.1, centerZ - 4.0, .14, 4.2, .18, trim);
-  addBox('house-bedroom-doorway-right', centerX + 5.05, floorY + 2.1, centerZ - 4.0, .14, 4.2, .18, trim);
-  addBox('house-bedroom-doorway-header', centerX + 4.2, floorY + 4.2, centerZ - 4.0, 1.84, .16, .18, trim);
+  addInteriorDoor('house-bedroom-door', centerX + 4.2, centerZ - 4.0, 1.65);
+  // Door leaf is visual only; the doorway itself is kept open for reliable movement.
   const bedroomRug = addBox('house-bedroom-rug', centerX + 4.8, floorY + .025, centerZ - 7.0, 5.8, .05, 3.9, mat(0x817b86, .99));
   bedroomRug.rotation.y = 0;
   addBox('house-bedroom-bed-base', centerX + 4.8, floorY + .48, centerZ - 7.0, 4.1, .48, 2.35, wood);
@@ -138,25 +120,19 @@ export function buildHomeyHouseInterior(THREE, { centerX = 483, centerZ = 500, f
     addBox('house-bedroom-nightstand-lamp', centerX + x, floorY + 1.25, centerZ - 7.0, .24, .5, .24, warmLight);
   }
   addBox('house-bedroom-dresser', centerX + 7.3, floorY + .7, centerZ - 4.9, 1.1, 1.3, 2.2, wood, true);
-  for (let i = 0; i < 3; i++) addBox('house-bedroom-dresser-pull', centerX + 6.72, floorY + .5 + i * .35, centerZ - 4.9, .08, .08, .22, brass);
   addBox('house-bedroom-wall-art', centerX + 7.0, floorY + 3.0, centerZ - 8.85, .08, 1.4, 2.0, mat(0x6b817b));
   addInteraction('bed', 'Rest at bed', centerX + 4.8, centerZ - 5.5, 2.1, { type: 'rest' });
 
-  // Typical reach-in closet: hanging rail, shelf, drawers and visible clothing.
+  // Reach-in closet with a real wardrobe interaction point.
   addBox('house-closet-back', centerX + 8.1, floorY + 2.0, centerZ - 7.0, .16, 3.8, 3.4, wall);
   addBox('house-closet-top-shelf', centerX + 7.25, floorY + 3.35, centerZ - 7.0, .25, .18, 3.0, wood);
   addBox('house-closet-rail', centerX + 7.45, floorY + 2.75, centerZ - 7.0, .08, .08, 2.7, brass);
-  for (let i = 0; i < 6; i++) {
-    const clothing = addBox(`house-closet-clothing-${i + 1}`, centerX + 6.3 + i * .45, floorY + 2.05, centerZ - 7.0, .28, 1.25, .08,
-      [mat(0x263f68), mat(0x9c3f42), mat(0x4e7659), mat(0xc08c48), mat(0x66547f), mat(0xe1e0d9)][i]);
-    clothing.rotation.y = (i % 2 ? .035 : -.035);
-  }
+  for (let i = 0; i < 6; i++) addBox(`house-closet-clothing-${i + 1}`, centerX + 6.3 + i * .45, floorY + 2.05, centerZ - 7.0, .28, 1.25, .08, [mat(0x263f68), mat(0x9c3f42), mat(0x4e7659), mat(0xc08c48), mat(0x66547f), mat(0xe1e0d9)][i]);
   addBox('house-closet-drawer-unit', centerX + 8.15, floorY + .8, centerZ - 8.15, 1.2, 1.4, 1.2, wood, true);
   addBox('house-closet-door-left', centerX + 6.65, floorY + 2.0, centerZ - 5.35, .08, 3.8, 2.7, mat(0xd6c4a9, .8));
   addBox('house-closet-door-right', centerX + 8.05, floorY + 2.0, centerZ - 5.35, .08, 3.8, 2.7, mat(0xd6c4a9, .8));
   addInteraction('wardrobe', 'Change clothes', centerX + 7.4, centerZ - 5.45, 2.2, { type: 'wardrobe', colors: ['#263f68', '#9c3f42', '#4e7659', '#c08c48', '#66547f', '#e1e0d9'] });
 
-  // ---------------- Windows + lived-in details ----------------
   for (const z of [-8.5, 1.0, 7.0]) addWindow('left', z);
   addWindow('right', -7.0, 2.1);
   for (const [i, x, z] of [[0, -7.3, -10.2], [1, 7.1, 8.9]]) {
@@ -173,11 +149,78 @@ export function buildHomeyHouseInterior(THREE, { centerX = 483, centerZ = 500, f
   root.userData.coastlineColliders = colliders;
   root.userData.coastlineInteractionPoints = interactions;
   root.userData.coastlineHouseContract = {
-    id: 'home-interior',
-    threshold: { x: centerX, z: centerZ + 13, halfWidth: 1.8 },
-    returnToGarage: { x: centerX, z: centerZ + 10.5 },
+    id: 'home-interior', threshold: { x: centerX, z: centerZ + 13, halfWidth: 1.8 }, returnToGarage: { x: centerX, z: centerZ + 10.5 },
     zones: ['entry', 'living', 'dining', 'kitchen', 'hall', 'bedroom', 'closet'],
     wardrobe: { id: 'wardrobe', x: centerX + 7.4, z: centerZ - 5.45, radius: 2.2, clothingColors: ['#263f68', '#9c3f42', '#4e7659', '#c08c48', '#66547f', '#e1e0d9'] },
   };
+  installHomeyWardrobeRuntime();
   return root;
+}
+
+const HOME_WARDROBE_COLORS = [
+  { name: 'Ocean Blue', hex: '#263f68' }, { name: 'Coastal Red', hex: '#9c3f42' }, { name: 'Forest Green', hex: '#4e7659' },
+  { name: 'Sandstone', hex: '#c08c48' }, { name: 'Harbor Purple', hex: '#66547f' }, { name: 'Classic White', hex: '#e1e0d9' },
+];
+const HOME_WARDROBE_STYLES = ['Everyday Tee', 'Polo', 'Light Jacket'];
+
+function applyHomeWardrobeAppearance(player, choice) {
+  if (!player) return false;
+  player.coastlineClothing = { style: choice.style, color: choice.color };
+  try { localStorage.setItem('coastlineHomeWardrobe', JSON.stringify(player.coastlineClothing)); } catch {}
+  const avatar = window.__coastlineAvatar || window.__coastlinePlayer?.avatar || window.__coastlinePlayer?.g;
+  if (!avatar?.traverse) return true;
+  const color = new (window.THREE?.Color || class { constructor(hex) { this.hex = hex; } })(choice.color);
+  let changed = 0;
+  avatar.traverse(node => {
+    if (!node.isMesh) return;
+    const name = `${node.name || ''} ${node.material?.name || ''}`.toLowerCase();
+    if (!/(shirt|jacket|hoodie|top|clothing|outfit)/.test(name)) return;
+    const materials = Array.isArray(node.material) ? node.material : [node.material];
+    for (const material of materials) if (material?.color?.set) { material.color.set(choice.color); changed++; }
+    if (/jacket|hoodie/.test(name)) node.visible = choice.style !== 'Everyday Tee';
+    if (/shirt|top|clothing|outfit/.test(name)) node.visible = choice.style === 'Everyday Tee' || choice.style === 'Polo';
+  });
+  player.coastlineClothingAppliedMaterialCount = changed;
+  return true;
+}
+
+function openHomeWardrobeChooser(player) {
+  const existing = document.getElementById('coastlineHomeWardrobe'); existing?.remove();
+  let saved = null; try { saved = JSON.parse(localStorage.getItem('coastlineHomeWardrobe') || 'null'); } catch {}
+  let selectedStyle = saved?.style || HOME_WARDROBE_STYLES[0];
+  let selectedColor = HOME_WARDROBE_COLORS.find(c => c.hex === saved?.color) || HOME_WARDROBE_COLORS[0];
+  const overlay = document.createElement('div'); overlay.id = 'coastlineHomeWardrobe'; overlay.setAttribute('role', 'dialog'); overlay.setAttribute('aria-modal', 'true');
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:2006;display:flex;align-items:center;justify-content:center;padding:18px;background:#02090edb;backdrop-filter:blur(8px);font-family:system-ui,sans-serif;color:#f4fbff';
+  const panel = document.createElement('section'); panel.style.cssText = 'width:min(460px,100%);max-height:86vh;overflow:auto;border:1px solid #8be8ff55;border-radius:20px;background:linear-gradient(145deg,#18272c,#091316 70%);box-shadow:0 28px 90px #000b;padding:20px';
+  panel.innerHTML = '<div style="font-size:11px;letter-spacing:.22em;color:#8be8ff;font-weight:800">HOMEY HOUSE • WARDROBE</div><h2 style="margin:5px 0 2px;font-size:24px">Change clothes</h2><div style="font-size:13px;color:#b6c6ce">Choose an everyday style and color.</div><div style="margin-top:18px;font-size:12px;color:#b6c6ce">STYLE</div><div id="homeWardrobeStyles" style="display:grid;grid-template-columns:1fr;gap:8px;margin-top:8px"></div><div style="margin-top:16px;font-size:12px;color:#b6c6ce">CLOTHING COLOR</div><div id="homeWardrobeColors" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:8px"></div><div style="display:flex;justify-content:flex-end;margin-top:20px"><button id="homeWardrobeClose" type="button" style="padding:11px 18px;border-radius:10px;border:1px solid #80e8ff;background:#7de4fa;color:#07141a;font-weight:900">Done</button></div>';
+  overlay.appendChild(panel); document.body.appendChild(overlay);
+  const render = () => {
+    const styles = panel.querySelector('#homeWardrobeStyles'); styles.replaceChildren();
+    for (const style of HOME_WARDROBE_STYLES) { const b = document.createElement('button'); b.type='button'; b.textContent=style; b.setAttribute('aria-pressed',String(style===selectedStyle)); b.style.cssText=`padding:11px;text-align:left;border-radius:10px;border:1px solid ${style===selectedStyle?'#8be8ff':'#3a505b'};background:${style===selectedStyle?'#17333e':'#0b171d'};color:#edf8fc;font-weight:700`; b.onclick=()=>{selectedStyle=style;render();}; styles.appendChild(b); }
+    const colors = panel.querySelector('#homeWardrobeColors'); colors.replaceChildren();
+    for (const color of HOME_WARDROBE_COLORS) { const b=document.createElement('button'); b.type='button'; b.setAttribute('aria-pressed',String(color.hex===selectedColor.hex)); b.style.cssText=`display:flex;align-items:center;gap:9px;text-align:left;padding:10px;border-radius:10px;border:1px solid ${color.hex===selectedColor.hex?'#8be8ff':'#3a505b'};background:${color.hex===selectedColor.hex?'#17333e':'#0b171d'};color:#edf8fc;font-weight:700`; const sw=document.createElement('span'); sw.style.cssText=`width:23px;height:23px;border-radius:50%;background:${color.hex};border:1px solid #ffffff77`; b.append(sw,document.createTextNode(color.name)); b.onclick=()=>{selectedColor=color;render();}; colors.appendChild(b); }
+  };
+  render();
+  panel.querySelector('#homeWardrobeClose').onclick=()=>{applyHomeWardrobeAppearance(player,{style:selectedStyle,color:selectedColor.hex});overlay.remove();};
+  overlay.onclick=e=>{if(e.target===overlay)overlay.remove();};
+  return { close: () => overlay.remove() };
+}
+
+function installHomeyWardrobeRuntime() {
+  if (typeof window === 'undefined' || window.__coastlineHomeWardrobeRuntimeInstalled) return;
+  window.__coastlineHomeWardrobeRuntimeInstalled = true;
+  window.__coastlineHomeWardrobe = { colors: HOME_WARDROBE_COLORS, styles: HOME_WARDROBE_STYLES, open: () => openHomeWardrobeChooser(window.__coastlinePlayer) };
+  const button = document.createElement('button');
+  button.id = 'coastlineHomeWardrobeUse'; button.type = 'button'; button.textContent = 'Change clothes'; button.hidden = true;
+  button.style.cssText = 'position:fixed;left:50%;bottom:94px;transform:translateX(-50%);z-index:1900;padding:12px 18px;border-radius:12px;border:1px solid #8be8ff;background:#0b2029e8;color:#f4fbff;font:800 14px system-ui,sans-serif;box-shadow:0 8px 30px #0008';
+  document.body.appendChild(button);
+  button.addEventListener('click', () => openHomeWardrobeChooser(window.__coastlinePlayer));
+  setInterval(() => {
+    const player = window.__coastlinePlayer;
+    const status = window.__coastlineTransitionTest?.status?.();
+    const worldId = status?.activeWorldId || window.__coastlineActiveWorldId;
+    const point = { x: 490.4, z: 494.55 };
+    const near = worldId === 'home-interior' && player?.mode === 'walk' && Number.isFinite(player.x) && Number.isFinite(player.z) && Math.hypot(player.x-point.x, player.z-point.z) <= 2.4;
+    button.hidden = !near;
+  }, 150);
 }
