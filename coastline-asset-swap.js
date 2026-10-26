@@ -26,13 +26,26 @@ function removeVisualChildren(root) {
   }
 }
 function getBounds(THREE, root) { root.updateMatrixWorld(true); return new THREE.Box3().setFromObject(root); }
-function fitVehicle(THREE, source, target = { width:2.05, length:4.25, height:2.05 }) {
+function fitVehicle(THREE, source, target = null) {
   const model = source.clone(true);
+  const isLimousine = String(source.name || '').toLowerCase().includes('limousine');
+  const fitTarget = target || { width:2.05, length:isLimousine ? 5.15 : String(source.name || '').toLowerCase().includes('suv') ? 4.55 : 4.25, height:2.05 };
   model.traverse(node => { if (node.isMesh) { node.userData.coastlineSharedGeometry = true; node.userData.coastlineOwnedMaterial = true; node.material = Array.isArray(node.material) ? node.material.map(material => material.clone()) : node.material?.clone?.() || node.material; } });
   let bounds = getBounds(THREE, model), size = new THREE.Vector3(); bounds.getSize(size);
   if (![size.x,size.y,size.z].every(Number.isFinite) || Math.max(size.x,size.y,size.z) <= 0) throw new Error('Vehicle model has invalid bounds');
-  const scale = Math.min(target.width / Math.max(size.x,.001), target.length / Math.max(size.z,.001), target.height / Math.max(size.y,.001));
+  // Normalize every model to a shared passenger-car width/height envelope.
+  // The limousine keeps that envelope but gets a deliberately longer wheelbase/body;
+  // using a single uniform scale for its unusually long source mesh made it look
+  // either too tiny or too tall beside ordinary cars.
+  const scale = isLimousine
+    ? Math.min(fitTarget.width / Math.max(size.x,.001), fitTarget.height / Math.max(size.y,.001))
+    : Math.min(fitTarget.width / Math.max(size.x,.001), fitTarget.length / Math.max(size.z,.001), fitTarget.height / Math.max(size.y,.001));
   model.scale.multiplyScalar(scale); bounds = getBounds(THREE, model); size = new THREE.Vector3(); bounds.getSize(size);
+  if (isLimousine) {
+    const lengthScale = fitTarget.length / Math.max(size.z,.001);
+    model.scale.z *= lengthScale;
+    bounds = getBounds(THREE, model); size = new THREE.Vector3(); bounds.getSize(size);
+  }
   model.position.x -= (bounds.min.x + bounds.max.x) / 2; model.position.z -= (bounds.min.z + bounds.max.z) / 2; model.position.y -= bounds.min.y;
   return model;
 }
