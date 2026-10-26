@@ -22,3 +22,14 @@ test('island terrain and bridge approaches are raised above the sea surface', ()
   assert.ok(COASTLINE_ISLAND_WATER_DROP > COASTLINE_ROPE_BRIDGE_CONFIG.deckSag + 0.17 / 2 + 0.7,
     'water must stay below the lowest plank by a visible clearance margin');
 });
+
+test('island top surfaces use upward-facing geometry and city water sits below the sagging approach deck', async () => {
+  const fs = await import('node:fs/promises');
+  const islandSource = await fs.readFile(new URL('../coastline-island-regions.js', import.meta.url), 'utf8');
+  const gameSource = await fs.readFile(new URL('../game-v3.html', import.meta.url), 'utf8');
+  assert.match(islandSource, /shore\.rotation\.x = -Math\.PI \/ 2/);
+  assert.match(islandSource, /land\.rotation\.x = -Math\.PI \/ 2/);
+  assert.match(gameSource, /water\.position\.set\(0,\.2,-900\)/);
+  assert.ok(.2 < 3 - COASTLINE_ROPE_BRIDGE_CONFIG.deckSag + .02 - .17 / 2,
+    'city waterline must sit below the lowest bridge plank');
+});
