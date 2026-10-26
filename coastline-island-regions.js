@@ -1,10 +1,10 @@
 /**
  * Coastline's canonical four-island design manifest.
  *
- * These are world-segment contracts, not a claim that all four regions are
- * currently rendered/playable. Keep world identity, transition targets and
- * population budgets here rather than scattering them through runtime code.
- * Only the active region should own live simulation; distant regions are scenery.
+ * These four world-segment contracts define distinct islands at the same visual
+ * quality bar as the City. Keep identity, transition targets, content density,
+ * and population budgets here rather than scattering them through runtime code.
+ * Only the active region owns live simulation; inactive islands are streamed scenery.
  */
 export const COASTLINE_ISLAND_REGIONS = Object.freeze([
   Object.freeze({
