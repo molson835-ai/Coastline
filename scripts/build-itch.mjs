@@ -14,7 +14,7 @@ const files = [
   'npc-agency-engine.js', 'npc-world-slice.js', 'social-rumor-engine.js',
   'player-reputation-engine.js', 'coastline-runtime-fix.js',
   'coastline-stability-v8.js', 'transition-manager.js', 'transition-manager-browser.js',
-  'coastline-sw.js', 'coastline-world-transitions.js', 'coastline-island-regions.js', 'render-culling.js'
+  'coastline-sw.js', 'coastline-world-transitions.js', 'coastline-island-regions.js', 'coastline-homey-garage.js', 'render-culling.js'
 ];
 for (const file of files) {
   if (!existsSync(path.join(root, file))) throw new Error('Missing runtime file: ' + file);

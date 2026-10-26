@@ -83,3 +83,111 @@ test('the physical bridge end zones automatically transition island to City and 
   }, zones.cityApproach);
   await expect.poll(() => page.evaluate(() => window.__coastlineTransitionTest.status().activeWorldId), { timeout: 3000 }).toBe('island');
 });
+
+
+test('Homey garage opens only when a vehicle crosses the open threshold and preserves the vehicle', async ({ page }) => {
+  await openGame(page);
+  await page.waitForFunction(() => window.__coastlineVehicleAssetSwapStatus?.ok === true, null, { timeout: 45000 });
+  const thresholdClear = await page.evaluate(async () => {
+    await window.__coastlineTransitionTest.transition('city-to-island');
+    const clear = !window.__coastlineTest.buildingBlocked(483, 488, 1.8);
+    window.__garageTestVehicle = window.__coastlinePlayer.vehicle;
+    window.__coastlineTest.setWalkPosition(483, 487, 0);
+    window.__coastlineTransitionTest.updatePrompt();
+    window.__coastlineTest.setWalkPosition(483, 490, 0);
+    window.__coastlineTransitionTest.updatePrompt();
+    return clear;
+  });
+  expect(thresholdClear, 'open garage threshold must remain physically traversable').toBe(true);
+  await page.waitForTimeout(250);
+  expect(await page.evaluate(() => window.__coastlineTransitionTest.status().activeWorldId)).toBe('island');
+  await page.evaluate(() => {
+    window.__coastlineTest.enterVehicle(window.__garageTestVehicle);
+    window.__coastlineTest.setVehiclePosition(483, 487, 0);
+    window.__coastlineTransitionTest.updatePrompt();
+  });
+  const before = await page.evaluate(() => window.__coastlineTransitionTest.playerState());
+  await page.evaluate(() => {
+    window.__coastlineTest.setVehiclePosition(483, 490, 0);
+    window.__coastlineTransitionTest.updatePrompt();
+  });
+  await expect.poll(() => page.evaluate(() => window.__coastlineTransitionTest.status().activeWorldId), { timeout: 5000 }).toBe('homey-garage');
+  const inside = await page.evaluate(() => {
+    window.__coastlineTransitionTest.updatePrompt();
+    return {
+      state: window.__coastlineTransitionTest.playerState(),
+      garage: window.__coastlineTransitionTest.garageState(),
+    };
+  });
+  expect(inside.state.mode).toBe('vehicle');
+  expect(inside.state.vehicleIndex).toBe(before.vehicleIndex);
+  expect(inside.state.position.x).toBeCloseTo(483, 1);
+  expect(inside.state.position.z).toBeCloseTo(500, 1);
+  expect(inside.state.position.y).toBeCloseTo(inside.garage.floorY, 1);
+  expect(inside.garage.root.meshes).toBeGreaterThan(20);
+  expect(inside.garage.decorCount).toBeGreaterThanOrEqual(20);
+  expect(inside.garage.cameraMode).toBe(true);
+  expect(inside.garage.ceilingVisible).toBe(false);
+  expect(inside.garage.sideWallOpacity).toBeCloseTo(0.16, 2);
+  expect(inside.garage.threshold.z).toBe(488);
+  expect(await page.evaluate(() => window.__coastlineTransitionTest.worldDefinitions().find(world => world.id === 'homey-garage').content.density)).toBe('developed');
+
+  await page.evaluate(() => {
+    window.__coastlineTest.setWalkPosition(483, 500, 0);
+    window.__coastlineTransitionTest.updatePrompt();
+  });
+  await expect(page.locator('#coastlineGarageUseBoard')).toBeVisible();
+  await page.locator('#coastlineGarageUseBoard').click();
+  await expect(page.locator('#coastlineGarageChooser')).toBeVisible();
+  await page.locator('#garageCancel').click();
+  await expect(page.locator('#coastlineGarageChooser')).toHaveCount(0);
+
+  await page.locator('#coastlineGarageUseBoard').click();
+  await expect(page.locator('#coastlineGarageChooser')).toBeVisible();
+  const originalIndex = await page.evaluate(() => window.__coastlineTransitionTest.garageState().vehicleIndex);
+  const originalModel = await page.evaluate(() => window.__coastlineTransitionTest.garageVehicleRef().rgsdevModelName);
+  const modelOptions = await page.locator('#garageModel option').count();
+  expect(modelOptions).toBeGreaterThan(1);
+  await page.locator('#garageModel').selectOption({ index: 1 });
+  const selectedModel = await page.locator('#garageModel').inputValue();
+  const donorMaterials = await page.evaluate(model => window.__coastlineTransitionTest.vehicleMaterialSnapshot(model, window.__coastlineTransitionTest.garageState().vehicleIndex), selectedModel);
+  expect(donorMaterials).not.toBeNull();
+  await page.getByRole('button', { name: 'Racing Red' }).click();
+  await page.locator('#garageConfirm').click();
+  const swapped = await page.evaluate(() => {
+    const vehicle = window.__coastlineTransitionTest.garageVehicleRef();
+    const body = vehicle.materialRoles?.body?.[0];
+    const material = Array.isArray(body?.material) ? body.material[0] : body?.material;
+    const roles = window.__coastlineTransitionTest.garageVehicleMaterialSnapshot();
+    return {
+      index: window.__coastlineTransitionTest.garageState().vehicleIndex,
+      model: vehicle.rgsdevModelName,
+      paint: material?.color?.getHexString?.() || null,
+      glass: roles.glass,
+      wheels: roles.wheels,
+      lights: roles.lights,
+      activeCount: window.__coastlineTest.vehicleRoster().filter(v => v.kind === 'car' && Math.abs(v.x - 483) < 2 && Math.abs(v.z - 500) < 2).length,
+    };
+  });
+  expect(swapped.index).toBe(originalIndex);
+  expect(swapped.model).toBe(selectedModel);
+  expect(swapped.paint).toBe('b92d35');
+  expect(swapped.glass).toEqual(donorMaterials.glass);
+  expect(swapped.wheels).toEqual(donorMaterials.wheels);
+  expect(swapped.lights).toEqual(donorMaterials.lights);
+  expect(swapped.activeCount).toBe(1);
+  expect(swapped.model).not.toBe(originalModel);
+
+  await page.evaluate(() => {
+    window.__coastlineTest.enterVehicle(window.__coastlineTransitionTest.garageVehicleRef());
+    window.__coastlineTransitionTest.updatePrompt();
+    window.__coastlineTest.setVehiclePosition(483, 487, Math.PI);
+    window.__coastlineTransitionTest.updatePrompt();
+  });
+  await expect.poll(() => page.evaluate(() => window.__coastlineTransitionTest.status().activeWorldId), { timeout: 5000 }).toBe('island');
+  const outside = await page.evaluate(() => window.__coastlineTransitionTest.playerState());
+  expect(outside.mode).toBe('vehicle');
+  expect(outside.position.z).toBeCloseTo(484, 1);
+  expect(outside.position.y).toBeCloseTo(await page.evaluate(() => window.__coastlineTest.groundY(483, 484)), 1);
+  expect(outside.vehicleIndex).toBe(originalIndex);
+});

@@ -239,7 +239,7 @@ test('crossing back from World 2 restores the populated City buffer', async ({ p
 test('four-region CTM route reaches distinct Residential, Waterfront and Port worlds and returns to City', async ({ page }) => {
   const errors = await openGame(page);
   const api = () => window.__coastlineTransitionTest;
-  expect(await page.evaluate(() => window.__coastlineTransitionTest.worldIds())).toEqual(['city', 'island', 'waterfront', 'port']);
+  expect(await page.evaluate(() => window.__coastlineTransitionTest.worldIds())).toEqual(['city', 'island', 'waterfront', 'port', 'homey-garage']);
 
   await page.evaluate(() => window.__coastlineTransitionTest.transition('city-to-island'));
   let state = await page.evaluate(() => ({
