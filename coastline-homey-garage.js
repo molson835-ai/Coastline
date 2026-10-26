@@ -83,7 +83,7 @@ export function buildHomeyGarageInterior(THREE, { centerX = 483, centerZ = 500, 
   addBox('garage-key-board-title-plate', centerX + 8.57, floorY + 3.45, centerZ + 2.5, .08, .34, 2.7, amberMat);
   for (let i = 0; i < 8; i++) {
     const row = Math.floor(i / 4), col = i % 4;
-    const z = centerZ + .15 + col * .55;
+    const z = centerZ + 1.65 + col * .55;
     const y = floorY + 2.8 - row * .78;
     addBox(`garage-key-hook-${i + 1}`, centerX + 8.4, y, z, .16, .12, .12, ledMat);
     addBox(`garage-key-fob-${i + 1}`, centerX + 8.27, y - .17, z, .1, .25, .16, amberMat);
@@ -155,7 +155,7 @@ export function buildHomeyGarageInterior(THREE, { centerX = 483, centerZ = 500, 
     id: 'homey-garage',
     threshold: { x: centerX, z: centerZ - 12, halfWidth: 7.2 },
     houseDoor: { x: centerX, z: centerZ + 16, halfWidth: 1.7 },
-    board: { x: centerX + 8.6, z: centerZ + 2.5 },
+    board: { x: centerX + 7.8, z: centerZ + 2.5 },
     driveOut: { x: centerX, y: floorY, z: centerZ + 1, rotationY: Math.PI },
     returnOutside: { x: centerX, y: floorY, z: centerZ - 16, rotationY: Math.PI },
   };
