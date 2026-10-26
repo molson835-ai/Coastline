@@ -7,7 +7,8 @@ test('mobile controls change with gameplay mode and audio toggle responds', asyn
   await page.waitForFunction(() => Boolean(window.__coastlineTest), null, { timeout: 30000 });
 
   const footControls = page.locator('[data-foot-only]');
-  await expect(footControls).toHaveCount(3);
+  // Jump and crouch remain the only foot-specific touch controls; sprint was removed.
+  await expect(footControls).toHaveCount(2);
   const worldLook = await page.evaluate(() => ({ residential: window.__coastlineTest.rowhomeState(), cinematic: window.__coastlineTest.cinematicState() }));
   expect(worldLook.residential.count).toBeGreaterThanOrEqual(70);
   expect(worldLook.residential.storefronts).toBeGreaterThanOrEqual(10);
