@@ -51,10 +51,14 @@ test('house doorway triggers only on a forward on-foot threshold crossing', () =
 test('limousine keeps passenger-car width and height while using a longer proportional body', () => {
   const sedan = getCoastlineVehicleTarget('Sedan');
   const limousine = getCoastlineVehicleTarget('Limousine');
+  const shortNameLimo = getCoastlineVehicleTarget('Limo');
   assert.equal(limousine.width, sedan.width);
   assert.equal(limousine.height, sedan.height);
   assert.ok(limousine.length > sedan.length);
   assert.equal(limousine.length, 5.15);
+  assert.equal(shortNameLimo.length, limousine.length);
+  assert.equal(shortNameLimo.width, limousine.width);
+  assert.equal(shortNameLimo.height, limousine.height);
   const sourceBounds = { x: 2.8, y: 2.1, z: 6.2 };
   const scale = getCoastlineVehicleUniformScale(sourceBounds, limousine, true);
   const fitted = { x: sourceBounds.x * scale, y: sourceBounds.y * scale, z: sourceBounds.z * scale };
