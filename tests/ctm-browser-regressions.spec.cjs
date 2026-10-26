@@ -90,6 +90,7 @@ test('Homey garage opens only when a vehicle crosses the open threshold and pres
   await page.waitForFunction(() => window.__coastlineVehicleAssetSwapStatus?.ok === true, null, { timeout: 45000 });
   await page.evaluate(async () => {
     await window.__coastlineTransitionTest.transition('city-to-island');
+    expect(window.__coastlineTest.buildingBlocked(483, 488, 1.8), 'open garage threshold must remain physically traversable').toBe(false);
     window.__garageTestVehicle = window.__coastlinePlayer.vehicle;
     window.__coastlineTest.setWalkPosition(483, 487, 0);
     window.__coastlineTransitionTest.updatePrompt();
