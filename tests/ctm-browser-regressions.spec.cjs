@@ -139,22 +139,31 @@ test('Homey garage opens only when a vehicle crosses the open threshold and pres
   expect(modelOptions).toBeGreaterThan(1);
   await page.locator('#garageModel').selectOption({ index: 1 });
   const selectedModel = await page.locator('#garageModel').inputValue();
+  const donorMaterials = await page.evaluate(model => window.__coastlineTransitionTest.vehicleMaterialSnapshot(model, window.__coastlineTransitionTest.garageState().vehicleIndex), selectedModel);
+  expect(donorMaterials).not.toBeNull();
   await page.getByRole('button', { name: 'Racing Red' }).click();
   await page.locator('#garageConfirm').click();
   const swapped = await page.evaluate(() => {
     const vehicle = window.__coastlineTransitionTest.garageVehicleRef();
     const body = vehicle.materialRoles?.body?.[0];
     const material = Array.isArray(body?.material) ? body.material[0] : body?.material;
+    const roles = window.__coastlineTransitionTest.garageVehicleMaterialSnapshot();
     return {
       index: window.__coastlineTransitionTest.garageState().vehicleIndex,
       model: vehicle.rgsdevModelName,
       paint: material?.color?.getHexString?.() || null,
+      glass: roles.glass,
+      wheels: roles.wheels,
+      lights: roles.lights,
       activeCount: window.__coastlineTest.vehicleRoster().filter(v => v.kind === 'car' && Math.abs(v.x - 483) < 2 && Math.abs(v.z - 500) < 2).length,
     };
   });
   expect(swapped.index).toBe(originalIndex);
   expect(swapped.model).toBe(selectedModel);
   expect(swapped.paint).toBe('b92d35');
+  expect(swapped.glass).toEqual(donorMaterials.glass);
+  expect(swapped.wheels).toEqual(donorMaterials.wheels);
+  expect(swapped.lights).toEqual(donorMaterials.lights);
   expect(swapped.activeCount).toBe(1);
   expect(swapped.model).not.toBe(originalModel);
 
