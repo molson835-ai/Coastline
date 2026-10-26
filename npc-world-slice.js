@@ -1,6 +1,7 @@
 // A first visible, causal NPC slice: a public-works technician repairs a traffic signal.
 import { createNpcAgency } from './npc-agency-engine.js';
 import { createSocialRumorEngine } from './social-rumor-engine.js';
+import { loadCozyCharacterAsset, createCozyCharacterInstance, setCozyCharacterAnimation, createRgsdevVehicleVisual } from './coastline-asset-swap.js';
 import { RoundedBoxGeometry } from 'https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/geometries/RoundedBoxGeometry.js';
 
 export function createNpcWorldSlice({ THREE, scene, groundY, trafficSignalHeads, toast, getPlayer }) {
@@ -36,6 +37,18 @@ export function createNpcWorldSlice({ THREE, scene, groundY, trafficSignalHeads,
   const arm=new THREE.Group();arm.position.set(.28,1.52,0);const upperArm=new THREE.Mesh(new THREE.CapsuleGeometry(.065,.34,5,10),materials.hiVis);upperArm.rotation.z=-.5;upperArm.position.set(.06,-.15,0);arm.add(upperArm);const wrench=new THREE.Mesh(new THREE.CapsuleGeometry(.038,.25,4,8),materials.tool);wrench.position.set(.1,-.43,.05);wrench.rotation.z=-.28;arm.add(wrench);worker.add(arm);
   worker.position.set(tx+2.3,groundY(tx+2.3,tz+1.4),tz+1.4);worker.rotation.y=Math.PI*.72;scene.add(worker);
   worker.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;if(o.geometry.computeVertexNormals)o.geometry.computeVertexNormals();}});
+  // Replace both legacy story visuals with the same pack used by the main world.
+  loadCozyCharacterAsset().then(asset=>{
+    const actor=createCozyCharacterInstance(THREE,asset,1.95);
+    for(const child of [...worker.children])worker.remove(child);
+    worker.add(actor.root);worker.userData.cozyActor=actor;
+    actor.root.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});
+  }).catch(error=>{worker.visible=false;console.error('[Coastline] Cozy story character unavailable; legacy character disabled.',error)});
+  createRgsdevVehicleVisual(THREE,'Van',{width:2.3,length:4.25,height:2.4}).then(model=>{
+    for(const child of [...van.children])van.remove(child);
+    van.add(model);van.userData.coastlineRgsdevVehicle='Van';
+    model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});
+  }).catch(error=>{van.visible=false;console.error('[Coastline] RGSDev van unavailable; legacy story van disabled.',error)});
 
   let phase=savedState?.phase==='complete'?'complete':'idle',phaseStarted=0,lastDecision=0,toastShown=false;
   function persistStory(){try{localStorage.setItem('coastline-npc-world-slice-v1',JSON.stringify({version:2,phase,agency:agency.snapshot(),rumors:rumorEngine.snapshot()}));}catch{}}
@@ -43,6 +56,6 @@ export function createNpcWorldSlice({ THREE, scene, groundY, trafficSignalHeads,
   if (typeof addEventListener === 'function') addEventListener('pagehide', persistStory);
   const start=time=>{phase='repairing';phaseStarted=time;agency.publishEvent({type:'signal_outage',targetNpc:'town-tech-01',location:'Main Street',time:time/1000});rumorEngine.observe({topic:'signalOutage',personId:'town-tech-01',time:time/1000,confidence:.95,evidence:'direct',location:'Main Street'});if(!toastShown){toast('PUBLIC WORKS · Mara is responding to a signal fault on Main Street.');toastShown=true;}};
   function setSignalFault(faulted){for(const bulb of target.bulbs)bulb.mesh.visible=!faulted;}
-  function update(dt,now){if(!Number.isFinite(now))return;const player=getPlayer?.();if(phase==='idle'&&player&&Math.hypot(player.x-tx,player.z-tz)<48)start(now);if(phase==='repairing'){const elapsed=(now-phaseStarted)/1000;const bob=Math.sin(now*.006)*.025;worker.position.y=groundY(worker.position.x,worker.position.z)+bob;arm.rotation.x=Math.sin(now*.007)*.12;arm.rotation.z=-.18+Math.sin(now*.009)*.22;legs[0].rotation.x=Math.sin(now*.008)*.04;legs[1].rotation.x=-legs[0].rotation.x;setSignalFault(true);if(now-lastDecision>2500){lastDecision=now;agency.step({time:now/1000,hour:Math.floor(now/60000)%24,deltaHours:.02,maxAgents:1});}if(elapsed>13){agency.publishEvent({type:'parts_arrived',targetNpc:'town-tech-01',location:'Main Street',time:now/1000});phase='complete';setSignalFault(false);for(let i=0;i<8;i++)rumorEngine.step({time:now/1000+i*31,maxTransfers:4});persistStory();const knownBy=rumorEngine.snapshot().people.filter(person=>person.knowledge.signalOutage).length;toast(knownBy>1?'MAIN STREET · Signal restored. Word is spreading through town—details may change as people retell it.':'MAIN STREET · Signal restored. Mara logs the repair and heads back to her route.');}}else if(phase==='complete'){worker.rotation.y=Math.PI*.72+Math.sin(now*.001)*.035;worker.position.y=groundY(worker.position.x,worker.position.z)+Math.sin(now*.003)*.018;if(now-lastDecision>12000){lastDecision=now;agency.step({time:now/1000,hour:Math.floor(now/60000)%24,deltaHours:.08,maxAgents:1});}}}
+  function update(dt,now){if(!Number.isFinite(now))return;if(worker.userData.cozyActor){setCozyCharacterAnimation(worker.userData.cozyActor,phase==='repairing'?'wave':'idle');worker.userData.cozyActor.mixer.update(dt)}const player=getPlayer?.();if(phase==='idle'&&player&&Math.hypot(player.x-tx,player.z-tz)<48)start(now);if(phase==='repairing'){const elapsed=(now-phaseStarted)/1000;const bob=Math.sin(now*.006)*.025;worker.position.y=groundY(worker.position.x,worker.position.z)+bob;arm.rotation.x=Math.sin(now*.007)*.12;arm.rotation.z=-.18+Math.sin(now*.009)*.22;legs[0].rotation.x=Math.sin(now*.008)*.04;legs[1].rotation.x=-legs[0].rotation.x;setSignalFault(true);if(now-lastDecision>2500){lastDecision=now;agency.step({time:now/1000,hour:Math.floor(now/60000)%24,deltaHours:.02,maxAgents:1});}if(elapsed>13){agency.publishEvent({type:'parts_arrived',targetNpc:'town-tech-01',location:'Main Street',time:now/1000});phase='complete';setSignalFault(false);for(let i=0;i<8;i++)rumorEngine.step({time:now/1000+i*31,maxTransfers:4});persistStory();const knownBy=rumorEngine.snapshot().people.filter(person=>person.knowledge.signalOutage).length;toast(knownBy>1?'MAIN STREET · Signal restored. Word is spreading through town—details may change as people retell it.':'MAIN STREET · Signal restored. Mara logs the repair and heads back to her route.');}}else if(phase==='complete'){worker.rotation.y=Math.PI*.72+Math.sin(now*.001)*.035;worker.position.y=groundY(worker.position.x,worker.position.z)+Math.sin(now*.003)*.018;if(now-lastDecision>12000){lastDecision=now;agency.step({time:now/1000,hour:Math.floor(now/60000)%24,deltaHours:.08,maxAgents:1});}}}
   return Object.freeze({update,snapshot:()=>({version:2,phase,phaseStarted,target:{x:tx,z:tz},agency:agency.snapshot(),rumors:rumorEngine.snapshot(),npc:agency.agent('town-tech-01')})});
 }
