@@ -125,10 +125,35 @@ function applyVehicleMaterialRoles(THREE, vehicle, visual) {
   const protectedMeshes = new Set([...glassMeshes, ...wheelMeshes, ...lightMeshes]);
   bodyMeshes = bodyMeshes.filter(mesh => !protectedMeshes.has(mesh));
   if (!bodyMeshes.length && descriptors.length) {
+    // A few FBX exports apply one generic material name to nearly every part,
+    // causing the semantic matches above to classify the entire model as glass
+    // or trim. Always reserve the largest non-wheel candidate as the body shell.
     const shell = [...descriptors]
-      .filter(item => !protectedMeshes.has(item.mesh))
-      .sort((a, b) => b.volume - a.volume)[0];
-    if (shell) bodyMeshes = [shell.mesh];
+      .filter(item => !wheelMeshes.includes(item.mesh) && !lightMeshes.includes(item.mesh))
+      .sort((a, b) => b.volume - a.volume)[0]
+      || [...descriptors].sort((a, b) => b.volume - a.volume)[0];
+    if (shell) {
+      bodyMeshes = [shell.mesh];
+      glassMeshes = glassMeshes.filter(mesh => mesh !== shell.mesh);
+      wheelMeshes = wheelMeshes.filter(mesh => mesh !== shell.mesh);
+      lightMeshes.splice(0, lightMeshes.length, ...lightMeshes.filter(mesh => mesh !== shell.mesh));
+    }
+  }
+
+  // Keep role groups non-empty and disjoint when source names are unusable.
+  // Infer one wheel candidate from low, lateral geometry and one upper glass
+  // candidate from the remaining elevated geometry, without stealing the shell.
+  if (!wheelMeshes.length && descriptors.length > 1) {
+    const wheelCandidate = [...descriptors]
+      .filter(item => !bodyMeshes.includes(item.mesh) && !lightMeshes.includes(item.mesh))
+      .sort((a, b) => (a.center.y - b.center.y) || (a.volume - b.volume))[0];
+    if (wheelCandidate) wheelMeshes = [wheelCandidate.mesh];
+  }
+  if (!glassMeshes.length && descriptors.length > 2) {
+    const glassCandidate = [...descriptors]
+      .filter(item => !bodyMeshes.includes(item.mesh) && !wheelMeshes.includes(item.mesh) && !lightMeshes.includes(item.mesh))
+      .sort((a, b) => b.center.y - a.center.y)[0];
+    if (glassCandidate) glassMeshes = [glassCandidate.mesh];
   }
 
   for (const mesh of bodyMeshes) forMaterials(mesh, material => {
