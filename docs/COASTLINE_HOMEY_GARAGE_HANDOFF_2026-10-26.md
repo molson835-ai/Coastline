@@ -39,3 +39,10 @@
 ## Latest known base
 - PR #125, “Consolidate vehicle visuals and stale-cache recovery,” was merged to main per the preceding project handoff at commit `29e7edaec976bf2cd12a6cb74a9463811dd4c40c`.
 - The post-merge Vercel status check on that SHA reported success. The GitHub workflow-run lookup returned no PR-triggered runs for the merge SHA, so this does not substitute for the next PR's full CI.
+
+
+## Follow-up: garage camera and workshop detail
+- Tightened the vehicle camera for Homey Garage from the standard 10-unit chase distance to 5.7 units with a lower camera height, tighter smoothing, and a slight forward look target; the on-foot camera is also closer while in the garage.
+- The garage ceiling is hidden while the garage world is active, and both side walls fade to 16% opacity, preserving the room's outline while preventing the walls from swallowing the view. Their original material settings and ceiling visibility are restored when leaving the garage. Collision boundaries remain in place.
+- Added workshop dressing around the perimeter: red mechanic's tool chest with drawers, stacked tires, a floor jack and axle stands, hose reel, fire extinguisher, service clock, rear storage shelf, fluid cans, and parts bins. These stay out of the central vehicle drive-out lane.
+- The transition test diagnostics now report the workshop-detail count and camera-occlusion state. Verify that the garage remains readable on a narrow Android viewport, that no camera-wall clipping remains during entry/exit, and that the side walls/ceiling restore on every exit or failed transition.
