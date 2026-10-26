@@ -123,7 +123,32 @@ function applyVehicleMaterialRoles(THREE, vehicle, visual) {
     setMaterialColor(material, COASTLINE_STARTING_PAINT);
     material.roughness = Math.min(material.roughness ?? .55, .55);
     material.metalness = Math.max(material.metalness ?? 0, .12);
+    material.needsUpdate = true;
   });
+  // FBX exports can contain non-color materials or material arrays whose first
+  // slot is not the visible shell. Guarantee one real, renderable orange shell
+  // material rather than reporting a paint role that never appears orange.
+  const orangeHex = COASTLINE_STARTING_PAINT;
+  const hasOrangeBodyMaterial = () => bodyMeshes.some(mesh =>
+    (Array.isArray(mesh.material) ? mesh.material : [mesh.material]).some(material =>
+      material?.color?.isColor && material.color.getHex() === orangeHex
+    )
+  );
+  if (bodyMeshes.length && !hasOrangeBodyMaterial()) {
+    const shell = bodyMeshes[0];
+    const orange = new THREE.MeshStandardMaterial({
+      color: orangeHex, roughness: 0.42, metalness: 0.12,
+    });
+    if (Array.isArray(shell.material)) {
+      const materials = [...shell.material];
+      const paintIndex = materials.findIndex(material => material?.color?.isColor);
+      if (paintIndex >= 0) materials[paintIndex] = orange;
+      else materials[0] = orange;
+      shell.material = materials;
+    } else {
+      shell.material = orange;
+    }
+  }
   for (const mesh of glassMeshes) forMaterials(mesh, material => {
     setMaterialColor(material, 0x17232b);
     material.transparent = false;
