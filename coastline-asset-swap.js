@@ -174,10 +174,13 @@ function applyVehicleMaterialRoles(THREE, vehicle, visual) {
 function bindDamageParts(THREE, vehicle, visual) {
   const meshes=[]; visual.traverse(node=>{ if(node.isMesh) meshes.push(node); });
   const named=(pattern)=>meshes.find(mesh=>pattern.test(String(mesh.name||'')));
-  const body=named(/body|chassis|shell|exterior|paint/i)||meshes[0];
-  const glass=named(/glass|window|windshield|windscreen|cabin/i)||body;
+  const body=named(/body|chassis|shell|exterior|paint/i)||meshes[0]||null;
+  const glass=named(/glass|window|windshield|windscreen|cabin/i)||null;
   const wheels=meshes.filter(mesh=>/wheel|tire|tyre|rim/i.test(String(mesh.name||''))).slice(0,4);
-  vehicle.damageParts={body,cab:glass,hood:named(/hood|bonnet/i)||body,trunk:named(/trunk|boot|tailgate/i)||body,roof:named(/roof/i)||glass,frontBumper:named(/front.*bumper|bumper.*front/i)||body,rearBumper:named(/rear.*bumper|bumper.*rear/i)||body,wheels,visualRoot:visual};
+  // Missing named parts remain null. Never alias a full body mesh as a bumper,
+  // hood, trunk, or cab: impact handling could otherwise detach/deform the
+  // entire replacement model instead of a small cosmetic part.
+  vehicle.damageParts={body,cab:glass,hood:named(/hood|bonnet/i)||null,trunk:named(/trunk|boot|tailgate/i)||null,roof:named(/roof/i)||null,frontBumper:named(/front.*bumper|bumper.*front/i)||null,rearBumper:named(/rear.*bumper|bumper.*rear/i)||null,wheels,visualRoot:visual};
   applyVehicleMaterialRoles(THREE, vehicle, visual);
   const heroInfo=vehicle.g.userData?.coastlineHeroVehicle;
   if(heroInfo?.singleShell) heroInfo.parts=vehicle.damageParts;
