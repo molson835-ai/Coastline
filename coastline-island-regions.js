@@ -493,15 +493,15 @@ export function createCoastlineIslandRoot({ THREE, region, groundY = () => 0, ad
       // Sparse regions still need physical collision metadata for their bridge
       // guardrails; their low scenery density must not mean an empty collider set.
       colliders.push(
-        { name: `${region.id}-west-bridge-north-rail`, x: center.x - half - 50, z: center.z + 4.4, w: 100, d: 0.8 },
-        { name: `${region.id}-west-bridge-south-rail`, x: center.x - half - 50, z: center.z - 4.4, w: 100, d: 0.8 }
+        { name: `${region.id}-west-bridge-north-rail`, x: center.x - half - 50, z: center.z + 2.48, w: 100, d: 0.2 },
+        { name: `${region.id}-west-bridge-south-rail`, x: center.x - half - 50, z: center.z - 2.48, w: 100, d: 0.2 }
       );
     }
     if (region.id === 'residential' || region.id === 'waterfront') {
       addSideBridge(THREE, root, { edgeX: center.x + half, z: center.z, y: edgeY, length: 100, direction: 1, name: `${region.id}-east` });
       if (region.id === 'waterfront') colliders.push(
-        { name: `${region.id}-east-bridge-north-rail`, x: center.x + half + 50, z: center.z + 4.4, w: 100, d: 0.8 },
-        { name: `${region.id}-east-bridge-south-rail`, x: center.x + half + 50, z: center.z - 4.4, w: 100, d: 0.8 }
+        { name: `${region.id}-east-bridge-north-rail`, x: center.x + half + 50, z: center.z + 2.48, w: 100, d: 0.2 },
+        { name: `${region.id}-east-bridge-south-rail`, x: center.x + half + 50, z: center.z - 2.48, w: 100, d: 0.2 }
       );
     }
   }
