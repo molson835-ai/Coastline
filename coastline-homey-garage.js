@@ -12,11 +12,26 @@ const GARAGE_COLORS = Object.freeze([
 export function buildHomeyGarageInterior(THREE, { centerX = 483, centerZ = 500, floorY = 0 } = {}) {
   const root = new THREE.Group();
   root.name = 'coastline-homey-garage-interior';
-  const colliders = [];
+  const colliders = [], props = [];
   const mat = (color, roughness = .55, metalness = .08, extra = {}) =>
     new THREE.MeshStandardMaterial({ color, roughness, metalness, ...extra });
   const floorMat = mat(0x38434a, .22, .32);
-  const wallMat = mat(0x26323a, .76, .18);
+  const wallMat = mat(0x8b4b37, .9, .02);
+  const brickCanvas = document.createElement('canvas');
+  brickCanvas.width = 256; brickCanvas.height = 128;
+  const brickCtx = brickCanvas.getContext('2d');
+  brickCtx.fillStyle = '#b9a99b'; brickCtx.fillRect(0, 0, 256, 128);
+  for (let row = 0; row < 8; row++) {
+    for (let col = -1; col < 8; col++) {
+      const x = col * 32 + (row % 2 ? 16 : 0), y = row * 16;
+      brickCtx.fillStyle = ['#884b39','#9c5942','#a7654b','#7e4436','#b16c50'][(row * 5 + col + 8) % 5];
+      brickCtx.fillRect(x + 1, y + 1, 30, 14);
+      brickCtx.fillStyle = 'rgba(255,220,190,.11)'; brickCtx.fillRect(x + 2, y + 2, 28, 2);
+    }
+  }
+  const brickTexture = new THREE.CanvasTexture(brickCanvas);
+  brickTexture.wrapS = brickTexture.wrapT = THREE.RepeatWrapping; brickTexture.repeat.set(3, 2);
+  wallMat.map = brickTexture; wallMat.color.set(0xffffff); wallMat.needsUpdate = true;
   const trimMat = mat(0x111a20, .4, .35);
   const cabinetMat = mat(0x374650, .45, .25);
   const warmWood = mat(0x916443, .62, .08);
@@ -32,6 +47,17 @@ export function buildHomeyGarageInterior(THREE, { centerX = 483, centerZ = 500, 
     if (collider) colliders.push({ name, x, z, w, d });
     return mesh;
   };
+  const addSign = (name, label, x, y, z, width, height, rotationY = 0) => {
+    const canvas = document.createElement('canvas'); canvas.width = 512; canvas.height = 96;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#10252b'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = '#ffc879'; ctx.lineWidth = 7; ctx.strokeRect(4, 4, 504, 88);
+    ctx.fillStyle = '#f4fbff'; ctx.font = 'bold 35px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(label, 256, 49);
+    const signMaterial = new THREE.MeshStandardMaterial({ map: new THREE.CanvasTexture(canvas), emissive: 0x17333b, emissiveIntensity: .45, roughness: .42 });
+    const sign = new THREE.Mesh(new THREE.PlaneGeometry(width, height), signMaterial);
+    sign.name = name; sign.position.set(x, y, z); sign.rotation.y = rotationY; root.add(sign); return sign;
+  };
   // Interior is aligned to Homey Island's existing open bay (front at z = centerZ - 12).
   addBox('garage-showroom-epoxy-floor', centerX, floorY - .08, centerZ + 2.5, 18, .16, 31, floorMat);
   addBox('garage-left-wall', centerX - 9.3, floorY + 2.7, centerZ + 2.5, .3, 5.4, 31, wallMat, true);
@@ -44,8 +70,12 @@ export function buildHomeyGarageInterior(THREE, { centerX = 483, centerZ = 500, 
   const houseDoor = addBox('garage-house-door-open-leaf', centerX + 1.55, floorY + 2.1, centerZ + 16, 3.0, 4.15, .12, warmWood);
   houseDoor.rotation.y = Math.PI / 2;
   addBox('garage-house-door-handle', centerX + 1.58, floorY + 2.0, centerZ + 17.2, .08, .3, .08, amberMat);
+  addSign('garage-house-entry-sign', 'HOUSE ENTRY  •  ON FOOT', centerX, floorY + 4.15, centerZ + 15.68, 5.4, .72, Math.PI);
   addBox('garage-ceiling', centerX, floorY + 5.45, centerZ + 2.5, 18.6, .25, 31.5, trimMat);
   addBox('garage-entry-header', centerX, floorY + 5.05, centerZ - 12, 18.6, .45, .55, trimMat);
+  addBox('garage-door-left-jamb', centerX - 8.25, floorY + 2.25, centerZ - 11.95, .22, 4.5, .32, amberMat);
+  addBox('garage-door-right-jamb', centerX + 8.25, floorY + 2.25, centerZ - 11.95, .22, 4.5, .32, amberMat);
+  addSign('garage-vehicle-exit-sign', 'GARAGE EXIT  •  VEHICLES ONLY', centerX, floorY + 3.55, centerZ - 11.7, 7.2, .72, 0);
   // Sectional door slats are parked overhead so the vehicle threshold remains open.
   for (let slat = 0; slat < 14; slat++) addBox('garage-rollup-door-slat-' + (slat + 1), centerX, floorY + 4.55, centerZ - 11.4 + slat * .19, 16.8, .105, .14, slat % 2 ? cabinetMat : trimMat);
   addBox('garage-door-roller-housing', centerX, floorY + 4.88, centerZ - 9.9, 17.1, .24, .28, trimMat);
@@ -90,6 +120,19 @@ export function buildHomeyGarageInterior(THREE, { centerX = 483, centerZ = 500, 
   }
   // Real workshop clutter, placed against the left/rear perimeter so the parking lane stays clear.
   addBox('garage-red-mechanics-tool-chest', centerX - 5.05, floorY + .72, centerZ + 9.1, 1.45, 1.25, 2.25, mat(0xa8322d, .38, .24), true);
+  const wrench = new THREE.Group(); wrench.name = 'garage-loose-wrench';
+  const wrenchMetal = mat(0xbac4c8, .32, .72);
+  const wrenchHandle = new THREE.Mesh(new THREE.BoxGeometry(.72, .055, .07), wrenchMetal);
+  wrenchHandle.position.x = -.12; wrench.add(wrenchHandle);
+  const wrenchHead = new THREE.Mesh(new THREE.TorusGeometry(.105, .035, 5, 10, Math.PI * 1.55), wrenchMetal);
+  wrenchHead.rotation.z = Math.PI / 2; wrenchHead.position.x = .28; wrench.add(wrenchHead);
+  wrench.position.set(centerX - 5.05, floorY + 1.39, centerZ + 9.1); root.add(wrench);
+  props.push({
+    kind: 'wrench', mesh: wrench, x: centerX - 5.05, z: centerZ + 9.1, radius: 1.8, fallen: false,
+    originalPosition: wrench.position.clone(), originalRotation: wrench.rotation.clone(),
+    fall() { if (this.fallen) return; this.fallen = true; this.mesh.position.y = floorY + .09; this.mesh.rotation.z = Math.PI / 2; },
+    reset() { this.fallen = false; this.mesh.position.copy(this.originalPosition); this.mesh.rotation.copy(this.originalRotation); },
+  });
   for (let drawer = 0; drawer < 4; drawer++) {
     addBox(`garage-tool-chest-drawer-${drawer + 1}`, centerX - 5.05, floorY + .32 + drawer * .25, centerZ + 9.1, 1.48, .045, 2.18, trimMat);
     addBox(`garage-tool-chest-pull-${drawer + 1}`, centerX - 5.05, floorY + .32 + drawer * .25, centerZ + 8.05, .26, .045, .035, ledMat);
@@ -105,6 +148,16 @@ export function buildHomeyGarageInterior(THREE, { centerX = 483, centerZ = 500, 
       tire.castShadow = true;
       tire.receiveShadow = true;
       root.add(tire);
+      if (tier === 0) {
+        const collider = { name: 'garage-tire-collider-' + stack, x: tire.position.x, z: tire.position.z, w: 1.15, d: 1.15 };
+        colliders.push(collider);
+        props.push({
+          kind: 'tire', mesh: tire, x: tire.position.x, z: tire.position.z, radius: .8, collider,
+          originalPosition: tire.position.clone(), originalRotation: tire.rotation.clone(), fallen: false,
+          fall() { this.fallen = true; this.mesh.rotation.z = Math.PI / 2; this.mesh.position.y = floorY + .18; },
+          reset() { this.fallen = false; this.mesh.position.copy(this.originalPosition); this.mesh.rotation.copy(this.originalRotation); },
+        });
+      }
       const hub = new THREE.Mesh(new THREE.TorusGeometry(.29, .025, 6, 16), tireSidewallMat);
       hub.name = `garage-tire-sidewall-${stack + 1}-${tier + 1}`;
       hub.rotation.x = Math.PI / 2;
@@ -114,10 +167,10 @@ export function buildHomeyGarageInterior(THREE, { centerX = 483, centerZ = 500, 
     }
   }
   // Low-profile floor jack and axle stands add recognizable service-bay detail without blocking driving.
-  addBox('garage-low-profile-floor-jack-base', centerX - 3.9, floorY + .12, centerZ + 8.1, .52, .16, .9, mat(0xb83b32, .35, .42));
+  addBox('garage-low-profile-floor-jack-base', centerX - 3.9, floorY + .12, centerZ + 8.1, .52, .16, .9, mat(0xb83b32, .35, .42), true);
   addBox('garage-floor-jack-handle', centerX - 3.9, floorY + .42, centerZ + 8.45, .055, .65, .055, trimMat);
   for (const z of [centerZ + 6.5, centerZ + 8.7]) {
-    addBox(`garage-axle-stand-${z}`, centerX - 4.05, floorY + .23, z, .42, .42, .42, amberMat);
+    addBox(`garage-axle-stand-${z}`, centerX - 4.05, floorY + .23, z, .42, .42, .42, amberMat, true);
   }
   // Wall-mounted hose reel, extinguisher, and an illuminated service clock.
   const hoseReel = new THREE.Mesh(new THREE.TorusGeometry(.42, .075, 8, 20), mat(0x1b2429, .45, .48));
@@ -146,6 +199,7 @@ export function buildHomeyGarageInterior(THREE, { centerX = 483, centerZ = 500, 
   // A discreet wall-mounted badge adds a premium workshop identity.
   addBox('garage-brand-plaque', centerX - 6.68, floorY + 3.9, centerZ - 4.5, .08, .8, 3.2, amberMat);
   root.userData.coastlineColliders = colliders;
+  root.userData.coastlineGarageProps = props;
   root.userData.coastlineGarageCamera = {
     ceiling: root.children.find(node => node.name === 'garage-ceiling') || null,
     sideWalls: root.children.filter(node => node.name === 'garage-left-wall' || node.name === 'garage-right-wall'),
