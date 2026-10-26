@@ -48,15 +48,93 @@ function makeNeutralVehiclePlaceholder(THREE) {
 function setMaterialColor(material, color) { if (material?.color?.isColor) material.color.set(color); }
 function forMaterials(mesh, callback) { for (const material of (Array.isArray(mesh.material) ? mesh.material : [mesh.material])) if (material) callback(material); }
 function applyVehicleMaterialRoles(THREE, vehicle, visual) {
-  const meshes=[]; visual.traverse(node=>{ if(node.isMesh) meshes.push(node); });
-  const matches = pattern => meshes.filter(mesh => pattern.test(String(mesh.name||'')));
-  const bodyMeshes = matches(/body|chassis|shell|exterior|paint|hood|bonnet|roof|door|fender|bumper/i);
-  const glassMeshes = matches(/glass|window|windshield|windscreen|mirror/i);
-  const wheelMeshes = matches(/wheel|tire|tyre|rim/i);
-  const lightMeshes = matches(/head.?light|tail.?light|brake.?light|lamp|light/i).filter(mesh => !glassMeshes.includes(mesh));
-  for (const mesh of bodyMeshes) forMaterials(mesh, material => { setMaterialColor(material, COASTLINE_STARTING_PAINT); material.roughness = Math.min(material.roughness ?? .55, .55); material.metalness = Math.max(material.metalness ?? 0, .12); });
-  for (const mesh of glassMeshes) forMaterials(mesh, material => { setMaterialColor(material, 0x17232b); material.transparent = false; material.roughness = .18; material.metalness = .12; });
-  for (const mesh of wheelMeshes) forMaterials(mesh, material => { setMaterialColor(material, 0x202428); material.roughness = .82; material.metalness = .18; });
+  const meshes = [];
+  visual.updateMatrixWorld(true);
+  visual.traverse(node => { if (node.isMesh) meshes.push(node); });
+  const label = mesh => [
+    mesh.name,
+    ...(Array.isArray(mesh.material) ? mesh.material : [mesh.material]).map(material => material?.name || '')
+  ].join(' ').toLowerCase();
+  const matches = pattern => meshes.filter(mesh => pattern.test(label(mesh)));
+  const boundsOf = mesh => new THREE.Box3().setFromObject(mesh);
+  const overall = getBounds(THREE, visual);
+  const overallSize = new THREE.Vector3();
+  overall.getSize(overallSize);
+  const overallCenter = new THREE.Vector3();
+  overall.getCenter(overallCenter);
+  const descriptors = meshes.map(mesh => {
+    const bounds = boundsOf(mesh);
+    const size = new THREE.Vector3();
+    const center = new THREE.Vector3();
+    bounds.getSize(size);
+    bounds.getCenter(center);
+    return { mesh, size, center, volume: size.x * size.y * size.z };
+  });
+
+  let bodyMeshes = matches(/body|chassis|shell|exterior|paint|hood|bonnet|roof|door|fender|bumper/i);
+  let glassMeshes = matches(/glass|window|windshield|windscreen|mirror/i);
+  let wheelMeshes = matches(/wheel|tire|tyre|rim/i);
+  const lightMeshes = matches(/head.?light|tail.?light|brake.?light|lamp|light/i)
+    .filter(mesh => !glassMeshes.includes(mesh));
+
+  // Some FBX exports discard useful part names. Infer the main shell and
+  // remaining material groups from transformed mesh bounds instead of silently
+  // leaving the entire replacement vehicle in its source materials.
+  if (!bodyMeshes.length && descriptors.length) {
+    const shell = [...descriptors].sort((a, b) => b.volume - a.volume)[0];
+    bodyMeshes = [shell.mesh];
+  }
+  if (!wheelMeshes.length && descriptors.length) {
+    const lowY = overall.min.y + overallSize.y * 0.36;
+    const candidates = descriptors.filter(item =>
+      !bodyMeshes.includes(item.mesh) &&
+      item.center.y <= lowY &&
+      Math.abs(item.center.x - overallCenter.x) >= overallSize.x * 0.2 &&
+      item.size.y <= overallSize.y * 0.42
+    );
+    wheelMeshes = candidates
+      .sort((a, b) => Math.abs(a.center.y - lowY) - Math.abs(b.center.y - lowY))
+      .slice(0, 4)
+      .map(item => item.mesh);
+  }
+  if (!glassMeshes.length && descriptors.length) {
+    const candidates = descriptors.filter(item =>
+      !bodyMeshes.includes(item.mesh) &&
+      !wheelMeshes.includes(item.mesh) &&
+      item.center.y >= overall.min.y + overallSize.y * 0.42 &&
+      item.center.y <= overall.min.y + overallSize.y * 0.94 &&
+      item.size.x >= overallSize.x * 0.22
+    );
+    if (candidates.length) {
+      glassMeshes = candidates
+        .sort((a, b) => b.volume - a.volume)
+        .slice(0, 4)
+        .map(item => item.mesh);
+    }
+  }
+  if (!glassMeshes.length) {
+    const upperPart = descriptors
+      .filter(item => !bodyMeshes.includes(item.mesh) && !wheelMeshes.includes(item.mesh))
+      .sort((a, b) => b.center.y - a.center.y)[0];
+    if (upperPart) glassMeshes = [upperPart.mesh];
+  }
+
+  for (const mesh of bodyMeshes) forMaterials(mesh, material => {
+    setMaterialColor(material, COASTLINE_STARTING_PAINT);
+    material.roughness = Math.min(material.roughness ?? .55, .55);
+    material.metalness = Math.max(material.metalness ?? 0, .12);
+  });
+  for (const mesh of glassMeshes) forMaterials(mesh, material => {
+    setMaterialColor(material, 0x17232b);
+    material.transparent = false;
+    material.roughness = .18;
+    material.metalness = .12;
+  });
+  for (const mesh of wheelMeshes) forMaterials(mesh, material => {
+    setMaterialColor(material, 0x202428);
+    material.roughness = .82;
+    material.metalness = .18;
+  });
   for (const mesh of lightMeshes) forMaterials(mesh, material => setMaterialColor(material, 0xf4f0d5));
   const body = bodyMeshes[0] || meshes[0];
   vehicle.materialRoles = { body: bodyMeshes, glass: glassMeshes, wheels: wheelMeshes, lights: lightMeshes };
