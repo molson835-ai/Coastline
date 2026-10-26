@@ -37,6 +37,24 @@ test('hero vehicle uses the replacement RGSDev model and keeps damage/material h
     };
   });
 
+  console.log('[Coastline vehicle source-material audit]', JSON.stringify(await page.evaluate(() => {
+    const vehicle = window.__coastlinePlayer.vehicle;
+    const visual = vehicle.g;
+    const rows = [];
+    visual.traverse(node => {
+      if (!node.isMesh) return;
+      const materials = (Array.isArray(node.material) ? node.material : [node.material]).filter(Boolean);
+      rows.push({
+        mesh: node.name || '(unnamed)',
+        materialNames: materials.map(material => material.name || '(unnamed)'),
+        colors: materials.map(material => material.color?.getHexString?.() ?? null),
+        materialTypes: materials.map(material => material.type || null),
+        geometry: node.geometry?.type || null
+      });
+    });
+    return { model: vehicle.rgsdevModelName, rows };
+  })));
+  
   expect(snapshot.rootChildCount).toBe(1);
   expect(snapshot.modelName).toBeTruthy();
   expect(snapshot.modelName).not.toBe('neutral-fallback');
