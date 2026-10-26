@@ -55,3 +55,12 @@
 - Do not continue expanding geometry-based guesses to satisfy artificial non-empty glass/wheel assertions. First inspect the live hero SUV's mesh/material hierarchy and source material labels, then implement a minimal hero-only paint operation that preserves all other materials and all non-hero vehicles byte-for-byte at the material-property level.
 - Diagnostic logging was added to `tests/hero-vehicle-visuals.spec.cjs` in commit `24db576cf69680440ec5f021327a154846c0ca36` to capture hero SUV mesh names, material names, types, and colors in CI output. Use that evidence to identify the actual paint surface before changing the implementation.
 - Next gate: wait for the CI run on the diagnostic commit, inspect the browser test log, then make the minimal source-informed code change. Update regression tests to prove only hero body paint changes and that non-hero material values remain unchanged. Keep PR #122 consolidated and unmerged; do not claim the paint correction works until fresh CI and browser checks pass.
+
+
+## Current status update — after PR #122 merge (2026-10-26)
+- PR #122 was squash-merged to `main` at `e9eff72a17c11c519695c56ea3cf5d09b936692d`. The historical pre-merge status above is retained for context, not as the current state.
+- User reported two live visual bugs after device testing: (1) every replacement vehicle appears orange rather than retaining its supplied appearance; (2) severe collisions can make the full body fly/flip away while wheels remain.
+- Follow-up branch: `fix/vehicle-stock-materials-collision-damage`.
+- Fix approach: preserve all source RGSDev material colors/properties (role arrays are metadata only); only detach a bumper if a specifically named bumper mesh exists; never alias the full body mesh as a missing bumper/hood/trunk/cab; disable procedural body/hood/trunk/cab/wheel deformation for replacement RGSDev models while preserving collision damage scoring and handling penalties.
+- Added browser assertions for original-material preservation and ensuring the full replacement body remains attached after a severe collision. CI has not yet confirmed these fixes; do not describe them as verified until the new PR's checks pass.
+- User is testing on Android and should retest the replacement fleet and a high-speed collision after the fix is merged.
