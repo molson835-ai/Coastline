@@ -109,6 +109,7 @@ test('Homey garage opens only when a vehicle crosses the open threshold and pres
   expect(inside.state.position.z).toBeCloseTo(500, 1);
   expect(inside.garage.root.meshes).toBeGreaterThan(20);
   expect(inside.garage.threshold.z).toBe(488);
+  expect(await page.evaluate(() => window.__coastlineTransitionTest.worldDefinitions().find(world => world.id === 'homey-garage').content.density)).toBe('developed');
 
   await page.evaluate(() => {
     window.__coastlineTest.setWalkPosition(483, 500, 0);
