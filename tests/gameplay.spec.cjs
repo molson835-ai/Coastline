@@ -50,6 +50,30 @@ test('Coastline boots, exits a vehicle, shows the avatar, and supports walking t
   expect(pageErrors, 'uncaught JavaScript errors after interactions').toEqual([]);
 });
 
+test('on-foot default speed equals former run speed in both directions and no run button remains', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/game-v3.html?beta=default-walk-speed', { waitUntil: 'domcontentloaded' });
+  await page.waitForFunction(() => Boolean(window.__coastlineTest), null, { timeout: 20000 });
+  await page.evaluate(() => window.__coastlineTest.exitVehicle());
+  await expect(page.locator('[data-k="shift"][data-foot-only]')).toHaveCount(0);
+  const open = await page.evaluate(() => window.__coastlineTest.findOpenWalkPosition());
+  expect(open, 'an open walking test position should exist').not.toBeNull();
+  const move = async (key) => {
+    await page.evaluate(({ x, z }) => window.__coastlineTest.setWalkPosition(x, z, 0), open);
+    const before = await page.evaluate(() => window.__coastlineTest.state());
+    await page.evaluate(key => window.__coastlineTest.keyDown(key), key);
+    await page.evaluate(() => window.__coastlineTest.advanceTestFrame(1/60, 30));
+    await page.evaluate(key => window.__coastlineTest.keyUp(key), key);
+    const after = await page.evaluate(() => window.__coastlineTest.state());
+    return Math.hypot(after.x - before.x, after.z - before.z);
+  };
+  const forwardDistance = await move('w');
+  const backwardDistance = await move('s');
+  expect(forwardDistance, 'forward movement should use former run speed').toBeGreaterThan(2.5);
+  expect(backwardDistance, 'backward movement should use former run speed').toBeGreaterThan(2.5);
+});
+});
+
 test('vehicle steering follows left/right input and reverse builds usable negative speed', async ({ page }) => {
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
@@ -74,11 +98,11 @@ test('vehicle steering follows left/right input and reverse builds usable negati
   const beforeLeft = await page.evaluate(() => window.__coastlineTest.state());
   await page.evaluate(() => window.__coastlineTest.keyDown('a')); await page.evaluate(() => window.__coastlineTest.advanceTestFrame(1/60, 30)); await page.evaluate(() => window.__coastlineTest.keyUp('a'));
   const leftTurn = await page.evaluate(() => window.__coastlineTest.state());
-  expect(leftTurn.heading, 'A should steer left while driving forward').toBeLessThan(beforeLeft.heading);
+  expect(leftTurn.heading, 'A should steer left while driving forward').toBeGreaterThan(beforeLeft.heading);
   await resetCar(); await page.evaluate(() => window.__coastlineTest.keyDown('w')); await page.evaluate(() => window.__coastlineTest.advanceTestFrame(1/60, 30)); await page.evaluate(() => window.__coastlineTest.keyUp('w'));
   await page.evaluate(() => window.__coastlineTest.keyDown('d')); await page.evaluate(() => window.__coastlineTest.advanceTestFrame(1/60, 30)); await page.evaluate(() => window.__coastlineTest.keyUp('d'));
   const rightTurn = await page.evaluate(() => window.__coastlineTest.state());
-  expect(rightTurn.heading, 'D should steer right while driving forward').toBeGreaterThan(0);
+  expect(rightTurn.heading, 'D should steer right while driving forward').toBeLessThan(0);
   await resetCar(); await page.evaluate(() => window.__coastlineTest.keyDown('s')); await page.evaluate(() => window.__coastlineTest.advanceTestFrame(1/60, 35)); await page.evaluate(() => window.__coastlineTest.keyUp('s'));
   const reversing = await page.evaluate(() => window.__coastlineTest.state());
   expect(reversing.vehicleSpeed, 'S should build useful reverse speed').toBeLessThan(-2.5);
