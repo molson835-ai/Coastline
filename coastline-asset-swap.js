@@ -2,6 +2,7 @@ import { unzipSync } from 'https://cdn.jsdelivr.net/npm/fflate@0.8.2/esm/browser
 import { FBXLoader } from 'https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/loaders/FBXLoader.js';
 import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/loaders/GLTFLoader.js';
 import * as SkeletonUtils from 'https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/utils/SkeletonUtils.js';
+import { getCoastlineVehicleTarget, getCoastlineVehicleUniformScale, getCoastlineVehicleLengthCorrection } from './coastline-vehicle-sizing.js';
 
 const VEHICLE_PACK_URL = './assets/Free%20Low%20Poly%20Vehicles%20Pack%20by%20Rgsdev.zip';
 const COZY_CHARACTER_URL = './assets/grab3d-cozy-character.glb';
@@ -29,7 +30,7 @@ function getBounds(THREE, root) { root.updateMatrixWorld(true); return new THREE
 function fitVehicle(THREE, source, target = null) {
   const model = source.clone(true);
   const isLimousine = String(source.name || '').toLowerCase().includes('limousine');
-  const fitTarget = target || { width:2.05, length:isLimousine ? 5.15 : String(source.name || '').toLowerCase().includes('suv') ? 4.55 : 4.25, height:2.05 };
+  const fitTarget = getCoastlineVehicleTarget(source.name, target);
   model.traverse(node => { if (node.isMesh) { node.userData.coastlineSharedGeometry = true; node.userData.coastlineOwnedMaterial = true; node.material = Array.isArray(node.material) ? node.material.map(material => material.clone()) : node.material?.clone?.() || node.material; } });
   let bounds = getBounds(THREE, model), size = new THREE.Vector3(); bounds.getSize(size);
   if (![size.x,size.y,size.z].every(Number.isFinite) || Math.max(size.x,size.y,size.z) <= 0) throw new Error('Vehicle model has invalid bounds');
@@ -37,13 +38,10 @@ function fitVehicle(THREE, source, target = null) {
   // The limousine keeps that envelope but gets a deliberately longer wheelbase/body;
   // using a single uniform scale for its unusually long source mesh made it look
   // either too tiny or too tall beside ordinary cars.
-  const scale = isLimousine
-    ? Math.min(fitTarget.width / Math.max(size.x,.001), fitTarget.height / Math.max(size.y,.001))
-    : Math.min(fitTarget.width / Math.max(size.x,.001), fitTarget.length / Math.max(size.z,.001), fitTarget.height / Math.max(size.y,.001));
+  const scale = getCoastlineVehicleUniformScale(size, fitTarget, isLimousine);
   model.scale.multiplyScalar(scale); bounds = getBounds(THREE, model); size = new THREE.Vector3(); bounds.getSize(size);
   if (isLimousine) {
-    const lengthScale = fitTarget.length / Math.max(size.z,.001);
-    model.scale.z *= lengthScale;
+    model.scale.z *= getCoastlineVehicleLengthCorrection(size, fitTarget, true);
     bounds = getBounds(THREE, model); size = new THREE.Vector3(); bounds.getSize(size);
   }
   model.position.x -= (bounds.min.x + bounds.max.x) / 2; model.position.z -= (bounds.min.z + bounds.max.z) / 2; model.position.y -= bounds.min.y;
