@@ -34,8 +34,8 @@
 
 ## Verification status
 - Code and regression tests have been committed to this feature branch.
-- Automated CI for this follow-up PR has not yet run; no test pass is claimed at handoff creation.
-- After opening the PR: run engine/system tests, the full Playwright browser suite, Babylon preview validation, and the standalone itch HTML package smoke test. Inspect exact-head failures and fix them on this branch.
+- Initial exact-head CI ran after PR #127 was opened. Engine and system tests passed, and the graphics guard plus Babylon preview validation passed. The itch package initially failed because its cache-version assertion still expected v2 after the package was advanced to v3; the assertion was corrected. The gameplay browser suite was still running at the time of this note, and the latest commits are awaiting a fresh exact-head result. No overall pass is claimed yet.
+- Continue monitoring the current PR head. Run engine/system tests, the full Playwright browser suite, Babylon preview validation, and the standalone itch HTML package smoke test. Inspect exact-head failures and fix them on this branch.
 - Specifically verify: the overhead garage door does not block the car threshold; the house doorway transitions only on foot and instantly; the selected car survives entering/exiting the house; the key board prompt appears only within reach; all three streamed island roots show boundary rocks, lamps, benches, and developed content; limousine bounds remain proportional.
 - A real Android playtest is still required for camera/occlusion, frame pacing, vehicle handling, and transitions.
 
