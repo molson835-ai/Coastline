@@ -26,12 +26,15 @@
 - Restored the full authored `coastline-island-regions.js` from `main` before applying a targeted content-density gate; existing Homey villa, garden, pool, landscaping, and collider details are preserved.
 - Added explicit `contentDensity` to the four-island manifest: Downtown and Residential are `developed`; Waterfront and Port are `sparse`. Sparse regions retain terrain, shoreline/ocean, basic road coverage, and bridge geometry while skipping developed-world scenery and vegetation.
 - Preserved the approved Homey-specific playful facade panels and added large perimeter rocks while keeping the bridge landing gaps open.
+- Follow-up fix: replacement vehicle paint now verifies the orange material on the actual body role and installs a visible orange shell material only when the FBX body materials cannot represent the requested paint.
+- Follow-up fix: sparse Waterfront/Port roots now register shoreline collision-boundary segments with open bridge landing gaps, so sparse scenery does not mean an empty collision contract.
 
 ## CI evidence
 - Earlier engine run exposed one new assertion mismatch: the manager correctly included `renderReadiness: 'required'`; the test was corrected in commit `5741c6017ef145bc36ce67c5aa20c7910278ae9f`.
 - A gameplay watchdog run on the prior head failed on three actionable assertions: the bridge-source regex was coupled to compressed formatting, replacement FBX material groups were empty when model-part names were missing, and Waterfront expected developed-world mesh counts. The island source has since been restored, vehicle material-role inference now has bounds-based fallbacks, and the sparse-world smoke assertion was lowered to verify a usable root without requiring developed-scene density.
 - The subsequent graphics, itch.io package, and Babylon checks passed on the immediately preceding head; the latest head includes the preserved Homey decor additions and requires fresh CI confirmation. Do not call the PR green until the latest head's engine, gameplay, package, Babylon, and graphics checks are freshly verified.
 - A previous gameplay watchdog run was cancelled during rapid PR updates; that cancellation is not a test failure.
+- Latest completed watchdog on head `e186626c002d5c7b2a5d7ddf1137b3768e0ff4e9` passed 50 tests but failed the orange body paint assertion and the Port active-collider assertion. Both fixes above are committed after that run; the new head must be tested before these issues can be considered resolved.
 
 ## Remaining implementation gates
 - Verify two-way City ↔ Homey actor/state continuity on the latest head.
