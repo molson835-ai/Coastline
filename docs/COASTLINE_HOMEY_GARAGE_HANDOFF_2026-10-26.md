@@ -15,7 +15,8 @@
 - Added `coastline-homey-garage.js`: premium interior geometry, accessible chooser UI, paint palette, directional threshold-crossing predicate, and key-board access predicate.
 - Extended `coastline-world-transitions.js`: registered `homey-garage` with CTM; added `island-to-homey-garage` and `homey-garage-to-island` transitions; added vehicle threshold detection, on-foot key-board prompt, model/paint swap, and test diagnostics.
 - Updated `game-v3.html` collision checks to use the garage's interior wall boundaries.
-- Follow-up collision audit found the existing villa garage header was incorrectly marked as a solid ground-level collider. Its collision flag is now disabled so the open vehicle threshold remains traversable; the browser regression explicitly checks the threshold at `(483, 488)` is not blocked.
+- Follow-up collision audit confirmed the villa garage roof and header were already marked non-collidable (the final `addBox` argument); their cast-shadow flags were preserved after review. The browser regression explicitly checks the threshold at `(483, 488)` is not blocked.
+- Garage entry/exit spawn heights now use `groundY` directly so the vehicle lands on the actual garage floor and exterior driveway level instead of inheriting the island bridge's +6-unit spawn offset. Browser assertions check both arrival heights.
 - Updated `coastline-sw.js` to cache the new module and bump cache generation from v58 to v59.
 - Updated `scripts/build-itch.mjs` so the new module is included in the standalone package.
 - Added `tests/homey-garage.spec.mjs` and extended `tests/ctm-browser-regressions.spec.cjs`.
