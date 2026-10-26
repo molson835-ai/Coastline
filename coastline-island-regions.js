@@ -234,6 +234,38 @@ export function createCoastlineIslandRoot({ THREE, region, groundY = () => 0, ad
   };
   addBox(`coastline-${region.id}-main-road`, center.x, edgeY + 0.02, center.z - 82.5, 16, 0.16, 55, roadMat, false, false);
 
+  // Sparse regions still need a live collision perimeter. Keep gaps centered on
+  // the side-bridge landings so the route remains traversable between worlds.
+  if (region.contentDensity === 'sparse') {
+    const edge = region.bounds.halfWidth * 0.94;
+    const wall = 2;
+    const segmentLength = Math.max(24, edge - 14);
+    for (const side of [-1, 1]) {
+      for (const offset of [-1, 1]) {
+        colliders.push({
+          name: `coastline-${region.id}-${side < 0 ? 'west' : 'east'}-shore-boundary-${offset < 0 ? 'south' : 'north'}`,
+          x: center.x + side * edge,
+          z: center.z + offset * (segmentLength / 2 + 7),
+          w: wall,
+          d: segmentLength,
+        });
+      }
+    }
+    // Waterfront links east and west; Port links west only. The north/south
+    // shoreline is closed for these current sparse layouts.
+    for (const side of [-1, 1]) {
+      for (const offset of [-1, 1]) {
+        colliders.push({
+          name: `coastline-${region.id}-${side < 0 ? 'south' : 'north'}-shore-boundary-${offset < 0 ? 'west' : 'east'}`,
+          x: center.x + offset * (segmentLength / 2 + 7),
+          z: center.z + side * edge,
+          w: segmentLength,
+          d: wall,
+        });
+      }
+    }
+  }
+
   if (region.contentDensity === 'developed') {
   if (region.theme === 'urban-core') {
     const glass = material(0x668b98, 0.32, 0.18);
