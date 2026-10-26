@@ -46,3 +46,9 @@
 - The garage ceiling is hidden while the garage world is active, and both side walls fade to 16% opacity, preserving the room's outline while preventing the walls from swallowing the view. Their original material settings and ceiling visibility are restored when leaving the garage. Collision boundaries remain in place.
 - Added workshop dressing around the perimeter: red mechanic's tool chest with drawers, stacked tires, a floor jack and axle stands, hose reel, fire extinguisher, service clock, rear storage shelf, fluid cans, and parts bins. These stay out of the central vehicle drive-out lane.
 - The transition test diagnostics now report the workshop-detail count and camera-occlusion state. Verify that the garage remains readable on a narrow Android viewport, that no camera-wall clipping remains during entry/exit, and that the side walls/ceiling restore on every exit or failed transition.
+
+
+## Browser-test follow-up: garage floor elevation
+- The full gameplay run reached the garage and passed 52/53 browser tests; the only failure compared the vehicle spawn height against `groundY(483,500)`. That helper adds the six-unit World 2 elevation while the Homey Garage interior intentionally uses `islandGroundY` for its own floor. The vehicle was at Y=1.49 on a garage floor at Y=1.49, while the unrelated island-aware `groundY` expectation was Y=7.49.
+- Corrected the regression to compare the vehicle spawn against the actual garage floor height exposed by the garage root. Added that floor height to test diagnostics. This is a test-reference correction, not a six-unit gameplay spawn adjustment; the garage's floor and vehicle placement remain aligned.
+- Re-run the full gameplay browser suite and confirm the garage entry, camera visibility, wall fading, workshop dressing, key-board flow, vehicle swap, and exit all pass before considering the PR ready.
