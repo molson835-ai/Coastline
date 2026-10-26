@@ -43,12 +43,12 @@ export function createNpcWorldSlice({ THREE, scene, groundY, trafficSignalHeads,
     for(const child of [...worker.children])worker.remove(child);
     worker.add(actor.root);worker.userData.cozyActor=actor;worker.visible=true;
     actor.root.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});
-  }).catch(error=>{worker.visible=false;console.error('[Coastline] Cozy story character unavailable; legacy character disabled.',error)});
+  }).catch(error=>{for(const child of [...worker.children])worker.remove(child);worker.visible=false;console.error('[Coastline] Cozy story character unavailable; legacy character disabled.',error)});
   createRgsdevVehicleVisual(THREE,'Van',{width:2.3,length:4.25,height:2.4}).then(model=>{
     for(const child of [...van.children])van.remove(child);
     van.add(model);van.userData.coastlineRgsdevVehicle='Van';van.visible=true;
     model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});
-  }).catch(error=>{van.visible=false;console.error('[Coastline] RGSDev van unavailable; legacy story van disabled.',error)});
+  }).catch(error=>{for(const child of [...van.children])van.remove(child);van.visible=false;console.error('[Coastline] RGSDev van unavailable; legacy story van disabled.',error)});
 
   let phase=savedState?.phase==='complete'?'complete':'idle',phaseStarted=0,lastDecision=0,toastShown=false;
   function persistStory(){try{localStorage.setItem('coastline-npc-world-slice-v1',JSON.stringify({version:2,phase,agency:agency.snapshot(),rumors:rumorEngine.snapshot()}));}catch{}}
