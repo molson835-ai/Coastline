@@ -564,6 +564,9 @@ avatar.visible=false;scene.add(avatar);player.vehicle.occupied=true;
 function clearCharacterModel(group,preserve=[]){const keep=new Set(preserve);for(const child of [...group.children]){if(keep.has(child))continue;group.remove(child);child.traverse?.(node=>{if(node.geometry?.dispose)node.geometry.dispose()})}}
 function attachCozyCharacter(group,actor,preserve=[]){clearCharacterModel(group,preserve);group.add(actor.root);group.userData.cozyActor=actor;return actor}
 function attachNeutralCharacter(group,preserve=[]){clearCharacterModel(group,preserve);const placeholder=neutralCharacterPlaceholder(THREE);group.add(placeholder);group.userData.coastlineNeutralCharacterFallback=true;return placeholder}
+// Remove legacy character art immediately; neutral placeholders stay until Cozy finishes loading.
+attachNeutralCharacter(avatar);
+for(const p of pedestrians)attachNeutralCharacter(p.g,[p.phone,p.cup,p.backpack,p.hat]);
 loadCozyCharacterAsset().then(asset=>{
   const playerActor=createCozyCharacterInstance(THREE,asset,1.95);
   attachCozyCharacter(avatar,playerActor);
