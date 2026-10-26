@@ -257,8 +257,8 @@ export function setCozyCharacterAnimation(actor, name) {
 export function neutralCharacterPlaceholder(THREE) {
   const root=new THREE.Group();
   const material=new THREE.MeshStandardMaterial({color:0x879096,roughness:.9});
-  const body=new THREE.Mesh(new THREE.CapsuleGeometry(.24,.72,4,8),material); body.position.y=1.0; root.add(body);
-  const head=new THREE.Mesh(new THREE.SphereGeometry(.2,12,8),material); head.position.y=1.63; root.add(head);
+  const body=new THREE.Mesh(new THREE.CapsuleGeometry(.24,.72,4,8),material); body.position.y=1.0; body.userData.coastlineOwnedMaterial=true; root.add(body);
+  const head=new THREE.Mesh(new THREE.SphereGeometry(.2,12,8),material); head.position.y=1.63; head.userData.coastlineOwnedMaterial=true; root.add(head);
   root.userData.coastlineNeutralFallback=true;
   return root;
 }
