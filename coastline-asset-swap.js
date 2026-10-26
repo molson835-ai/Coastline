@@ -140,20 +140,27 @@ function applyVehicleMaterialRoles(THREE, vehicle, visual) {
     }
   }
 
-  // Keep role groups non-empty and disjoint when source names are unusable.
-  // Infer one wheel candidate from low, lateral geometry and one upper glass
-  // candidate from the remaining elevated geometry, without stealing the shell.
-  if (!wheelMeshes.length && descriptors.length > 1) {
-    const wheelCandidate = [...descriptors]
-      .filter(item => !bodyMeshes.includes(item.mesh) && !lightMeshes.includes(item.mesh))
-      .sort((a, b) => (a.center.y - b.center.y) || (a.volume - b.volume))[0];
-    if (wheelCandidate) wheelMeshes = [wheelCandidate.mesh];
+  // If source labels are misleading, recover missing roles from geometry.
+  // Do not let generic material names consume every mesh into another role.
+  if (!glassMeshes.some(mesh => !bodyMeshes.includes(mesh)) && descriptors.length > 1) {
+    const candidates = descriptors.filter(item => !bodyMeshes.includes(item.mesh) && !wheelMeshes.includes(item.mesh));
+    const glassCandidate = [...candidates].sort((a, b) => b.center.y - a.center.y)[0]
+      || descriptors.filter(item => !bodyMeshes.includes(item.mesh)).sort((a, b) => b.center.y - a.center.y)[0];
+    if (glassCandidate) {
+      wheelMeshes = wheelMeshes.filter(mesh => mesh !== glassCandidate.mesh);
+      lightMeshes.splice(0, lightMeshes.length, ...lightMeshes.filter(mesh => mesh !== glassCandidate.mesh));
+      glassMeshes = [glassCandidate.mesh];
+    }
   }
-  if (!glassMeshes.length && descriptors.length > 2) {
-    const glassCandidate = [...descriptors]
-      .filter(item => !bodyMeshes.includes(item.mesh) && !wheelMeshes.includes(item.mesh) && !lightMeshes.includes(item.mesh))
-      .sort((a, b) => b.center.y - a.center.y)[0];
-    if (glassCandidate) glassMeshes = [glassCandidate.mesh];
+  if (!wheelMeshes.some(mesh => !bodyMeshes.includes(mesh)) && descriptors.length > 1) {
+    const candidates = descriptors.filter(item => !bodyMeshes.includes(item.mesh) && !glassMeshes.includes(item.mesh));
+    const wheelCandidate = [...candidates].sort((a, b) => a.center.y - b.center.y || a.volume - b.volume)[0]
+      || descriptors.filter(item => !bodyMeshes.includes(item.mesh)).sort((a, b) => a.center.y - b.center.y)[0];
+    if (wheelCandidate) {
+      glassMeshes = glassMeshes.filter(mesh => mesh !== wheelCandidate.mesh);
+      lightMeshes.splice(0, lightMeshes.length, ...lightMeshes.filter(mesh => mesh !== wheelCandidate.mesh));
+      wheelMeshes = [wheelCandidate.mesh];
+    }
   }
 
   for (const mesh of bodyMeshes) forMaterials(mesh, material => {
