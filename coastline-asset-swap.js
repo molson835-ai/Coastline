@@ -29,7 +29,7 @@ function removeVisualChildren(root) {
 function getBounds(THREE, root) { root.updateMatrixWorld(true); return new THREE.Box3().setFromObject(root); }
 function fitVehicle(THREE, source, target = null) {
   const model = source.clone(true);
-  const isLimousine = String(source.name || '').toLowerCase().includes('limousine');
+  const isLimousine = String(source.name || '').toLowerCase().includes('limo');
   const fitTarget = getCoastlineVehicleTarget(source.name, target);
   model.traverse(node => { if (node.isMesh) { node.userData.coastlineSharedGeometry = true; node.userData.coastlineOwnedMaterial = true; node.material = Array.isArray(node.material) ? node.material.map(material => material.clone()) : node.material?.clone?.() || node.material; } });
   let bounds = getBounds(THREE, model), size = new THREE.Vector3(); bounds.getSize(size);
