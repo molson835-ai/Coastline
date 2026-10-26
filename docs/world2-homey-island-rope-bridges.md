@@ -27,3 +27,8 @@ The current code builds a procedural, mobile-lightweight villa exterior; the dow
 - Browser smoke test: City → rope bridge → populated residential island → return bridge.
 - Check car/player continuity, island boundary blocking, garage approach, no console errors, and failed-transition recovery.
 - Android playtest for visual quality and frame pacing.
+
+## Latest CI diagnosis (2026-10-26)
+- On head `fd83b3f`, graphics quality guard, Babylon preview validation, and itch.io package validation passed; engine and system browser-watchdog jobs passed.
+- The gameplay browser suite had 48 passing tests and one failure in the four-region CTM route: its collision probe still targeted `(434, 484)`, the footprint of a removed row home. The current procedural villa west-wall collider is at `(492, 500)`.
+- Updated that regression to probe the current villa collider. This is a test-coordinate correction, not a collision-rule relaxation; the exact new head must rerun the full browser suite before this PR can be considered green.
