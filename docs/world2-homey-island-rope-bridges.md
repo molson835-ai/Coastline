@@ -8,6 +8,7 @@ This work is stacked directly on the current `main` head (latest merged PR #119,
 - A visible sand band surrounds raised land, with ocean water beneath the island and the outer bridge approach.
 - The residential island has a low-cost modern villa exterior, an open car-sized garage bay, driveway, pool deck, garden beds, path lights, palm fronds/coconuts, and shoreline rocks.
 - The island movement blocker uses the same shoreline contract, so the player cannot drive through the empty corners of the visual island.
+- Vertical fix: the active island slot is lifted 6 world units, including the runtime ground height and CTM spawn heights. Island sea water is lowered to 3.0 units below the island deck reference, which clears the 2.1-unit rope-bridge sag and plank thickness; city ground height remains unchanged.
 - CTM north/south and side bridges share a narrow single-lane rope-bridge builder: separated timber planks, sagging ropes, vertical lashings, support posts, and no solid guardrails. The 5.2-world-unit deck is intended for one Coastline car at a time.
 - Added engine tests for shoreline bounds, connected bridge landings, and bridge proportions.
 
