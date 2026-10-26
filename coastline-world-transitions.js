@@ -1,6 +1,6 @@
 import { createTransitionManager } from './transition-manager.js';
 import { COASTLINE_ISLAND_ELEVATION, COASTLINE_ISLAND_WATER_DROP, createCoastlineIslandRoot, getCoastlineIslandRegion } from './coastline-island-regions.js';
-import { buildHomeyGarageInterior, openGarageVehicleChooser } from './coastline-homey-garage.js';
+import { buildHomeyGarageInterior, openGarageVehicleChooser, didCrossGarageThreshold, canUseGarageKeyBoard } from './coastline-homey-garage.js';
 
 export function createWorldRootRegistry({ THREE, scene }) {
   const originalAdd = scene.add.bind(scene), originalRemove = scene.remove.bind(scene), cityRoot = new THREE.Group();
@@ -222,7 +222,7 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
     document.body.appendChild(button);
     updatePromptCallback=()=>{
       const activeWorld=manager.getActiveWorldId(),vehicle=player.mode==='vehicle'?player.vehicle:null,status=manager.getStatus();
-      const board=pendingGarageRoot?.userData?.coastlineGarageContract?.board;const boardDistance=board?Math.hypot(player.x-board.x,player.z-board.z):Infinity;if(garageBoardButton)garageBoardButton.style.display=activeWorld==='homey-garage'&&player.mode==='walk'&&boardDistance<=8.5?'block':'none';
+      const board=pendingGarageRoot?.userData?.coastlineGarageContract?.board;if(garageBoardButton)garageBoardButton.style.display=canUseGarageKeyBoard({worldId:activeWorld,mode:player.mode,player,board})?'block':'none';
       if(vehicle)makeVehicleRenderable(vehicle);
       if(!vehicle||!activeWorld){previousVehiclePosition=null;lastAutoTrigger={eligible:false,reason:'no-active-vehicle-or-world',world:activeWorld,x:vehicle?.x??null,z:vehicle?.z??null,heading:vehicle?.heading??null,error:null};button.style.display='none';return;}
       const gates={
@@ -237,7 +237,7 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
         ],
         port:[{id:'port-to-waterfront',axis:'x',x:ISLAND_CENTER.x-ISLAND_BOUNDS.width/2-BRIDGE_LENGTH,z:ISLAND_CENTER.z,sign:-1,target:{x:ISLAND_CENTER.x-ISLAND_BOUNDS.width/2,z:ISLAND_CENTER.z},label:'CROSS TO WATERFRONT'}]
       }[activeWorld]||[];
-      const vehicleX=finiteOr(vehicle.x,player.x),vehicleZ=finiteOr(vehicle.z,player.z),vehicleHeading=finiteOr(vehicle.heading,player.heading);const previous=previousVehiclePosition;const garageCrossing=activeWorld==='island'&&previous&&previous.x>=477.2&&previous.x<=488.8&&vehicleX>=477.2&&vehicleX<=488.8&&previous.z<488&&vehicleZ>=488&&Math.cos(vehicleHeading)>.45;const garageExitCrossing=activeWorld==='homey-garage'&&previous&&previous.x>=477.2&&previous.x<=488.8&&vehicleX>=477.2&&vehicleX<=488.8&&previous.z>488&&vehicleZ<=488&&Math.cos(vehicleHeading)<-.45;previousVehiclePosition={x:vehicleX,z:vehicleZ};if(garageCrossing&&!autoTransitionPromise){transition('island-to-homey-garage').catch(error=>{lastAutoTrigger={...lastAutoTrigger,eligible:false,reason:'garage-entry-failed',error:String(error?.message||error)};});return;}if(garageExitCrossing&&!autoTransitionPromise){transition('homey-garage-to-island').catch(error=>{lastAutoTrigger={...lastAutoTrigger,eligible:false,reason:'garage-exit-failed',error:String(error?.message||error)};});return;}
+      const vehicleX=finiteOr(vehicle.x,player.x),vehicleZ=finiteOr(vehicle.z,player.z),vehicleHeading=finiteOr(vehicle.heading,player.heading);const previous=previousVehiclePosition;const garageThreshold={x:483,z:488,halfWidth:5.8};const currentVehiclePosition={x:vehicleX,z:vehicleZ,heading:vehicleHeading};const garageCrossing=activeWorld==='island'&&didCrossGarageThreshold(previous,currentVehiclePosition,{...garageThreshold,direction:'in'});const garageExitCrossing=activeWorld==='homey-garage'&&didCrossGarageThreshold(previous,currentVehiclePosition,{...garageThreshold,direction:'out'});previousVehiclePosition={x:vehicleX,z:vehicleZ};if(garageCrossing&&!autoTransitionPromise){transition('island-to-homey-garage').catch(error=>{lastAutoTrigger={...lastAutoTrigger,eligible:false,reason:'garage-entry-failed',error:String(error?.message||error)};});return;}if(garageExitCrossing&&!autoTransitionPromise){transition('homey-garage-to-island').catch(error=>{lastAutoTrigger={...lastAutoTrigger,eligible:false,reason:'garage-exit-failed',error:String(error?.message||error)};});return;}
       const nearGate=gate=>gate.axis==='z'?Math.abs(vehicleX-gate.x)<=12&&Math.abs(vehicleZ-gate.z)<=18:Math.abs(vehicleZ-gate.z)<=12&&Math.abs(vehicleX-gate.x)<=18;
       const headingToGate=gate=>gate.axis==='z'?Math.cos(vehicleHeading)*gate.sign>.45:Math.sin(vehicleHeading)*gate.sign>.45;
       const gate=gates.find(candidate=>nearGate(candidate)&&headingToGate(candidate));
