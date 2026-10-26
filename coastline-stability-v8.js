@@ -52,7 +52,9 @@ function normalizeTouch(e){
   const b=e.target?.closest?.('[data-k]');
   if(!b)return;
   const k=b.getAttribute('data-k');
-  if((k!=='a'&&k!=='d')||driving())return;
+  if(k!=='a'&&k!=='d')return;
+  const isStart=e.type==='pointerdown'||e.type==='touchstart';
+  if(driving()&&(isStart||!held.has(k)))return;
   e.stopImmediatePropagation();
   const mapped=opposite(k);
   if(e.type==='pointerdown'||e.type==='touchstart'){if(!held.has(k)){held.add(k);synthetic('keydown',mapped)}}
