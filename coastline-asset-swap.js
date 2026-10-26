@@ -163,51 +163,13 @@ function applyVehicleMaterialRoles(THREE, vehicle, visual) {
     }
   }
 
-  for (const mesh of bodyMeshes) forMaterials(mesh, material => {
-    setMaterialColor(material, COASTLINE_STARTING_PAINT);
-    material.roughness = Math.min(material.roughness ?? .55, .55);
-    material.metalness = Math.max(material.metalness ?? 0, .12);
-    material.needsUpdate = true;
-  });
-  // FBX exports can contain non-color materials or material arrays whose first
-  // slot is not the visible shell. Guarantee one real, renderable orange shell
-  // material rather than reporting a paint role that never appears orange.
-  const orangeHex = COASTLINE_STARTING_PAINT;
-  const hasOrangeBodyMaterial = () => bodyMeshes.some(mesh =>
-    (Array.isArray(mesh.material) ? mesh.material : [mesh.material]).some(material =>
-      material?.color?.isColor && material.color.getHex() === orangeHex
-    )
-  );
-  if (bodyMeshes.length && !hasOrangeBodyMaterial()) {
-    const shell = bodyMeshes[0];
-    const orange = new THREE.MeshStandardMaterial({
-      color: orangeHex, roughness: 0.42, metalness: 0.12,
-    });
-    if (Array.isArray(shell.material)) {
-      const materials = [...shell.material];
-      const paintIndex = materials.findIndex(material => material?.color?.isColor);
-      if (paintIndex >= 0) materials[paintIndex] = orange;
-      else materials[0] = orange;
-      shell.material = materials;
-    } else {
-      shell.material = orange;
-    }
-  }
-  for (const mesh of glassMeshes) forMaterials(mesh, material => {
-    setMaterialColor(material, 0x17232b);
-    material.transparent = false;
-    material.roughness = .18;
-    material.metalness = .12;
-  });
-  for (const mesh of wheelMeshes) forMaterials(mesh, material => {
-    setMaterialColor(material, 0x202428);
-    material.roughness = .82;
-    material.metalness = .18;
-  });
-  for (const mesh of lightMeshes) forMaterials(mesh, material => setMaterialColor(material, 0xf4f0d5));
-  const body = bodyMeshes[0] || meshes[0];
+  // Preserve the supplied RGSDev materials exactly. These roles are metadata
+  // for diagnostics/future opt-in customization only; fleet replacement must
+  // never recolor body, glass, wheels, lights, trim, or non-hero vehicles.
   vehicle.materialRoles = { body: bodyMeshes, glass: glassMeshes, wheels: wheelMeshes, lights: lightMeshes };
-  vehicle.basePaint = body?.material?.color?.clone?.() || null;
+  const bodyMaterial = bodyMeshes[0]?.material;
+  const sourceMaterial = Array.isArray(bodyMaterial) ? bodyMaterial.find(Boolean) : bodyMaterial;
+  vehicle.basePaint = sourceMaterial?.color?.clone?.() || null;
 }
 function bindDamageParts(THREE, vehicle, visual) {
   const meshes=[]; visual.traverse(node=>{ if(node.isMesh) meshes.push(node); });
