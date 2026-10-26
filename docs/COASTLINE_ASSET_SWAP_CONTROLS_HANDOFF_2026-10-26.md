@@ -64,3 +64,12 @@
 - Fix approach: preserve all source RGSDev material colors/properties (role arrays are metadata only); only detach a bumper if a specifically named bumper mesh exists; never alias the full body mesh as a missing bumper/hood/trunk/cab; disable procedural body/hood/trunk/cab/wheel deformation for replacement RGSDev models while preserving collision damage scoring and handling penalties.
 - Added browser assertions for original-material preservation and ensuring the full replacement body remains attached after a severe collision. CI has not yet confirmed these fixes; do not describe them as verified until the new PR's checks pass.
 - User is testing on Android and should retest the replacement fleet and a high-speed collision after the fix is merged.
+
+
+## Current continuation note — Homey garage vehicle selector (2026-10-26)
+- PR #125 is the current merged baseline per the latest GitHub result; its merge commit is recorded as `29e7edaec976bf2cd12a6cb74a9463811dd4c40c`, and its Vercel status check reported success. Older historical status above is retained for incident context only.
+- User approved the next consolidated feature scope: a vehicle-only instant CTM transition from Homey Island's open garage threshold into a premium garage interior, an on-foot key-board chooser for vehicle model and paint, and a matching vehicle-only exit back outside.
+- Implementation branch: `feat/homey-garage-vehicle-selector`.
+- Detailed handoff: `docs/COASTLINE_HOMEY_GARAGE_HANDOFF_2026-10-26.md`.
+- New module `coastline-homey-garage.js` is wired into CTM; package and service-worker manifests were updated to include it. Unit and browser regressions have been authored, but exact-head CI and preview checks are still pending.
+- Keep this PR unmerged and undeployed until browser, engine, package, and preview gates are reviewed; physical Android performance/visual acceptance must be recorded separately and must not be inferred from desktop CI.
