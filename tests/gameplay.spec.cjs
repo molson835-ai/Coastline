@@ -72,7 +72,6 @@ test('on-foot default speed equals former run speed in both directions and no ru
   expect(forwardDistance, 'forward movement should use former run speed').toBeGreaterThan(2.5);
   expect(backwardDistance, 'backward movement should use former run speed').toBeGreaterThan(2.5);
 });
-});
 
 test('vehicle steering follows left/right input and reverse builds usable negative speed', async ({ page }) => {
   const errors = [];
