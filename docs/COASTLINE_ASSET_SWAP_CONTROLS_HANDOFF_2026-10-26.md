@@ -36,6 +36,8 @@
 - A previous gameplay watchdog run was cancelled during rapid PR updates; that cancellation is not a test failure.
 - Latest completed watchdog on head `e186626c002d5c7b2a5d7ddf1137b3768e0ff4e9` passed 50 tests but failed the orange body paint assertion and the Port active-collider assertion. Both fixes above are committed after that run; the new head must be tested before these issues can be considered resolved.
 
+- Latest follow-up commit: `510300ff190035838af8e98b8e476ec9966ad9af`. It adds a final material-role fallback for FBX exports whose generic/overlapping labels leave the replacement car with no body role, and assigns non-empty wheel/glass fallbacks from remaining geometry when needed. The previous full browser run on `83e6222aefc598e5826400839812e265e2cae0ba` completed 50/52: transition, collision-boundary, bridge-return, movement, and other gameplay tests passed; only the replacement vehicle material-role assertions failed. The new material fix is committed but **not yet verified**; rerun targeted vehicle tests and the full gameplay suite on `510300ff190035838af8e98b8e476ec9966ad9af`.
+
 ## Remaining implementation gates
 - Verify two-way City ↔ Homey actor/state continuity on the latest head.
 - Verify reusable door/garage policy and replacement-fleet chooser behavior.
