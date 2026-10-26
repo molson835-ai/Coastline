@@ -13,5 +13,5 @@ test('CTM bridges are configured as narrow single-lane rope bridges', () => {
 
 test('rope bridge posts are close enough to support sagging ropes', () => {
   assert.ok(COASTLINE_ROPE_BRIDGE_CONFIG.postSpacing <= 5);
-  assert.ok(COASTLINE_ROPE_BRIDGE_CONFIG.railHeight > 2);
+  assert.ok(COASTLINE_ROPE_BRIDGE_CONFIG.railHeight > 1.4 && COASTLINE_ROPE_BRIDGE_CONFIG.railHeight < 1.8);
 });
