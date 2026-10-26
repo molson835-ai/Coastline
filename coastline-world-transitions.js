@@ -191,6 +191,7 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
   const createAdditionalIslandWorld=(regionId,worldId)=>({
     id:worldId,
     name:getCoastlineIslandRegion(regionId).title,
+    content:{density:'developed',actorAssets:'shared',renderReadiness:'required'},
     load:async({context,destinationSpawn})=>{
       setIslandCollisionScope(true);window.__coastlineActiveWorldId=worldId;window.__coastlineActiveWorldColliders=[];
       const root=createCoastlineIslandRoot({THREE,region:getCoastlineIslandRegion(regionId),groundY,addBridge,addSideBridge});
