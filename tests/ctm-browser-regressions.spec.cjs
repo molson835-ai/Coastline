@@ -88,15 +88,17 @@ test('the physical bridge end zones automatically transition island to City and 
 test('Homey garage opens only when a vehicle crosses the open threshold and preserves the vehicle', async ({ page }) => {
   await openGame(page);
   await page.waitForFunction(() => window.__coastlineVehicleAssetSwapStatus?.ok === true, null, { timeout: 45000 });
-  await page.evaluate(async () => {
+  const thresholdClear = await page.evaluate(async () => {
     await window.__coastlineTransitionTest.transition('city-to-island');
-    expect(window.__coastlineTest.buildingBlocked(483, 488, 1.8), 'open garage threshold must remain physically traversable').toBe(false);
+    const clear = !window.__coastlineTest.buildingBlocked(483, 488, 1.8);
     window.__garageTestVehicle = window.__coastlinePlayer.vehicle;
     window.__coastlineTest.setWalkPosition(483, 487, 0);
     window.__coastlineTransitionTest.updatePrompt();
     window.__coastlineTest.setWalkPosition(483, 490, 0);
     window.__coastlineTransitionTest.updatePrompt();
+    return clear;
   });
+  expect(thresholdClear, 'open garage threshold must remain physically traversable').toBe(true);
   await page.waitForTimeout(250);
   expect(await page.evaluate(() => window.__coastlineTransitionTest.status().activeWorldId)).toBe('island');
   await page.evaluate(() => {
