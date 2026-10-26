@@ -196,14 +196,19 @@ export function buildHomeyGarageInterior(THREE, { centerX = 483, centerZ = 500, 
   root.add(clockFace);
   addBox('garage-clock-hour-hand', centerX - 9.05, floorY + 3.75, centerZ + 9.3, .035, .26, .025, trimMat);
   addBox('garage-clock-minute-hand', centerX - 9.05, floorY + 3.82, centerZ + 9.4, .025, .035, .22, trimMat);
-  // Rear shelf with fluid cans and compact parts bins; all stay outside the vehicle's turn-in envelope.
-  addBox('garage-parts-shelf-top', centerX, floorY + 2.0, centerZ + 11.6, 3.4, .12, .75, cabinetMat, true);
-  addBox('garage-parts-shelf-bottom', centerX, floorY + .95, centerZ + 11.6, 3.4, .12, .75, cabinetMat, true);
+  // Rear-wall parts shelves with visible wall brackets; cans and bins sit on the shelf surfaces.
+  const shelfX = centerX + 4.0, shelfZ = centerZ + 15.4;
+  addBox('garage-parts-shelf-top', shelfX, floorY + 2.0, shelfZ, 3.4, .12, .75, cabinetMat, true);
+  addBox('garage-parts-shelf-bottom', shelfX, floorY + .95, shelfZ, 3.4, .12, .75, cabinetMat, true);
+  for (const x of [centerX + 3.2, centerX + 4.8]) {
+    addBox(`garage-parts-shelf-bracket-upper-${x}`, x, floorY + 1.95, centerZ + 15.55, .08, .08, .6, trimMat);
+    addBox(`garage-parts-shelf-bracket-lower-${x}`, x, floorY + .9, centerZ + 15.55, .08, .08, .6, trimMat);
+  }
   for (let i = 0; i < 5; i++) {
-    const x = centerX - 1.3 + i * .65;
-    addBox(`garage-fluid-can-${i + 1}`, x, floorY + 2.35, centerZ + 11.6, .34, .55, .38,
+    const x = centerX + 2.7 + i * .65;
+    addBox(`garage-fluid-can-${i + 1}`, x, floorY + 2.35, shelfZ, .34, .55, .38,
       [mat(0x2679a7, .45, .12), mat(0xd2a22c, .45, .12), mat(0x3d8958, .45, .12), mat(0xb83b32, .45, .12), mat(0x65727c, .45, .12)][i], true);
-    addBox(`garage-parts-bin-${i + 1}`, x, floorY + 1.25, centerZ + 11.6, .45, .5, .48, cabinetMat, true);
+    addBox(`garage-parts-bin-${i + 1}`, x, floorY + 1.25, shelfZ, .45, .5, .48, cabinetMat, true);
   }
   // A discreet wall-mounted badge adds a premium workshop identity.
   addBox('garage-brand-plaque', centerX - 9.11, floorY + 3.9, centerZ - 4.5, .08, .8, 3.2, amberMat);
