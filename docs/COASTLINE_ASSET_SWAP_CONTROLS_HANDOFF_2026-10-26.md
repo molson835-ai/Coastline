@@ -38,6 +38,8 @@
 
 - Latest follow-up commit: `510300ff190035838af8e98b8e476ec9966ad9af`. It adds a final material-role fallback for FBX exports whose generic/overlapping labels leave the replacement car with no body role, and assigns non-empty wheel/glass fallbacks from remaining geometry when needed. The previous full browser run on `83e6222aefc598e5826400839812e265e2cae0ba` completed 50/52: transition, collision-boundary, bridge-return, movement, and other gameplay tests passed; only the replacement vehicle material-role assertions failed. The new material fix is committed but **not yet verified**; rerun targeted vehicle tests and the full gameplay suite on `510300ff190035838af8e98b8e476ec9966ad9af`.
 
+- Follow-up verification on head `43ec430162516225a09d7cce9e14fcb51d8bb654` still failed the same two browser checks: City → Homey reported an empty glass role, and the hero-vehicle check reported incomplete material roles; 50/52 browser tests passed. Engine/system, graphics guard, Babylon preview, and itch package checks passed on that head. Follow-up code commit `7117e7d3f59f870fd9aae7d3bcd4d72a3f05d279` strengthens fallback classification so generic FBX labels cannot consume all candidate meshes into wheel/light roles before glass is assigned. This latest fix still requires fresh CI verification.
+
 ## Remaining implementation gates
 - Verify two-way City ↔ Homey actor/state continuity on the latest head.
 - Verify reusable door/garage policy and replacement-fleet chooser behavior.
