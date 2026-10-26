@@ -258,6 +258,12 @@ export function createCoastlineIslandRoot({ THREE, region, groundY = () => 0, ad
     // in the same world units as the drivable cars and with a car-sized garage bay.
     addBox('coastline-villa-main-volume', center.x + 5, edgeY + 4.5, center.z, 26, 9, 24, plaster, true, false);
     addBox('coastline-villa-upper-volume', center.x + 6, edgeY + 10, center.z, 20, 3.2, 18, warmStone, true, false);
+    // Bright facade panels preserve the playful Homey identity without replacing
+    // the original villa architecture or its existing garden details.
+    const playfulPanels = [0xff6b6b, 0xffc857, 0x6bd5a4, 0x66b8ff, 0xb58cff].map(color => material(color, 0.74, 0.02));
+    for (let i = 0; i < playfulPanels.length; i++) {
+      addBox(`coastline-villa-playful-pattern-${i + 1}`, center.x - 7 + i * 5.1, edgeY + 7.3, center.z - 12.3, 2.1, 0.55, 0.08, playfulPanels[i], false, false);
+    }
     addBox('coastline-villa-flat-roof', center.x + 5, edgeY + 11.8, center.z, 29, 0.65, 27, roof, true, false);
     addBox('coastline-villa-roof-overhang', center.x + 5, edgeY + 6.1, center.z - 0.4, 28, 0.38, 25, roof, true, false);
     // Wide glazing and timber accents give the façade warmth without a high-poly cost.
@@ -293,6 +299,24 @@ export function createCoastlineIslandRoot({ THREE, region, groundY = () => 0, ad
     // Small gardens, a stone walk, and warm path lights make the property feel lived in.
     addBox('coastline-villa-front-garden-bed', center.x + 7, edgeY + 0.06, center.z - 17, 18, 0.12, 3.2, lawn, false, false);
     addBox('coastline-villa-front-walk', center.x + 4, edgeY + 0.08, center.z - 20, 4, 0.16, 8, deck, false, false);
+    // Large coastal rocks frame the perimeter while leaving both bridge landings open.
+    const rockAngles = Array.from({ length: 16 }, (_, i) => i * Math.PI * 2 / 16)
+      .filter(angle => Math.abs(angle) > 0.34 && Math.abs(Math.abs(angle) - Math.PI / 2) > 0.34);
+    const rockGeometry = new THREE.DodecahedronGeometry(1, 0);
+    const rocks = new THREE.InstancedMesh(rockGeometry, material(0x77756c, 0.98), rockAngles.length);
+    const rockDummy = new THREE.Object3D();
+    rocks.name = 'coastline-residential-giant-decorative-rocks';
+    rockAngles.forEach((angle, i) => {
+      rockDummy.position.set(center.x + Math.cos(angle) * 101, edgeY + 0.35, center.z + Math.sin(angle) * 101);
+      rockDummy.scale.set(2.0 + (i % 3) * 0.55, 0.8 + (i % 2) * 0.35, 1.6 + (i % 4) * 0.3);
+      rockDummy.rotation.set(0, angle, 0);
+      rockDummy.updateMatrix();
+      rocks.setMatrixAt(i, rockDummy.matrix);
+    });
+    rocks.instanceMatrix.needsUpdate = true;
+    rocks.castShadow = false;
+    rocks.receiveShadow = true;
+    root.add(rocks);
     const bushMat = material(0x2e6740, 0.98);
     const flowerMats = [0xf0c7ce, 0xf4d98a, 0xf6f1e5];
     const gardenDummy = new THREE.Object3D();
