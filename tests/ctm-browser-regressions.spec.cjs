@@ -209,13 +209,15 @@ test('Homey garage includes an overhead roll-up door and an on-foot house doorwa
 test('walking through the house doorway instantly streams the detailed home interior and back', async ({ page }) => {
   await openGame(page);
   await page.waitForFunction(() => window.__coastlineVehicleAssetSwapStatus?.ok === true, null, { timeout: 45000 });
-  await page.evaluate(async () => {
+  const parkedVehicleIndex = await page.evaluate(async () => {
     await window.__coastlineTransitionTest.transition('city-to-island');
     await window.__coastlineTransitionTest.transition('island-to-homey-garage');
+    const index = window.__coastlineTransitionTest.garageState().vehicleIndex;
     window.__coastlineTest.setWalkPosition(483, 515, 0);
     window.__coastlineTransitionTest.updatePrompt();
     window.__coastlineTest.setWalkPosition(483, 516, 0);
     window.__coastlineTransitionTest.updatePrompt();
+    return index;
   });
   await expect.poll(() => page.evaluate(() => window.__coastlineTransitionTest.status().activeWorldId), { timeout: 5000 }).toBe('home-interior');
   const inside = await page.evaluate(() => ({
@@ -223,6 +225,7 @@ test('walking through the house doorway instantly streams the detailed home inte
     player: window.__coastlineTransitionTest.playerState(),
   }));
   expect(inside.house.root.meshes).toBeGreaterThan(35);
+  expect(inside.house.parkedVehicleHidden).toBe(true);
   expect(inside.player.mode).toBe('walk');
   expect(inside.player.position.z).toBeCloseTo(500, 1);
   await page.evaluate(() => {
@@ -233,6 +236,7 @@ test('walking through the house doorway instantly streams the detailed home inte
   });
   await expect.poll(() => page.evaluate(() => window.__coastlineTransitionTest.status().activeWorldId), { timeout: 5000 }).toBe('homey-garage');
   expect(await page.evaluate(() => window.__coastlineTransitionTest.playerState().mode)).toBe('walk');
+  expect(await page.evaluate(() => window.__coastlineTransitionTest.garageState().vehicleIndex)).toBe(parkedVehicleIndex);
 });
 
 test('residential, waterfront, and port islands have developed detail and landscape boundaries', async ({ page }) => {
