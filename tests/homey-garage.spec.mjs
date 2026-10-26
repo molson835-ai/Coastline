@@ -43,7 +43,7 @@ test('garage collision props expose resettable tire and wrench interactions', ()
   assert.doesNotMatch(garageSource, /garage-vehicle-exit-sign|garage-house-entry-sign|addSign\(/, 'garage instructions must be represented by architecture, not banners');
   assert.match(garageSource, /garage-house-door-panel-/);
   assert.match(garageSource, /garage-rollup-door-support-/);
-  assert.match(garageSource, /centerX - 9\.0/);
+  assert.match(garageSource, /centerX - 9\\.075/);
   assert.match(garageSource, /hoseReel\.rotation\.y = Math\.PI \/ 2/);
   assert.match(garageSource, /clockFace\.rotation\.z = Math\.PI \/ 2/);
   assert.match(garageSource, /brickTexture/);
