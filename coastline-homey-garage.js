@@ -79,23 +79,33 @@ export function buildHomeyGarageInterior(THREE, { centerX = 483, centerZ = 500, 
     addBox(`garage-rollup-door-support-${side}`, centerX + side * 8.0, floorY + 4.82, centerZ - 9.45, .18, .22, 3.15, trimMat);
     addBox(`garage-rollup-door-hanger-${side}`, centerX + side * 7.95, floorY + 4.62, centerZ - 9.65, .1, .5, .12, trimMat);
   }
+  // Cross-beams span between the side walls; ceiling fixtures mount to their underside even when the camera hides the ceiling.
+  for (const z of [centerZ - 8, centerZ - 2, centerZ + 4, centerZ + 10]) {
+    addBox(`garage-ceiling-crossbeam-${z}`, centerX, floorY + 5.245, z, 18.2, .16, .22, trimMat);
+  }
   // Six crisp luminous ceiling strips and a warm perimeter accent keep the bay premium without heavy lighting.
   for (let i = 0; i < 3; i++) {
     const x = centerX - 5 + i * 5;
-    addBox(`garage-led-ceiling-strip-${i + 1}`, x, floorY + 5.28, centerZ + 2.5, .16, .035, 26.5, ledMat);
+    addBox(`garage-led-ceiling-strip-${i + 1}`, x, floorY + 5.15, centerZ + 2.5, .16, .035, 26.5, ledMat);
   }
   for (const side of [-1, 1]) {
-    addBox(`garage-warm-perimeter-light-${side}`, centerX + side * 8.65, floorY + 4.85, centerZ + 2.5, .08, .06, 26.5, amberMat);
+    addBox(`garage-warm-perimeter-light-${side}`, centerX + side * 9.11, floorY + 4.85, centerZ + 2.5, .08, .06, 26.5, amberMat);
   }
   // Collector-style wall cabinets, slatwall and a service bench.
-  addBox('garage-workbench', centerX + 4.95, floorY + 1.05, centerZ + 7.5, 2.7, .18, 5.6, warmWood, true);
-  addBox('garage-tool-wall', centerX + 6.45, floorY + 2.65, centerZ + 7.5, .12, 2.9, 5.8, trimMat);
-  for (let i = 0; i < 5; i++) {
-    addBox(`garage-tool-slat-${i + 1}`, centerX + 6.36, floorY + 1.55 + i * .48, centerZ + 5.2, .08, .035, 4.7, cabinetMat);
+  // The workbench is a real freestanding unit with legs and a lower shelf.
+  addBox('garage-workbench', centerX + 7.6, floorY + 1.05, centerZ + 7.5, 2.7, .18, 5.6, warmWood, true);
+  for (const x of [centerX + 6.4, centerX + 8.75]) for (const z of [centerZ + 5.3, centerZ + 9.7]) {
+    addBox(`garage-workbench-leg-${x}-${z}`, x, floorY + .48, z, .14, .96, .14, cabinetMat);
   }
-  for (let i = 0; i < 3; i++) {
-    addBox(`garage-upper-cabinet-${i + 1}`, centerX + 4.95, floorY + 3.55, centerZ + 5.5 + i * 1.85, 2.55, 1.0, 1.45, cabinetMat, true);
-    addBox(`garage-cabinet-handle-${i + 1}`, centerX + 3.63, floorY + 3.55, centerZ + 5.5 + i * 1.85, .06, .22, .12, ledMat);
+  addBox('garage-workbench-lower-shelf', centerX + 7.6, floorY + .42, centerZ + 7.5, 2.25, .1, 4.7, cabinetMat);
+  // Pegboard and slats are physically attached to the right wall, not suspended over the bench.
+  addBox('garage-tool-wall', centerX + 9.09, floorY + 2.65, centerZ + 7.5, .12, 2.9, 3.2, trimMat);
+  for (let i = 0; i < 5; i++) {
+    addBox(`garage-tool-slat-${i + 1}`, centerX + 9.06, floorY + 1.55 + i * .48, centerZ + 7.5, .08, .035, 3.0, cabinetMat);
+  }
+  for (const [i, z] of [centerZ + 4.8, centerZ + 10.0, centerZ + 12.0].entries()) {
+    addBox(`garage-upper-cabinet-${i + 1}`, centerX + 7.85, floorY + 3.55, z, 2.55, 1.0, 1.45, cabinetMat, true);
+    addBox(`garage-cabinet-handle-${i + 1}`, centerX + 6.54, floorY + 3.55, z, .06, .22, .12, ledMat);
   }
   // Low-profile lift pads and wheel guides frame the drive-out position.
   for (const x of [centerX - 3.4, centerX + 3.4]) {
@@ -107,14 +117,14 @@ export function buildHomeyGarageInterior(THREE, { centerX = 483, centerZ = 500, 
   addBox('garage-drive-out-guide-right', centerX + 4.2, floorY + .025, centerZ + 1.6, .08, .05, 8.8, amberMat);
   // A physical, illuminated key board is mounted on the right-hand wall.
   addBox('garage-key-board-frame', centerX + 8.8, floorY + 2.65, centerZ + 2.5, .2, 2.5, 3.5, warmWood);
-  addBox('garage-key-board-face', centerX + 8.67, floorY + 2.65, centerZ + 2.5, .12, 2.25, 3.25, cabinetMat);
-  addBox('garage-key-board-title-plate', centerX + 8.57, floorY + 3.45, centerZ + 2.5, .08, .34, 2.7, amberMat);
+  addBox('garage-key-board-face', centerX + 8.92, floorY + 2.65, centerZ + 2.5, .12, 2.25, 3.25, cabinetMat);
+  addBox('garage-key-board-title-plate', centerX + 8.82, floorY + 3.45, centerZ + 2.5, .08, .34, 2.7, amberMat);
   for (let i = 0; i < 8; i++) {
     const row = Math.floor(i / 4), col = i % 4;
     const z = centerZ + 1.65 + col * .55;
     const y = floorY + 2.8 - row * .78;
-    addBox(`garage-key-hook-${i + 1}`, centerX + 8.56, y, z, .12, .12, .12, ledMat);
-    addBox(`garage-key-fob-${i + 1}`, centerX + 8.48, y - .17, z, .1, .25, .16, amberMat);
+    addBox(`garage-key-hook-${i + 1}`, centerX + 8.81, y, z, .12, .12, .12, ledMat);
+    addBox(`garage-key-fob-${i + 1}`, centerX + 8.73, y - .17, z, .1, .25, .16, amberMat);
   }
   // Real workshop clutter, placed against the left/rear perimeter so the parking lane stays clear.
   addBox('garage-red-mechanics-tool-chest', centerX - 5.05, floorY + .72, centerZ + 9.1, 1.45, 1.25, 2.25, mat(0xa8322d, .38, .24), true);
@@ -193,7 +203,7 @@ export function buildHomeyGarageInterior(THREE, { centerX = 483, centerZ = 500, 
     const x = centerX - 1.3 + i * .65;
     addBox(`garage-fluid-can-${i + 1}`, x, floorY + 2.35, centerZ + 11.6, .34, .55, .38,
       [mat(0x2679a7, .45, .12), mat(0xd2a22c, .45, .12), mat(0x3d8958, .45, .12), mat(0xb83b32, .45, .12), mat(0x65727c, .45, .12)][i], true);
-    addBox(`garage-parts-bin-${i + 1}`, x, floorY + 1.3, centerZ + 11.6, .45, .5, .48, cabinetMat, true);
+    addBox(`garage-parts-bin-${i + 1}`, x, floorY + 1.25, centerZ + 11.6, .45, .5, .48, cabinetMat, true);
   }
   // A discreet wall-mounted badge adds a premium workshop identity.
   addBox('garage-brand-plaque', centerX - 9.11, floorY + 3.9, centerZ - 4.5, .08, .8, 3.2, amberMat);
