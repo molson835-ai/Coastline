@@ -23,18 +23,20 @@
 - `coastline-asset-swap.js` now hides replacement vehicle roots while loading, prevents legacy vehicle flashes, exposes explicit readiness, applies orange starting paint, and records body/glass/wheel/light material groups.
 - `tests/hero-vehicle-visuals.spec.cjs` now checks replacement mesh/material identity and orange body paint.
 - `tests/ctm-browser-regressions.spec.cjs` now checks that City → Homey retains a complete replacement vehicle hierarchy and material groups.
-- The island-content edit was reverted after review because it compressed/replaced too much of the existing authored Homey scenery. The original `coastline-island-regions.js` scenery is preserved pending a smaller targeted content-density patch.
+- Restored the full authored `coastline-island-regions.js` from `main` before applying a targeted content-density gate; existing Homey villa, garden, pool, landscaping, and collider details are preserved.
+- Added explicit `contentDensity` to the four-island manifest: Downtown and Residential are `developed`; Waterfront and Port are `sparse`. Sparse regions retain terrain, shoreline/ocean, basic road coverage, and bridge geometry while skipping developed-world scenery and vegetation.
+- Preserved the approved Homey-specific playful facade panels and added large perimeter rocks while keeping the bridge landing gaps open.
 
 ## CI evidence
 - Earlier engine run exposed one new assertion mismatch: the manager correctly included `renderReadiness: 'required'`; the test was corrected in commit `5741c6017ef145bc36ce67c5aa20c7910278ae9f`.
-- Latest PR head currently continues through CI after the vehicle/browser regression additions. Do not call the PR green until the latest head's engine, gameplay, package, Babylon, and graphics checks are freshly verified.
+- A gameplay watchdog run on the prior head failed on three actionable assertions: the bridge-source regex was coupled to compressed formatting, replacement FBX material groups were empty when model-part names were missing, and Waterfront expected developed-world mesh counts. The island source has since been restored, vehicle material-role inference now has bounds-based fallbacks, and the sparse-world smoke assertion was lowered to verify a usable root without requiring developed-scene density.
+- The subsequent graphics, itch.io package, and Babylon checks passed on the immediately preceding head; the latest head includes the preserved Homey decor additions and requires fresh CI confirmation. Do not call the PR green until the latest head's engine, gameplay, package, Babylon, and graphics checks are freshly verified.
 - A previous gameplay watchdog run was cancelled during rapid PR updates; that cancellation is not a test failure.
 
 ## Remaining implementation gates
-- Apply the sparse/developed content-density rule without rewriting existing Homey scenery.
 - Verify two-way City ↔ Homey actor/state continuity on the latest head.
 - Verify reusable door/garage policy and replacement-fleet chooser behavior.
-- Verify exact perimeter/bridge boundaries.
-- Run final full relevant CI suite.
+- Verify exact perimeter/bridge boundaries, including that new perimeter rocks do not block bridge approaches.
+- Run final full relevant CI suite on the latest head.
 - Perform Android-oriented visual/transition validation; desktop CI is not sufficient evidence for Android performance.
-- Update this handoff again before the PR is presented for merge authorization.
+- Keep PR #122 unmerged until all required gates pass and the user explicitly authorizes merge.
