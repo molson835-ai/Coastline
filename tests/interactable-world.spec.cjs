@@ -1,6 +1,6 @@
 const { test, expect } = require('@playwright/test');
 
-test('buildings, benches, low walls, bicycles, motorcycles and aircraft are interactable', async ({ page }) => {
+test('buildings, benches, low walls and on-foot movement remain interactable', async ({ page }) => {
   const runtimeErrors = [];
   page.on('pageerror', error => runtimeErrors.push(error.message));
   await page.goto('/game-v3.html', { waitUntil: 'domcontentloaded' });
@@ -10,7 +10,6 @@ test('buildings, benches, low walls, bicycles, motorcycles and aircraft are inte
     const api = window.__coastlineTest;
     return {
       buildings: api.buildingState(),
-      rideables: api.rideableState().map(v => v.kind),
       errors: api.state().errors
     };
   });
@@ -18,8 +17,9 @@ test('buildings, benches, low walls, bicycles, motorcycles and aircraft are inte
   expect(initial.buildings.enterable).toBe(initial.buildings.count);
   expect(initial.buildings.benchCount).toBeGreaterThanOrEqual(4);
   expect(initial.buildings.lowWallCount).toBeGreaterThanOrEqual(4);
-  expect(initial.rideables).toEqual(expect.arrayContaining(['bicycle', 'motorcycle', 'aircraft']));
   expect(initial.errors).toEqual([]);
+  await expect.poll(() => page.evaluate(() => window.__coastlineVehicleAssetSwapStatus?.ok === true)).toBe(true);
+  expect(await page.evaluate(() => window.__coastlineVehicleAssetSwapStatus.disabled)).toBeGreaterThanOrEqual(3);
 
   const entered = await page.evaluate(() => {
     const api = window.__coastlineTest;
@@ -50,13 +50,6 @@ test('buildings, benches, low walls, bicycles, motorcycles and aircraft are inte
   expect(jump.mode).toBe('walk');
   expect(jump.jumpHeight > 0 || jump.jumpVelocity > 0, 'jump should produce positive height or upward velocity').toBe(true);
   expect(jump.errors).toEqual([]);
-
-  await page.evaluate(() => window.__coastlineTest.enterRideable('aircraft'));
-  await page.evaluate(() => window.__coastlineTest.keyDown('space'));
-  await page.evaluate(() => window.__coastlineTest.advanceTestFrame(1/60, 30));
-  const flightHeight = await page.evaluate(() => window.__coastlineTest.rideableState().find(v => v.kind === 'aircraft').flightHeight);
-  await page.evaluate(() => window.__coastlineTest.keyUp('space'));
-  expect(flightHeight).toBeGreaterThan(0);
 
   expect(runtimeErrors).toEqual([]);
   expect(await page.evaluate(() => window.__coastlineTest.state().errors)).toEqual([]);

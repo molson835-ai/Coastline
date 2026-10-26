@@ -68,7 +68,21 @@ test('mobile driving controls are visible and operate the vehicle', async ({ pag
     await page.mouse.up();
   }
   const afterSteer = await page.evaluate(() => window.__coastlineTest.state());
-  expect(Math.abs(afterSteer.heading - headingBeforeSteer), 'left control should steer the car').toBeGreaterThan(0.01);
+  expect(afterSteer.heading - headingBeforeSteer, 'left control should steer the car left').toBeLessThan(-0.01);
+
+  const right = page.getByRole('button', { name: 'Steer or turn right' });
+  const headingBeforeRight = (await page.evaluate(() => window.__coastlineTest.state())).heading;
+  await right.hover();
+  await page.mouse.down();
+  await page.evaluate(() => window.__coastlineTest.advanceTestFrame(1/60, 30));
+  try {
+    await expect.poll(async () => page.evaluate(heading => window.__coastlineTest.state().heading - heading, headingBeforeRight), {
+      timeout: 3000,
+      message: 'right control should steer the car right'
+    }).toBeGreaterThan(0.01);
+  } finally {
+    await page.mouse.up();
+  }
 
   await action.click({ force: true });
   await expect(page.locator('#mode')).toHaveText('ON FOOT');

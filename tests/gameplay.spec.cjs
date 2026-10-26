@@ -50,6 +50,29 @@ test('Coastline boots, exits a vehicle, shows the avatar, and supports walking t
   expect(pageErrors, 'uncaught JavaScript errors after interactions').toEqual([]);
 });
 
+test('on-foot default speed equals former run speed in both directions and no run button remains', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/game-v3.html?beta=default-walk-speed', { waitUntil: 'domcontentloaded' });
+  await page.waitForFunction(() => Boolean(window.__coastlineTest), null, { timeout: 20000 });
+  const open = await page.evaluate(() => window.__coastlineTest.findOpenWalkPosition());
+  expect(open, 'an open walking test position should exist').not.toBeNull();
+  await page.evaluate(({ x, z }) => window.__coastlineTest.setWalkPosition(x, z, 0), open);
+  await expect(page.locator('[data-k="shift"][data-foot-only]')).toHaveCount(0);
+  const move = async (key) => {
+    await page.evaluate(({ x, z }) => window.__coastlineTest.setWalkPosition(x, z, 0), open);
+    const before = await page.evaluate(() => window.__coastlineTest.state());
+    await page.evaluate(key => window.__coastlineTest.keyDown(key), key);
+    await page.evaluate(() => window.__coastlineTest.advanceTestFrame(1/60, 30));
+    await page.evaluate(key => window.__coastlineTest.keyUp(key), key);
+    const after = await page.evaluate(() => window.__coastlineTest.state());
+    return Math.hypot(after.x - before.x, after.z - before.z);
+  };
+  const forwardDistance = await move('w');
+  const backwardDistance = await move('s');
+  expect(forwardDistance, 'forward movement should use former run speed').toBeGreaterThan(2.5);
+  expect(backwardDistance, 'backward movement should use former run speed').toBeGreaterThan(2.5);
+});
+
 test('vehicle steering follows left/right input and reverse builds usable negative speed', async ({ page }) => {
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
@@ -101,4 +124,23 @@ test('cash balance persists across reloads independently of landmark discovery',
   expect(await page.evaluate(() => window.__coastlineTest.state().cashBalance)).toBe(375);
   expect(await page.evaluate(() => typeof window.__coastlineTest.checkLandmarkDiscovery)).toBe('undefined');
   expect(await page.evaluate(() => localStorage.getItem('coastline-discovered-landmarks-v1'))).toBeNull();
+});
+
+
+test('RGSDev vehicle and Cozy character assets replace legacy runtime visuals', async ({ page }) => {
+  test.setTimeout(90000);
+  const errors=[];
+  page.on('pageerror', error => errors.push(error.message));
+  await page.goto('/game-v3.html?beta=asset-swap-regression', { waitUntil:'domcontentloaded' });
+  await page.waitForFunction(() => Boolean(window.__coastlineTest), null, { timeout:30000 });
+  await page.waitForFunction(() => Boolean(window.__coastlineVehicleAssetSwapStatus && window.__coastlineCharacterAssetSwapStatus), null, { timeout:60000 });
+  const state=await page.evaluate(()=>({vehicle:window.__coastlineVehicleAssetSwapStatus,character:window.__coastlineCharacterAssetSwapStatus,vehicles:window.__coastlineTest.vehicleAssetState()}));
+  expect(state.vehicle.ok, 'RGSDev FBX pack should load').toBe(true);
+  expect(state.vehicle.replaced, 'existing road cars should be replaced').toBeGreaterThan(0);
+  expect(state.vehicle.models).toContain('Sedan');
+  expect(state.character.ok, 'Cozy skinned character should load').toBe(true);
+  expect(state.character.animations).toEqual(expect.arrayContaining(['idle','walk','run']));
+  expect(state.vehicles.filter(v=>v.kind==='car').every(v=>v.model && v.model!=='neutral-fallback'), 'all road cars should use RGSDev models').toBe(true);
+  expect(state.vehicles.filter(v=>v.kind!=='car').every(v=>!v.visible && !v.drivable), 'unsupported old rideables should be disabled, not left visible').toBe(true);
+  expect(errors, 'asset replacement should not throw runtime errors').toEqual([]);
 });

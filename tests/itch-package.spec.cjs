@@ -7,8 +7,12 @@ test('packaged itch.io root entry boots with local gameplay modules', async ({ p
   page.on('pageerror', error => pageErrors.push({ message: error.message, stack: error.stack }));
   page.on('console', message => { if (message.type() === 'error') consoleErrors.push(message.text()); });
   page.on('requestfailed', request => failedRequests.push(`${request.url()} :: ${request.failure()?.errorText || 'request failed'}`));
-  const modelResponse = await page.request.get('/assets/vehicles/Range%20Rover%20by%20IvOfficial%20-%208zk4o6nALW.glb');
-  expect(modelResponse.ok(), 'Range Rover model asset should be present in the packaged output').toBe(true);
+  const vehiclePackResponse = await page.request.get('/assets/Free%20Low%20Poly%20Vehicles%20Pack%20by%20Rgsdev.zip');
+  expect(vehiclePackResponse.ok(), 'RGSDev replacement vehicle pack should be present in the packaged output').toBe(true);
+  const characterResponse = await page.request.get('/assets/grab3d-cozy-character.glb');
+  expect(characterResponse.ok(), 'Cozy replacement character should be present in the packaged output').toBe(true);
+  const assetModuleResponse = await page.request.get('/coastline-asset-swap.js');
+  expect(assetModuleResponse.ok(), 'replacement asset loader should be present in the packaged output').toBe(true);
   await page.addInitScript(() => {
     window.__coastlineBootErrors = [];
     addEventListener('error', event => window.__coastlineBootErrors.push({ message: event.message, filename: event.filename, line: event.lineno, column: event.colno }));

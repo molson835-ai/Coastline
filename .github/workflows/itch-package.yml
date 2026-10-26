@@ -21,6 +21,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+      - name: Inspect replacement vehicle and character assets
+        run: node scripts/audit-asset-swap.mjs
       - name: Prepare and validate the game files
         run: node scripts/build-itch.mjs
       - name: Create HTML5 upload ZIP

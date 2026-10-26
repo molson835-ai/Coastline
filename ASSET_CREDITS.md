@@ -1,10 +1,24 @@
 # Asset credits
 
-## Range Rover vehicle model
+## RGSDev — Free Low Poly Vehicles Pack
+
+- **Creator:** Raphael Gonçalves (Rgsdev)
+- **Source:** Included `License.txt` in `assets/Free Low Poly Vehicles Pack by Rgsdev.zip`
+- **License:** [CC0 1.0 Universal](https://creativecommons.org/publicdomain/zero/1.0/)
+- **Use in Coastline Drive:** Replacement road-vehicle fleet and the public-works van. Models are loaded from the included FBX files, scaled and positioned for Coastline's vehicle roots, and may be adjusted for integration and performance.
+- **Attribution:** The included license says credit is not required; this courtesy credit is retained for provenance.
+
+## Grab3D — Cozy Character
+
+- **Creator/source:** [Grab3D Character Mixer](https://grab3d.com/tools/character-mixer/)
+- **Asset:** `assets/grab3d-cozy-character.glb`
+- **License:** CC0 1.0 (public domain; attribution not required), as documented by Grab3D.
+- **Use in Coastline Drive:** Player and pedestrian character replacement, including the public-works character. The skinned GLB includes `idle`, `walk`, `run`, `wave`, and `jump` clips. Coastline selects the available clips for movement and state.
+
+## Retired Range Rover vehicle model (repository archive only)
 
 - **Creator:** IvOfficial
 - **Source:** https://poly.pizza/m/8zk4o6nALW
 - **License:** [Creative Commons Attribution 3.0 (CC BY 3.0)](https://creativecommons.org/licenses/by/3.0/)
-- **Use in Coastline Drive:** Used as the visual model for road cars. The model is scaled and positioned for the game's vehicle system; further modifications may be made for integration and performance.
-
-This attribution is provided to satisfy the CC BY 3.0 attribution requirement. If the asset is modified, those changes should be identified in release notes.
+- **Status:** Kept in the repository as a legacy/rollback asset only; it is no longer included in the itch package or used by the active fleet replacement path.
+- **Attribution note:** This entry is retained because the source asset remains in repository history and the assets directory. It must be credited if the legacy model is reintroduced in a release.
