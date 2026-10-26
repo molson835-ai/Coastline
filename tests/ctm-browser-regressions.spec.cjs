@@ -244,7 +244,19 @@ test('walking through the house doorway instantly streams the detailed home inte
   expect(inside.house.root.meshes).toBeGreaterThan(35);
   expect(inside.house.parkedVehicleHidden).toBe(true);
   expect(inside.player.mode).toBe('walk');
-  expect(inside.player.position.z).toBeCloseTo(500, 1);
+  expect(inside.player.position.z).toBeCloseTo(508.5, 1);
+  await page.evaluate(() => {
+    const before = window.__coastlineTransitionTest.playerState().position;
+    window.__coastlineTest.keyDown('w');
+    window.__coastlineTest.advanceTestFrame(1 / 60, 20);
+    window.__coastlineTest.keyUp('w');
+    window.__coastlineHouseMovementAfterEntry = {
+      before,
+      after: window.__coastlineTransitionTest.playerState().position,
+    };
+  });
+  const movement = await page.evaluate(() => window.__coastlineHouseMovementAfterEntry);
+  expect(Math.hypot(movement.after.x - movement.before.x, movement.after.z - movement.before.z), 'player must be able to walk immediately after entering the house').toBeGreaterThan(0.1);
   await page.evaluate(() => {
     window.__coastlineTest.setWalkPosition(483, 512.5, 0);
     window.__coastlineTransitionTest.updatePrompt();
