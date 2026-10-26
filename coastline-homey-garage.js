@@ -33,7 +33,7 @@ export function buildHomeyGarageInterior(THREE, { centerX = 483, centerZ = 500, 
     return mesh;
   };
   // Interior is aligned to Homey Island's existing open bay (front at z = centerZ - 12).
-  addBox('garage-showroom-epoxy-floor', centerX, floorY + .08, centerZ + 1, 13.2, .16, 24, floorMat);
+  addBox('garage-showroom-epoxy-floor', centerX, floorY - .08, centerZ + 1, 13.2, .16, 24, floorMat);
   addBox('garage-left-wall', centerX - 6.9, floorY + 2.7, centerZ + 1, .3, 5.4, 24, wallMat, true);
   addBox('garage-right-wall', centerX + 6.9, floorY + 2.7, centerZ + 1, .3, 5.4, 24, wallMat, true);
   addBox('garage-rear-wall', centerX, floorY + 2.7, centerZ + 13, 13.8, 5.4, .3, wallMat, true);
@@ -60,11 +60,11 @@ export function buildHomeyGarageInterior(THREE, { centerX = 483, centerZ = 500, 
   // Low-profile lift pads and wheel guides frame the drive-out position.
   for (const x of [centerX - 3.4, centerX + 3.4]) {
     for (const z of [centerZ - 1.4, centerZ + 5.8]) {
-      addBox(`garage-lift-pad-${x}-${z}`, x, floorY + .19, z, .8, .22, 1.8, trimMat);
+      addBox(`garage-lift-pad-${x}-${z}`, x, floorY + .11, z, .8, .22, 1.8, trimMat);
     }
   }
-  addBox('garage-drive-out-guide-left', centerX - 4.2, floorY + .105, centerZ + 1.6, .08, .05, 8.8, amberMat);
-  addBox('garage-drive-out-guide-right', centerX + 4.2, floorY + .105, centerZ + 1.6, .08, .05, 8.8, amberMat);
+  addBox('garage-drive-out-guide-left', centerX - 4.2, floorY + .025, centerZ + 1.6, .08, .05, 8.8, amberMat);
+  addBox('garage-drive-out-guide-right', centerX + 4.2, floorY + .025, centerZ + 1.6, .08, .05, 8.8, amberMat);
   // A physical, illuminated key board is mounted on the right-hand wall.
   addBox('garage-key-board-frame', centerX + 6.45, floorY + 2.65, centerZ + 1.0, .2, 2.5, 3.5, warmWood);
   addBox('garage-key-board-face', centerX + 6.32, floorY + 2.65, centerZ + 1.0, .12, 2.25, 3.25, cabinetMat);
