@@ -182,6 +182,34 @@ export function createCoastlineIslandRoot({ THREE, region, groundY = () => 0, ad
   shore.receiveShadow = true;
   root.add(shore);
 
+  // A sloped outer sand shelf bridges the raised island down to the lowered sea plane.
+  // Reuse the shoreline's sampled contour so the slope follows the same distinctive cove.
+  const upperBeachPoints = shoreShape.getPoints(8);
+  const lowerBeachScale = 1.12 / 1.04;
+  const beachVertices = [];
+  const beachIndices = [];
+  for (let i = 0; i < upperBeachPoints.length - 1; i++) {
+    const a = upperBeachPoints[i], b = upperBeachPoints[i + 1];
+    const base = beachVertices.length / 3;
+    beachVertices.push(
+      center.x + a.x, edgeY - 0.28, center.z + a.y,
+      center.x + b.x, edgeY - 0.28, center.z + b.y,
+      center.x + a.x * lowerBeachScale, edgeY - COASTLINE_ISLAND_WATER_DROP + 0.05, center.z + a.y * lowerBeachScale,
+      center.x + b.x * lowerBeachScale, edgeY - COASTLINE_ISLAND_WATER_DROP + 0.05, center.z + b.y * lowerBeachScale
+    );
+    beachIndices.push(base, base + 1, base + 2, base + 1, base + 3, base + 2);
+  }
+  const beachGeometry = new THREE.BufferGeometry();
+  beachGeometry.setAttribute('position', new THREE.Float32BufferAttribute(beachVertices, 3));
+  beachGeometry.setIndex(beachIndices);
+  beachGeometry.computeVertexNormals();
+  const slopedBeach = new THREE.Mesh(beachGeometry, new THREE.MeshStandardMaterial({
+    color: 0xc2b28b, roughness: 0.94, side: THREE.DoubleSide,
+  }));
+  slopedBeach.name = `coastline-${region.id}-sloped-sand-to-water`;
+  slopedBeach.receiveShadow = true;
+  root.add(slopedBeach);
+
   const landShape = createIslandShape(THREE, region, 0.94);
   const land = new THREE.Mesh(new THREE.ShapeGeometry(landShape, 6), landMat);
   land.name = `coastline-${region.id}-land`;
