@@ -1,4 +1,5 @@
 import test from 'node:test';
+import { readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';
 import {
   HOMEY_GARAGE_PAINT_COLORS,
@@ -30,6 +31,21 @@ test('key board is available only on foot inside the garage and within reach', (
   assert.equal(canUseGarageKeyBoard({ worldId: 'homey-garage', mode: 'vehicle', player, board }), false);
   assert.equal(canUseGarageKeyBoard({ worldId: 'island', mode: 'walk', player, board }), false);
   assert.equal(canUseGarageKeyBoard({ worldId: 'homey-garage', mode: 'walk', player: { x: 470, z: 500 }, board }), false);
+});
+
+test('garage collision props expose resettable tire and wrench interactions', () => {
+  const garageSource = readFileSync(new URL('../coastline-homey-garage.js', import.meta.url), 'utf8');
+  const islandSource = readFileSync(new URL('../coastline-island-regions.js', import.meta.url), 'utf8');
+  assert.match(garageSource, /coastlineGarageProps/);
+  assert.match(garageSource, /kind: 'tire'/);
+  assert.match(garageSource, /kind: 'wrench'/);
+  assert.match(garageSource, /garage-vehicle-exit-sign/);
+  assert.match(garageSource, /garage-house-entry-sign/);
+  assert.match(garageSource, /brickTexture/);
+  assert.match(islandSource, /coastline-residential-backshore-beachgrass/);
+  assert.match(islandSource, /coastline-residential-backshore-bayberry/);
+  assert.match(islandSource, /coastline-residential-backshore-driftwood/);
+  assert.match(islandSource, /coastline-homey-driveway-light/);
 });
 
 test('paint palette offers distinct, named finishes without touching non-paint vehicle roles', () => {
