@@ -19,7 +19,7 @@ export const COASTLINE_ROPE_BRIDGE_CONFIG = Object.freeze({
   postSpacing: 4.5,
   ropeRadius: 0.055,
   deckSag: 2.1,
-  railHeight: 2.15,
+  railHeight: 1.55,
 });
 
 function buildRopeBridge(THREE, root, { axis, origin, direction, y, length = 100, name = 'coastal-link' }) {
@@ -48,7 +48,7 @@ function buildRopeBridge(THREE, root, { axis, origin, direction, y, length = 100
   group.add(water);
 
   const plankCount = Math.max(12, Math.ceil(length / 100 * COASTLINE_ROPE_BRIDGE_CONFIG.plankCountPer100Units));
-  const plankLength = length / plankCount * (1 - COASTLINE_ROPE_BRIDGE_CONFIG.plankGap);
+  const plankLength = Math.max(0.45, length / plankCount - COASTLINE_ROPE_BRIDGE_CONFIG.plankGap);
   const plankGeometry = alongZ
     ? new THREE.BoxGeometry(width, 0.17, plankLength)
     : new THREE.BoxGeometry(plankLength, 0.17, width);
@@ -73,7 +73,7 @@ function buildRopeBridge(THREE, root, { axis, origin, direction, y, length = 100
   group.add(planks);
 
   const postCount = Math.ceil(length / COASTLINE_ROPE_BRIDGE_CONFIG.postSpacing) + 1;
-  const postGeometry = new THREE.BoxGeometry(0.2, 1.45, 0.2);
+  const postGeometry = new THREE.BoxGeometry(0.2, 1.55, 0.2);
   const posts = new THREE.InstancedMesh(postGeometry, postMaterial, postCount * 2);
   posts.name = `coastline-bridge-rope-posts-${name}`;
   posts.castShadow = true;
@@ -87,7 +87,7 @@ function buildRopeBridge(THREE, root, { axis, origin, direction, y, length = 100
     for (const side of [-1, 1]) {
       dummy.position.set(
         x + (alongZ ? side * (width / 2 - 0.12) : 0),
-        deckY + 0.73,
+        deckY + 0.78,
         z + (alongZ ? 0 : side * (width / 2 - 0.12))
       );
       dummy.rotation.set(0, 0, 0);
@@ -101,7 +101,7 @@ function buildRopeBridge(THREE, root, { axis, origin, direction, y, length = 100
 
   // Two sagging hand ropes and two lower safety ropes: exposed sides, no solid guardrails.
   for (const side of [-1, 1]) {
-    for (const rail of [{ height: COASTLINE_ROPE_BRIDGE_CONFIG.railHeight, sag: 0.55 }, { height: 0.72, sag: 0.7 }]) {
+    for (const rail of [{ height: COASTLINE_ROPE_BRIDGE_CONFIG.railHeight, sag: 1 }, { height: 0.72, sag: 1 }]) {
       const points = [];
       for (let i = 0; i <= 32; i++) {
         const t = i / 32;
@@ -134,7 +134,7 @@ function buildRopeBridge(THREE, root, { axis, origin, direction, y, length = 100
       const sx = x + (alongZ ? side * (width / 2) : 0);
       const sz = z + (alongZ ? 0 : side * (width / 2));
       lashingPositions.push(new THREE.Vector3(sx, deckY + 0.25, sz));
-      lashingPositions.push(new THREE.Vector3(sx, y + COASTLINE_ROPE_BRIDGE_CONFIG.railHeight - sagAt(t) * 0.55, sz));
+      lashingPositions.push(new THREE.Vector3(sx, y + COASTLINE_ROPE_BRIDGE_CONFIG.railHeight - sagAt(t), sz));
     }
   }
   const lashGeometry = new THREE.BufferGeometry().setFromPoints(lashingPositions);
