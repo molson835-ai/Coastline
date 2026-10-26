@@ -112,16 +112,23 @@ test('Homey garage opens only when a vehicle crosses the open threshold and pres
     window.__coastlineTransitionTest.updatePrompt();
   });
   await expect.poll(() => page.evaluate(() => window.__coastlineTransitionTest.status().activeWorldId), { timeout: 5000 }).toBe('homey-garage');
-  const inside = await page.evaluate(() => ({
-    state: window.__coastlineTransitionTest.playerState(),
-    garage: window.__coastlineTransitionTest.garageState(),
-  }));
+  const inside = await page.evaluate(() => {
+    window.__coastlineTransitionTest.updatePrompt();
+    return {
+      state: window.__coastlineTransitionTest.playerState(),
+      garage: window.__coastlineTransitionTest.garageState(),
+    };
+  });
   expect(inside.state.mode).toBe('vehicle');
   expect(inside.state.vehicleIndex).toBe(before.vehicleIndex);
   expect(inside.state.position.x).toBeCloseTo(483, 1);
   expect(inside.state.position.z).toBeCloseTo(500, 1);
   expect(inside.state.position.y).toBeCloseTo(await page.evaluate(() => window.__coastlineTest.groundY(483, 500)), 1);
   expect(inside.garage.root.meshes).toBeGreaterThan(20);
+  expect(inside.garage.decorCount).toBeGreaterThanOrEqual(20);
+  expect(inside.garage.cameraMode).toBe(true);
+  expect(inside.garage.ceilingVisible).toBe(false);
+  expect(inside.garage.sideWallOpacity).toBeCloseTo(0.16, 2);
   expect(inside.garage.threshold.z).toBe(488);
   expect(await page.evaluate(() => window.__coastlineTransitionTest.worldDefinitions().find(world => world.id === 'homey-garage').content.density)).toBe('developed');
 
