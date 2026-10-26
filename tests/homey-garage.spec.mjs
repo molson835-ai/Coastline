@@ -45,6 +45,8 @@ test('garage collision props expose resettable tire and wrench interactions', ()
   assert.match(garageSource, /garage-rollup-door-support-/);
   assert.match(garageSource, /garage-workbench-leg-/);
   assert.match(garageSource, /garage-workbench-lower-shelf/);
+  assert.match(garageSource, /garage-parts-shelf-bracket-upper-/);
+  assert.match(garageSource, /const shelfX = centerX \+ 4\.0, shelfZ = centerZ \+ 15\.4/);
   assert.match(garageSource, /garage-ceiling-crossbeam-/);
   assert.match(garageSource, /garage-key-board-frame', centerX \+ 9\.05/);
   assert.match(garageSource, /centerX - 9[.]075/);
