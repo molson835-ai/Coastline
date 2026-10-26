@@ -173,19 +173,19 @@ export function buildHomeyGarageInterior(THREE, { centerX = 483, centerZ = 500, 
   // Wall-mounted hose reel, extinguisher, and an illuminated service clock.
   const hoseReel = new THREE.Mesh(new THREE.TorusGeometry(.42, .075, 8, 20), mat(0x1b2429, .45, .48));
   hoseReel.name = 'garage-wall-hose-reel';
-  hoseReel.position.set(centerX - 9.0, floorY + 2.35, centerZ + 2.8);
+  hoseReel.position.set(centerX - 9.075, floorY + 2.35, centerZ + 2.8);
   hoseReel.rotation.y = Math.PI / 2;
   root.add(hoseReel);
   addBox('garage-hose-tail', centerX - 8.88, floorY + 1.65, centerZ + 2.2, .07, 1.1, .07, mat(0x1a8791, .5, .08));
-  addBox('garage-fire-extinguisher', centerX - 8.92, floorY + 1.25, centerZ + 6.0, .22, .75, .25, mat(0xc53a32, .42, .15));
-  addBox('garage-extinguisher-handle', centerX - 8.86, floorY + 1.67, centerZ + 6.0, .28, .09, .12, trimMat);
+  addBox('garage-fire-extinguisher', centerX - 9.02, floorY + 1.25, centerZ + 6.0, .22, .75, .25, mat(0xc53a32, .42, .15));
+  addBox('garage-extinguisher-handle', centerX - 8.96, floorY + 1.67, centerZ + 6.0, .28, .09, .12, trimMat);
   const clockFace = new THREE.Mesh(new THREE.CylinderGeometry(.42, .42, .08, 20), mat(0xe9eef0, .45, .04));
   clockFace.name = 'garage-wall-service-clock';
   clockFace.rotation.z = Math.PI / 2;
-  clockFace.position.set(centerX - 9.0, floorY + 3.7, centerZ + 9.3);
+  clockFace.position.set(centerX - 9.11, floorY + 3.7, centerZ + 9.3);
   root.add(clockFace);
-  addBox('garage-clock-hour-hand', centerX - 8.88, floorY + 3.75, centerZ + 9.3, .035, .26, .025, trimMat);
-  addBox('garage-clock-minute-hand', centerX - 8.88, floorY + 3.82, centerZ + 9.4, .025, .035, .22, trimMat);
+  addBox('garage-clock-hour-hand', centerX - 9.02, floorY + 3.75, centerZ + 9.3, .035, .26, .025, trimMat);
+  addBox('garage-clock-minute-hand', centerX - 9.02, floorY + 3.82, centerZ + 9.4, .025, .035, .22, trimMat);
   // Rear shelf with fluid cans and compact parts bins; all stay outside the vehicle's turn-in envelope.
   addBox('garage-parts-shelf-top', centerX, floorY + 2.0, centerZ + 11.6, 3.4, .12, .75, cabinetMat, true);
   addBox('garage-parts-shelf-bottom', centerX, floorY + .95, centerZ + 11.6, 3.4, .12, .75, cabinetMat, true);
@@ -196,7 +196,7 @@ export function buildHomeyGarageInterior(THREE, { centerX = 483, centerZ = 500, 
     addBox(`garage-parts-bin-${i + 1}`, x, floorY + 1.3, centerZ + 11.6, .45, .5, .48, cabinetMat, true);
   }
   // A discreet wall-mounted badge adds a premium workshop identity.
-  addBox('garage-brand-plaque', centerX - 9.0, floorY + 3.9, centerZ - 4.5, .08, .8, 3.2, amberMat);
+  addBox('garage-brand-plaque', centerX - 9.11, floorY + 3.9, centerZ - 4.5, .08, .8, 3.2, amberMat);
   root.userData.coastlineColliders = colliders;
   root.userData.coastlineGarageProps = props;
   root.userData.coastlineGarageCamera = {
