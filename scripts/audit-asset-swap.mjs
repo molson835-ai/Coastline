@@ -44,6 +44,7 @@ const readEntry = entry => {
 };
 const models = entries.filter(e => /\.(glb|gltf|fbx|obj|blend)$/i.test(e.name));
 const licenses = entries.filter(e => /(license|licence|readme|attribution|credits|copyright|terms)/i.test(e.name));
+const licenseTexts = licenses.filter(e => /\.(txt|md|json|html)$/i.test(e.name)).map(e => ({ name: e.name, text: readEntry(e).toString('utf8') }));
 const glbDetails = [];
 for (const entry of entries.filter(e => /\.glb$/i.test(e.name))) {
   const bytes = readEntry(entry);
@@ -82,7 +83,8 @@ const character = {
 };
 console.log(JSON.stringify({
   archive: targets[0], archiveBytes: archive.length, entryCount: entries.length,
-  models, licenseAndReadmeFiles: licenses.map(e => ({ name: e.name, bytes: e.uncompressedSize })),
+  entries: entries.map(e => ({ name: e.name, bytes: e.uncompressedSize })),
+  models, licenseAndReadmeFiles: licenses.map(e => ({ name: e.name, bytes: e.uncompressedSize })), licenseTexts,
   glbDetails, character
 }, null, 2));
 if (!models.length) throw new Error('Vehicle pack contains no recognized 3D model files.');
