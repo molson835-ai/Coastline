@@ -26,7 +26,7 @@ export function createNpcWorldSlice({ THREE, scene, groundY, trafficSignalHeads,
   const windshield=new THREE.Mesh(rb(1.82,.58,.045,.018),materials.glass);windshield.position.set(0,1.78,1.81);van.add(windshield);
   const stripe=new THREE.Mesh(rb(2.32,.2,4.28,.025),materials.blue);stripe.position.y=1.13;van.add(stripe);
   for(const x of[-1.12,1.12])for(const z of[-1.35,1.35]){const wheel=new THREE.Mesh(new THREE.CylinderGeometry(.39,.39,.19,24),materials.tire);wheel.rotation.z=Math.PI/2;wheel.position.set(x,.42,z);van.add(wheel);}
-  van.position.set(tx+5.8,groundY(tx+5.8,tz+5.8),tz+5.8);van.rotation.y=Math.PI*.25;scene.add(van);
+  van.position.set(tx+5.8,groundY(tx+5.8,tz+5.8),tz+5.8);van.rotation.y=Math.PI*.25;van.visible=false;scene.add(van);
 
   // High-fidelity worker: rounded clothing volumes, smooth head/helmet and capsule limbs instead of block primitives.
   const worker=new THREE.Group();
@@ -35,18 +35,18 @@ export function createNpcWorldSlice({ THREE, scene, groundY, trafficSignalHeads,
   const head=new THREE.Mesh(new THREE.SphereGeometry(.19,24,16),materials.skin);head.position.y=1.83;worker.add(head);
   const helmet=new THREE.Mesh(new THREE.SphereGeometry(.225,24,14),materials.helmet);helmet.scale.y=.5;helmet.position.y=2;worker.add(helmet);
   const arm=new THREE.Group();arm.position.set(.28,1.52,0);const upperArm=new THREE.Mesh(new THREE.CapsuleGeometry(.065,.34,5,10),materials.hiVis);upperArm.rotation.z=-.5;upperArm.position.set(.06,-.15,0);arm.add(upperArm);const wrench=new THREE.Mesh(new THREE.CapsuleGeometry(.038,.25,4,8),materials.tool);wrench.position.set(.1,-.43,.05);wrench.rotation.z=-.28;arm.add(wrench);worker.add(arm);
-  worker.position.set(tx+2.3,groundY(tx+2.3,tz+1.4),tz+1.4);worker.rotation.y=Math.PI*.72;scene.add(worker);
+  worker.position.set(tx+2.3,groundY(tx+2.3,tz+1.4),tz+1.4);worker.rotation.y=Math.PI*.72;worker.visible=false;scene.add(worker);
   worker.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;if(o.geometry.computeVertexNormals)o.geometry.computeVertexNormals();}});
   // Replace both legacy story visuals with the same pack used by the main world.
   loadCozyCharacterAsset().then(asset=>{
     const actor=createCozyCharacterInstance(THREE,asset,1.95);
     for(const child of [...worker.children])worker.remove(child);
-    worker.add(actor.root);worker.userData.cozyActor=actor;
+    worker.add(actor.root);worker.userData.cozyActor=actor;worker.visible=true;
     actor.root.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});
   }).catch(error=>{worker.visible=false;console.error('[Coastline] Cozy story character unavailable; legacy character disabled.',error)});
   createRgsdevVehicleVisual(THREE,'Van',{width:2.3,length:4.25,height:2.4}).then(model=>{
     for(const child of [...van.children])van.remove(child);
-    van.add(model);van.userData.coastlineRgsdevVehicle='Van';
+    van.add(model);van.userData.coastlineRgsdevVehicle='Van';van.visible=true;
     model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});
   }).catch(error=>{van.visible=false;console.error('[Coastline] RGSDev van unavailable; legacy story van disabled.',error)});
 
