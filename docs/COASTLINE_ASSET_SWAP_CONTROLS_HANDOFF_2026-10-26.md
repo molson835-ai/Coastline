@@ -47,3 +47,11 @@
 - Run final full relevant CI suite on the latest head.
 - Perform Android-oriented visual/transition validation; desktop CI is not sufficient evidence for Android performance.
 - Keep PR #122 unmerged until all required gates pass and the user explicitly authorizes merge.
+
+ 
+## Latest user-approved vehicle correction — 2026-10-26
+- User clarified the invariant: **all non-hero vehicles must retain their original RGSDev appearance and materials; only the hero vehicle's body paint may change**.
+- Review of `coastline-asset-swap.js` confirmed `bindDamageParts()` currently invokes `applyVehicleMaterialRoles()` for every replacement vehicle. That routine changes body color/roughness/metalness and explicitly recolors glass, wheels, and lights. This is broader than approved scope and must be corrected.
+- Do not continue expanding geometry-based guesses to satisfy artificial non-empty glass/wheel assertions. First inspect the live hero SUV's mesh/material hierarchy and source material labels, then implement a minimal hero-only paint operation that preserves all other materials and all non-hero vehicles byte-for-byte at the material-property level.
+- Diagnostic logging was added to `tests/hero-vehicle-visuals.spec.cjs` in commit `24db576cf69680440ec5f021327a154846c0ca36` to capture hero SUV mesh names, material names, types, and colors in CI output. Use that evidence to identify the actual paint surface before changing the implementation.
+- Next gate: wait for the CI run on the diagnostic commit, inspect the browser test log, then make the minimal source-informed code change. Update regression tests to prove only hero body paint changes and that non-hero material values remain unchanged. Keep PR #122 consolidated and unmerged; do not claim the paint correction works until fresh CI and browser checks pass.
