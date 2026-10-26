@@ -172,7 +172,8 @@ export function createCoastlineIslandRoot({ THREE, region, groundY = () => 0, ad
   const shoreShape = createIslandShape(THREE, region, 1.04);
   const shore = new THREE.Mesh(new THREE.ShapeGeometry(shoreShape, 6), sandMat);
   shore.name = `coastline-${region.id}-shoreline`;
-  shore.rotation.x = -Math.PI / 2;
+  // Positive X rotation keeps the custom Shape's local Y aligned with world Z.
+  shore.rotation.x = Math.PI / 2;
   shore.position.set(center.x, edgeY - 0.28, center.z);
   shore.receiveShadow = true;
   root.add(shore);
@@ -180,7 +181,7 @@ export function createCoastlineIslandRoot({ THREE, region, groundY = () => 0, ad
   const landShape = createIslandShape(THREE, region, 0.94);
   const land = new THREE.Mesh(new THREE.ShapeGeometry(landShape, 6), landMat);
   land.name = `coastline-${region.id}-land`;
-  land.rotation.x = -Math.PI / 2;
+  land.rotation.x = Math.PI / 2;
   land.position.set(center.x, edgeY - 0.02, center.z);
   land.receiveShadow = true;
   root.add(land);
