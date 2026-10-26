@@ -306,9 +306,9 @@ export function createCoastlineIslandRoot({ THREE, region, groundY = () => 0, ad
     addBox('coastline-villa-entry-porch', center.x + 4, edgeY + 0.2, center.z - 15, 11, 0.3, 6, deck, false, false);
     addBox('coastline-villa-garage-left-wall', center.x - 23.1, edgeY + 2.7, center.z - 2, 0.8, 5.4, 20, plaster, true, false);
     addBox('coastline-villa-garage-right-wall', center.x - 10.9, edgeY + 2.7, center.z - 2, 0.8, 5.4, 20, plaster, true, false);
-    addBox('coastline-villa-garage-roof', center.x - 17, edgeY + 5.5, center.z - 2, 13.4, 0.55, 20.5, roof, false, false);
+    addBox('coastline-villa-garage-roof', center.x - 17, edgeY + 5.5, center.z - 2, 13.4, 0.55, 20.5, roof, true, false);
     addBox('coastline-villa-garage-shadow', center.x - 17, edgeY + 2.4, center.z + 7.7, 11.8, 4.6, 0.12, garageShadow, false, false);
-    addBox('coastline-villa-garage-beam', center.x - 17, edgeY + 5.05, center.z - 12.2, 13.4, 0.55, 0.7, warmStone, false, false);
+    addBox('coastline-villa-garage-beam', center.x - 17, edgeY + 5.05, center.z - 12.2, 13.4, 0.55, 0.7, warmStone, true, false);
     addBox('coastline-villa-driveway', center.x - 17, edgeY + 0.08, center.z - 42, 7.8, 0.16, 56, concreteMat, false, false);
     addBox('coastline-villa-driveway-apron', center.x - 17, edgeY + 0.1, center.z - 14, 10, 0.18, 7, deck, false, false);
     addBox('coastline-villa-garden-lawn', center.x + 39, edgeY + 0.03, center.z + 3, 30, 0.08, 42, lawn, false, false);
