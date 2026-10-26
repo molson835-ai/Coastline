@@ -567,7 +567,7 @@ function attachNeutralCharacter(group,preserve=[]){clearCharacterModel(group,pre
 loadCozyCharacterAsset().then(asset=>{
   const playerActor=createCozyCharacterInstance(THREE,asset,1.95);
   attachCozyCharacter(avatar,playerActor);
-  for(const p of pedestrians){p.cozyActor=createCozyCharacterInstance(THREE,asset,1.95);attachCozyCharacter(p.g,p.cozyActor,[p.phone,p.cup,p.backpack,p.hat]);}
+  for(const p of pedestrians){p.cozyActor=createCozyCharacterInstance(THREE,asset,2.2);attachCozyCharacter(p.g,p.cozyActor,[p.phone,p.cup,p.backpack,p.hat]);}
   window.__coastlineCharacterAssetSwapStatus={ok:true,animations:(asset.animations||[]).map(clip=>clip.name),pedestrians:pedestrians.length,at:Date.now()};
   diagEvent('Cozy character asset swap loaded');
 }).catch(error=>{
