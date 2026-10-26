@@ -42,10 +42,7 @@ function mimeFor(name) {
 function removeVisualChildren(root) {
   for (const child of [...root.children]) {
     root.remove(child);
-    child.traverse?.(node => {
-      if (node.geometry?.dispose) node.geometry.dispose();
-      // Material instances may be shared by cloned models; dispose only when the whole scene is retired.
-    });
+    // Cloned FBX geometry/materials are shared with the cached source; do not dispose shared resources here.
   }
 }
 function getBounds(THREE, root) {
@@ -92,12 +89,9 @@ function bindDamageParts(THREE, vehicle, visual) {
   const body=named(/body|chassis|shell|exterior|paint/i)||meshes[0];
   const glass=named(/glass|window|windshield|windscreen|cabin/i)||body;
   const wheels=meshes.filter(mesh=>/wheel|tire|tyre|rim/i.test(String(mesh.name||''))).slice(0,4);
+  vehicle.damageParts={body,cab:glass,hood:named(/hood|bonnet/i)||body,trunk:named(/trunk|boot|tailgate/i)||body,roof:named(/roof/i)||glass,frontBumper:named(/front.*bumper|bumper.*front/i)||body,rearBumper:named(/rear.*bumper|bumper.*rear/i)||body,wheels,visualRoot:visual};
   const heroInfo=vehicle.g.userData?.coastlineHeroVehicle;
-  if(heroInfo?.singleShell) {
-    vehicle.damageParts={body,cab:glass,hood:named(/hood|bonnet/i)||body,trunk:named(/trunk|boot|tailgate/i)||body,roof:named(/roof/i)||glass,frontBumper:named(/front.*bumper|bumper.*front/i)||body,rearBumper:named(/rear.*bumper|bumper.*rear/i)||body,wheels,visualRoot:visual};
-    heroInfo.parts=vehicle.damageParts;
-    heroInfo.paintColor='white';
-  }
+  if(heroInfo?.singleShell) { heroInfo.parts=vehicle.damageParts; heroInfo.paintColor='white'; }
   if(body?.material?.color) vehicle.basePaint=body.material.color.clone();
 }
 function makeBlobMap(files) {
@@ -158,10 +152,18 @@ export async function createRgsdevVehicleVisual(THREE, name='Sedan', target) {
 }
 
 export async function applyRgsdevFleet(THREE, vehicles, onStatus = () => {}) {
-  // Hide legacy vehicle art immediately so the old fleet never flashes while the pack loads.
+  // Remove legacy vehicle art immediately. Show only a neutral temporary body until the pack loads.
   for (const vehicle of vehicles) {
     if (!vehicle?.g) continue;
-    vehicle.g.visible = false;
+    removeVisualChildren(vehicle.g);
+    if (vehicle.kind === 'car') {
+      vehicle.g.add(makeNeutralVehiclePlaceholder(THREE));
+      vehicle.g.visible = true;
+    } else {
+      vehicle.g.visible = false;
+      vehicle.drivable = false;
+      vehicle.occupied = false;
+    }
   }
   try {
     const pack = await loadRgsdevVehiclePack(THREE);
