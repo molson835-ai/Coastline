@@ -237,12 +237,16 @@ test('walking through the house doorway instantly streams the detailed home inte
 
 test('residential, waterfront, and port islands have developed detail and landscape boundaries', async ({ page }) => {
   await openGame(page);
-  await page.evaluate(async () => {
+  const details = await page.evaluate(async () => {
+    const results = {};
     await window.__coastlineTransitionTest.transition('city-to-island');
+    results.residential = window.__coastlineTransitionTest.islandDetailState().residential;
     await window.__coastlineTransitionTest.transition('island-to-waterfront');
+    results.waterfront = window.__coastlineTransitionTest.islandDetailState().waterfront;
     await window.__coastlineTransitionTest.transition('waterfront-to-port');
+    results.port = window.__coastlineTransitionTest.islandDetailState().port;
+    return results;
   });
-  const details = await page.evaluate(() => window.__coastlineTransitionTest.islandDetailState());
   for (const island of ['residential', 'waterfront', 'port']) {
     expect(details[island].meshes).toBeGreaterThan(25);
     expect(details[island].boundary).toBe(true);
