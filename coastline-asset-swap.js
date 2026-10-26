@@ -42,7 +42,7 @@ function mimeFor(name) {
 function removeVisualChildren(root) {
   for (const child of [...root.children]) {
     root.remove(child);
-    child.traverse?.(node => { if (node.geometry && !node.userData?.coastlineSharedGeometry) node.geometry.dispose?.(); });
+    child.traverse?.(node => { if (node.geometry && !node.userData?.coastlineSharedGeometry) node.geometry.dispose?.(); if (node.userData?.coastlineOwnedMaterial) { for (const material of (Array.isArray(node.material)?node.material:[node.material])) material?.dispose?.(); } });
   }
 }
 function getBounds(THREE, root) {
@@ -51,7 +51,7 @@ function getBounds(THREE, root) {
 }
 function fitVehicle(THREE, source, target = { width:2.05, length:4.25, height:2.05 }) {
   const model = source.clone(true);
-  model.traverse(node => { if (node.isMesh) node.userData.coastlineSharedGeometry = true; });
+  model.traverse(node => { if (node.isMesh) { node.userData.coastlineSharedGeometry = true; node.userData.coastlineOwnedMaterial = true; node.material = Array.isArray(node.material) ? node.material.map(material=>material.clone()) : node.material?.clone?.() || node.material; } });
   let bounds = getBounds(THREE, model);
   let size = new THREE.Vector3();
   bounds.getSize(size);
@@ -78,8 +78,9 @@ function makeNeutralVehiclePlaceholder(THREE) {
   cabin.position.set(0,1.31,-.2); root.add(cabin);
   for (const x of [-.98,.98]) for (const z of [-1.32,1.32]) {
     const wheel = new THREE.Mesh(new THREE.CylinderGeometry(.34,.34,.18,12),tireMaterial);
-    wheel.rotation.z=Math.PI/2; wheel.position.set(x,.38,z); root.add(wheel);
+    wheel.rotation.z=Math.PI/2; wheel.position.set(x,.38,z); wheel.userData.coastlineOwnedMaterial=true; root.add(wheel);
   }
+  body.userData.coastlineOwnedMaterial=true;cabin.userData.coastlineOwnedMaterial=true;
   root.userData.coastlineNeutralFallback = true;
   return root;
 }
@@ -92,7 +93,11 @@ function bindDamageParts(THREE, vehicle, visual) {
   const wheels=meshes.filter(mesh=>/wheel|tire|tyre|rim/i.test(String(mesh.name||''))).slice(0,4);
   vehicle.damageParts={body,cab:glass,hood:named(/hood|bonnet/i)||body,trunk:named(/trunk|boot|tailgate/i)||body,roof:named(/roof/i)||glass,frontBumper:named(/front.*bumper|bumper.*front/i)||body,rearBumper:named(/rear.*bumper|bumper.*rear/i)||body,wheels,visualRoot:visual};
   const heroInfo=vehicle.g.userData?.coastlineHeroVehicle;
-  if(heroInfo?.singleShell) { heroInfo.parts=vehicle.damageParts; heroInfo.paintColor='white'; }
+  if(heroInfo?.singleShell) {
+    heroInfo.parts=vehicle.damageParts;heroInfo.paintColor='white';
+    const materials=Array.isArray(body?.material)?body.material:[body?.material];
+    for(const material of materials)if(material?.color)material.color.set(0xffffff);
+  }
   if(body?.material?.color) vehicle.basePaint=body.material.color.clone();
 }
 function makeBlobMap(files) {
