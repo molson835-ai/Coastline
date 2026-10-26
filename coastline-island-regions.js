@@ -177,7 +177,7 @@ export function createCoastlineIslandRoot({ THREE, region, groundY = () => 0, ad
   const shore = new THREE.Mesh(new THREE.ShapeGeometry(shoreShape, 6), sandMat);
   shore.name = `coastline-${region.id}-shoreline`;
   // Positive X rotation keeps the custom Shape's local Y aligned with world Z.
-  shore.rotation.x = Math.PI / 2;
+  shore.rotation.x = -Math.PI / 2; // ShapeGeometry faces +Z locally; rotate its normal upward for the visible top surface.
   shore.position.set(center.x, edgeY - 0.28, center.z);
   shore.receiveShadow = true;
   root.add(shore);
@@ -213,7 +213,7 @@ export function createCoastlineIslandRoot({ THREE, region, groundY = () => 0, ad
   const landShape = createIslandShape(THREE, region, 0.94);
   const land = new THREE.Mesh(new THREE.ShapeGeometry(landShape, 6), landMat);
   land.name = `coastline-${region.id}-land`;
-  land.rotation.x = Math.PI / 2;
+  land.rotation.x = -Math.PI / 2; // Keep the grass/land face visible from the camera above.
   land.position.set(center.x, edgeY - 0.02, center.z);
   land.receiveShadow = true;
   root.add(land);
