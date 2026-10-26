@@ -9,26 +9,16 @@ let vehiclePackPromise;
 let cozyCharacterPromise;
 
 const MODEL_PATHS = [
-  ['Ambulance', /\/Ambulance\/Ambulance\.fbx$/i],
-  ['Bus', /\/Bus\/Bus\.fbx$/i],
-  ['Firetruck', /\/Firetruck\/Firetruck\.fbx$/i],
   ['Hatchback', /\/Hatchback\/Hatchback\.fbx$/i],
   ['Limousine', /\/Limousine\/Limousine\.fbx$/i],
-  ['Monster Truck', /\/Monster Truck\/Monster Truck\.fbx$/i],
   ['Muscle', /\/Muscle\/Muscle\.fbx$/i],
   ['Muscle 2', /\/Muscle 2\/Muscle 2\.fbx$/i],
   ['Pickup', /\/Pickup\/Pickup\.fbx$/i],
-  ['Police Muscle', /\/Police Muscle\/Police Muscle\.fbx$/i],
-  ['Police Sedan', /\/Police Sedan\/Police Sedan\.fbx$/i],
-  ['Police Sports', /\/Police Sports\/Police Sports\.fbx$/i],
-  ['Police SUV', /\/Police SUV\/Police SUV\.fbx$/i],
   ['Roadster', /\/Roadster\/Roadster\.fbx$/i],
   ['Sedan', /\/Sedan\/Sedan\.fbx$/i],
   ['Sports', /\/Sports\/Sports\.fbx$/i],
   ['SUV', /\/SUV\/SUV\.fbx$/i],
   ['Taxi', /\/Taxi\/Taxi\.fbx$/i],
-  ['Truck', /\/Truck\/Truck\.fbx$/i],
-  ['Truck with trailer', /\/Truck with trailer\/Truck with trailer\.fbx$/i],
   ['Van', /\/Van\/Van\.fbx$/i]
 ];
 
