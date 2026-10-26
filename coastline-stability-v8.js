@@ -33,9 +33,11 @@ function synthetic(type,key){
 window.addEventListener('keydown',e=>{
   if(e.__coastlineSteeringNormalized)return;
   const k=e.key?.toLowerCase();
-  if((k==='a'||k==='d')&&!driving()){
+  if(k!=='a'&&k!=='d')return;
+  if(held.has(k)){e.preventDefault();e.stopImmediatePropagation();return}
+  if(!driving()){
     e.preventDefault();e.stopImmediatePropagation();
-    if(!held.has(k)){held.add(k);synthetic('keydown',opposite(k));}
+    held.add(k);synthetic('keydown',opposite(k));
   }
 },true);
 window.addEventListener('keyup',e=>{
@@ -54,11 +56,15 @@ function normalizeTouch(e){
   const k=b.getAttribute('data-k');
   if(k!=='a'&&k!=='d')return;
   const isStart=e.type==='pointerdown'||e.type==='touchstart';
-  if(driving()&&(isStart||!held.has(k)))return;
+  if(isStart){
+    if(driving())return;
+    e.stopImmediatePropagation();
+    if(!held.has(k)){held.add(k);synthetic('keydown',opposite(k))}
+    return;
+  }
+  if(!held.has(k))return;
   e.stopImmediatePropagation();
-  const mapped=opposite(k);
-  if(e.type==='pointerdown'||e.type==='touchstart'){if(!held.has(k)){held.add(k);synthetic('keydown',mapped)}}
-  else if(e.type==='pointerup'||e.type==='pointercancel'||e.type==='touchend'){if(held.has(k)){held.delete(k);synthetic('keyup',mapped)}}
+  held.delete(k);synthetic('keyup',opposite(k));
 }
 for(const type of ['pointerdown','pointerup','pointercancel','touchstart','touchend'])window.addEventListener(type,normalizeTouch,true);
 
