@@ -83,17 +83,12 @@ const character = {
 };
 const individualVehicleFiles = entries.filter(e => /\/[^/]+\/[^/]+\.fbx$/i.test(e.name));
 const requiredVehicleModels = ['Sedan','SUV','Van'];
-const missingVehicleModels = requiredVehicleModels.filter(name => !individualVehicleFiles.some(e => new RegExp('/'+name.replace(/[.*+?^${}()|[\]\\]/g,'\\const character = {
-  file: targets[1], bytes: characterBytes.length,
-  meshes: charJson.meshes?.length ?? 0, nodes: charJson.nodes?.length ?? 0,
-  skins: charJson.skins?.length ?? 0, animations: (charJson.animations ?? []).map(a => a.name || '(unnamed)'),
-  materials: charJson.materials?.length ?? 0
-};')+'/'+name.replace(/[.*+?^${}()|[\]\\]/g,'\\const character = {
-  file: targets[1], bytes: characterBytes.length,
-  meshes: charJson.meshes?.length ?? 0, nodes: charJson.nodes?.length ?? 0,
-  skins: charJson.skins?.length ?? 0, animations: (charJson.animations ?? []).map(a => a.name || '(unnamed)'),
-  materials: charJson.materials?.length ?? 0
-};')+'\\.fbx
+const missingVehicleModels = requiredVehicleModels.filter(name =>
+  !individualVehicleFiles.some(e => e.name.toLowerCase().endsWith('/' + name.toLowerCase() + '/' + name.toLowerCase() + '.fbx'))
+);
+if (individualVehicleFiles.length < 10 || missingVehicleModels.length) throw new Error('Vehicle pack is missing expected individual FBX models: ' + missingVehicleModels.join(', '));
+if (!licenseTexts.some(item => /CC0/i.test(item.text))) throw new Error('Vehicle pack does not include a readable CC0 license file.');
+if (!['idle','walk','run'].every(name => (character.animations || []).some(clip => clip.toLowerCase() === name))) throw new Error('Cozy character is missing required idle/walk/run animation clips.');
 console.log(JSON.stringify({
   archive: targets[0], archiveBytes: archive.length, entryCount: entries.length,
   entries: entries.map(e => ({ name: e.name, bytes: e.uncompressedSize })),
