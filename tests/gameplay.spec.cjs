@@ -126,3 +126,22 @@ test('cash balance persists across reloads independently of landmark discovery',
   expect(await page.evaluate(() => typeof window.__coastlineTest.checkLandmarkDiscovery)).toBe('undefined');
   expect(await page.evaluate(() => localStorage.getItem('coastline-discovered-landmarks-v1'))).toBeNull();
 });
+
+
+test('RGSDev vehicle and Cozy character assets replace legacy runtime visuals', async ({ page }) => {
+  test.setTimeout(90000);
+  const errors=[];
+  page.on('pageerror', error => errors.push(error.message));
+  await page.goto('/game-v3.html?beta=asset-swap-regression', { waitUntil:'domcontentloaded' });
+  await page.waitForFunction(() => Boolean(window.__coastlineTest), null, { timeout:30000 });
+  await page.waitForFunction(() => Boolean(window.__coastlineVehicleAssetSwapStatus && window.__coastlineCharacterAssetSwapStatus), null, { timeout:60000 });
+  const state=await page.evaluate(()=>({vehicle:window.__coastlineVehicleAssetSwapStatus,character:window.__coastlineCharacterAssetSwapStatus,vehicles:window.__coastlineTest.vehicleAssetState()}));
+  expect(state.vehicle.ok, 'RGSDev FBX pack should load').toBe(true);
+  expect(state.vehicle.replaced, 'existing road cars should be replaced').toBeGreaterThan(0);
+  expect(state.vehicle.models).toContain('Sedan');
+  expect(state.character.ok, 'Cozy skinned character should load').toBe(true);
+  expect(state.character.animations).toEqual(expect.arrayContaining(['idle','walk','run']));
+  expect(state.vehicles.filter(v=>v.kind==='car').every(v=>v.model && v.model!=='neutral-fallback'), 'all road cars should use RGSDev models').toBe(true);
+  expect(state.vehicles.filter(v=>v.kind!=='car').every(v=>!v.visible && !v.drivable), 'unsupported old rideables should be disabled, not left visible').toBe(true);
+  expect(errors, 'asset replacement should not throw runtime errors').toEqual([]);
+});
