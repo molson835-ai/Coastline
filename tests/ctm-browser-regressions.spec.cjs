@@ -209,16 +209,25 @@ test('Homey garage includes an overhead roll-up door and an on-foot house doorwa
 test('walking through the house doorway instantly streams the detailed home interior and back', async ({ page }) => {
   await openGame(page);
   await page.waitForFunction(() => window.__coastlineVehicleAssetSwapStatus?.ok === true, null, { timeout: 45000 });
-  const parkedVehicleIndex = await page.evaluate(async () => {
+  const entry = await page.evaluate(async () => {
     await window.__coastlineTransitionTest.transition('city-to-island');
     await window.__coastlineTransitionTest.transition('island-to-homey-garage');
     const index = window.__coastlineTransitionTest.garageState().vehicleIndex;
+    // A vehicle crossing the house threshold must not transition.
+    window.__coastlineTest.setVehiclePosition(483, 515, 0);
+    window.__coastlineTransitionTest.updatePrompt();
+    window.__coastlineTest.setVehiclePosition(483, 516, 0);
+    window.__coastlineTransitionTest.updatePrompt();
+    const vehicleWorld = window.__coastlineTransitionTest.status().activeWorldId;
+    // The same crossing on foot must transition immediately.
     window.__coastlineTest.setWalkPosition(483, 515, 0);
     window.__coastlineTransitionTest.updatePrompt();
     window.__coastlineTest.setWalkPosition(483, 516, 0);
     window.__coastlineTransitionTest.updatePrompt();
-    return index;
+    return { index, vehicleWorld };
   });
+  const parkedVehicleIndex = entry.index;
+  expect(entry.vehicleWorld).toBe('homey-garage');
   await expect.poll(() => page.evaluate(() => window.__coastlineTransitionTest.status().activeWorldId), { timeout: 5000 }).toBe('home-interior');
   const inside = await page.evaluate(() => ({
     house: window.__coastlineTransitionTest.houseState(),
