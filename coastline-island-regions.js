@@ -53,6 +53,9 @@ export const COASTLINE_ISLAND_REGIONS = Object.freeze([
   }),
 ]);
 
+export const COASTLINE_ISLAND_ELEVATION = 6;
+export const COASTLINE_ISLAND_WATER_DROP = 3.0;
+
 export const COASTLINE_WORLD_POPULATION_LIMITS = Object.freeze({
   city: Object.freeze({ traffic: 12, pedestrians: 16 }),
   downtown: COASTLINE_ISLAND_REGIONS[0].population,
@@ -163,7 +166,8 @@ export function createCoastlineIslandRoot({ THREE, region, groundY = () => 0, ad
   const ocean = new THREE.Mesh(new THREE.PlaneGeometry(740, 740), oceanMat);
   ocean.name = `coastline-${region.id}-surrounding-ocean`;
   ocean.rotation.x = -Math.PI / 2;
-  ocean.position.set(center.x, edgeY - 0.62, center.z);
+  // Keep the sea surface below the island shelf and the full rope-bridge sag.
+  ocean.position.set(center.x, edgeY - COASTLINE_ISLAND_WATER_DROP, center.z);
   ocean.receiveShadow = false;
   root.add(ocean);
 
