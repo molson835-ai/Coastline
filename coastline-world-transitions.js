@@ -1,5 +1,5 @@
 import { createTransitionManager } from './transition-manager.js';
-import { createCoastlineIslandRoot, getCoastlineIslandRegion } from './coastline-island-regions.js';
+import { COASTLINE_ISLAND_ELEVATION, COASTLINE_ISLAND_WATER_DROP, createCoastlineIslandRoot, getCoastlineIslandRegion } from './coastline-island-regions.js';
 
 export function createWorldRootRegistry({ THREE, scene }) {
   const originalAdd = scene.add.bind(scene), originalRemove = scene.remove.bind(scene), cityRoot = new THREE.Group();
@@ -12,48 +12,150 @@ export function createWorldRootRegistry({ THREE, scene }) {
 const finiteOr = (value, fallback = 0) => Number.isFinite(value) ? value : fallback;
 const disposeRoot = root => root?.traverse(object => { object.geometry?.dispose?.(); const materials = Array.isArray(object.material) ? object.material : object.material ? [object.material] : []; for (const material of materials) material.dispose?.(); });
 
+export const COASTLINE_ROPE_BRIDGE_CONFIG = Object.freeze({
+  deckWidth: 5.2,
+  plankCountPer100Units: 40,
+  plankGap: 0.16,
+  postSpacing: 4.5,
+  ropeRadius: 0.055,
+  deckSag: 2.1,
+  railHeight: 1.55,
+});
+
+function buildRopeBridge(THREE, root, { axis, origin, direction, y, length = 100, name = 'coastal-link' }) {
+  const width = COASTLINE_ROPE_BRIDGE_CONFIG.deckWidth;
+  const group = new THREE.Group();
+  group.name = `coastline-bridge-rope-single-lane-${name}`;
+  const alongZ = axis === 'z';
+  const plankMaterial = new THREE.MeshStandardMaterial({ color: 0x6e5139, roughness: 0.96 });
+  const ropeMaterial = new THREE.MeshStandardMaterial({ color: 0x4b3829, roughness: 0.98 });
+  const postMaterial = new THREE.MeshStandardMaterial({ color: 0x684a32, roughness: 0.94 });
+  const waterMaterial = new THREE.MeshStandardMaterial({ color: 0x176b80, roughness: 0.34, metalness: 0.08 });
+
+  // A small ocean patch also covers the outer end of the City approach bridge.
+  const water = new THREE.Mesh(
+    new THREE.PlaneGeometry(alongZ ? width + 38 : length + 38, alongZ ? length + 38 : width + 38),
+    waterMaterial
+  );
+  water.name = `coastline-bridge-water-${name}`;
+  water.rotation.x = -Math.PI / 2;
+  water.position.set(
+    alongZ ? origin.x : origin.x + direction * length * 0.5,
+    y - COASTLINE_ISLAND_WATER_DROP,
+    alongZ ? origin.z + direction * length * 0.5 : origin.z
+  );
+  water.receiveShadow = false;
+  group.add(water);
+
+  const plankCount = Math.max(12, Math.ceil(length / 100 * COASTLINE_ROPE_BRIDGE_CONFIG.plankCountPer100Units));
+  const plankLength = Math.max(0.45, length / plankCount - COASTLINE_ROPE_BRIDGE_CONFIG.plankGap);
+  const plankGeometry = alongZ
+    ? new THREE.BoxGeometry(width, 0.17, plankLength)
+    : new THREE.BoxGeometry(plankLength, 0.17, width);
+  const planks = new THREE.InstancedMesh(plankGeometry, plankMaterial, plankCount);
+  planks.name = `coastline-bridge-planks-${name}`;
+  planks.castShadow = true;
+  planks.receiveShadow = true;
+  const dummy = new THREE.Object3D();
+  const sagAt = t => Math.sin(Math.PI * t) * COASTLINE_ROPE_BRIDGE_CONFIG.deckSag;
+  for (let i = 0; i < plankCount; i++) {
+    const t = (i + 0.5) / plankCount;
+    const along = direction * length * t;
+    const x = alongZ ? origin.x : origin.x + along;
+    const z = alongZ ? origin.z + along : origin.z;
+    dummy.position.set(x, y + 0.02 - sagAt(t), z);
+    dummy.rotation.set(0, i % 2 ? 0.006 : -0.006, 0);
+    dummy.updateMatrix();
+    planks.setMatrixAt(i, dummy.matrix);
+  }
+  planks.instanceMatrix.needsUpdate = true;
+  planks.computeBoundingSphere();
+  group.add(planks);
+
+  const postCount = Math.ceil(length / COASTLINE_ROPE_BRIDGE_CONFIG.postSpacing) + 1;
+  const postGeometry = new THREE.BoxGeometry(0.2, 1.55, 0.2);
+  const posts = new THREE.InstancedMesh(postGeometry, postMaterial, postCount * 2);
+  posts.name = `coastline-bridge-rope-posts-${name}`;
+  posts.castShadow = true;
+  let postIndex = 0;
+  for (let i = 0; i < postCount; i++) {
+    const t = Math.min(1, i / (postCount - 1));
+    const along = direction * length * t;
+    const x = alongZ ? origin.x : origin.x + along;
+    const z = alongZ ? origin.z + along : origin.z;
+    const deckY = y + 0.02 - sagAt(t);
+    for (const side of [-1, 1]) {
+      dummy.position.set(
+        x + (alongZ ? side * (width / 2 - 0.12) : 0),
+        deckY + 0.78,
+        z + (alongZ ? 0 : side * (width / 2 - 0.12))
+      );
+      dummy.rotation.set(0, 0, 0);
+      dummy.updateMatrix();
+      posts.setMatrixAt(postIndex++, dummy.matrix);
+    }
+  }
+  posts.instanceMatrix.needsUpdate = true;
+  posts.computeBoundingSphere();
+  group.add(posts);
+
+  // Two sagging hand ropes and two lower safety ropes: exposed sides, no solid guardrails.
+  for (const side of [-1, 1]) {
+    for (const rail of [{ height: COASTLINE_ROPE_BRIDGE_CONFIG.railHeight, sag: 1 }, { height: 0.72, sag: 1 }]) {
+      const points = [];
+      for (let i = 0; i <= 32; i++) {
+        const t = i / 32;
+        const along = direction * length * t;
+        const x = alongZ ? origin.x + side * (width / 2) : origin.x + along;
+        const z = alongZ ? origin.z + along : origin.z + side * (width / 2);
+        points.push(new THREE.Vector3(x, y + rail.height - sagAt(t) * rail.sag, z));
+      }
+      const curve = new THREE.CatmullRomCurve3(points);
+      const rope = new THREE.Mesh(
+        new THREE.TubeGeometry(curve, 64, COASTLINE_ROPE_BRIDGE_CONFIG.ropeRadius, 5, false),
+        ropeMaterial
+      );
+      rope.name = `coastline-bridge-rope-${name}-${side}-${rail.height}`;
+      rope.castShadow = true;
+      group.add(rope);
+    }
+  }
+
+  // Short vertical lashings make the rope structure readable without hundreds of draw calls.
+  const lashingPositions = [];
+  const lashingCount = Math.ceil(length / 4.5);
+  for (let i = 0; i <= lashingCount; i++) {
+    const t = Math.min(1, i / lashingCount);
+    const along = direction * length * t;
+    const x = alongZ ? origin.x : origin.x + along;
+    const z = alongZ ? origin.z + along : origin.z;
+    const deckY = y + 0.1 - sagAt(t);
+    for (const side of [-1, 1]) {
+      const sx = x + (alongZ ? side * (width / 2) : 0);
+      const sz = z + (alongZ ? 0 : side * (width / 2));
+      lashingPositions.push(new THREE.Vector3(sx, deckY + 0.25, sz));
+      lashingPositions.push(new THREE.Vector3(sx, y + COASTLINE_ROPE_BRIDGE_CONFIG.railHeight - sagAt(t), sz));
+    }
+  }
+  const lashGeometry = new THREE.BufferGeometry().setFromPoints(lashingPositions);
+  const lashings = new THREE.LineSegments(lashGeometry, new THREE.LineBasicMaterial({ color: 0x8c6b48 }));
+  lashings.name = `coastline-bridge-rope-lashings-${name}`;
+  group.add(lashings);
+
+  root.add(group);
+  return group;
+}
+
 function addBridge(THREE, root, { x, startZ, y, length = 100 }) {
-  const group = new THREE.Group(); group.name = 'coastline-bridge'; const centerZ = startZ - length * .5;
-  const deckMaterial = new THREE.MeshStandardMaterial({ color: 0x343c3d, roughness: .88 }), railMaterial = new THREE.MeshStandardMaterial({ color: 0x9cc9bd, roughness: .72, metalness: .04 }), towerMaterial = new THREE.MeshStandardMaterial({ color: 0x66777a, roughness: .66, metalness: .25 });
-  const deck = new THREE.Mesh(new THREE.BoxGeometry(16,.28,length), deckMaterial); deck.position.set(x,y+.08,centerZ); deck.receiveShadow=true; deck.castShadow=true; group.add(deck);
-  for (const side of [-1,1]) { const rail=new THREE.Mesh(new THREE.BoxGeometry(.28,1.15,length),railMaterial); rail.position.set(x+side*8,y+.66,centerZ); rail.castShadow=true; group.add(rail); }
-  for (const dz of [-length*.38,length*.38]) for (const side of [-1,1]) { const tower=new THREE.Mesh(new THREE.BoxGeometry(.7,6.2,.7),towerMaterial); tower.position.set(x+side*7.2,y+3.05,centerZ+dz); tower.castShadow=true; group.add(tower); }
-  const cableMaterial=new THREE.LineBasicMaterial({color:0xb9d5d5});
-  for (const side of [-1,1]) { const points=[]; for(let i=0;i<=16;i++){const t=i/16,z=startZ-length*t,sag=Math.sin(Math.PI*t)*3.8;points.push(new THREE.Vector3(x+side*7.2,y+6-sag,z));} group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(points),cableMaterial)); }
-  root.add(group); return group;
+  return buildRopeBridge(THREE, root, {
+    axis: 'z', origin: { x, z: startZ }, direction: -1, y, length, name: 'city-island',
+  });
 }
 
 function addSideBridge(THREE, root, { edgeX, z, y, length = 100, direction = 1, name = 'coastal-link' }) {
-  const group = new THREE.Group();
-  group.name = `coastline-bridge-${name}`;
-  const centerX = edgeX + direction * length * 0.5;
-  const deckMaterial = new THREE.MeshStandardMaterial({ color: 0x343c3d, roughness: 0.88 });
-  const railMaterial = new THREE.MeshStandardMaterial({ color: 0x9cc9bd, roughness: 0.72, metalness: 0.04 });
-  const towerMaterial = new THREE.MeshStandardMaterial({ color: 0x66777a, roughness: 0.66, metalness: 0.25 });
-  const deck = new THREE.Mesh(new THREE.BoxGeometry(length, 0.28, 16), deckMaterial);
-  deck.position.set(centerX, y + 0.08, z);
-  deck.receiveShadow = true; deck.castShadow = true; group.add(deck);
-  for (const side of [-1, 1]) {
-    const rail = new THREE.Mesh(new THREE.BoxGeometry(length, 1.15, 0.28), railMaterial);
-    rail.position.set(centerX, y + 0.66, z + side * 8);
-    rail.castShadow = true; group.add(rail);
-  }
-  for (const end of [-0.38, 0.38]) for (const side of [-1, 1]) {
-    const tower = new THREE.Mesh(new THREE.BoxGeometry(0.7, 6.2, 0.7), towerMaterial);
-    tower.position.set(edgeX + direction * length * (0.5 + end), y + 3.05, z + side * 7.2);
-    tower.castShadow = true; group.add(tower);
-  }
-  const cableMaterial = new THREE.LineBasicMaterial({ color: 0xb9d5d5 });
-  for (const side of [-1, 1]) {
-    const points = [];
-    for (let i = 0; i <= 16; i++) {
-      const t = i / 16;
-      points.push(new THREE.Vector3(edgeX + direction * length * t, y + 6 - Math.sin(Math.PI * t) * 3.8, z + side * 7.2));
-    }
-    group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), cableMaterial));
-  }
-  root.add(group);
-  return group;
+  return buildRopeBridge(THREE, root, {
+    axis: 'x', origin: { x: edgeX, z }, direction, y, length, name,
+  });
 }
 
 function createRoundedSquareShape(THREE, halfExtent=110, cornerRadius=20) { const edge=halfExtent,inner=edge-cornerRadius,shape=new THREE.Shape(); shape.moveTo(-inner,-edge);shape.lineTo(inner,-edge);shape.quadraticCurveTo(edge,-edge,edge,-inner);shape.lineTo(edge,inner);shape.quadraticCurveTo(edge,edge,inner,edge);shape.lineTo(-inner,edge);shape.quadraticCurveTo(-edge,edge,-edge,inner);shape.lineTo(-edge,-inner);shape.quadraticCurveTo(-edge,-edge,-inner,-edge);return shape; }
@@ -62,8 +164,9 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
   const ISLAND_CENTER=Object.freeze({x:500,z:500}), ISLAND_BOUNDS=Object.freeze({minX:390,maxX:610,minZ:390,maxZ:610,width:220,depth:220}), BRIDGE_LENGTH=100;
   const ISLAND_BRIDGE_START_Z=ISLAND_BOUNDS.minZ, ISLAND_BRIDGE_END_Z=ISLAND_BRIDGE_START_Z-BRIDGE_LENGTH;
   const CITY_MAP_EDGE_Z=-750, CITY_BRIDGE_START_Z=CITY_MAP_EDGE_Z, CITY_BRIDGE_END_Z=CITY_BRIDGE_START_Z-BRIDGE_LENGTH;
-  const ISLAND_START=Object.freeze({x:500,y:finiteOr(groundY(500,420)),z:420,rotationY:Math.PI}), ISLAND_APPROACH=Object.freeze({x:500,z:ISLAND_BRIDGE_END_Z+5,rotationY:Math.PI}), CITY_APPROACH=Object.freeze({x:0,z:CITY_BRIDGE_END_Z-5,rotationY:Math.PI});
-  const ISLAND_BRIDGE_DESTINATION=Object.freeze({x:500,y:finiteOr(groundY(500,ISLAND_BRIDGE_END_Z)),z:ISLAND_BRIDGE_END_Z,rotationY:0}), CITY_BRIDGE_DESTINATION=Object.freeze({x:0,y:finiteOr(groundY(0,CITY_BRIDGE_END_Z)),z:CITY_BRIDGE_END_Z,rotationY:0});
+  const islandGroundY=(x,z)=>finiteOr(groundY(x,z))+(window.__coastlineWorld2Active?0:COASTLINE_ISLAND_ELEVATION);
+  const ISLAND_START=Object.freeze({x:500,y:islandGroundY(500,420),z:420,rotationY:Math.PI}), ISLAND_APPROACH=Object.freeze({x:500,z:ISLAND_BRIDGE_END_Z+5,rotationY:Math.PI}), CITY_APPROACH=Object.freeze({x:0,z:CITY_BRIDGE_END_Z-5,rotationY:Math.PI});
+  const ISLAND_BRIDGE_DESTINATION=Object.freeze({x:500,y:islandGroundY(500,ISLAND_BRIDGE_END_Z),z:ISLAND_BRIDGE_END_Z,rotationY:0}), CITY_BRIDGE_DESTINATION=Object.freeze({x:0,y:finiteOr(groundY(0,CITY_BRIDGE_END_Z)),z:CITY_BRIDGE_END_Z,rotationY:0});
   let pendingIslandRoot=null,failNextIslandLoad=false,updatePromptCallback=()=>{},autoTransitionPromise=null,lastAutoTrigger={eligible:false,reason:'not-checked',world:null,x:null,z:null,heading:null,error:null};
   const setIslandCollisionScope=active=>{window.__coastlineWorld2Active=Boolean(active);};
   const manager=createTransitionManager({onEvent:event=>window.dispatchEvent(new CustomEvent(`coastline:${event.type}`,{detail:event}))});
@@ -89,7 +192,7 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
       const root=createCoastlineIslandRoot({THREE,region:getCoastlineIslandRegion(regionId),groundY,addBridge,addSideBridge});
       roots.addWorldRoot(root);root.visible=true;pendingRegionRoots.set(worldId,root);
       moveActiveActor(root);
-      const fallbackSpawn={x:420,y:finiteOr(groundY(420,500)),z:500,rotationY:Math.PI/2};
+      const fallbackSpawn={x:420,y:islandGroundY(420,500),z:500,rotationY:Math.PI/2};
       applySnapshot({player:context.player,vehicle:context.vehicle,vehicleIndex:context.vehicleIndex},root,destinationSpawn||fallbackSpawn);
       return{id:worldId,root};
     },
@@ -109,7 +212,7 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
   });
   const waterfrontWorld=createAdditionalIslandWorld('waterfront','waterfront');
   const portWorld=createAdditionalIslandWorld('port','port');
-  manager.registerWorld(cityWorld);manager.registerWorld(islandWorld);manager.registerWorld(waterfrontWorld);manager.registerWorld(portWorld);manager.registerTransition({id:'city-to-island',fromWorld:'city',toWorld:'island',trigger:'bridge',spawn:'fixed',destinationSpawn:ISLAND_BRIDGE_DESTINATION,vehiclePolicy:'allowed'});manager.registerTransition({id:'island-to-city',fromWorld:'island',toWorld:'city',trigger:'bridge',spawn:'fixed',destinationSpawn:CITY_BRIDGE_DESTINATION,vehiclePolicy:'allowed'});manager.registerTransition({id:'island-to-waterfront',fromWorld:'island',toWorld:'waterfront',trigger:'bridge',spawn:'fixed',destinationSpawn:{x:420,y:finiteOr(groundY(420,500)),z:500,rotationY:Math.PI/2},vehiclePolicy:'allowed'});manager.registerTransition({id:'waterfront-to-island',fromWorld:'waterfront',toWorld:'island',trigger:'bridge',spawn:'fixed',destinationSpawn:{x:580,y:finiteOr(groundY(580,500)),z:500,rotationY:-Math.PI/2},vehiclePolicy:'allowed'});manager.registerTransition({id:'waterfront-to-port',fromWorld:'waterfront',toWorld:'port',trigger:'bridge',spawn:'fixed',destinationSpawn:{x:420,y:finiteOr(groundY(420,500)),z:500,rotationY:Math.PI/2},vehiclePolicy:'allowed'});manager.registerTransition({id:'port-to-waterfront',fromWorld:'port',toWorld:'waterfront',trigger:'bridge',spawn:'fixed',destinationSpawn:{x:580,y:finiteOr(groundY(580,500)),z:500,rotationY:-Math.PI/2},vehiclePolicy:'allowed'});
+  manager.registerWorld(cityWorld);manager.registerWorld(islandWorld);manager.registerWorld(waterfrontWorld);manager.registerWorld(portWorld);manager.registerTransition({id:'city-to-island',fromWorld:'city',toWorld:'island',trigger:'bridge',spawn:'fixed',destinationSpawn:ISLAND_BRIDGE_DESTINATION,vehiclePolicy:'allowed'});manager.registerTransition({id:'island-to-city',fromWorld:'island',toWorld:'city',trigger:'bridge',spawn:'fixed',destinationSpawn:CITY_BRIDGE_DESTINATION,vehiclePolicy:'allowed'});manager.registerTransition({id:'island-to-waterfront',fromWorld:'island',toWorld:'waterfront',trigger:'bridge',spawn:'fixed',destinationSpawn:{x:420,y:islandGroundY(420,500),z:500,rotationY:Math.PI/2},vehiclePolicy:'allowed'});manager.registerTransition({id:'waterfront-to-island',fromWorld:'waterfront',toWorld:'island',trigger:'bridge',spawn:'fixed',destinationSpawn:{x:580,y:islandGroundY(580,500),z:500,rotationY:-Math.PI/2},vehiclePolicy:'allowed'});manager.registerTransition({id:'waterfront-to-port',fromWorld:'waterfront',toWorld:'port',trigger:'bridge',spawn:'fixed',destinationSpawn:{x:420,y:islandGroundY(420,500),z:500,rotationY:Math.PI/2},vehiclePolicy:'allowed'});manager.registerTransition({id:'port-to-waterfront',fromWorld:'port',toWorld:'waterfront',trigger:'bridge',spawn:'fixed',destinationSpawn:{x:580,y:islandGroundY(580,500),z:500,rotationY:-Math.PI/2},vehiclePolicy:'allowed'});
   const transition=async transitionId=>{if(autoTransitionPromise)return autoTransitionPromise;autoTransitionPromise=manager.transition(transitionId,makeContext()).then(()=>{const activeId=manager.getActiveWorldId(),activeRoot=activeId==='city'?roots.world1Root:activeId==='island'?pendingIslandRoot:pendingRegionRoots.get(activeId);window.__coastlineBridgeBufferActive=activeId==='city';setIslandCollisionScope(activeId!=='city');window.__coastlineActiveWorldId=activeId;window.__coastlineActiveWorldColliders=activeRoot?.userData?.coastlineColliders||[];return manager.getStatus();}).finally(()=>{autoTransitionPromise=null;});return autoTransitionPromise;};
   const initialize=async()=>{addCityBridgeAffordance();setIslandCollisionScope(false);window.__coastlineBridgeBufferActive=true;roots.world1Root.visible=true;await manager.activate('city',makeContext());window.__coastlineActiveWorldId='city';window.__coastlineActiveWorldColliders=[];const button=document.createElement('button');button.id='coastlineWorldTransition';button.type='button';button.setAttribute('aria-label','Cross bridge between Coastline Island and City');button.style.cssText='display:none;position:fixed;left:50%;bottom:170px;transform:translateX(-50%);z-index:1000;pointer-events:auto;border:1px solid #a7f4ff88;border-radius:12px;padding:6px 8px;background:#06202aee;color:#effcff;font:800 12px system-ui,sans-serif;letter-spacing:.08em;box-shadow:0 8px 24px #0008';let promptedTransitionId='city-to-island';
     button.addEventListener('click',()=>transition(promptedTransitionId).catch(error=>{button.textContent=`TRANSITION FAILED: ${error.message}`;}));
