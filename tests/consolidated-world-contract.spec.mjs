@@ -22,10 +22,12 @@ test('world definitions expose explicit content-density and render-readiness con
   assert.deepEqual(manager.getWorldDefinition('city').content, {
     density: 'developed',
     actorAssets: 'shared',
+    renderReadiness: 'required',
   });
   assert.deepEqual(manager.getWorldDefinition('future').content, {
     density: 'sparse',
     actorAssets: 'shared',
+    renderReadiness: 'required',
   });
   assert.equal(manager.getWorldDefinitions().length, 2);
 });
