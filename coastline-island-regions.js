@@ -79,8 +79,9 @@ export function isCoastlineIslandPointInside(x, z, regionId = 'residential') {
   if (!Number.isFinite(x) || !Number.isFinite(z)) return false;
   const region = getCoastlineIslandRegion(regionId);
   if (!region) return false;
-  const nx = (x - region.center.x) / region.bounds.halfWidth;
-  const nz = (z - region.center.z) / region.bounds.halfDepth;
+  // Every streamed island root is currently placed in the shared world-space island slot.
+  const nx = (x - 500) / region.bounds.halfWidth;
+  const nz = (z - 500) / region.bounds.halfDepth;
   if (regionId !== 'residential') {
     const corner = Math.min(0.22, (region.bounds.cornerRadius || 20) / region.bounds.halfWidth);
     if (Math.abs(nx) > 1 || Math.abs(nz) > 1) return false;
