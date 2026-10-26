@@ -249,7 +249,8 @@ test('four-region CTM route reaches distinct Residential, Waterfront and Port wo
   expect(state.status).toMatchObject({ activeWorldId: 'island', residentWorldIds: ['island'] });
   expect(state.roots.residential.meshes).toBeGreaterThan(25);
   expect(await page.evaluate(() => window.__coastlineTransitionTest.activeWorldColliderCount())).toBeGreaterThan(0);
-  expect(await page.evaluate(() => window.__coastlineTest.buildingBlocked(434, 484, 1.6))).toBe(true);
+  // The residential island now has one villa; probe its west-wall collider instead of the removed row-home footprint.
+  expect(await page.evaluate(() => window.__coastlineTest.buildingBlocked(492, 500, 1.6))).toBe(true);
   expect(await page.evaluate(() => window.__coastlineTest.buildingBlocked(500, 417, 1.6))).toBe(false);
   expect(await page.evaluate(() => window.__coastlineTest.vehicleBlocked(500, 500, 1.6))).toBe(false);
   expect(await page.evaluate(() => window.__coastlineTest.pedestrianBlocked(500, 500, 1.6))).toBe(false);
