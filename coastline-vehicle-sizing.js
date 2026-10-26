@@ -4,7 +4,7 @@ export function getCoastlineVehicleTarget(name, override = null) {
   const label = String(name || '').toLowerCase();
   return Object.freeze({
     width: 2.05,
-    length: label.includes('limousine') ? 5.15 : label.includes('suv') ? 4.55 : 4.25,
+    length: label.includes('limo') ? 5.15 : label.includes('suv') ? 4.55 : 4.25,
     height: 2.05,
   });
 }
