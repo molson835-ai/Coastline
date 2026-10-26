@@ -41,7 +41,7 @@ export const COASTLINE_ISLAND_REGIONS = Object.freeze([
     bridge: Object.freeze({ entry: 'west', exit: 'east', target: 'port' }),
     population: Object.freeze({ traffic: 10, pedestrians: 16 }),
     visual: Object.freeze({ landmark: 'marina', vegetation: 'beach-palms', waterline: true }),
-    contentDensity: 'sparse',
+    contentDensity: 'developed',
   }),
   Object.freeze({
     id: 'port',
@@ -52,8 +52,8 @@ export const COASTLINE_ISLAND_REGIONS = Object.freeze([
     bounds: Object.freeze({ halfWidth: 110, halfDepth: 110, cornerRadius: 20 }),
     bridge: Object.freeze({ entry: 'west', exit: 'west', target: 'waterfront' }),
     population: Object.freeze({ traffic: 8, pedestrians: 10 }),
-    visual: Object.freeze({ landmark: 'container-cranes', vegetation: 'sparse-coastal', waterline: true }),
-    contentDensity: 'sparse',
+    visual: Object.freeze({ landmark: 'container-cranes', vegetation: 'harbor-palms', waterline: true }),
+    contentDensity: 'developed',
   }),
 ]);
 
@@ -233,6 +233,32 @@ export function createCoastlineIslandRoot({ THREE, region, groundY = () => 0, ad
     return mesh;
   };
   addBox(`coastline-${region.id}-main-road`, center.x, edgeY + 0.02, center.z - 82.5, 16, 0.16, 55, roadMat, false, false);
+
+  // Every island receives a visible natural shoreline rim. Bridge landing gaps
+  // remain open; the movement boundary is still enforced by the shared shoreline predicate.
+  const perimeterPoints = createIslandShape(THREE, region, 0.985).getPoints(48);
+  const perimeterPlacements = perimeterPoints.filter(point => {
+    const x = point.x, z = point.y;
+    if (region.id === 'residential' && z < -half * 0.9) return false; // City bridge landing
+    if ((region.id === 'residential' || region.id === 'waterfront') && x > half * 0.9 && Math.abs(z) < 10) return false;
+    if ((region.id === 'waterfront' || region.id === 'port') && x < -half * 0.9 && Math.abs(z) < 10) return false;
+    if (region.id === 'waterfront' && x > half * 0.9 && Math.abs(z) < 10) return false;
+    return true;
+  });
+  const shorelineRockMaterial = material(region.theme === 'working-harbor' ? 0x666c6a : 0x77766c, 0.98);
+  const shorelineRockGeometry = new THREE.DodecahedronGeometry(1, 0);
+  const shorelineRocks = new THREE.InstancedMesh(shorelineRockGeometry, shorelineRockMaterial, perimeterPlacements.length);
+  shorelineRocks.name = `coastline-${region.id}-landscape-boundary-rocks`;
+  const shorelineDummy = new THREE.Object3D();
+  perimeterPlacements.forEach((point, i) => {
+    shorelineDummy.position.set(center.x + point.x, edgeY + 0.12 + (i % 3) * 0.035, center.z + point.y);
+    shorelineDummy.scale.set(1.15 + (i % 4) * 0.24, 0.5 + (i % 3) * 0.13, 0.95 + (i % 2) * 0.22);
+    shorelineDummy.rotation.set((i % 3) * 0.08, i * 0.73, (i % 4) * 0.06);
+    shorelineDummy.updateMatrix(); shorelineRocks.setMatrixAt(i, shorelineDummy.matrix);
+  });
+  shorelineRocks.instanceMatrix.needsUpdate = true;
+  shorelineRocks.castShadow = false; shorelineRocks.receiveShadow = true;
+  root.add(shorelineRocks);
 
   // Sparse regions still need a live collision perimeter. Keep gaps centered on
   // the side-bridge landings so the route remains traversable between worlds.
@@ -423,7 +449,7 @@ export function createCoastlineIslandRoot({ THREE, region, groundY = () => 0, ad
 
   }
 
-  if (region.contentDensity === 'developed' && region.visual?.vegetation !== 'sparse-coastal') {
+  if (region.contentDensity === 'developed') {
     const trunk = material(0x79583d, 0.96);
     const leaves = material(0x2f7047, 0.94);
     const coconutMat = material(0x6b5635, 0.92);
