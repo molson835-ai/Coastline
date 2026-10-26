@@ -22,3 +22,12 @@
 - **License:** [Creative Commons Attribution 3.0 (CC BY 3.0)](https://creativecommons.org/licenses/by/3.0/)
 - **Status:** Kept in the repository as a legacy/rollback asset only; it is no longer included in the itch package or used by the active fleet replacement path.
 - **Attribution note:** This entry is retained because the source asset remains in repository history and the assets directory. It must be credited if the legacy model is reintroduced in a release.
+
+## Visthétique — Modern Apartment (candidate Homey House interior)
+
+- **Creator:** Visthétique
+- **Source:** https://sketchfab.com/3d-models/modern-apartment-1fbb649cd6624f2bb7b7d6e30c6533a5
+- **License:** [Creative Commons Attribution 4.0 (CC BY 4.0)](https://creativecommons.org/licenses/by/4.0/)
+- **Status:** Candidate replacement for the procedural Homey house interior. The optimized mobile GLB has been prepared and structurally validated outside the repository; it is not yet wired into the runtime or included in the repository.
+- **Optimization report:** Original 209,556,540 bytes; optimized candidate 47,528,304 bytes (77.3% smaller), with conservative mesh decimation, quantized positions/normals, 16-bit indices where valid, and 512-pixel JPEG textures. The optimized scene retains 241 meshes and 101 materials. Desktop parser/structure validation passed; browser rendering and Android performance remain unverified.
+- **Attribution:** Credit Visthétique and link the source/license in any distribution of the optimized asset. This modified version is a derivative of the original CC BY 4.0 model.
