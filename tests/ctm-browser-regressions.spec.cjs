@@ -123,7 +123,7 @@ test('Homey garage opens only when a vehicle crosses the open threshold and pres
   expect(inside.state.vehicleIndex).toBe(before.vehicleIndex);
   expect(inside.state.position.x).toBeCloseTo(483, 1);
   expect(inside.state.position.z).toBeCloseTo(500, 1);
-  expect(inside.state.position.y).toBeCloseTo(await page.evaluate(() => window.__coastlineTest.groundY(483, 500)), 1);
+  expect(inside.state.position.y).toBeCloseTo(inside.garage.floorY, 1);
   expect(inside.garage.root.meshes).toBeGreaterThan(20);
   expect(inside.garage.decorCount).toBeGreaterThanOrEqual(20);
   expect(inside.garage.cameraMode).toBe(true);
