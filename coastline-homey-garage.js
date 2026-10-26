@@ -217,6 +217,13 @@ export function openGarageVehicleChooser({ vehicles, currentVehicle, onConfirm, 
   return { close: () => overlay.remove(), models };
 }
 
+export function didCrossHouseDoorThreshold(previous, current, { x, z, halfWidth = 1.8 } = {}) {
+  if (!previous || !current || ![previous.x, previous.z, previous.heading, current.x, current.z, current.heading, x, z].every(Number.isFinite)) return false;
+  return previous.z < z && current.z >= z &&
+    Math.abs(previous.x - x) <= halfWidth && Math.abs(current.x - x) <= halfWidth &&
+    Math.cos(current.heading) > .45;
+}
+
 export function didCrossGarageThreshold(previous, current, { x, z, halfWidth = 5.8, direction = 'in' } = {}) {
   if (!previous || !current || ![previous.x, previous.z, current.x, current.z, current.heading, x, z].every(Number.isFinite)) return false;
   if (Math.abs(previous.x - x) > halfWidth || Math.abs(current.x - x) > halfWidth) return false;
