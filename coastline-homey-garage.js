@@ -116,7 +116,7 @@ export function buildHomeyGarageInterior(THREE, { centerX = 483, centerZ = 500, 
   addBox('garage-drive-out-guide-left', centerX - 4.2, floorY + .025, centerZ + 1.6, .08, .05, 8.8, amberMat);
   addBox('garage-drive-out-guide-right', centerX + 4.2, floorY + .025, centerZ + 1.6, .08, .05, 8.8, amberMat);
   // A physical, illuminated key board is mounted on the right-hand wall.
-  addBox('garage-key-board-frame', centerX + 8.8, floorY + 2.65, centerZ + 2.5, .2, 2.5, 3.5, warmWood);
+  addBox('garage-key-board-frame', centerX + 9.05, floorY + 2.65, centerZ + 2.5, .2, 2.5, 3.5, warmWood);
   addBox('garage-key-board-face', centerX + 8.92, floorY + 2.65, centerZ + 2.5, .12, 2.25, 3.25, cabinetMat);
   addBox('garage-key-board-title-plate', centerX + 8.82, floorY + 3.45, centerZ + 2.5, .08, .34, 2.7, amberMat);
   for (let i = 0; i < 8; i++) {
