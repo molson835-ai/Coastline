@@ -1,6 +1,6 @@
 import { createTransitionManager } from './transition-manager.js';
 import { COASTLINE_ISLAND_ELEVATION, COASTLINE_ISLAND_WATER_DROP, createCoastlineIslandRoot, getCoastlineIslandRegion } from './coastline-island-regions.js';
-import { buildHomeyGarageInterior, openGarageVehicleChooser, didCrossGarageThreshold, canUseGarageKeyBoard } from './coastline-homey-garage.js';
+import { buildHomeyGarageInterior, openGarageVehicleChooser, didCrossGarageThreshold, didCrossHouseDoorThreshold, canUseGarageKeyBoard } from './coastline-homey-garage.js';
 import { buildHomeyHouseInterior } from './coastline-homey-house-interior.js';
 
 export function createWorldRootRegistry({ THREE, scene }) {
@@ -249,8 +249,8 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
         const previousFoot=previousFootPosition;
         const garageHouseThreshold={x:483,z:515.3,halfWidth:1.7};
         const houseExitThreshold={x:483,z:513,halfWidth:1.8};
-        const enteredHouse=activeWorld==='homey-garage'&&previousFoot&&previousFoot.z<garageHouseThreshold.z&&currentFoot.z>=garageHouseThreshold.z&&Math.abs(currentFoot.x-garageHouseThreshold.x)<=garageHouseThreshold.halfWidth&&Math.cos(currentFoot.heading)>.45;
-        const leftHouse=activeWorld==='home-interior'&&previousFoot&&previousFoot.z<houseExitThreshold.z&&currentFoot.z>=houseExitThreshold.z&&Math.abs(currentFoot.x-houseExitThreshold.x)<=houseExitThreshold.halfWidth&&Math.cos(currentFoot.heading)>.45;
+        const enteredHouse=activeWorld==='homey-garage'&&didCrossHouseDoorThreshold(previousFoot,currentFoot,garageHouseThreshold);
+        const leftHouse=activeWorld==='home-interior'&&didCrossHouseDoorThreshold(previousFoot,currentFoot,houseExitThreshold);
         previousFootPosition=currentFoot;
         if(enteredHouse&&!autoTransitionPromise){transition('homey-garage-to-house').catch(error=>{lastAutoTrigger={...lastAutoTrigger,eligible:false,reason:'house-entry-failed',error:String(error?.message||error)};});return;}
         if(leftHouse&&!autoTransitionPromise){transition('home-to-homey-garage').catch(error=>{lastAutoTrigger={...lastAutoTrigger,eligible:false,reason:'house-exit-failed',error:String(error?.message||error)};});return;}
