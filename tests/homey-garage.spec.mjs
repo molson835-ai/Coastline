@@ -4,6 +4,7 @@ import {
   HOMEY_GARAGE_PAINT_COLORS,
   canUseGarageKeyBoard,
   didCrossGarageThreshold,
+  didCrossHouseDoorThreshold,
 } from '../coastline-homey-garage.js';
 
 const threshold = { x: 483, z: 488, halfWidth: 5.8 };
@@ -34,4 +35,13 @@ test('paint palette offers distinct, named finishes without touching non-paint v
   assert.ok(HOMEY_GARAGE_PAINT_COLORS.length >= 6);
   assert.equal(new Set(HOMEY_GARAGE_PAINT_COLORS.map(color => color.hex)).size, HOMEY_GARAGE_PAINT_COLORS.length);
   assert.ok(HOMEY_GARAGE_PAINT_COLORS.every(color => /^#[0-9a-f]{6}$/i.test(color.hex) && color.name));
+});
+
+
+test('house doorway triggers only on a forward on-foot threshold crossing', () => {
+  const doorway = { x: 483, z: 515.3, halfWidth: 1.7 };
+  assert.equal(didCrossHouseDoorThreshold({ x: 483, z: 515, heading: 0 }, { x: 483, z: 515.5, heading: 0 }, doorway), true);
+  assert.equal(didCrossHouseDoorThreshold({ x: 486, z: 515, heading: 0 }, { x: 486, z: 515.5, heading: 0 }, doorway), false);
+  assert.equal(didCrossHouseDoorThreshold({ x: 483, z: 516, heading: Math.PI }, { x: 483, z: 515, heading: Math.PI }, doorway), false);
+  assert.equal(didCrossHouseDoorThreshold({ x: 483, z: 515.5, heading: 0 }, { x: 483, z: 516, heading: 0 }, doorway), false);
 });
