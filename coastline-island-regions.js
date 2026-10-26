@@ -17,6 +17,7 @@ export const COASTLINE_ISLAND_REGIONS = Object.freeze([
     bridge: Object.freeze({ entry: 'north', exit: 'north', target: 'residential' }),
     population: Object.freeze({ traffic: 12, pedestrians: 16 }),
     visual: Object.freeze({ landmark: 'skyline', vegetation: 'street-palms', waterline: true }),
+    contentDensity: 'developed',
   }),
   Object.freeze({
     id: 'residential',
@@ -28,6 +29,7 @@ export const COASTLINE_ISLAND_REGIONS = Object.freeze([
     bridge: Object.freeze({ entry: 'north', exit: 'east', target: 'waterfront' }),
     population: Object.freeze({ traffic: 8, pedestrians: 12 }),
     visual: Object.freeze({ landmark: 'neighborhood-park', vegetation: 'tropical-gardens', waterline: true }),
+    contentDensity: 'developed',
   }),
   Object.freeze({
     id: 'waterfront',
@@ -39,6 +41,7 @@ export const COASTLINE_ISLAND_REGIONS = Object.freeze([
     bridge: Object.freeze({ entry: 'west', exit: 'east', target: 'port' }),
     population: Object.freeze({ traffic: 10, pedestrians: 16 }),
     visual: Object.freeze({ landmark: 'marina', vegetation: 'beach-palms', waterline: true }),
+    contentDensity: 'sparse',
   }),
   Object.freeze({
     id: 'port',
@@ -50,6 +53,7 @@ export const COASTLINE_ISLAND_REGIONS = Object.freeze([
     bridge: Object.freeze({ entry: 'west', exit: 'west', target: 'waterfront' }),
     population: Object.freeze({ traffic: 8, pedestrians: 10 }),
     visual: Object.freeze({ landmark: 'container-cranes', vegetation: 'sparse-coastal', waterline: true }),
+    contentDensity: 'sparse',
   }),
 ]);
 
@@ -230,6 +234,39 @@ export function createCoastlineIslandRoot({ THREE, region, groundY = () => 0, ad
   };
   addBox(`coastline-${region.id}-main-road`, center.x, edgeY + 0.02, center.z - 82.5, 16, 0.16, 55, roadMat, false, false);
 
+  // Sparse regions still need a live collision perimeter. Keep gaps centered on
+  // the side-bridge landings so the route remains traversable between worlds.
+  if (region.contentDensity === 'sparse') {
+    const edge = region.bounds.halfWidth * 0.94;
+    const wall = 2;
+    const segmentLength = Math.max(24, edge - 14);
+    for (const side of [-1, 1]) {
+      for (const offset of [-1, 1]) {
+        colliders.push({
+          name: `coastline-${region.id}-${side < 0 ? 'west' : 'east'}-shore-boundary-${offset < 0 ? 'south' : 'north'}`,
+          x: center.x + side * edge,
+          z: center.z + offset * (segmentLength / 2 + 7),
+          w: wall,
+          d: segmentLength,
+        });
+      }
+    }
+    // Waterfront links east and west; Port links west only. The north/south
+    // shoreline is closed for these current sparse layouts.
+    for (const side of [-1, 1]) {
+      for (const offset of [-1, 1]) {
+        colliders.push({
+          name: `coastline-${region.id}-${side < 0 ? 'south' : 'north'}-shore-boundary-${offset < 0 ? 'west' : 'east'}`,
+          x: center.x + offset * (segmentLength / 2 + 7),
+          z: center.z + side * edge,
+          w: segmentLength,
+          d: wall,
+        });
+      }
+    }
+  }
+
+  if (region.contentDensity === 'developed') {
   if (region.theme === 'urban-core') {
     const glass = material(0x668b98, 0.32, 0.18);
     const stone = material(0xb5b6b0, 0.8);
@@ -253,6 +290,12 @@ export function createCoastlineIslandRoot({ THREE, region, groundY = () => 0, ad
     // in the same world units as the drivable cars and with a car-sized garage bay.
     addBox('coastline-villa-main-volume', center.x + 5, edgeY + 4.5, center.z, 26, 9, 24, plaster, true, false);
     addBox('coastline-villa-upper-volume', center.x + 6, edgeY + 10, center.z, 20, 3.2, 18, warmStone, true, false);
+    // Bright facade panels preserve the playful Homey identity without replacing
+    // the original villa architecture or its existing garden details.
+    const playfulPanels = [0xff6b6b, 0xffc857, 0x6bd5a4, 0x66b8ff, 0xb58cff].map(color => material(color, 0.74, 0.02));
+    for (let i = 0; i < playfulPanels.length; i++) {
+      addBox(`coastline-villa-playful-pattern-${i + 1}`, center.x - 7 + i * 5.1, edgeY + 7.3, center.z - 12.3, 2.1, 0.55, 0.08, playfulPanels[i], false, false);
+    }
     addBox('coastline-villa-flat-roof', center.x + 5, edgeY + 11.8, center.z, 29, 0.65, 27, roof, true, false);
     addBox('coastline-villa-roof-overhang', center.x + 5, edgeY + 6.1, center.z - 0.4, 28, 0.38, 25, roof, true, false);
     // Wide glazing and timber accents give the façade warmth without a high-poly cost.
@@ -288,6 +331,24 @@ export function createCoastlineIslandRoot({ THREE, region, groundY = () => 0, ad
     // Small gardens, a stone walk, and warm path lights make the property feel lived in.
     addBox('coastline-villa-front-garden-bed', center.x + 7, edgeY + 0.06, center.z - 17, 18, 0.12, 3.2, lawn, false, false);
     addBox('coastline-villa-front-walk', center.x + 4, edgeY + 0.08, center.z - 20, 4, 0.16, 8, deck, false, false);
+    // Large coastal rocks frame the perimeter while leaving both bridge landings open.
+    const rockAngles = Array.from({ length: 16 }, (_, i) => i * Math.PI * 2 / 16)
+      .filter(angle => Math.abs(angle) > 0.34 && Math.abs(Math.abs(angle) - Math.PI / 2) > 0.34);
+    const rockGeometry = new THREE.DodecahedronGeometry(1, 0);
+    const rocks = new THREE.InstancedMesh(rockGeometry, material(0x77756c, 0.98), rockAngles.length);
+    const rockDummy = new THREE.Object3D();
+    rocks.name = 'coastline-residential-giant-decorative-rocks';
+    rockAngles.forEach((angle, i) => {
+      rockDummy.position.set(center.x + Math.cos(angle) * 101, edgeY + 0.35, center.z + Math.sin(angle) * 101);
+      rockDummy.scale.set(2.0 + (i % 3) * 0.55, 0.8 + (i % 2) * 0.35, 1.6 + (i % 4) * 0.3);
+      rockDummy.rotation.set(0, angle, 0);
+      rockDummy.updateMatrix();
+      rocks.setMatrixAt(i, rockDummy.matrix);
+    });
+    rocks.instanceMatrix.needsUpdate = true;
+    rocks.castShadow = false;
+    rocks.receiveShadow = true;
+    root.add(rocks);
     const bushMat = material(0x2e6740, 0.98);
     const flowerMats = [0xf0c7ce, 0xf4d98a, 0xf6f1e5];
     const gardenDummy = new THREE.Object3D();
@@ -360,7 +421,9 @@ export function createCoastlineIslandRoot({ THREE, region, groundY = () => 0, ad
     addBox('coastline-port-crane-boom', center.x + 54, edgeY + 23, center.z + 12, 26, 2.4, 2.4, crane);
   }
 
-  if (region.visual?.vegetation !== 'sparse-coastal') {
+  }
+
+  if (region.contentDensity === 'developed' && region.visual?.vegetation !== 'sparse-coastal') {
     const trunk = material(0x79583d, 0.96);
     const leaves = material(0x2f7047, 0.94);
     const coconutMat = material(0x6b5635, 0.92);
@@ -427,9 +490,19 @@ export function createCoastlineIslandRoot({ THREE, region, groundY = () => 0, ad
   if (typeof addSideBridge === 'function') {
     if (region.id === 'waterfront' || region.id === 'port') {
       addSideBridge(THREE, root, { edgeX: center.x - half, z: center.z, y: edgeY, length: 100, direction: -1, name: `${region.id}-west` });
+      // Sparse regions still need physical collision metadata for their bridge
+      // guardrails; their low scenery density must not mean an empty collider set.
+      colliders.push(
+        { name: `${region.id}-west-bridge-north-rail`, x: center.x - half - 50, z: center.z + 2.48, w: 100, d: 0.2 },
+        { name: `${region.id}-west-bridge-south-rail`, x: center.x - half - 50, z: center.z - 2.48, w: 100, d: 0.2 }
+      );
     }
     if (region.id === 'residential' || region.id === 'waterfront') {
       addSideBridge(THREE, root, { edgeX: center.x + half, z: center.z, y: edgeY, length: 100, direction: 1, name: `${region.id}-east` });
+      if (region.id === 'waterfront') colliders.push(
+        { name: `${region.id}-east-bridge-north-rail`, x: center.x + half + 50, z: center.z + 2.48, w: 100, d: 0.2 },
+        { name: `${region.id}-east-bridge-south-rail`, x: center.x + half + 50, z: center.z - 2.48, w: 100, d: 0.2 }
+      );
     }
   }
   return root;
@@ -450,6 +523,9 @@ export function validateCoastlineIslandManifest(regions = COASTLINE_ISLAND_REGIO
   }
 
   for (const region of regions) {
+    if (!['developed', 'sparse'].includes(region.contentDensity)) {
+      throw new Error(`island ${region.id} has invalid content density`);
+    }
     if (!region.title || !region.theme || !region.purpose) {
       throw new Error(`island ${region.id} is missing its identity or design purpose`);
     }
