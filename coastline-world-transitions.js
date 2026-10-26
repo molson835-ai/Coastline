@@ -243,6 +243,18 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
         }
       }
       const board=pendingGarageRoot?.userData?.coastlineGarageContract?.board;if(garageBoardButton)garageBoardButton.style.display=canUseGarageKeyBoard({worldId:activeWorld,mode:player.mode,player,board})?'block':'none';
+      // Door transitions are driven by a real on-foot threshold crossing, never by proximity or a vehicle.
+      if(player.mode==='walk'&&activeWorld){
+        const currentFoot={x:finiteOr(player.x),z:finiteOr(player.z),heading:finiteOr(player.heading)};
+        const previousFoot=previousFootPosition;
+        const garageHouseThreshold={x:483,z:515.3,halfWidth:1.7};
+        const houseExitThreshold={x:483,z:513,halfWidth:1.8};
+        const enteredHouse=activeWorld==='homey-garage'&&previousFoot&&previousFoot.z<garageHouseThreshold.z&&currentFoot.z>=garageHouseThreshold.z&&Math.abs(currentFoot.x-garageHouseThreshold.x)<=garageHouseThreshold.halfWidth&&Math.cos(currentFoot.heading)>.45;
+        const leftHouse=activeWorld==='home-interior'&&previousFoot&&previousFoot.z<houseExitThreshold.z&&currentFoot.z>=houseExitThreshold.z&&Math.abs(currentFoot.x-houseExitThreshold.x)<=houseExitThreshold.halfWidth&&Math.cos(currentFoot.heading)>.45;
+        previousFootPosition=currentFoot;
+        if(enteredHouse&&!autoTransitionPromise){transition('homey-garage-to-house').catch(error=>{lastAutoTrigger={...lastAutoTrigger,eligible:false,reason:'house-entry-failed',error:String(error?.message||error)};});return;}
+        if(leftHouse&&!autoTransitionPromise){transition('home-to-homey-garage').catch(error=>{lastAutoTrigger={...lastAutoTrigger,eligible:false,reason:'house-exit-failed',error:String(error?.message||error)};});return;}
+      }else previousFootPosition=null;
       if(vehicle)makeVehicleRenderable(vehicle);
       if(!vehicle||!activeWorld){previousVehiclePosition=null;lastAutoTrigger={eligible:false,reason:'no-active-vehicle-or-world',world:activeWorld,x:vehicle?.x??null,z:vehicle?.z??null,heading:vehicle?.heading??null,error:null};button.style.display='none';return;}
       const gates={
