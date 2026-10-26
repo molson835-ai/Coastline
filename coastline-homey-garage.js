@@ -47,17 +47,6 @@ export function buildHomeyGarageInterior(THREE, { centerX = 483, centerZ = 500, 
     if (collider) colliders.push({ name, x, z, w, d });
     return mesh;
   };
-  const addSign = (name, label, x, y, z, width, height, rotationY = 0) => {
-    const canvas = document.createElement('canvas'); canvas.width = 512; canvas.height = 96;
-    const ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#10252b'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.strokeStyle = '#ffc879'; ctx.lineWidth = 7; ctx.strokeRect(4, 4, 504, 88);
-    ctx.fillStyle = '#f4fbff'; ctx.font = 'bold 35px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(label, 256, 49);
-    const signMaterial = new THREE.MeshStandardMaterial({ map: new THREE.CanvasTexture(canvas), emissive: 0x17333b, emissiveIntensity: .45, roughness: .42 });
-    const sign = new THREE.Mesh(new THREE.PlaneGeometry(width, height), signMaterial);
-    sign.name = name; sign.position.set(x, y, z); sign.rotation.y = rotationY; root.add(sign); return sign;
-  };
   // Interior is aligned to Homey Island's existing open bay (front at z = centerZ - 12).
   addBox('garage-showroom-epoxy-floor', centerX, floorY - .08, centerZ + 2.5, 18, .16, 31, floorMat);
   addBox('garage-left-wall', centerX - 9.3, floorY + 2.7, centerZ + 2.5, .3, 5.4, 31, wallMat, true);
@@ -70,17 +59,26 @@ export function buildHomeyGarageInterior(THREE, { centerX = 483, centerZ = 500, 
   const houseDoor = addBox('garage-house-door-open-leaf', centerX + 1.55, floorY + 2.1, centerZ + 16, 3.0, 4.15, .12, warmWood);
   houseDoor.rotation.y = Math.PI / 2;
   addBox('garage-house-door-handle', centerX + 1.58, floorY + 2.0, centerZ + 17.2, .08, .3, .08, amberMat);
-  addSign('garage-house-entry-sign', 'HOUSE ENTRY  •  ON FOOT', centerX, floorY + 4.15, centerZ + 15.68, 5.4, .72, Math.PI);
+  // Raised/recessed panels sit on the visible face of the open, hinged house door.
+  for (const panelY of [floorY + 1.25, floorY + 2.95]) {
+    for (const panelZ of [centerZ + 15.25, centerZ + 16.75]) {
+      addBox(`garage-house-door-panel-${panelY}-${panelZ}`, centerX + 1.63, panelY, panelZ, .035, .72, .68, trimMat);
+    }
+  }
   addBox('garage-ceiling', centerX, floorY + 5.45, centerZ + 2.5, 18.6, .25, 31.5, trimMat);
   addBox('garage-entry-header', centerX, floorY + 5.05, centerZ - 12, 18.6, .45, .55, trimMat);
   addBox('garage-door-left-jamb', centerX - 8.25, floorY + 2.25, centerZ - 11.95, .22, 4.5, .32, amberMat);
   addBox('garage-door-right-jamb', centerX + 8.25, floorY + 2.25, centerZ - 11.95, .22, 4.5, .32, amberMat);
-  addSign('garage-vehicle-exit-sign', 'GARAGE EXIT  •  VEHICLES ONLY', centerX, floorY + 3.55, centerZ - 11.7, 7.2, .72, 0);
   // Sectional door slats are parked overhead so the vehicle threshold remains open.
-  for (let slat = 0; slat < 14; slat++) addBox('garage-rollup-door-slat-' + (slat + 1), centerX, floorY + 4.55, centerZ - 11.4 + slat * .19, 16.8, .105, .14, slat % 2 ? cabinetMat : trimMat);
-  addBox('garage-door-roller-housing', centerX, floorY + 4.88, centerZ - 9.9, 17.1, .24, .28, trimMat);
+  for (let slat = 0; slat < 14; slat++) addBox('garage-rollup-door-slat-' + (slat + 1), centerX, floorY + 4.78, centerZ - 11.4 + slat * .19, 16.8, .105, .14, slat % 2 ? cabinetMat : trimMat);
+  addBox('garage-door-roller-housing', centerX, floorY + 5.02, centerZ - 8.05, 17.1, .24, .28, trimMat);
   addBox('garage-door-left-track', centerX - 8.15, floorY + 2.25, centerZ - 10.1, .12, 4.4, .16, trimMat);
   addBox('garage-door-right-track', centerX + 8.15, floorY + 2.25, centerZ - 10.1, .12, 4.4, .16, trimMat);
+  // Side rails and brackets visibly carry the overhead parked sectional door.
+  for (const side of [-1, 1]) {
+    addBox(`garage-rollup-door-support-${side}`, centerX + side * 8.0, floorY + 4.82, centerZ - 9.45, .18, .22, 3.15, trimMat);
+    addBox(`garage-rollup-door-hanger-${side}`, centerX + side * 7.95, floorY + 4.62, centerZ - 9.65, .1, .5, .12, trimMat);
+  }
   // Six crisp luminous ceiling strips and a warm perimeter accent keep the bay premium without heavy lighting.
   for (let i = 0; i < 3; i++) {
     const x = centerX - 5 + i * 5;
@@ -115,8 +113,8 @@ export function buildHomeyGarageInterior(THREE, { centerX = 483, centerZ = 500, 
     const row = Math.floor(i / 4), col = i % 4;
     const z = centerZ + 1.65 + col * .55;
     const y = floorY + 2.8 - row * .78;
-    addBox(`garage-key-hook-${i + 1}`, centerX + 8.4, y, z, .16, .12, .12, ledMat);
-    addBox(`garage-key-fob-${i + 1}`, centerX + 8.27, y - .17, z, .1, .25, .16, amberMat);
+    addBox(`garage-key-hook-${i + 1}`, centerX + 8.56, y, z, .12, .12, .12, ledMat);
+    addBox(`garage-key-fob-${i + 1}`, centerX + 8.48, y - .17, z, .1, .25, .16, amberMat);
   }
   // Real workshop clutter, placed against the left/rear perimeter so the parking lane stays clear.
   addBox('garage-red-mechanics-tool-chest', centerX - 5.05, floorY + .72, centerZ + 9.1, 1.45, 1.25, 2.25, mat(0xa8322d, .38, .24), true);
@@ -175,18 +173,19 @@ export function buildHomeyGarageInterior(THREE, { centerX = 483, centerZ = 500, 
   // Wall-mounted hose reel, extinguisher, and an illuminated service clock.
   const hoseReel = new THREE.Mesh(new THREE.TorusGeometry(.42, .075, 8, 20), mat(0x1b2429, .45, .48));
   hoseReel.name = 'garage-wall-hose-reel';
-  hoseReel.position.set(centerX - 6.52, floorY + 2.35, centerZ + 2.8);
+  hoseReel.position.set(centerX - 9.0, floorY + 2.35, centerZ + 2.8);
+  hoseReel.rotation.y = Math.PI / 2;
   root.add(hoseReel);
-  addBox('garage-hose-tail', centerX - 6.42, floorY + 1.65, centerZ + 2.2, .07, 1.1, .07, mat(0x1a8791, .5, .08));
-  addBox('garage-fire-extinguisher', centerX - 6.45, floorY + 1.25, centerZ + 6.0, .22, .75, .25, mat(0xc53a32, .42, .15));
-  addBox('garage-extinguisher-handle', centerX - 6.43, floorY + 1.67, centerZ + 6.0, .28, .09, .12, trimMat);
+  addBox('garage-hose-tail', centerX - 8.88, floorY + 1.65, centerZ + 2.2, .07, 1.1, .07, mat(0x1a8791, .5, .08));
+  addBox('garage-fire-extinguisher', centerX - 8.92, floorY + 1.25, centerZ + 6.0, .22, .75, .25, mat(0xc53a32, .42, .15));
+  addBox('garage-extinguisher-handle', centerX - 8.86, floorY + 1.67, centerZ + 6.0, .28, .09, .12, trimMat);
   const clockFace = new THREE.Mesh(new THREE.CylinderGeometry(.42, .42, .08, 20), mat(0xe9eef0, .45, .04));
   clockFace.name = 'garage-wall-service-clock';
-  clockFace.rotation.x = Math.PI / 2;
-  clockFace.position.set(centerX - 6.55, floorY + 3.7, centerZ + 9.3);
+  clockFace.rotation.z = Math.PI / 2;
+  clockFace.position.set(centerX - 9.0, floorY + 3.7, centerZ + 9.3);
   root.add(clockFace);
-  addBox('garage-clock-hour-hand', centerX - 6.48, floorY + 3.75, centerZ + 9.3, .035, .26, .025, trimMat);
-  addBox('garage-clock-minute-hand', centerX - 6.47, floorY + 3.82, centerZ + 9.4, .025, .035, .22, trimMat);
+  addBox('garage-clock-hour-hand', centerX - 8.88, floorY + 3.75, centerZ + 9.3, .035, .26, .025, trimMat);
+  addBox('garage-clock-minute-hand', centerX - 8.88, floorY + 3.82, centerZ + 9.4, .025, .035, .22, trimMat);
   // Rear shelf with fluid cans and compact parts bins; all stay outside the vehicle's turn-in envelope.
   addBox('garage-parts-shelf-top', centerX, floorY + 2.0, centerZ + 11.6, 3.4, .12, .75, cabinetMat, true);
   addBox('garage-parts-shelf-bottom', centerX, floorY + .95, centerZ + 11.6, 3.4, .12, .75, cabinetMat, true);
@@ -197,7 +196,7 @@ export function buildHomeyGarageInterior(THREE, { centerX = 483, centerZ = 500, 
     addBox(`garage-parts-bin-${i + 1}`, x, floorY + 1.3, centerZ + 11.6, .45, .5, .48, cabinetMat, true);
   }
   // A discreet wall-mounted badge adds a premium workshop identity.
-  addBox('garage-brand-plaque', centerX - 6.68, floorY + 3.9, centerZ - 4.5, .08, .8, 3.2, amberMat);
+  addBox('garage-brand-plaque', centerX - 9.0, floorY + 3.9, centerZ - 4.5, .08, .8, 3.2, amberMat);
   root.userData.coastlineColliders = colliders;
   root.userData.coastlineGarageProps = props;
   root.userData.coastlineGarageCamera = {
