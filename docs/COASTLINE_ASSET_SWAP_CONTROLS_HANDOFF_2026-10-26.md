@@ -34,8 +34,10 @@
 - Added a browser test that waits for both replacement loaders and asserts all road cars use RGSDev models, unsupported old rideables are disabled, and Cozy idle/walk/run clips are available.
 
 ## Verification still required
-- Review the latest GitHub Actions run for the asset audit, itch package smoke test, gameplay watchdog, graphics guard, and Babylon preview validation.
-- Fix any runtime/import/model parsing errors surfaced by CI.
+- The first full gameplay browser run failed before executing gameplay assertions because of an extra closing brace in `tests/gameplay.spec.cjs` (line 75). This was corrected in commit `ecf466e16942ed93f090a0f66dca363c23bfcc07`.
+- A new CI run set is now executing for that fix: engine/system tests passed; browser smoke, itch packaging, and Babylon validation are in progress; graphics quality guard passed.
+- Review the current GitHub Actions run set for the asset audit, itch package smoke test, gameplay watchdog, graphics guard, and Babylon preview validation.
+- Fix any further runtime/import/model parsing errors surfaced by CI.
 - Confirm no legacy character or vehicle visuals remain visible and that the story van is replaced.
 - Run a physical Android session for visual orientation, driving direction, asset loading, and performance. Headless CI does not prove Android performance.
 
