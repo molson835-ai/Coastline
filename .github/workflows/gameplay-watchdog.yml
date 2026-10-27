@@ -20,7 +20,7 @@ permissions:
   issues: write
 
 concurrency:
-  group: coastline-gameplay-watchdog-${{ github.ref }}
+  group: coastline-gameplay-watchdog-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: true
 
 jobs:
