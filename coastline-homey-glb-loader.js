@@ -35,7 +35,7 @@ async function fetchAndReconstructGlb() {
     bytes.set(new Uint8Array(chunk), offset);
     offset += chunk.byteLength;
   }
-  const view = new DataView(bytes.buffer);
+  const digest = await crypto.subtle.digest('SHA-256', bytes.buffer);\n  const sha256 = Array.from(new Uint8Array(digest), value => value.toString(16).padStart(2, '0')).join('');\n  if (sha256 !== EXPECTED_SHA256) throw new Error('Reconstructed house GLB checksum mismatch; refusing to display incomplete/corrupt asset');\n  const view = new DataView(bytes.buffer);
   if (view.getUint32(0, true) !== 0x46546c67 || view.getUint32(4, true) !== 2 || view.getUint32(8, true) !== EXPECTED_BYTES) {
     throw new Error('Reconstructed asset is not a valid GLB v2 file');
   }
