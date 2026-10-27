@@ -383,6 +383,63 @@ export function createCoastlineIslandRoot({ THREE, region, groundY = () => 0, ad
     // Small gardens, a stone walk, and warm path lights make the property feel lived in.
     addBox('coastline-villa-front-garden-bed', center.x + 7, edgeY + 0.06, center.z - 17, 18, 0.12, 3.2, lawn, false, false);
     addBox('coastline-villa-front-walk', center.x + 4, edgeY + 0.08, center.z - 20, 4, 0.16, 8, deck, false, false);
+    // Patchy American beachgrass, bayberry-style shrubs and driftwood on the backshore.
+    const duneGrassMat = material(0x6c8d48, 0.98), duneGrassTipMat = material(0x9caa61, 0.98);
+    const duneGrass = new THREE.InstancedMesh(new THREE.ConeGeometry(.075, 1.35, 3), duneGrassMat, 108);
+    duneGrass.name = 'coastline-residential-backshore-beachgrass';
+    const duneTip = new THREE.InstancedMesh(new THREE.ConeGeometry(.035, .38, 3), duneGrassTipMat, 108);
+    duneTip.name = 'coastline-residential-backshore-beachgrass-tips';
+    const grassDummy = new THREE.Object3D();
+    const patchCenters = [[-78,77],[-60,86],[-42,78],[-24,91],[-4,82],[17,90],[38,78],[58,87],[77,76]];
+    patchCenters.forEach(([px,pz],patch) => {
+      for (let blade = 0; blade < 12; blade++) {
+        const x = center.x + px + Math.sin(blade * 2.1 + patch) * 2.4;
+        const z = center.z + pz + Math.cos(blade * 1.7 + patch) * 2.0;
+        const height = .72 + ((blade + patch) % 5) * .14;
+        grassDummy.position.set(x, edgeY + height * .48, z);
+        grassDummy.rotation.set(.08 * Math.sin(blade), (blade * 2.4 + patch) % (Math.PI * 2), .12 * Math.cos(blade * 1.3));
+        grassDummy.scale.set(.72 + (blade % 3) * .16, height / 1.35, .72 + ((blade + 1) % 3) * .13);
+        grassDummy.updateMatrix(); duneGrass.setMatrixAt(patch * 12 + blade, grassDummy.matrix);
+        grassDummy.position.y += height * .48; grassDummy.scale.set(.8,.65,.8);
+        grassDummy.updateMatrix(); duneTip.setMatrixAt(patch * 12 + blade, grassDummy.matrix);
+      }
+    });
+    duneGrass.instanceMatrix.needsUpdate = true; duneTip.instanceMatrix.needsUpdate = true;
+    duneGrass.castShadow = false; duneTip.castShadow = false; root.add(duneGrass, duneTip);
+    const backshoreShrubs = new THREE.InstancedMesh(new THREE.SphereGeometry(1,7,5), material(0x557044,.98), 12);
+    backshoreShrubs.name = 'coastline-residential-backshore-bayberry';
+    for (let i = 0; i < 12; i++) {
+      const [px,pz] = patchCenters[(i * 5) % patchCenters.length];
+      grassDummy.position.set(center.x + px + (i % 2 ? 3.2 : -3.2), edgeY + .52, center.z + pz + (i % 3) * 1.5);
+      grassDummy.scale.set(1.1 + (i % 3) * .25,.65 + (i % 2) * .18,.9 + (i % 4) * .12);
+      grassDummy.rotation.set(0,i * .73,0); grassDummy.updateMatrix(); backshoreShrubs.setMatrixAt(i,grassDummy.matrix);
+    }
+    backshoreShrubs.instanceMatrix.needsUpdate = true; backshoreShrubs.castShadow = false; root.add(backshoreShrubs);
+    const driftwoodMat = material(0x74543b,.96);
+    for (const [id,px,pz,angle] of [[1,-68,70,.45],[2,52,72,-.65],[3,4,96,.22]]) {
+      const driftwood = new THREE.Mesh(new THREE.CylinderGeometry(.13,.2,3.8,6),driftwoodMat);
+      driftwood.name = 'coastline-residential-backshore-driftwood-' + id;
+      driftwood.position.set(center.x + px,edgeY + .18,center.z + pz);
+      driftwood.rotation.set(.08,angle,Math.PI/2); driftwood.castShadow = true; root.add(driftwood);
+    }
+    // Individual driveway lanterns can fall on impact and reset after leaving the area.
+    const drivewayLights = [];
+    const drivewayLightMetal = material(0x343c3d,.58,.35);
+    const drivewayLightGlow = new THREE.MeshStandardMaterial({color:0xffe2a3,emissive:0xffc46a,emissiveIntensity:1.35,roughness:.32});
+    for (const [side,zOffset] of [[-1,-51],[-1,-37],[-1,-23],[1,-51],[1,-37],[1,-23]]) {
+      const x = center.x - 17 + side * 5.3, z = center.z + zOffset;
+      const group = new THREE.Group(); group.name = 'coastline-homey-driveway-light-' + side + '-' + zOffset;
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(.07,.12,3.35,6),drivewayLightMetal); post.position.y = 1.68; group.add(post);
+      const head = new THREE.Mesh(new THREE.BoxGeometry(.42,.14,.26),drivewayLightGlow); head.position.set(0,3.34,0); group.add(head);
+      const base = new THREE.Mesh(new THREE.CylinderGeometry(.24,.29,.16,8),drivewayLightMetal); base.position.y = .08; group.add(base);
+      group.position.set(x,edgeY,z); group.traverse(node=>{if(node.isMesh){node.castShadow=false;node.receiveShadow=true}}); root.add(group);
+      drivewayLights.push({
+        group,x,z,baseY:edgeY,fallen:false,
+        fall(){if(this.fallen)return;this.fallen=true;this.group.rotation.z=side<0?-Math.PI/2:Math.PI/2;this.group.position.y=this.baseY-.65;},
+        reset(){this.fallen=false;this.group.rotation.set(0,0,0);this.group.position.y=this.baseY;},
+      });
+    }
+    root.userData.coastlineHomeyDrivewayLights = drivewayLights;
     // Large coastal rocks frame the perimeter while leaving both bridge landings open.
     const rockAngles = Array.from({ length: 16 }, (_, i) => i * Math.PI * 2 / 16)
       .filter(angle => Math.abs(angle) > 0.34 && Math.abs(Math.abs(angle) - Math.PI / 2) > 0.34);

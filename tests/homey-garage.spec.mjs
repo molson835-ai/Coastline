@@ -1,4 +1,5 @@
 import test from 'node:test';
+import { readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';
 import {
   HOMEY_GARAGE_PAINT_COLORS,
@@ -30,6 +31,35 @@ test('key board is available only on foot inside the garage and within reach', (
   assert.equal(canUseGarageKeyBoard({ worldId: 'homey-garage', mode: 'vehicle', player, board }), false);
   assert.equal(canUseGarageKeyBoard({ worldId: 'island', mode: 'walk', player, board }), false);
   assert.equal(canUseGarageKeyBoard({ worldId: 'homey-garage', mode: 'walk', player: { x: 470, z: 500 }, board }), false);
+});
+
+test('garage collision props expose resettable tire and wrench interactions', () => {
+  const garageSource = readFileSync(new URL('../coastline-homey-garage.js', import.meta.url), 'utf8');
+  const islandSource = readFileSync(new URL('../coastline-island-regions.js', import.meta.url), 'utf8');
+  const gameSource = readFileSync(new URL('../game-v3.html', import.meta.url), 'utf8');
+  assert.match(garageSource, /coastlineGarageProps/);
+  assert.match(garageSource, /kind: 'tire'/);
+  assert.match(garageSource, /kind: 'wrench'/);
+  assert.doesNotMatch(garageSource, /garage-vehicle-exit-sign|garage-house-entry-sign|addSign\(/, 'garage instructions must be represented by architecture, not banners');
+  assert.match(garageSource, /garage-house-door-panel-/);
+  assert.match(garageSource, /garage-rollup-door-support-/);
+  assert.match(garageSource, /garage-workbench-leg-/);
+  assert.match(garageSource, /garage-workbench-lower-shelf/);
+  assert.match(garageSource, /garage-parts-shelf-bracket-upper-/);
+  assert.match(garageSource, /const shelfX = centerX \+ 4\.0, shelfZ = centerZ \+ 15\.4/);
+  assert.match(garageSource, /garage-ceiling-crossbeam-/);
+  assert.match(garageSource, /garage-key-board-frame', centerX \+ 9\.05/);
+  assert.match(garageSource, /centerX - 9[.]075/);
+  assert.match(garageSource, /hoseReel\.rotation\.y = Math\.PI \/ 2/);
+  assert.match(garageSource, /clockFace\.rotation\.z = Math\.PI \/ 2/);
+  assert.match(garageSource, /brickTexture/);
+  assert.match(gameSource, /title="Coast Bucks">CB/);
+  assert.match(gameSource, /100 Coast Bucks \(CB\)/);
+  assert.match(gameSource, /Custom paint applied for '\+price\+' Coast Bucks \(CB\)/);
+  assert.match(islandSource, /coastline-residential-backshore-beachgrass/);
+  assert.match(islandSource, /coastline-residential-backshore-bayberry/);
+  assert.match(islandSource, /coastline-residential-backshore-driftwood/);
+  assert.match(islandSource, /coastline-homey-driveway-light/);
 });
 
 test('paint palette offers distinct, named finishes without touching non-paint vehicle roles', () => {
@@ -66,4 +96,25 @@ test('limousine keeps passenger-car width and height while using a longer propor
   assert.ok(Math.abs(fitted.x - limousine.width) < 0.6);
   assert.ok(Math.abs(fitted.y - limousine.height) < 0.6);
   assert.ok(Math.abs(fitted.z * lengthCorrection - limousine.length) < 1e-6);
+});
+
+
+test('Homey house uses the regular procedural interior, not the experimental GLB replacement', async () => {
+  const { readFileSync } = await import('node:fs');
+  const transitions = readFileSync(new URL('../coastline-world-transitions.js', import.meta.url), 'utf8');
+  const build = readFileSync(new URL('../scripts/build-itch.mjs', import.meta.url), 'utf8');
+  const sw = readFileSync(new URL('../coastline-sw.js', import.meta.url), 'utf8');
+  assert.ok(transitions.includes("import { buildHomeyHouseInterior } from './coastline-homey-house-interior.js'"));
+  assert.ok(transitions.includes('const createHouseRoot=()=>buildHomeyHouseInterior(THREE,'));
+  assert.doesNotMatch(transitions, /attachOptimizedHomeInterior|coastline-homey-glb-loader/);
+  assert.doesNotMatch(build, /coastline-homey-glb-loader|coastline_home_interior_part_/);
+  assert.doesNotMatch(sw, /coastline-homey-glb-loader|coastline_home_interior_part_/);
+});
+
+
+test('procedural Homey interior includes GLB-inspired functional room zoning', async () => {
+  const { readFileSync } = await import('node:fs');
+  const interior = readFileSync(new URL('../coastline-homey-house-interior.js', import.meta.url), 'utf8');
+  for (const feature of ['house-kitchen-island-base','house-kitchen-upper-cabinet-','house-bathroom-vanity','house-bathroom-shower-tray','house-laundry-washer','house-office-desk','house-bedroom-bed-base','house-closet-rail']) assert.ok(interior.includes(feature), 'missing interior feature: ' + feature);
+  assert.match(interior, /zones: \['entry', 'living', 'dining', 'kitchen', 'hall', 'bathroom', 'laundry', 'office', 'bedroom', 'closet'\]/);
 });

@@ -156,13 +156,20 @@ test('Homey garage opens only when a vehicle crosses the open threshold and pres
   await page.locator('#garageConfirm').click();
   const swapped = await page.evaluate(() => {
     const vehicle = window.__coastlineTransitionTest.garageVehicleRef();
-    const body = vehicle.materialRoles?.body?.[0];
-    const material = Array.isArray(body?.material) ? body.material[0] : body?.material;
+    const bodyPattern = /(body|paint|panel|exterior|hood|bonnet|door|fender|shell|chassis)/i;
+    const protectedPattern = /(glass|window|windshield|windscreen|wheel|tire|tyre|rim|light|lamp|chrome|trim|interior|seat|dash|mirror|grill|grille|bumper|plastic|hardware)/i;
+    const bodyPaintColors = (vehicle.materialRoles?.body || []).flatMap(mesh => {
+      const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+      return materials.filter(material => material?.color && !protectedPattern.test(String(material.name || '')) &&
+        (bodyPattern.test(String(material.name || '')) || (materials.length === 1 && bodyPattern.test(String(mesh.name || '')))))
+        .map(material => material.color.getHexString());
+    });
     const roles = window.__coastlineTransitionTest.garageVehicleMaterialSnapshot();
     return {
       index: window.__coastlineTransitionTest.garageState().vehicleIndex,
       model: vehicle.rgsdevModelName,
-      paint: material?.color?.getHexString?.() || null,
+      paint: bodyPaintColors.find(color => color === 'b92d35') || null,
+      paintedMaterialCount: vehicle.coastlinePaintDiagnostics?.paintedMaterialCount || 0,
       glass: roles.glass,
       wheels: roles.wheels,
       lights: roles.lights,
@@ -172,6 +179,7 @@ test('Homey garage opens only when a vehicle crosses the open threshold and pres
   expect(swapped.index).toBe(originalIndex);
   expect(swapped.model).toBe(selectedModel);
   expect(swapped.paint).toBe('b92d35');
+  expect(swapped.paintedMaterialCount).toBeGreaterThan(0);
   expect(swapped.glass).toEqual(donorMaterials.glass);
   expect(swapped.wheels).toEqual(donorMaterials.wheels);
   expect(swapped.lights).toEqual(donorMaterials.lights);
@@ -236,7 +244,19 @@ test('walking through the house doorway instantly streams the detailed home inte
   expect(inside.house.root.meshes).toBeGreaterThan(35);
   expect(inside.house.parkedVehicleHidden).toBe(true);
   expect(inside.player.mode).toBe('walk');
-  expect(inside.player.position.z).toBeCloseTo(500, 1);
+  expect(inside.player.position.z).toBeCloseTo(508.5, 1);
+  await page.evaluate(() => {
+    const before = window.__coastlineTransitionTest.playerState().position;
+    window.__coastlineTest.keyDown('w');
+    window.__coastlineTest.advanceTestFrame(1 / 60, 20);
+    window.__coastlineTest.keyUp('w');
+    window.__coastlineHouseMovementAfterEntry = {
+      before,
+      after: window.__coastlineTransitionTest.playerState().position,
+    };
+  });
+  const movement = await page.evaluate(() => window.__coastlineHouseMovementAfterEntry);
+  expect(Math.hypot(movement.after.x - movement.before.x, movement.after.z - movement.before.z), 'player must be able to walk immediately after entering the house').toBeGreaterThan(0.1);
   await page.evaluate(() => {
     window.__coastlineTest.setWalkPosition(483, 512.5, 0);
     window.__coastlineTransitionTest.updatePrompt();
@@ -269,3 +289,34 @@ test('residential, waterfront, and port islands have developed detail and landsc
   const densities = await page.evaluate(() => window.__coastlineTransitionTest.worldDefinitions().filter(world => ['island','waterfront','port'].includes(world.id)).map(world => world.content.density));
   expect(densities.every(density => density === 'developed')).toBe(true);
 });
+
+
+test('regular procedural Homey house interior remains active and navigable', async ({ page }) => {
+  await openGame(page);
+  await page.evaluate(async () => {
+    await window.__coastlineTransitionTest.transition('city-to-island');
+    await window.__coastlineTransitionTest.transition('island-to-homey-garage');
+    window.__coastlineTest.setWalkPosition(483, 515, 0);
+    window.__coastlineTransitionTest.updatePrompt();
+    window.__coastlineTest.setWalkPosition(483, 516, 0);
+    window.__coastlineTransitionTest.updatePrompt();
+  });
+  await expect.poll(() => page.evaluate(() => window.__coastlineTransitionTest.status().activeWorldId), { timeout: 5000 }).toBe('home-interior');
+  const result = await page.evaluate(() => {
+    const house = window.__coastlineTransitionTest.houseState();
+    const root = window.__coastlineTest.sceneRoot?.();
+    return { house, hasProceduralFloor: Boolean(root?.getObjectByName?.('house-interior-floor')) };
+  });
+  expect(result.house.root.meshes).toBeGreaterThan(20);
+  const movement = await page.evaluate(() => {
+    window.__coastlineTest.setWalkPosition(483, 508.5, 0);
+    const before = window.__coastlineTransitionTest.playerState().position;
+    window.__coastlineTest.keyDown('w');
+    window.__coastlineTest.advanceTestFrame(1 / 60, 20);
+    window.__coastlineTest.keyUp('w');
+    const after = window.__coastlineTransitionTest.playerState().position;
+    return Math.hypot(after.x - before.x, after.z - before.z);
+  });
+  expect(movement, 'player must move inside the regular procedural house interior').toBeGreaterThan(0.1);
+});
+
