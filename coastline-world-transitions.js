@@ -184,6 +184,24 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
     return null;
   };
   window.__coastlineBridgeGroundY=bridgeGroundY;
+  // Match vehicle collision to the visible rope rails on each active bridge span.
+  // The collision radius keeps the full vehicle envelope inside the 5.2-unit deck;
+  // landings are intentionally excluded so transitions remain approachable.
+  window.__coastlineBridgeSideBlocked=(x,z,radius=0)=>{
+    const id=window.__coastlineActiveWorldId;
+    const half=COASTLINE_ROPE_BRIDGE_CONFIG.deckWidth/2;
+    const inset=Math.max(0,radius)+0.08;
+    if(id==='city'&&z>-CITY_BRIDGE_START_Z*-1-1){} // retained below as explicit span checks
+    if(id==='city'&&z>=CITY_BRIDGE_END_Z+1.5&&z<=CITY_BRIDGE_START_Z-1.5)
+      return Math.abs(x)>half-inset;
+    if(id==='island'&&z>=ISLAND_BRIDGE_END_Z+1.5&&z<=ISLAND_BRIDGE_START_Z-1.5)
+      return Math.abs(x-ISLAND_CENTER.x)>half-inset;
+    if((id==='island'||id==='waterfront')&&x>=611.5&&x<=708.5)
+      return Math.abs(z-500)>half-inset;
+    if((id==='waterfront'||id==='port')&&x>=291.5&&x<=388.5)
+      return Math.abs(z-500)>half-inset;
+    return false;
+  };
   const addCityBoundaryScenery=()=>{
     if(roots.world1Root.getObjectByName('coastline-city-map-edge-boundary'))return;
     const boundary=new THREE.Group();boundary.name='coastline-city-map-edge-boundary';
