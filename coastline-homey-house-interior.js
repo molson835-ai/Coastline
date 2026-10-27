@@ -62,6 +62,9 @@ export function buildHomeyHouseInterior(THREE, { centerX = 483, centerZ = 500, f
   addBox('house-ceiling-light-main', centerX, floorY + 5.18, centerZ - 1, 3.4, .08, 1.2, warmLight);
   addBox('house-ceiling-light-hall', centerX, floorY + 5.18, centerZ + 4.8, 1.7, .08, .55, warmLight);
 
+  // Open-plan kitchen/living/dining: the GLB reference uses clear room zoning,
+  // built-in storage, layered countertop detail, and a compact central prep island.
+  // Keep a generous central circulation lane from the entry to the living room.
   // Living room: one direct viewing axis from sofa through coffee table to TV.
   addBox('house-living-room-rug', centerX - 3.25, floorY + .025, centerZ - 2.0, 6.8, .05, 6.8, mat(0x607c7a, .99));
   addBox('house-sofa-base', centerX - 4.9, floorY + .55, centerZ - 2.0, 3.2, .62, 1.55, fabric);
@@ -100,7 +103,56 @@ export function buildHomeyHouseInterior(THREE, { centerX = 483, centerZ = 500, f
   addBox('house-kitchen-cutting-board', centerX - 4.0, floorY + 1.48, centerZ + 9.15, .7, .05, .45, wood);
   addInteraction('fridge', 'Use refrigerator', centerX - 7.1, centerZ + 5.7, 2.0, { type: 'storage' });
   addInteraction('kitchen', 'Use kitchen', centerX - 4.8, centerZ + 9.0, 2.2, { type: 'utility' });
+  // Upper cabinetry, segmented cabinet fronts, and a compact island make the
+  // kitchen read as a fitted American home rather than a few floating blocks.
+  for (let i = 0; i < 5; i++) {
+    const x = centerX - 7.25 + i * 1.22;
+    addBox(`house-kitchen-upper-cabinet-${i}`, x, floorY + 3.0, centerZ + 9.72, 1.08, 1.05, .58, cabinet);
+    addBox(`house-kitchen-upper-door-${i}`, x, floorY + 3.0, centerZ + 9.39, .94, .88, .045, white);
+    addBox(`house-kitchen-upper-pull-${i}`, x + .34, floorY + 3.0, centerZ + 9.35, .045, .22, .035, brass);
+    addBox(`house-kitchen-lower-door-${i}`, x, floorY + .75, centerZ + 8.43, 1.04, .82, .045, white);
+  }
+  addBox('house-kitchen-island-base', centerX - 1.95, floorY + .72, centerZ + 7.15, 3.55, 1.35, 1.35, cabinet, true);
+  addBox('house-kitchen-island-countertop', centerX - 1.95, floorY + 1.43, centerZ + 7.15, 3.85, .16, 1.58, counter);
+  addBox('house-kitchen-island-waterfall-end', centerX - 3.77, floorY + .75, centerZ + 7.15, .1, 1.28, 1.5, white);
+  addBox('house-kitchen-island-fruit-bowl', centerX - 1.85, floorY + 1.56, centerZ + 7.15, .55, .12, .42, plantPot);
+  for (const x of [centerX - 2.9, centerX - 1.0]) {
+    addBox('house-kitchen-island-stool-seat', x, floorY + .78, centerZ + 6.02, .68, .16, .62, fabric);
+    for (const dx of [-.22, .22]) for (const dz of [-.2, .2]) addBox('house-kitchen-island-stool-leg', x + dx, floorY + .38, centerZ + 6.02 + dz, .07, .76, .07, trim);
+  }
+  addBox('house-kitchen-pendant-rail', centerX - 1.95, floorY + 4.3, centerZ + 7.15, 3.0, .07, .08, dark);
+  for (const x of [centerX - 2.8, centerX - 1.1]) {
+    addCylinder('house-kitchen-pendant-drop', x, floorY + 3.95, centerZ + 7.15, .025, .65, brass);
+    addCylinder('house-kitchen-pendant-shade', x, floorY + 3.62, centerZ + 7.15, .22, .16, warmLight);
+  }
 
+  // Enclosed bath/laundry zone at the rear-left, inspired by the reference model's
+  // separate bathroom fixtures and stacked utility appliances. Wall gaps remain open.
+  addBox('house-bathroom-partition-right', centerX - 1.95, floorY + 2.55, centerZ - 8.9, .22, 5.1, 7.2, wall, true);
+  addBox('house-bathroom-partition-front-left', centerX - 6.95, floorY + 2.55, centerZ - 5.25, 3.0, 5.1, .22, wall, true);
+  addBox('house-bathroom-partition-front-right', centerX - 3.0, floorY + 2.55, centerZ - 5.25, 2.05, 5.1, .22, wall, true);
+  addBox('house-bathroom-door-frame-left', centerX - 5.15, floorY + 2.0, centerZ - 5.25, .12, 4.0, .18, trim);
+  addBox('house-bathroom-door-frame-right', centerX - 3.75, floorY + 2.0, centerZ - 5.25, .12, 4.0, .18, trim);
+  addBox('house-bathroom-door-leaf', centerX - 4.45, floorY + 1.98, centerZ - 5.18, 1.25, 3.82, .08, wood);
+  addBox('house-bathroom-vanity', centerX - 2.9, floorY + .75, centerZ - 7.0, 1.2, 1.4, 1.0, wood, true);
+  addBox('house-bathroom-vanity-top', centerX - 2.9, floorY + 1.5, centerZ - 7.0, 1.35, .12, 1.12, white);
+  addBox('house-bathroom-sink-basin', centerX - 2.9, floorY + 1.59, centerZ - 7.0, .65, .08, .55, dark);
+  addCylinder('house-bathroom-faucet', centerX - 2.9, floorY + 1.82, centerZ - 7.28, .035, .32, brass);
+  addBox('house-bathroom-mirror-frame', centerX - 2.9, floorY + 2.75, centerZ - 7.48, 1.15, 1.35, .08, trim);
+  addBox('house-bathroom-mirror', centerX - 2.9, floorY + 2.75, centerZ - 7.42, .98, 1.17, .035, glass);
+  addBox('house-bathroom-toilet-tank', centerX - 7.15, floorY + .72, centerZ - 7.1, .72, 1.0, .48, white, true);
+  addCylinder('house-bathroom-toilet-bowl', centerX - 7.15, floorY + .34, centerZ - 7.65, .42, .38, white, true);
+  addBox('house-bathroom-shower-tray', centerX - 6.85, floorY + .12, centerZ - 10.6, 2.65, .2, 3.2, white, true);
+  addBox('house-bathroom-shower-back-panel', centerX - 6.85, floorY + 1.75, centerZ - 12.05, 2.65, 3.2, .12, glass);
+  addBox('house-bathroom-shower-side-panel', centerX - 8.12, floorY + 1.75, centerZ - 10.6, .12, 3.2, 2.9, glass);
+  addCylinder('house-bathroom-shower-head', centerX - 7.8, floorY + 3.05, centerZ - 11.7, .11, .12, brass);
+  addBox('house-laundry-washer', centerX - 3.05, floorY + .85, centerZ - 10.35, 1.2, 1.65, 1.25, white, true);
+  addBox('house-laundry-washer-door', centerX - 3.05, floorY + .85, centerZ - 9.69, .72, .72, .08, glass);
+  addBox('house-laundry-dryer', centerX - 3.05, floorY + 2.55, centerZ - 10.35, 1.2, 1.55, 1.25, white, true);
+  addBox('house-laundry-dryer-door', centerX - 3.05, floorY + 2.55, centerZ - 9.69, .72, .72, .08, glass);
+  addBox('house-bathroom-towel-rail', centerX - 5.2, floorY + 2.55, centerZ - 5.62, 1.0, .08, .08, brass);
+  addBox('house-bathroom-towel', centerX - 5.2, floorY + 2.2, centerZ - 5.62, .7, .55, .05, white);
+  addInteraction('bathroom', 'Use bathroom', centerX - 5.3, centerZ - 6.3, 2.0, { type: 'utility' });
   // Private bedroom at the back-right, accessed through a normal interior doorway.
   addBox('house-hall-runner', centerX, floorY + .025, centerZ + 3.9, 2.35, .05, 7.0, mat(0x9b8a74, .99));
   addBox('house-bedroom-wall-left', centerX + 1.2, floorY + 2.65, centerZ - 8.9, 5.9, 5.3, wall, true);
@@ -140,6 +192,16 @@ export function buildHomeyHouseInterior(THREE, { centerX = 483, centerZ = 500, f
     const plant = new THREE.Mesh(new THREE.SphereGeometry(.62, 8, 6), leaves);
     plant.name = `house-plant-leaves-${i}`; plant.position.set(centerX + x, floorY + 1.25, centerZ + z); plant.scale.set(.85, 1.2, .85); root.add(plant);
   }
+  // Small home-office nook along the living-room side wall, using the reference
+  // apartment's desk/monitor organization without crowding the central hallway.
+  addBox('house-office-desk', centerX - 7.15, floorY + .95, centerZ + 2.1, 2.45, .14, 1.15, wood, true);
+  addBox('house-office-desk-left-leg', centerX - 8.15, floorY + .45, centerZ + 2.1, .12, .9, 1.0, dark);
+  addBox('house-office-desk-right-leg', centerX - 6.15, floorY + .45, centerZ + 2.1, .12, .9, 1.0, dark);
+  addBox('house-office-monitor', centerX - 7.15, floorY + 1.75, centerZ + 1.82, 1.25, .78, .12, dark);
+  addBox('house-office-screen', centerX - 7.15, floorY + 1.75, centerZ + 1.745, 1.08, .61, .025, mat(0x2f687a, .2, .15));
+  addBox('house-office-keyboard', centerX - 7.15, floorY + 1.06, centerZ + 2.32, .72, .05, .25, white);
+  addBox('house-office-chair-seat', centerX - 7.15, floorY + .58, centerZ + 3.2, .78, .14, .75, fabric);
+  addBox('house-office-chair-back', centerX - 7.15, floorY + 1.12, centerZ + 3.52, .78, .9, .14, fabric);
   addBox('house-entry-bench', centerX - 6.8, floorY + .52, centerZ + 11.0, 2.8, .6, .55, wood, true);
   addBox('house-entry-coat-hooks', centerX - 6.8, floorY + 2.2, centerZ + 10.68, 2.6, .08, .12, brass);
   addBox('house-entry-shoe-tray', centerX - 5.9, floorY + .08, centerZ + 11.8, 1.5, .06, .65, dark);
