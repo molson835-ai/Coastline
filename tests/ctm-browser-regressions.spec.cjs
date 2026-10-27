@@ -331,11 +331,15 @@ test('City boundary scenery, bridge grounding, and functional small Homey lamps 
       start: api.bridgeSurfaceY(0, -750),
       middle: api.bridgeSurfaceY(0, -800),
       end: api.bridgeSurfaceY(0, -850),
+      edgeBlocked: window.__coastlineTest.buildingBlocked(709.6, 300, .5),
+      bridgeCorridorClear: !window.__coastlineTest.buildingBlocked(0, -715, .5),
     };
   });
   expect(city.boundary.present).toBe(true);
   expect(city.boundary.rocks).toBe(true);
   expect(city.boundary.scrub).toBe(true);
+  expect(city.edgeBlocked).toBe(true);
+  expect(city.bridgeCorridorClear).toBe(true);
   expect(city.start).not.toBeNull();
   expect(city.middle).toBeLessThan(city.start);
   expect(city.end).toBeCloseTo(city.start, 4);
