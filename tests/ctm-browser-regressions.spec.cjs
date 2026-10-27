@@ -314,4 +314,14 @@ test('optimized furnished house GLB loads in the actual Homey house world', asyn
   expect(result.house.root.meshes).toBeGreaterThan(100);
   expect(result.house.optimizedInteriorMeshes).toBeGreaterThan(100);
   expect(result.assetStatus).toBe('Furnished home interior loaded');
+  const movement = await page.evaluate(() => {
+    window.__coastlineTest.setWalkPosition(483, 508.5, 0);
+    const before = window.__coastlineTransitionTest.playerState().position;
+    window.__coastlineTest.keyDown('w');
+    window.__coastlineTest.advanceTestFrame(1 / 60, 20);
+    window.__coastlineTest.keyUp('w');
+    const after = window.__coastlineTransitionTest.playerState().position;
+    return Math.hypot(after.x - before.x, after.z - before.z);
+  });
+  expect(movement, 'player must still move after the furnished GLB replaces procedural furniture').toBeGreaterThan(0.1);
 });
