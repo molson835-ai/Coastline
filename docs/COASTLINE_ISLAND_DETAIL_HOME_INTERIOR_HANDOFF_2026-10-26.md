@@ -184,3 +184,23 @@ User explicitly reversed the imported GLB replacement decision. **Do not load th
 Reviewed the optimized GLB's scene/mesh inventory. It contains clearly separable detail groups for the entry/shoe storage, fitted kitchen (refrigerator, oven, sink/faucet, cabinetry/blinds), dining table/chairs, bedroom wardrobes and bed decor, bathroom fixtures, washer/dryer, office desk/monitor, plants, rugs, window frames/curtains, and decorative lighting. These contents support using it as a reference for a more complete zoned home, not loading its geometry into Coastline.
 
 The procedural interior now adds a compact kitchen island with stools and pendant fixtures, upper cabinetry and repeated cabinet fronts, a distinct bathroom with vanity/mirror/shower/toilet, a stacked washer/dryer utility area, and a small office nook. Existing living room, dining room, bedroom, closet/wardrobe interaction, entry threshold, and movement colliders remain in place. The layout still needs browser/visual acceptance: check that the new bathroom partitions and fixtures don't obstruct the hallway or create visual overlaps, that the entry-to-living route remains clear, and that the wardrobe interaction and return-to-garage transition still work. Treat these additions as initial procedural inspiration, not a claim of full visual parity with the GLB.
+
+
+## Consolidated follow-up — Homey layout, bridge grounding, driveway lamps, City edges (2026-10-27)
+
+- Branch: `feat/homey-home-layout-natural-floor`, based on `main`.
+- **Do not integrate the three-part apartment GLB.** The procedural home interior remains the runtime implementation; GLB chunks must stay out of runtime, itch packaging, and service-worker cache.
+- Approved combined scope:
+  1. Natural hardwood floor with lightweight plank cues; exactly one living-area carpet; enclosed rear-wall closet; clear entry-to-home circulation; retain couch and all existing useful room interactions.
+  2. Correct the active vehicle's Y grounding on the sagging City and Homey bridge decks using the same deck profile as the visible planks; do not globally lower vehicles or alter normal road handling.
+  3. Remove only the six large duplicate Homey driveway lamp posts. Retain the ten small path-light forms and give each its own transform, emissive bulb/practical light, collision, vehicle knock-over behavior, and reset after leaving the area or transitioning indoors.
+  4. Add low-cost instanced rock and tall-scrub scenery at City map edges. The north boundary intentionally leaves the bridge corridor open; existing map bounds remain the collision blocker.
+- Implementation so far:
+  - `coastline-homey-house-interior.js`: natural hardwood material and one line-mesh plank detail; removed dining/bedroom rugs and hall runner; repositioned coffee table and kitchen island; moved wardrobe to a rear-wall enclosed closet; corrected two bedroom wall calls that were missing their thin depth dimension.
+  - `coastline-island-regions.js`: removed the duplicate large driveway posts; replaced instanced small lights with ten individually resettable path lamps and restrained non-shadowing point lights.
+  - `coastline-world-transitions.js`: exported the shared sagging-deck height profile; exposed a bridge-specific vehicle-ground sampler; added City boundary rock/scrub scenery with a north bridge opening; added test diagnostics for bridge height, City boundary, and driveway lamps.
+  - `game-v3.html`: active vehicle grounding now consults the bridge deck sampler before falling back to the normal world ground function.
+  - Tests: updated `tests/homey-garage.spec.mjs` and `tests/coastline-rope-bridge.spec.mjs`; added browser coverage in `tests/ctm-browser-regressions.spec.cjs` for boundary presence, bridge surface/vehicle height, retained small lamps, and transition reset.
+  - Design and implementation plan live under `docs/superpowers/designs/` and `docs/superpowers/plans/` with date 2026-10-27.
+- **Verification status at handoff update:** code and regression changes are committed to the branch; full exact-head CI and browser tests have not yet completed. Do not claim passing until results are inspected. The browser bridge test is still a proxy for visual alignment; a real drive-through and Android visual check are required before final acceptance.
+- Do not merge without explicit user authorization.
