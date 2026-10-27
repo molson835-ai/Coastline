@@ -204,3 +204,14 @@ The procedural interior now adds a compact kitchen island with stools and pendan
   - Design and implementation plan live under `docs/superpowers/designs/` and `docs/superpowers/plans/` with date 2026-10-27.
 - **Verification status:** code at pre-handoff head `81a2e075af313785aa02846fcb362fc612f85c80` passed engine tests, deterministic system tests, graphics-quality guard, Babylon browser validation, packaged HTML5 Chromium smoke test, and the full gameplay Playwright suite. This handoff correction is documentation-only; recheck the PR's current commit checks before merge. Browser assertions verify the shared bridge profile and vehicle-grounding math, but do not replace a visual drive-through. Android visual inspection and a real drive-through remain required before final acceptance.
 - Do not merge without explicit user authorization.
+
+
+## Reconnection checkpoint — 2026-10-27
+
+- PR: [#129 — Improve Homey interior, bridge grounding, driveway lamps, and City boundaries](https://github.com/molson835-ai/Coastline/pull/129).
+- Branch: `feat/homey-home-layout-natural-floor`.
+- Recovery note: during chat reconnection, an attempted source refresh briefly replaced seven changed files with their `main` versions. Those files were restored from the previously verified implementation commit `81a2e075af313785aa02846fcb362fc612f85c80` and recommitted on the PR branch. The PR diff should retain the approved implementation; do not treat the intermediate refresh commit as intended behavior.
+- Latest verification before this note: graphics quality guard passed; Babylon preview validation passed; itch.io HTML package job passed; gameplay browser smoke suite was still running. Recheck the latest head checks after this handoff update.
+- Verified implementation preview for the restored runtime source: https://92fc6a9c-coastline-beta.molson835.workers.dev
+- Still required: inspect final exact-head browser results, verify the newest branch preview deployment, and perform a real bridge drive-through plus Android visual inspection. Desktop CI is not proof of those manual checks.
+- The apartment GLB chunks remain reference-only and must not be loaded, packaged, or cached. Do not merge without explicit user approval.
