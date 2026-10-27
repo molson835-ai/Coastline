@@ -93,7 +93,9 @@ export async function attachOptimizedHomeInterior(THREE, root, placement) {
     const model = gltf.scene;
     const { size } = normalizeInteriorModel(THREE, model, placement);
     hideSupersededProceduralFurniture(root);
+    model.name = 'coastline-optimized-home-interior';
     root.add(model);
+    root.userData.coastlineOptimizedHomeInteriorRoot = model;
     root.userData.coastlineOptimizedHomeInteriorLoaded = true;
     root.userData.coastlineOptimizedHomeInterior = {
       bytes: EXPECTED_BYTES,
