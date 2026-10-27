@@ -110,3 +110,15 @@ test('active island roots expose their authored ground elevation for vehicle pla
   assert.match(transitions, /window\.__coastlineRegionRoot=root/);
   assert.match(game, /root\?\.userData\?\.coastlineGroundY/);
 });
+
+
+test('all island shorelines are irregular and retain their bridge landing points', () => {
+  for (const id of ['downtown', 'residential', 'waterfront', 'port']) {
+    assert.equal(isCoastlineIslandPointInside(500, 500, id), true, id + ' must include its center');
+    assert.equal(isCoastlineIslandPointInside(650, 500, id), false, id + ' must reject points beyond its natural edge');
+  }
+  assert.equal(isCoastlineIslandPointInside(610, 500, 'waterfront'), true, 'east Waterfront bridge landing stays connected');
+  assert.equal(isCoastlineIslandPointInside(390, 500, 'waterfront'), true, 'west Waterfront bridge landing stays connected');
+  assert.equal(isCoastlineIslandPointInside(390, 500, 'port'), true, 'Port bridge landing stays connected');
+  assert.equal(isCoastlineIslandPointInside(500, 390, 'residential'), true, 'Homey bridge landing stays connected');
+});
