@@ -424,22 +424,6 @@ export function createCoastlineIslandRoot({ THREE, region, groundY = () => 0, ad
     }
     // Individual driveway lanterns can fall on impact and reset after leaving the area.
     const drivewayLights = [];
-    const drivewayLightMetal = material(0x343c3d,.58,.35);
-    const drivewayLightGlow = new THREE.MeshStandardMaterial({color:0xffe2a3,emissive:0xffc46a,emissiveIntensity:1.35,roughness:.32});
-    for (let row = 0; row < 5; row++) for (const side of [-1, 1]) {
-      const x = center.x - 17 + side * 5.5, z = center.z - 17 - row * 7.5;
-      const group = new THREE.Group(); group.name = `coastline-homey-driveway-small-lamp-${side}-${row}`;
-      const post = new THREE.Mesh(new THREE.CylinderGeometry(.055,.085,1.42,6),drivewayLightMetal); post.position.y=.72; group.add(post);
-      const bulb = new THREE.Mesh(new THREE.SphereGeometry(.19,6,5),drivewayLightGlow); bulb.position.y=1.48; group.add(bulb);
-      const cap = new THREE.Mesh(new THREE.CylinderGeometry(.16,.19,.09,6),drivewayLightMetal); cap.position.y=1.61; group.add(cap);
-      const base = new THREE.Mesh(new THREE.CylinderGeometry(.19,.23,.12,8),drivewayLightMetal); base.position.y=.06; group.add(base);
-      group.position.set(x,edgeY,z); group.traverse(node=>{if(node.isMesh){node.castShadow=false;node.receiveShadow=true}}); root.add(group);
-      drivewayLights.push({group,x,z,baseY:edgeY,fallen:false,radius:.42,
-        fall(){if(this.fallen)return;this.fallen=true;this.group.rotation.z=side<0?-Math.PI/2:Math.PI/2;this.group.position.y=this.baseY-.42;},
-        reset(){this.fallen=false;this.group.rotation.set(0,0,0);this.group.position.y=this.baseY;},
-      });
-    }
-    root.userData.coastlineHomeyDrivewayLights = drivewayLights;
     // Large coastal rocks frame the perimeter while leaving both bridge landings open.
     const rockAngles = Array.from({ length: 16 }, (_, i) => i * Math.PI * 2 / 16)
       .filter(angle => Math.abs(angle) > 0.34 && Math.abs(Math.abs(angle) - Math.PI / 2) > 0.34);
@@ -485,7 +469,38 @@ export function createCoastlineIslandRoot({ THREE, region, groundY = () => 0, ad
     flowers.castShadow = false;
     root.add(bushes, flowers);
 
-    // Functional individual small driveway lamps replace the former static duplicates.
+    // Keep the small path-light design only, but give every lamp its own transform so it can be tipped and reset.
+    const lampPostMat = material(0x393c3a, 0.72, 0.18);
+    const lampGlowMat = new THREE.MeshStandardMaterial({ color: 0xffdf9b, emissive: 0xffbd63, emissiveIntensity: 1.35, roughness: 0.4 });
+    const lampBaseMat = material(0x343c3d, 0.7, 0.18);
+    for (let i = 0; i < 5; i++) {
+      for (const side of [-1, 1]) {
+        const index = i * 2 + (side === 1 ? 1 : 0);
+        const x = center.x - 17 + side * 5.5;
+        const z = center.z - 17 - i * 7.5;
+        const group = new THREE.Group();
+        group.name = `coastline-villa-path-light-${index + 1}`;
+        const base = new THREE.Mesh(new THREE.CylinderGeometry(.17, .2, .12, 8), lampBaseMat);
+        base.position.y = .06; group.add(base);
+        const post = new THREE.Mesh(new THREE.CylinderGeometry(.075, .11, 1.3, 6), lampPostMat);
+        post.position.y = .72; group.add(post);
+        const bulb = new THREE.Mesh(new THREE.SphereGeometry(.19, 6, 5), lampGlowMat);
+        bulb.position.set(0, 1.43, 0); group.add(bulb);
+        const cap = new THREE.Mesh(new THREE.CylinderGeometry(.18, .2, .08, 6), lampBaseMat);
+        cap.position.y = 1.61; group.add(cap);
+        const practical = new THREE.PointLight(0xffd28a, .28, 5.5, 2);
+        practical.position.set(0, 1.35, 0); group.add(practical);
+        group.position.set(x, edgeY, z);
+        group.traverse(node => { if (node.isMesh) { node.castShadow = false; node.receiveShadow = true; } });
+        root.add(group);
+        drivewayLights.push({
+          group, x, z, baseY: edgeY, fallen: false,
+          fall() { if (this.fallen) return; this.fallen = true; this.group.rotation.z = side < 0 ? -Math.PI / 2 : Math.PI / 2; },
+          reset() { this.fallen = false; this.group.rotation.set(0, 0, 0); this.group.position.y = this.baseY; },
+        });
+      }
+    }
+    root.userData.coastlineHomeyDrivewayLights = drivewayLights;
     // The garden is deliberately modest so the mobile scene remains inexpensive.
     addBox('coastline-residential-park', center.x + 42, edgeY + 0.03, center.z - 51, 24, 0.08, 18, lawn, false, false);
   } else if (region.theme === 'resort-marina') {

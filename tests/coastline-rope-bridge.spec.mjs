@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { COASTLINE_ROPE_BRIDGE_CONFIG, coastlineBridgeDeckHeight } from '../coastline-world-transitions.js';
+import { COASTLINE_ROPE_BRIDGE_CONFIG, coastlineRopeBridgeDeckY } from '../coastline-world-transitions.js';
 import { COASTLINE_ISLAND_ELEVATION, COASTLINE_ISLAND_WATER_DROP } from '../coastline-island-regions.js';
 
 test('CTM bridges are configured as narrow single-lane rope bridges', () => {
@@ -34,9 +34,23 @@ test('island top surfaces use upward-facing geometry and city water sits below t
     'city waterline must sit below the lowest bridge plank');
 });
 
-test('bridge deck height helper matches the sagged plank-top profile', () => {
-  const baseY = 3;
-  assert.ok(Math.abs(coastlineBridgeDeckHeight(baseY, 0) - 3.105) < 1e-9);
-  assert.ok(Math.abs(coastlineBridgeDeckHeight(baseY, .5) - (3.105 - COASTLINE_ROPE_BRIDGE_CONFIG.deckSag)) < 1e-9);
-  assert.ok(Math.abs(coastlineBridgeDeckHeight(baseY, 1) - 3.105) < 1e-9);
+
+test('vehicle bridge surface follows the same sag profile as the visible plank deck', () => {
+  const base = 3.04;
+  assert.ok(Math.abs(coastlineRopeBridgeDeckY(base, 0) - (base + .02)) < 1e-9);
+  assert.ok(Math.abs(coastlineRopeBridgeDeckY(base, 1) - (base + .02)) < 1e-9);
+  assert.ok(Math.abs(coastlineRopeBridgeDeckY(base, .5) - (base + .02 - COASTLINE_ROPE_BRIDGE_CONFIG.deckSag)) < 1e-9);
+  assert.ok(coastlineRopeBridgeDeckY(base, .5) < coastlineRopeBridgeDeckY(base, .1));
+});
+
+test('City boundary scenery leaves the north bridge corridor open and vehicle grounding is bridge-aware', async () => {
+  const fs = await import('node:fs/promises');
+  const transitions = await fs.readFile(new URL('../coastline-world-transitions.js', import.meta.url), 'utf8');
+  const game = await fs.readFile(new URL('../game-v3.html', import.meta.url), 'utf8');
+  assert.match(transitions, /coastline-city-map-edge-boundary/);
+  assert.match(transitions, /p\.edge==='north'&&Math\.abs\(p\.x\)<=13/);
+  assert.match(transitions, /window\.__coastlineBridgeGroundY=bridgeGroundY/);
+  assert.match(game, /function vehicleGroundY\(x,z\)/);
+  assert.match(game, /vehicleGroundY\(v\.x,v\.z\)/);
+  assert.ok(game.includes('Math.abs(x)+r>=710||Math.abs(z)+r>=710'));
 });

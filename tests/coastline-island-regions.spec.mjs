@@ -60,13 +60,3 @@ test('all islands use developed-quality scenery while retaining bounded populati
     assert.ok(region.visual.vegetation && region.visual.vegetation.length > 0);
   }
 });
-
-test('Homey driveway keeps individually interactive small lamps and removes duplicate large posts', async () => {
-  const fs = await import('node:fs/promises');
-  const source = await fs.readFile(new URL('../coastline-island-regions.js', import.meta.url), 'utf8');
-  assert.match(source, /coastline-homey-driveway-small-lamp-/);
-  assert.match(source, /radius:\.42/);
-  assert.match(source, /fall\(\)\{if\(this\.fallen\)return/);
-  assert.match(source, /reset\(\)\{this\.fallen=false/);
-  assert.doesNotMatch(source, /coastline-villa-path-light-posts/);
-});

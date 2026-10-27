@@ -59,7 +59,12 @@ test('garage collision props expose resettable tire and wrench interactions', ()
   assert.match(islandSource, /coastline-residential-backshore-beachgrass/);
   assert.match(islandSource, /coastline-residential-backshore-bayberry/);
   assert.match(islandSource, /coastline-residential-backshore-driftwood/);
-  assert.match(islandSource, /coastline-homey-driveway-light/);
+  assert.ok(islandSource.includes('coastline-villa-path-light-${'));
+  assert.ok(islandSource.includes('root.userData.coastlineHomeyDrivewayLights = drivewayLights'));
+  assert.ok(islandSource.includes('new THREE.PointLight(0xffd28a, .28, 5.5, 2)'));
+  assert.ok(islandSource.includes('fall() { if (this.fallen) return; this.fallen = true'));
+  assert.ok(islandSource.includes('reset() { this.fallen = false'));
+  assert.equal(islandSource.includes('coastline-homey-driveway-light'), false);
 });
 
 test('paint palette offers distinct, named finishes without touching non-paint vehicle roles', () => {
@@ -119,14 +124,22 @@ test('procedural Homey interior includes GLB-inspired functional room zoning', a
   assert.match(interior, /zones: \['entry', 'living', 'dining', 'kitchen', 'hall', 'bathroom', 'laundry', 'office', 'bedroom', 'closet'\]/);
 });
 
-test('Homey house uses one living carpet, hardwood seams, a rear-wall closet, and corrected bedroom doorway walls', () => {
-  const source = readFileSync(new URL('../coastline-homey-house-interior.js', import.meta.url), 'utf8');
-  assert.match(source, /house-hardwood-plank-seams/);
-  assert.match(source, /house-living-room-rug/);
-  assert.doesNotMatch(source, /house-dining-rug|house-bedroom-rug|house-hall-runner/);
-  assert.match(source, /house-closet-side-left/);
-  assert.match(source, /house-closet-door-handle-left/);
-  assert.match(source, /house-bedroom-wall-front-left/);
-  assert.match(source, /house-sofa-base/);
-  assert.match(source, /house-coffee-table-top', centerX - 2\.2/);
+
+test('Homey house layout has hardwood, one living carpet, a clear route, and an enclosed rear closet', () => {
+  const interior = readFileSync(new URL('../coastline-homey-house-interior.js', import.meta.url), 'utf8');
+  assert.match(interior, /floor = mat\(0x9b7a54, \.9\)/);
+  assert.match(interior, /house-hardwood-plank-seams/);
+  assert.equal((interior.match(/house-living-room-rug/g) || []).length, 1);
+  assert.doesNotMatch(interior, /house-dining-rug|house-bedroom-rug|house-hall-runner/);
+  assert.match(interior, /house-bedroom-wall-left', centerX \+ 1\.2, floorY \+ 2\.65, centerZ - 8\.9, \.3, 5\.3, 26/);
+  assert.match(interior, /house-bedroom-wall-front-left/);
+  assert.match(interior, /house-bedroom-wall-front-right/);
+  assert.match(interior, /house-closet-back/);
+  assert.match(interior, /house-closet-side-left/);
+  assert.match(interior, /house-closet-side-right/);
+  assert.match(interior, /house-closet-door-left/);
+  assert.match(interior, /house-closet-door-right/);
+  assert.match(interior, /house-coffee-table-top', centerX - 2\.55/);
+  assert.match(interior, /house-sofa-base/);
+  assert.match(interior, /wardrobe: \{ id: 'wardrobe', x: centerX \+ 3\.45, z: centerZ - 6\.8/);
 });
