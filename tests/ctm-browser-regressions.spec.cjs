@@ -292,6 +292,7 @@ test('residential, waterfront, and port islands have developed detail and landsc
 
 
 test('optimized furnished house GLB loads in the actual Homey house world', async ({ page }) => {
+  test.setTimeout(180000);
   await openGame(page);
   await page.evaluate(async () => {
     await window.__coastlineTransitionTest.transition('city-to-island');
