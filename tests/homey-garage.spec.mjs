@@ -146,3 +146,9 @@ test('Homey house layout has hardwood, one living carpet, a clear route, and an 
   assert.match(interior, /house-sofa-base/);
   assert.match(interior, /wardrobe: \{ id: 'wardrobe', x: centerX \+ 3\.45, z: centerZ - 6\.8/);
 });
+
+test('walking collision is limited to vehicles actually parented in the Homey garage', () => {
+  const game = readFileSync(new URL('../game-v3.html', import.meta.url), 'utf8');
+  assert.match(game, /v\.g\?\.parent===window\.__coastlineGarageRoot/);
+  assert.match(game, /vehicles\.some\(v=>v!==player\.vehicle&&v\.g\?\.visible!==false/);
+});
