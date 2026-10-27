@@ -312,5 +312,6 @@ test('optimized furnished house GLB loads in the actual Homey house world', asyn
   }));
   expect(result.house.optimizedInteriorLoaded, result.house.optimizedInteriorError || result.assetStatus || 'furnished GLB did not load').toBe(true);
   expect(result.house.root.meshes).toBeGreaterThan(100);
+  expect(result.house.optimizedInteriorMeshes).toBeGreaterThan(100);
   expect(result.assetStatus).toBe('Furnished home interior loaded');
 });
