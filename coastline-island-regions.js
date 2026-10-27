@@ -183,10 +183,10 @@ export function createCoastlineIslandRoot({ THREE, region, groundY = () => 0, ad
   const center = { x: 500, z: 500 };
   const half = region.bounds.halfWidth;
   const edgeY = Number.isFinite(groundY(center.x, center.z)) ? groundY(center.x, center.z) : 0;
-  root.userData.coastlineGroundY = edgeY;
-  root.userData.coastlineRegionId = region.id;
   const root = new THREE.Group();
   root.name = `coastline-island-${region.id}-root`;
+  root.userData.coastlineGroundY = edgeY;
+  root.userData.coastlineRegionId = region.id;
   const colliders = [];
   root.userData.coastlineColliders = colliders;
 
@@ -203,7 +203,7 @@ export function createCoastlineIslandRoot({ THREE, region, groundY = () => 0, ad
     const shallowChannel = new THREE.Mesh(new THREE.PlaneGeometry(36, 36), shallowMat);
     shallowChannel.name = 'coastline-waterfront-shallow-water-secret-path';
     shallowChannel.rotation.x = -Math.PI / 2;
-    shallowChannel.position.set(620, edgeY - .16, 540);
+    shallowChannel.position.set(620, edgeY - .16, 540); // raised tidal shelf: foot route, not a drivable vehicle surface
     shallowChannel.receiveShadow = false;
     root.add(shallowChannel);
     const depthBands = [
