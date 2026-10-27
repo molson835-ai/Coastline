@@ -70,6 +70,9 @@ function normalizeInteriorModel(THREE, model, { centerX, centerZ, floorY }) {
 }
 
 function hideSupersededProceduralFurniture(root) {
+  // Remove collision footprints for hidden procedural furniture; retain only the visible shell/entry boundaries.
+  const structuralCollision = /^(house-left-wall|house-right-wall|house-back-wall|house-entry-wall-left|house-entry-wall-right)$/;
+  root.userData.coastlineColliders = (root.userData.coastlineColliders || []).filter(collider => structuralCollision.test(collider.name));
   const keepPrefixes = [
     'house-interior-floor', 'house-left-wall', 'house-right-wall', 'house-back-wall',
     'house-entry-', 'house-ceiling', 'house-window-'
