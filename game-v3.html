@@ -636,7 +636,7 @@ function coastlineCameraSafeDesired(target,yaw,normalDistance,normalHeight){
       if(!hit.object?.visible || coastlineCameraIgnored(hit.object)) continue;
       if(hit.distance>0.2 && hit.distance<nearest) nearest=hit.distance;
     }
-    coastlineCameraSafeRatio=Number.isFinite(nearest)?THREE.MathUtils.clamp((nearest-0.38)/wantedDistance,1.65/wantedDistance,1):1;
+    coastlineCameraSafeRatio=Number.isFinite(nearest)?THREE.MathUtils.clamp((nearest-0.38)/wantedDistance,0.65/wantedDistance,1):1;
     coastlineCameraLastRayAt=now;
   }
   if(coastlineCameraSafeRatio<1){
