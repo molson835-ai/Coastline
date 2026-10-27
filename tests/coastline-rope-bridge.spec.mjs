@@ -64,4 +64,5 @@ test('bridge edge contact clamps only the lateral coordinate and preserves forwa
   assert.match(transitions, /THREE\.MathUtils\.clamp\(z,ISLAND_CENTER\.z-lane,ISLAND_CENTER\.z\+lane\)/);
   assert.match(game, /bridgeClamped=window\.__coastlineClampBridgePosition\?\.\(rawNX,rawNZ,bridgeRadius\)/);
   assert.match(game, /const radius=bridgeRadius/);
+  assert.match(game, /player\.mode==='walk'&&window\.__coastlineBridgeSideBlocked\?\.\(x,z,Math\.min\(r,\.55\)\)/);
 });
