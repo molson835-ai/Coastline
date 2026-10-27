@@ -104,9 +104,17 @@ test('Homey house uses the regular procedural interior, not the experimental GLB
   const transitions = readFileSync(new URL('../coastline-world-transitions.js', import.meta.url), 'utf8');
   const build = readFileSync(new URL('../scripts/build-itch.mjs', import.meta.url), 'utf8');
   const sw = readFileSync(new URL('../coastline-sw.js', import.meta.url), 'utf8');
-  assert.match(transitions, /import \\{ buildHomeyHouseInterior \\} from '\\.\\/coastline-homey-house-interior\\.js'/);
-  assert.match(transitions, /const createHouseRoot=\\(\\)=>buildHomeyHouseInterior\\(THREE,/);
+  assert.ok(transitions.includes("import { buildHomeyHouseInterior } from './coastline-homey-house-interior.js'"));
+  assert.ok(transitions.includes('const createHouseRoot=()=>buildHomeyHouseInterior(THREE,'));
   assert.doesNotMatch(transitions, /attachOptimizedHomeInterior|coastline-homey-glb-loader/);
   assert.doesNotMatch(build, /coastline-homey-glb-loader|coastline_home_interior_part_/);
   assert.doesNotMatch(sw, /coastline-homey-glb-loader|coastline_home_interior_part_/);
+});
+
+
+test('procedural Homey interior includes GLB-inspired functional room zoning', async () => {
+  const { readFileSync } = await import('node:fs');
+  const interior = readFileSync(new URL('../coastline-homey-house-interior.js', import.meta.url), 'utf8');
+  for (const feature of ['house-kitchen-island-base','house-kitchen-upper-cabinet-','house-bathroom-vanity','house-bathroom-shower-tray','house-laundry-washer','house-office-desk','house-bedroom-bed-base','house-closet-rail']) assert.ok(interior.includes(feature), 'missing interior feature: ' + feature);
+  assert.match(interior, /zones: \['entry', 'living', 'dining', 'kitchen', 'hall', 'bedroom', 'closet'\]/);
 });
