@@ -183,6 +183,8 @@ export function createCoastlineIslandRoot({ THREE, region, groundY = () => 0, ad
   const center = { x: 500, z: 500 };
   const half = region.bounds.halfWidth;
   const edgeY = Number.isFinite(groundY(center.x, center.z)) ? groundY(center.x, center.z) : 0;
+  root.userData.coastlineGroundY = edgeY;
+  root.userData.coastlineRegionId = region.id;
   const root = new THREE.Group();
   root.name = `coastline-island-${region.id}-root`;
   const colliders = [];
@@ -753,10 +755,10 @@ export function createCoastlineIslandRoot({ THREE, region, groundY = () => 0, ad
     // Keep a recognizable temporary attendant; runtime can replace this group with the approved GLB when its loader is ready.
     const vendor = new THREE.Group(); vendor.name = 'coastline-electric-lemonade-vendor';
     const skin = material(0xb98260, .92), shirt = material(0xd8e7dc, .9), trousers = material(0x344a5b, .9);
-    const torso = new THREE.Mesh(new THREE.CapsuleGeometry(.34, .7, 3, 7), shirt); torso.position.set(standX, edgeY + 1.55, standZ - .48); vendor.add(torso);
-    const head = new THREE.Mesh(new THREE.SphereGeometry(.27, 10, 8), skin); head.position.set(standX, edgeY + 2.25, standZ - .48); vendor.add(head);
-    for (const dx of [-.17, .17]) { const leg = new THREE.Mesh(new THREE.CylinderGeometry(.11, .12, .68, 7), trousers); leg.position.set(standX + dx, edgeY + .68, standZ - .48); vendor.add(leg); }
-    for (const dx of [-.42, .42]) { const arm = new THREE.Mesh(new THREE.CylinderGeometry(.09, .1, .62, 7), shirt); arm.position.set(standX + dx, edgeY + 1.62, standZ - .4); arm.rotation.z = dx < 0 ? -.28 : .28; vendor.add(arm); }
+    const torso = new THREE.Mesh(new THREE.CapsuleGeometry(.34, .7, 3, 7), shirt); torso.position.set(standX, edgeY + 1.55, standZ - 1.2); vendor.add(torso);
+    const head = new THREE.Mesh(new THREE.SphereGeometry(.27, 10, 8), skin); head.position.set(standX, edgeY + 2.25, standZ - 1.2); vendor.add(head);
+    for (const dx of [-.17, .17]) { const leg = new THREE.Mesh(new THREE.CylinderGeometry(.11, .12, .68, 7), trousers); leg.position.set(standX + dx, edgeY + .68, standZ - 1.2); vendor.add(leg); }
+    for (const dx of [-.42, .42]) { const arm = new THREE.Mesh(new THREE.CylinderGeometry(.09, .1, .62, 7), shirt); arm.position.set(standX + dx, edgeY + 1.62, standZ - 1.12); arm.rotation.z = dx < 0 ? -.28 : .28; vendor.add(arm); }
     stand.add(vendor); root.add(stand);
     colliders.push({ name: 'coastline-electric-lemonade-counter', x: standX, z: standZ, w: 4.7, d: 1.5 });
     // A low, broad mountain silhouette surrounds the cave; the cave mouth remains an open corridor.
