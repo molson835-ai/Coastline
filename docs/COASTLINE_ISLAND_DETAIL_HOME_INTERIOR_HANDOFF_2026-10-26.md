@@ -118,3 +118,14 @@ User approved exploring a full GLB apartment interior instead of continuing to b
 - When the furnished model replaces procedural furniture, stale hidden furniture collision footprints are removed while visible shell/entry wall colliders remain.
 - Added a browser regression that actually transitions into Homey House, waits for the reconstructed GLB to load or fail, asserts that the GLB contributes over 100 meshes and reports successful loading, and confirms the player can still move afterward. The test allows up to 180 seconds for the 45 MiB asset and browser parse.
 - Code-under-test commit: `0ebbfcbe4a51b28878205545bc9e8911bf595798`. At handoff time, graphics guard passed; Babylon preview validation and itch HTML package were running; gameplay watchdog was queued/pending. Do not treat browser acceptance as passed until the exact-head workflow results finish. PR #128 remains open and unmerged.
+
+
+## Follow-up: user visual acceptance failed — furnished interior scale/replacement (2026-10-27)
+
+User reported that entering Homey House showed a tiny trailer-shaped apartment nested inside the original house. Treat the prior visual acceptance as failed; asset integrity or mesh-count tests do not prove the interior fits.
+
+- Replaced the fixed 0.96 model scale with bounds-based fitting to the existing interior envelope (17.4 × 5.05 × 25.2 world units) after rotation, then recenters the model and aligns its lowest bound to the house floor.
+- Changed the takeover step to hide every procedural house-* visual, including the old floor, walls, ceiling, windows and furniture, so the imported interior no longer appears inside the original procedural room. Retain the perimeter collision envelope for movement safety.
+- Added regression assertions for envelope fitting and hiding the superseded procedural visuals. Also repaired malformed literal escaped newlines in tests/homey-garage.spec.mjs that made the engine-test file fail to parse.
+- Runtime loader fix commit: 407d8556640d7be09ae1d363059daadc4c5b6f36; test fix commit: 033eeda92e187cb8ef8b07a0e40e31165389bd46.
+- Still required before acceptance: exact-head browser test must confirm the reconstructed GLB loads; visual inspection must confirm room-scale appearance, floor/door alignment, usable navigation, and no overlap. Visual distortion from per-axis fitting must be inspected. Android memory/frame pacing and model furniture collision are still not verified. PR #128 remains open/unmerged.
