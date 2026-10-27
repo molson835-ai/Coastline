@@ -332,7 +332,7 @@ test('City boundary scenery, bridge grounding, and functional small Homey lamps 
       middle: api.bridgeSurfaceY(0, -800),
       end: api.bridgeSurfaceY(0, -850),
       edgeBlocked: window.__coastlineTest.buildingBlocked(709.6, 300, .5),
-      bridgeCorridorClear: !window.__coastlineTest.buildingBlocked(0, -715, .5),
+      bridgeCorridorClear: !window.__coastlineTest.buildingBlocked(0, -709, .5),
     };
   });
   expect(city.boundary.present).toBe(true);
