@@ -20,22 +20,22 @@ function report(message) {
 }
 
 async function fetchAndReconstructGlb() {
-  const chunks = await Promise.all(PARTS.map(async part => {
+  // Assemble sequentially into one target buffer to limit peak mobile memory.
+  const bytes = new Uint8Array(EXPECTED_BYTES);
+  let offset = 0;
+  for (const part of PARTS) {
     const response = await fetch(part.url, { cache: 'no-store' });
     if (!response.ok) throw new Error('Asset chunk request failed (' + response.status + '): ' + part.url);
     const data = await response.arrayBuffer();
     if (data.byteLength !== part.bytes) throw new Error('Asset chunk length mismatch: ' + part.url + ' (' + data.byteLength + ' bytes)');
-    return data;
-  }));
-  const total = chunks.reduce((sum, chunk) => sum + chunk.byteLength, 0);
-  if (total !== EXPECTED_BYTES) throw new Error('Reconstructed GLB size mismatch: ' + total);
-  const bytes = new Uint8Array(total);
-  let offset = 0;
-  for (const chunk of chunks) {
-    bytes.set(new Uint8Array(chunk), offset);
-    offset += chunk.byteLength;
+    bytes.set(new Uint8Array(data), offset);
+    offset += data.byteLength;
   }
-  const digest = await crypto.subtle.digest('SHA-256', bytes.buffer);\n  const sha256 = Array.from(new Uint8Array(digest), value => value.toString(16).padStart(2, '0')).join('');\n  if (sha256 !== EXPECTED_SHA256) throw new Error('Reconstructed house GLB checksum mismatch; refusing to display incomplete/corrupt asset');\n  const view = new DataView(bytes.buffer);
+  if (offset !== EXPECTED_BYTES) throw new Error('Reconstructed GLB size mismatch: ' + offset);
+  const digest = await crypto.subtle.digest('SHA-256', bytes.buffer);
+  const sha256 = Array.from(new Uint8Array(digest), value => value.toString(16).padStart(2, '0')).join('');
+  if (sha256 !== EXPECTED_SHA256) throw new Error('Reconstructed house GLB checksum mismatch; refusing to display incomplete/corrupt asset');
+  const view = new DataView(bytes.buffer);
   if (view.getUint32(0, true) !== 0x46546c67 || view.getUint32(4, true) !== 2 || view.getUint32(8, true) !== EXPECTED_BYTES) {
     throw new Error('Reconstructed asset is not a valid GLB v2 file');
   }
