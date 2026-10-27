@@ -212,7 +212,7 @@ export function buildHomeyHouseInterior(THREE, { centerX = 483, centerZ = 500, f
   root.userData.coastlineInteractionPoints = interactions;
   root.userData.coastlineHouseContract = {
     id: 'home-interior', threshold: { x: centerX, z: centerZ + 13, halfWidth: 1.8 }, returnToGarage: { x: centerX, z: centerZ + 10.5 },
-    zones: ['entry', 'living', 'dining', 'kitchen', 'hall', 'bedroom', 'closet'],
+    zones: ['entry', 'living', 'dining', 'kitchen', 'hall', 'bathroom', 'laundry', 'office', 'bedroom', 'closet'],
     wardrobe: { id: 'wardrobe', x: centerX + 7.4, z: centerZ - 5.45, radius: 2.2, clothingColors: ['#263f68', '#9c3f42', '#4e7659', '#c08c48', '#66547f', '#e1e0d9'] },
   };
   installHomeyWardrobeRuntime();
