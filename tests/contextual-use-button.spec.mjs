@@ -8,22 +8,37 @@ test('touch Use button appears only for an eligible nearby interaction', async (
   const result = await page.evaluate(() => {
     const test = window.__coastlineTest;
     const originalWorld = window.__coastlineActiveWorldId;
+    const action = document.querySelector('#actionButton');
     window.__coastlineActiveWorldId = 'city';
     test.setWalkPosition(700, 700, 0);
     test.refreshActionPrompt();
     const farAway = test.actionButtonVisible();
+    const hiddenFarAway = action.hidden;
     const parked = test.parkedCarPositions()[0];
     if (!parked) throw new Error('Expected at least one parked car for interaction-range test');
     test.setWalkPosition(parked.x, parked.z, 0);
     test.refreshActionPrompt();
     const nearVehicle = test.actionButtonVisible();
+    const visibleNearVehicle = !action.hidden;
     window.__coastlineActiveWorldId = 'island';
     test.setWalkPosition(500, 500, 0);
     test.refreshActionPrompt();
     const inactiveCityObjectsIgnored = test.actionButtonVisible();
+    const hiddenOutsideCity = action.hidden;
     window.__coastlineActiveWorldId = originalWorld;
-    return { farAway, nearVehicle, inactiveCityObjectsIgnored };
+    test.setWalkPosition(parked.x, parked.z, 0);
+    test.refreshActionPrompt();
+    const visibleAfterRestore = test.actionButtonVisible();
+    return { farAway, hiddenFarAway, nearVehicle, visibleNearVehicle, inactiveCityObjectsIgnored, hiddenOutsideCity, visibleAfterRestore };
   });
   await expect(button).toBeVisible();
-  expect(result).toEqual({ farAway: false, nearVehicle: true, inactiveCityObjectsIgnored: false });
+  expect(result).toEqual({
+    farAway: false,
+    hiddenFarAway: true,
+    nearVehicle: true,
+    visibleNearVehicle: true,
+    inactiveCityObjectsIgnored: false,
+    hiddenOutsideCity: true,
+    visibleAfterRestore: true,
+  });
 });
