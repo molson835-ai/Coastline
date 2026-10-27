@@ -31,7 +31,7 @@ export function buildHomeyHouseInterior(THREE, { centerX = 483, centerZ = 500, f
   };
   const addInteraction = (id, label, x, z, radius, extra = {}) => interactions.push({ id, label, x, z, radius, ...extra });
   const addWindow = (side, z, width = 2.6) => {
-    const x = centerX + (side === 'left' ? -8.78 : 8.78);
+    const x = centerX + (side === 'left' ? -10.78 : 10.78);
     addBox(`house-window-frame-${side}-${z}`, x, floorY + 3.05, centerZ + z, .1, 1.9, width + .3, trim);
     addBox(`house-window-glass-${side}-${z}`, x + (side === 'left' ? .07 : -.07), floorY + 3.05, centerZ + z, .06, 1.62, width, glass);
     addBox(`house-window-sill-${side}-${z}`, x + (side === 'left' ? .16 : -.16), floorY + 2.08, centerZ + z, .38, .08, width + .15, white);
@@ -45,27 +45,27 @@ export function buildHomeyHouseInterior(THREE, { centerX = 483, centerZ = 500, f
     addBox(`${name}-handle`, x + width / 2 - .35, floorY + 2.05, z + .16, .08, .28, .08, brass);
   };
 
-  addBox('house-interior-floor', centerX, floorY - .08, centerZ, 18, .16, 26, floor);
+  addBox('house-interior-floor', centerX, floorY - .08, centerZ, 22, .16, 26, floor);
   // A single lightweight line mesh gives the natural hardwood a staggered-plank finish.
   const plankLines = [];
-  for (let i = 1; i < 18; i++) { const x = centerX - 9 + i; plankLines.push(x, floorY + .004, centerZ - 12.85, x, floorY + .004, centerZ + 12.85); }
-  for (let row = 0; row < 8; row++) { const z = centerZ - 11.3 + row * 3.2; const offset = row % 2 ? 0 : .5; for (let col = 0; col < 4; col++) { const x = centerX - 8.5 + col * 4.5 + offset; plankLines.push(x, floorY + .004, z, Math.min(centerX + 8.8, x + 2.2), floorY + .004, z); } }
+  for (let i = 1; i < 22; i++) { const x = centerX - 11 + i; plankLines.push(x, floorY + .004, centerZ - 12.85, x, floorY + .004, centerZ + 12.85); }
+  for (let row = 0; row < 8; row++) { const z = centerZ - 11.3 + row * 3.2; const offset = row % 2 ? 0 : .5; for (let col = 0; col < 5; col++) { const x = centerX - 10.5 + col * 4.2 + offset; plankLines.push(x, floorY + .004, z, Math.min(centerX + 8.8, x + 2.2), floorY + .004, z); } }
   const plankGeometry = new THREE.BufferGeometry(); plankGeometry.setAttribute('position', new THREE.Float32BufferAttribute(plankLines, 3));
   const plankSeams = new THREE.LineSegments(plankGeometry, new THREE.LineBasicMaterial({ color: 0x715338, transparent: true, opacity: .48 }));
   plankSeams.name = 'house-hardwood-plank-seams'; root.add(plankSeams);
-  addBox('house-left-wall', centerX - 9, floorY + 2.65, centerZ, .3, 5.3, 26, wall, true);
-  addBox('house-right-wall', centerX + 9, floorY + 2.65, centerZ, .3, 5.3, 26, wall, true);
-  addBox('house-back-wall', centerX, floorY + 2.65, centerZ - 13, 18, 5.3, .3, wall, true);
+  addBox('house-left-wall', centerX - 11, floorY + 2.65, centerZ, .3, 5.3, 26, wall, true);
+  addBox('house-right-wall', centerX + 11, floorY + 2.65, centerZ, .3, 5.3, 26, wall, true);
+  addBox('house-back-wall', centerX, floorY + 2.65, centerZ - 13, 22, 5.3, .3, wall, true);
 
-  addBox('house-entry-wall-left', centerX - 5.45, floorY + 2.65, centerZ + 13, 7.1, 5.3, .3, wall, true);
-  addBox('house-entry-wall-right', centerX + 5.45, floorY + 2.65, centerZ + 13, 7.1, 5.3, .3, wall, true);
+  addBox('house-entry-wall-left', centerX - 6.45, floorY + 2.65, centerZ + 13, 9.1, 5.3, .3, wall, true);
+  addBox('house-entry-wall-right', centerX + 6.45, floorY + 2.65, centerZ + 13, 9.1, 5.3, .3, wall, true);
   addBox('house-entry-lintel', centerX, floorY + 4.75, centerZ + 13, 3.8, 1.1, .3, wall);
   addBox('house-entry-jamb-left', centerX - 1.9, floorY + 2.1, centerZ + 12.82, .15, 4.2, .18, wood);
   addBox('house-entry-jamb-right', centerX + 1.9, floorY + 2.1, centerZ + 12.82, .15, 4.2, .18, wood);
   const openDoor = addBox('house-entry-open-door', centerX + 1.72, floorY + 2.05, centerZ + 13, 3.2, 4.05, .12, wood); openDoor.rotation.y = Math.PI / 2;
   addBox('house-entry-handle', centerX + 1.75, floorY + 2, centerZ + 14.25, .07, .28, .07, brass);
   addBox('house-entry-threshold', centerX, floorY + .04, centerZ + 12.82, 3.8, .08, .5, trim);
-  addBox('house-ceiling', centerX, floorY + 5.35, centerZ, 18, .2, 26, mat(0xbab6aa));
+  addBox('house-ceiling', centerX, floorY + 5.35, centerZ, 22, .2, 26, mat(0xbab6aa));
   addBox('house-ceiling-light-main', centerX, floorY + 5.18, centerZ - 1, 3.4, .08, 1.2, warmLight);
   addBox('house-ceiling-light-hall', centerX, floorY + 5.18, centerZ + 4.8, 1.7, .08, .55, warmLight);
 
