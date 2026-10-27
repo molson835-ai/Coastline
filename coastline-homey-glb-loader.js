@@ -41,9 +41,9 @@ async function fetchAndReconstructGlb() {
 }
 
 function normalizeInteriorModel(THREE, model, { centerX, centerZ, floorY }) {
-  // Fit the imported interior to the actual house envelope. The old fixed scale
-  // left a tiny narrow apartment inside the original room. Size the imported
-  // interior to the existing room footprint and ceiling height, then align it.
+  // Keep the asset's proportions. This is a replacement interior world, not a
+  // room insert: choose a realistic overall house footprint from the model's
+  // own bounds, rather than stretching it to match the old procedural room.
   model.rotation.y = Math.PI / 2;
   model.scale.set(1, 1, 1);
   model.updateMatrixWorld(true);
@@ -52,8 +52,12 @@ function normalizeInteriorModel(THREE, model, { centerX, centerZ, floorY }) {
   if (!Number.isFinite(sourceSize.x + sourceSize.y + sourceSize.z) || sourceSize.x < 1 || sourceSize.z < 1 || sourceSize.y < 0.5) {
     throw new Error('House GLB has implausible dimensions');
   }
-  const target = { x: 17.4, y: 5.05, z: 25.2 };
-  model.scale.set(target.x / sourceSize.x, target.y / sourceSize.y, target.z / sourceSize.z);
+  // Uniform scale: make the longer horizontal axis about 23 world units while
+  // preserving height and furniture proportions. The previous per-axis fit
+  // could distort the apartment and force it into the old room footprint.
+  const horizontalSpan = Math.max(sourceSize.x, sourceSize.z);
+  const uniformScale = 23 / horizontalSpan;
+  model.scale.setScalar(uniformScale);
   model.updateMatrixWorld(true);
   const bounds = new THREE.Box3().setFromObject(model);
   const size = bounds.getSize(new THREE.Vector3());
@@ -72,13 +76,13 @@ function normalizeInteriorModel(THREE, model, { centerX, centerZ, floorY }) {
       }
     }
   });
-  return { size, bounds };
+  return { size, bounds, uniformScale };
 }
 
 function hideSupersededProceduralFurniture(root) {
-  // The imported model is the interior, not a second small home inside the old
-  // room. Hide every procedural visual (shell, floor, ceiling, and furniture)
-  // while retaining the existing collision envelope for safe movement.
+  // The imported model is the complete replacement interior. Hide every old
+  // procedural visual (shell, floor, ceiling, and furniture) so no room remains
+  // nested around it; the separate exterior house world is not modified.
   const structuralCollision = /^(house-left-wall|house-right-wall|house-back-wall|house-entry-wall-left|house-entry-wall-right)$/;
   root.userData.coastlineColliders = (root.userData.coastlineColliders || []).filter(collider => structuralCollision.test(collider.name));
   for (const child of root.children) {
@@ -96,7 +100,7 @@ export async function attachOptimizedHomeInterior(THREE, root, placement) {
     const { GLTFLoader } = await import('https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/loaders/GLTFLoader.js');
     const gltf = await new GLTFLoader().parseAsync(buffer, './assets/vehicles/');
     const model = gltf.scene;
-    const { size } = normalizeInteriorModel(THREE, model, placement);
+    const { size, uniformScale } = normalizeInteriorModel(THREE, model, placement);
     hideSupersededProceduralFurniture(root);
     model.name = 'coastline-optimized-home-interior';
     root.add(model);
@@ -107,6 +111,7 @@ export async function attachOptimizedHomeInterior(THREE, root, placement) {
       sha256: EXPECTED_SHA256,
       meshes: 241,
       dimensions: { x: size.x, y: size.y, z: size.z },
+      uniformScale,
       license: 'Visthétique, CC BY 4.0'
     };
     report('Furnished home interior loaded');
