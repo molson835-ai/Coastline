@@ -98,3 +98,20 @@ test("spawn: 'fixed' always uses the transition's own destinationSpawn", async (
   assert.deepEqual(manager.restoreLastReturnPoint(), { x: 500, y: 0, z: 500 });
   assert.throws(() => manager.registerTransition(door('bad', 'A', 'B', { spawn: 'sideways' })), /invalid spawn policy/);
 });
+
+
+test('cave is a supported CTM trigger for interior adventure transitions', async () => {
+  const log = [];
+  const manager = createTransitionManager();
+  manager.registerWorld(world('waterfront', log));
+  manager.registerWorld(world('cave', log));
+  manager.registerTransition({
+    id: 'waterfront-to-cave', fromWorld: 'waterfront', toWorld: 'cave',
+    trigger: 'cave', vehiclePolicy: 'forbidden', spawn: 'fixed',
+    destinationSpawn: { x: 1, y: 0, z: 2 },
+  });
+  await manager.activate('waterfront');
+  await manager.transition('waterfront-to-cave', { player: player() });
+  assert.equal(manager.getActiveWorldId(), 'cave');
+  assert.deepEqual(log, ['load waterfront', 'load cave', 'unload waterfront']);
+});
