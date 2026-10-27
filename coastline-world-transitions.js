@@ -293,7 +293,7 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
     add('electric-dungeon-entry-left',539,floorY+2.2,538,.5,4.4,.5,wallMat,true);
     add('electric-dungeon-entry-right',557,floorY+2.2,538,.5,4.4,.5,wallMat,true);
     for(const [x,z,scale] of [[536,549,2.4],[559,551,2.1],[541,563,1.7],[557,574,2.4],[535,572,1.6]]){
-      const rock=new THREE.Mesh(new THREE.DodecahedronGeometry(1,1),rockMat);rock.name='electric-dungeon-obscuring-rock';rock.position.set(x,floorY+scale*.42,z);rock.scale.set(scale,scale*.85,scale*1.15);rock.castShadow=true;rock.receiveShadow=true;root.add(rock);
+      const rock=new THREE.Mesh(new THREE.DodecahedronGeometry(1,1),rockMat);rock.name='electric-dungeon-obscuring-rock';rock.position.set(x,floorY+scale*.42,z);rock.scale.set(scale,scale*.85,scale*1.15);rock.castShadow=true;rock.receiveShadow=true;root.add(rock);colliders.push({name:'electric-dungeon-rock-collider',x,z,w:scale*1.25,d:scale*1.35});
     }
     // A small neon boot pair is partially screened by a dark boulder.
     const bootMat=new THREE.MeshStandardMaterial({color:0x62f5ff,emissive:0x18bcd1,emissiveIntensity:1.8,roughness:.38,metalness:.22});
