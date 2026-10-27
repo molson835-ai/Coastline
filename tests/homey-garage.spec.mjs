@@ -132,4 +132,6 @@ test('optimized house GLB uses sequential mobile-memory assembly and verifies in
   assert.ok(!loader.includes('Promise.all(PARTS'));
   assert.ok(loader.includes("crypto.subtle.digest('SHA-256'"));
   assert.ok(loader.includes('EXPECTED_SHA256'));
+  assert.ok(!loader.startsWith("import { GLTFLoader"));
+  assert.ok(loader.includes("await import('https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/loaders/GLTFLoader.js')"));
 });
