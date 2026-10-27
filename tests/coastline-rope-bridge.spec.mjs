@@ -52,4 +52,5 @@ test('City boundary scenery leaves the north bridge corridor open and vehicle gr
   assert.match(transitions, /window\.__coastlineBridgeGroundY=bridgeGroundY/);
   assert.match(game, /function vehicleGroundY\(x,z\)/);
   assert.match(game, /vehicleGroundY\(v\.x,v\.z\)/);
+  assert.ok(game.includes('Math.abs(x)+r>=710||Math.abs(z)+r>=710'));
 });
