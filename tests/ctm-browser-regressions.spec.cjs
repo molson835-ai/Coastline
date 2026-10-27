@@ -397,3 +397,15 @@ test('Waterfront uses the approved GLB vendor, natural cave props, and automatic
   expect(Number.isFinite(state.groundY)).toBe(true);
   expect(state.bridgePromptVisible).toBe(false);
 });
+
+
+test('walking across the physical bridge automatically hands off through CTM without a prompt', async ({ page }) => {
+  await openGame(page);
+  await page.evaluate(() => window.__coastlineTransitionTest.transition('city-to-island'));
+  await page.evaluate(() => {
+    window.__coastlineTest.setWalkPosition(500, 300, Math.PI);
+    window.__coastlineTransitionTest.updatePrompt();
+  });
+  await expect.poll(() => page.evaluate(() => window.__coastlineTransitionTest.status().activeWorldId), { timeout: 5000 }).toBe('city');
+  expect(await page.evaluate(() => window.__coastlineTransitionTest.bridgePromptVisible())).toBe(false);
+});
