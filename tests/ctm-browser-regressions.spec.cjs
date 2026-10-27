@@ -320,3 +320,47 @@ test('regular procedural Homey house interior remains active and navigable', asy
   expect(movement, 'player must move inside the regular procedural house interior').toBeGreaterThan(0.1);
 });
 
+
+
+test('City boundary scenery, bridge grounding, and functional small Homey lamps stay coherent', async ({ page }) => {
+  await openGame(page);
+  const city = await page.evaluate(() => {
+    const api = window.__coastlineTransitionTest;
+    return {
+      boundary: api.cityBoundaryState(),
+      start: api.bridgeSurfaceY(0, -750),
+      middle: api.bridgeSurfaceY(0, -800),
+      end: api.bridgeSurfaceY(0, -850),
+    };
+  });
+  expect(city.boundary.present).toBe(true);
+  expect(city.boundary.rocks).toBe(true);
+  expect(city.boundary.scrub).toBe(true);
+  expect(city.start).not.toBeNull();
+  expect(city.middle).toBeLessThan(city.start);
+  expect(city.end).toBeCloseTo(city.start, 4);
+
+  await page.evaluate(() => {
+    window.__coastlineTest.setVehiclePosition(0, -800, 0);
+    window.__coastlineTest.advanceTestFrame(1 / 60, 20);
+  });
+  const vehicleY = await page.evaluate(() => window.__coastlineTransitionTest.playerState().position.y);
+  expect(vehicleY).toBeCloseTo(city.middle, 2);
+
+  await page.evaluate(() => window.__coastlineTransitionTest.transition('city-to-island'));
+  const lampState = await page.evaluate(() => {
+    const lamps = window.__coastlineHomeyDrivewayLights || [];
+    if (lamps[0]) lamps[0].fall();
+    return {
+      count: lamps.length,
+      names: lamps.map(lamp => lamp.group?.name || ''),
+      fallenBeforeTransition: lamps.filter(lamp => lamp.fallen).length,
+    };
+  });
+  expect(lampState.count).toBe(10);
+  expect(lampState.names.every(name => name.startsWith('coastline-villa-path-light-'))).toBe(true);
+  expect(lampState.fallenBeforeTransition).toBe(1);
+
+  await page.evaluate(() => window.__coastlineTransitionTest.transition('island-to-homey-garage'));
+  expect(await page.evaluate(() => window.__coastlineTransitionTest.drivewayLampState().fallen)).toBe(0);
+});
