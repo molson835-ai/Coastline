@@ -81,6 +81,13 @@ export function canTraverseCoastlineWater(depth, mode = 'on-foot') {
     (getCoastlineWaterDepthBand(depth) === 'shore' || getCoastlineWaterDepthBand(depth) === 'shallow');
 }
 
+/** Authored shallow-water footpath on the Waterfront's southeast edge. */
+export function isCoastlineShallowWaterPath(x, z, regionId = 'waterfront', mode = 'on-foot') {
+  if (regionId !== 'waterfront' || mode !== 'on-foot' || !Number.isFinite(x) || !Number.isFinite(z)) return false;
+  const insidePath = x >= 602 && x <= 638 && z >= 522 && z <= 558;
+  return insidePath && canTraverseCoastlineWater(0.8, mode);
+}
+
 export const COASTLINE_WORLD_POPULATION_LIMITS = Object.freeze({
   city: Object.freeze({ traffic: 12, pedestrians: 16 }),
   downtown: COASTLINE_ISLAND_REGIONS[0].population,
@@ -189,6 +196,24 @@ export function createCoastlineIslandRoot({ THREE, region, groundY = () => 0, ad
   const concreteMat = material(0x777c7a, 0.88);
   const oceanMat = material(0x176b80, 0.34, 0.08);
   const ocean = new THREE.Mesh(new THREE.PlaneGeometry(740, 740), oceanMat);
+  if (region.id === 'waterfront') {
+    const shallowMat = new THREE.MeshStandardMaterial({ color: 0x62c6c6, roughness: .34, metalness: .04, transparent: true, opacity: .68, side: THREE.DoubleSide });
+    const shallowChannel = new THREE.Mesh(new THREE.PlaneGeometry(36, 36), shallowMat);
+    shallowChannel.name = 'coastline-waterfront-shallow-water-secret-path';
+    shallowChannel.rotation.x = -Math.PI / 2;
+    shallowChannel.position.set(620, edgeY - .16, 540);
+    shallowChannel.receiveShadow = false;
+    root.add(shallowChannel);
+    const depthBands = [
+      { name: 'coastline-waterfront-water-depth-shallow', size: 42, color: 0x4da9b8, opacity: .3 },
+      { name: 'coastline-waterfront-water-depth-mid', size: 62, color: 0x267e98, opacity: .22 },
+      { name: 'coastline-waterfront-water-depth-deep', size: 88, color: 0x104d75, opacity: .16 },
+    ];
+    for (const band of depthBands) {
+      const mesh = new THREE.Mesh(new THREE.RingGeometry(band.size / 2 - 2, band.size / 2, 64), new THREE.MeshBasicMaterial({ color: band.color, transparent: true, opacity: band.opacity, side: THREE.DoubleSide, depthWrite: false }));
+      mesh.name = band.name; mesh.rotation.x = -Math.PI / 2; mesh.position.set(center.x, edgeY - COASTLINE_ISLAND_WATER_DROP + .02, center.z); root.add(mesh);
+    }
+  }
   ocean.name = `coastline-${region.id}-surrounding-ocean`;
   ocean.rotation.x = -Math.PI / 2;
   // Keep the sea surface below the island shelf and the full rope-bridge sag.
