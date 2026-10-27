@@ -60,3 +60,32 @@ test('all islands use developed-quality scenery while retaining bounded populati
     assert.ok(region.visual.vegetation && region.visual.vegetation.length > 0);
   }
 });
+
+
+test('water depth classification is stable and only shallow water is traversable on foot', async () => {
+  const {
+    getCoastlineWaterDepthBand,
+    canTraverseCoastlineWater,
+  } = await import('../coastline-island-regions.js');
+  assert.equal(getCoastlineWaterDepthBand(0.2), 'shore');
+  assert.equal(getCoastlineWaterDepthBand(0.8), 'shallow');
+  assert.equal(getCoastlineWaterDepthBand(2), 'mid');
+  assert.equal(getCoastlineWaterDepthBand(8), 'deep');
+  assert.equal(getCoastlineWaterDepthBand(Number.NaN), 'deep');
+  assert.equal(canTraverseCoastlineWater(0.8, 'on-foot'), true);
+  assert.equal(canTraverseCoastlineWater(0.8, 'vehicle'), false);
+  assert.equal(canTraverseCoastlineWater(2, 'on-foot'), false);
+  assert.equal(canTraverseCoastlineWater(8, 'vehicle'), false);
+});
+
+test('Homey and cave island scenery expose named natural-detail contracts', async () => {
+  const fs = await import('node:fs/promises');
+  const source = await fs.readFile(new URL('../coastline-island-regions.js', import.meta.url), 'utf8');
+  assert.match(source, /coastline-residential-garden-groundcover/);
+  assert.match(source, /coastline-residential-neighborhood-shrubs/);
+  assert.match(source, /coastline-waterfront-cave-mountain/);
+  assert.match(source, /coastline-waterfront-cave-approach-path/);
+  assert.match(source, /coastline-waterfront-lemonade-counter/);
+  assert.match(source, /coastline-waterfront-lemonade-price-sign/);
+  assert.doesNotMatch(source, /coastline-waterfront-resort-main-building/);
+});
