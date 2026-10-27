@@ -11,7 +11,7 @@ export function buildHomeyHouseInterior(THREE, { centerX = 483, centerZ = 500, f
   const colliders = [];
   const interactions = [];
   const mat = (color, roughness = .82, metalness = .02, extra = {}) => new THREE.MeshStandardMaterial({ color, roughness, metalness, ...extra });
-  const wall = mat(0xe3ded1), floor = mat(0x786b5a, .95), trim = mat(0x4a382d), wood = mat(0x91694a), fabric = mat(0x557c83), dark = mat(0x202a2d);
+  const wall = mat(0xe3ded1), floor = mat(0x9b7a54, .9), trim = mat(0x4a382d), wood = mat(0x91694a), fabric = mat(0x557c83), dark = mat(0x202a2d);
   const glass = mat(0x78aeb9, .2, .08, { transparent: true, opacity: .78 });
   const brass = mat(0xc38b3e, .34, .58), white = mat(0xf2eee5, .72), counter = mat(0xc5c5bd, .45), cabinet = mat(0x65766f, .6);
   const plantPot = mat(0x9b6544), leaves = mat(0x38704b, .95), bedFabric = mat(0x6d7890, .94);
@@ -46,6 +46,13 @@ export function buildHomeyHouseInterior(THREE, { centerX = 483, centerZ = 500, f
   };
 
   addBox('house-interior-floor', centerX, floorY - .08, centerZ, 18, .16, 26, floor);
+  // A single lightweight line mesh gives the natural hardwood a staggered-plank finish.
+  const plankLines = [];
+  for (let i = 1; i < 18; i++) { const x = centerX - 9 + i; plankLines.push(x, floorY + .004, centerZ - 12.85, x, floorY + .004, centerZ + 12.85); }
+  for (let row = 0; row < 8; row++) { const z = centerZ - 11.3 + row * 3.2; const offset = row % 2 ? 0 : .5; for (let col = 0; col < 4; col++) { const x = centerX - 8.5 + col * 4.5 + offset; plankLines.push(x, floorY + .004, z, Math.min(centerX + 8.8, x + 2.2), floorY + .004, z); } }
+  const plankGeometry = new THREE.BufferGeometry(); plankGeometry.setAttribute('position', new THREE.Float32BufferAttribute(plankLines, 3));
+  const plankSeams = new THREE.LineSegments(plankGeometry, new THREE.LineBasicMaterial({ color: 0x715338, transparent: true, opacity: .48 }));
+  plankSeams.name = 'house-hardwood-plank-seams'; root.add(plankSeams);
   addBox('house-left-wall', centerX - 9, floorY + 2.65, centerZ, .3, 5.3, 26, wall, true);
   addBox('house-right-wall', centerX + 9, floorY + 2.65, centerZ, .3, 5.3, 26, wall, true);
   addBox('house-back-wall', centerX, floorY + 2.65, centerZ - 13, 18, 5.3, .3, wall, true);
@@ -66,16 +73,17 @@ export function buildHomeyHouseInterior(THREE, { centerX = 483, centerZ = 500, f
   // built-in storage, layered countertop detail, and a compact central prep island.
   // Keep a generous central circulation lane from the entry to the living room.
   // Living room: one direct viewing axis from sofa through coffee table to TV.
-  addBox('house-living-room-rug', centerX - 3.25, floorY + .025, centerZ - 2.0, 6.8, .05, 6.8, mat(0x607c7a, .99));
+  addBox('house-living-room-rug', centerX - 4.0, floorY + .025, centerZ - 2.0, 5.5, .05, 5.3, mat(0x607c7a, .99));
   addBox('house-sofa-base', centerX - 4.9, floorY + .55, centerZ - 2.0, 3.2, .62, 1.55, fabric);
   addBox('house-sofa-back', centerX - 4.9, floorY + 1.25, centerZ - 2.58, 3.2, .9, .32, fabric);
   for (const side of [-1, 1]) addBox(`house-sofa-arm-${side}`, centerX - 4.9 + side * 1.48, floorY + .95, centerZ - 2.0, .3, .8, 1.6, fabric);
   addBox('house-sofa-footprint', centerX - 4.9, floorY + .05, centerZ - 2.0, 3.8, .1, 2.15, trim, true);
-  addBox('house-coffee-table-top', centerX - 1.55, floorY + .62, centerZ - 2.0, 2.5, .16, 1.35, wood);
-  for (const x of [centerX - 2.45, centerX - .65]) for (const z of [centerZ - 2.52, centerZ - 1.48]) addBox('house-coffee-table-leg', x, floorY + .3, z, .1, .6, .1, trim);
-  addBox('house-coffee-table-footprint', centerX - 1.55, floorY + .04, centerZ - 2.0, 2.9, .08, 1.7, trim, true);
-  addBox('house-coffee-table-book', centerX - 1.55, floorY + .73, centerZ - 2.05, .75, .04, .5, mat(0xeee3cf));
-  addBox('house-coffee-table-mug', centerX - .72, floorY + .78, centerZ - 1.72, .16, .14, .16, white);
+  // Keep the coffee table fully inside the living zone, clear of the main walking lane.
+  addBox('house-coffee-table-top', centerX - 2.55, floorY + .62, centerZ - 2.0, 2.0, .16, 1.15, wood);
+  for (const x of [centerX - 3.25, centerX - 1.85]) for (const z of [centerZ - 2.42, centerZ - 1.58]) addBox('house-coffee-table-leg', x, floorY + .3, z, .1, .6, .1, trim);
+  addBox('house-coffee-table-footprint', centerX - 2.55, floorY + .04, centerZ - 2.0, 2.35, .08, 1.45, trim, true);
+  addBox('house-coffee-table-book', centerX - 2.55, floorY + .73, centerZ - 2.05, .65, .04, .42, mat(0xeee3cf));
+  addBox('house-coffee-table-mug', centerX - 1.95, floorY + .78, centerZ - 1.72, .16, .14, .16, white);
   addBox('house-tv-console', centerX + 5.15, floorY + .45, centerZ - 2.0, 5.2, .75, 1.0, wood);
   addBox('house-tv-screen', centerX + 5.15, floorY + 2.0, centerZ - 2.0, 4.3, 2.15, .14, dark);
   addBox('house-tv-display', centerX + 5.15, floorY + 2.0, centerZ - 1.91, 4.02, 1.87, .035, mat(0x254b5a, .22, .2));
@@ -83,7 +91,7 @@ export function buildHomeyHouseInterior(THREE, { centerX = 483, centerZ = 500, f
   addInteraction('tv', 'Use TV', centerX + 4.1, centerZ - 1.3, 2.2, { type: 'display' });
 
   // Dining and kitchen remain connected but do not occupy the walking corridor.
-  addBox('house-dining-rug', centerX + 4.0, floorY + .025, centerZ + 5.25, 6.2, .05, 4.3, mat(0x857866, .99));
+  // The living-room carpet is the home's only rug; dining and circulation areas stay hardwood.
   addBox('house-dining-table', centerX + 3.9, floorY + .92, centerZ + 5.2, 4.0, .16, 2.1, wood);
   addBox('house-dining-table-footprint', centerX + 3.9, floorY + .04, centerZ + 5.2, 4.6, .08, 2.8, trim, true);
   for (const [x, z] of [[2.25, 4.35], [5.55, 4.35], [2.25, 6.05], [5.55, 6.05]]) {
@@ -112,16 +120,16 @@ export function buildHomeyHouseInterior(THREE, { centerX = 483, centerZ = 500, f
     addBox(`house-kitchen-upper-pull-${i}`, x + .34, floorY + 3.0, centerZ + 9.35, .045, .22, .035, brass);
     addBox(`house-kitchen-lower-door-${i}`, x, floorY + .75, centerZ + 8.43, 1.04, .82, .045, white);
   }
-  addBox('house-kitchen-island-base', centerX - 1.95, floorY + .72, centerZ + 7.15, 3.55, 1.35, 1.35, cabinet, true);
-  addBox('house-kitchen-island-countertop', centerX - 1.95, floorY + 1.43, centerZ + 7.15, 3.85, .16, 1.58, counter);
-  addBox('house-kitchen-island-waterfall-end', centerX - 3.77, floorY + .75, centerZ + 7.15, .1, 1.28, 1.5, white);
-  addBox('house-kitchen-island-fruit-bowl', centerX - 1.85, floorY + 1.56, centerZ + 7.15, .55, .12, .42, plantPot);
-  for (const x of [centerX - 2.9, centerX - 1.0]) {
+  addBox('house-kitchen-island-base', centerX - 3.05, floorY + .72, centerZ + 7.15, 3.55, 1.35, 1.35, cabinet, true);
+  addBox('house-kitchen-island-countertop', centerX - 3.05, floorY + 1.43, centerZ + 7.15, 3.85, .16, 1.58, counter);
+  addBox('house-kitchen-island-waterfall-end', centerX - 4.87, floorY + .75, centerZ + 7.15, .1, 1.28, 1.5, white);
+  addBox('house-kitchen-island-fruit-bowl', centerX - 4.05, floorY + 1.56, centerZ + 7.15, .55, .12, .42, plantPot);
+  for (const x of [centerX - 4.0, centerX - 2.1]) {
     addBox('house-kitchen-island-stool-seat', x, floorY + .78, centerZ + 6.02, .68, .16, .62, fabric);
     for (const dx of [-.22, .22]) for (const dz of [-.2, .2]) addBox('house-kitchen-island-stool-leg', x + dx, floorY + .38, centerZ + 6.02 + dz, .07, .76, .07, trim);
   }
-  addBox('house-kitchen-pendant-rail', centerX - 1.95, floorY + 4.3, centerZ + 7.15, 3.0, .07, .08, dark);
-  for (const x of [centerX - 2.8, centerX - 1.1]) {
+  addBox('house-kitchen-pendant-rail', centerX - 3.05, floorY + 4.3, centerZ + 7.15, 3.0, .07, .08, dark);
+  for (const x of [centerX - 3.9, centerX - 2.2]) {
     addCylinder('house-kitchen-pendant-drop', x, floorY + 3.95, centerZ + 7.15, .025, .65, brass);
     addCylinder('house-kitchen-pendant-shade', x, floorY + 3.62, centerZ + 7.15, .22, .16, warmLight);
   }
@@ -154,36 +162,39 @@ export function buildHomeyHouseInterior(THREE, { centerX = 483, centerZ = 500, f
   addBox('house-bathroom-towel', centerX - 5.2, floorY + 2.2, centerZ - 5.62, .7, .55, .05, white);
   addInteraction('bathroom', 'Use bathroom', centerX - 5.3, centerZ - 6.3, 2.0, { type: 'utility' });
   // Private bedroom at the back-right, accessed through a normal interior doorway.
-  addBox('house-hall-runner', centerX, floorY + .025, centerZ + 3.9, 2.35, .05, 7.0, mat(0x9b8a74, .99));
-  addBox('house-bedroom-wall-left', centerX + 1.2, floorY + 2.65, centerZ - 8.9, 5.9, 5.3, wall, true);
-  addBox('house-bedroom-wall-back', centerX + 5.9, floorY + 2.65, centerZ - 9.0, 6.2, 5.3, wall, true);
+  addBox('house-bedroom-wall-left', centerX + 1.2, floorY + 2.65, centerZ - 8.9, .3, 5.3, 26, wall, true);
+  addBox('house-bedroom-wall-back', centerX + 5.9, floorY + 2.65, centerZ - 9.0, 6.2, 5.3, .3, wall, true);
   addBox('house-bedroom-wall-right', centerX + 8.75, floorY + 2.65, centerZ - 6.0, .3, 5.3, wall, true);
-  addBox('house-bedroom-wall-front', centerX + 5.7, floorY + 2.65, centerZ - 4.0, 6.3, 5.3, wall, true);
+  // Split the bedroom front wall around the doorway so the room is genuinely walkable.
+  addBox('house-bedroom-wall-front-left', centerX + 2.85, floorY + 2.65, centerZ - 4.0, .5, 5.3, .3, wall, true);
+  addBox('house-bedroom-wall-front-right', centerX + 7.15, floorY + 2.65, centerZ - 4.0, 3.7, 5.3, .3, wall, true);
   addInteriorDoor('house-bedroom-door', centerX + 4.2, centerZ - 4.0, 1.65);
   // Door leaf is visual only; the doorway itself is kept open for reliable movement.
-  const bedroomRug = addBox('house-bedroom-rug', centerX + 4.8, floorY + .025, centerZ - 7.0, 5.8, .05, 3.9, mat(0x817b86, .99));
-  bedroomRug.rotation.y = 0;
-  addBox('house-bedroom-bed-base', centerX + 4.8, floorY + .48, centerZ - 7.0, 4.1, .48, 2.35, wood);
-  addBox('house-bedroom-mattress', centerX + 4.8, floorY + .82, centerZ - 7.0, 3.9, .28, bedFabric);
-  addBox('house-bedroom-headboard', centerX + 4.8, floorY + 1.65, centerZ - 8.0, 4.0, 1.9, wood);
-  addBox('house-bedroom-bed-footprint', centerX + 4.8, floorY + .04, centerZ - 7.0, 4.6, .08, 2.9, trim, true);
-  for (const x of [3.0, 6.6]) {
-    addBox('house-bedroom-nightstand', centerX + x, floorY + .55, centerZ - 7.0, .7, .9, .7, wood, true);
-    addBox('house-bedroom-nightstand-lamp', centerX + x, floorY + 1.25, centerZ - 7.0, .24, .5, .24, warmLight);
-  }
-  addBox('house-bedroom-dresser', centerX + 7.3, floorY + .7, centerZ - 4.9, 1.1, 1.3, 2.2, wood, true);
+  // Bed and dresser sit toward the front/right of the bedroom, leaving a clear approach to the rear-wall closet.
+  addBox('house-bedroom-bed-base', centerX + 6.6, floorY + .48, centerZ - 5.8, 3.6, .48, 2.3, wood);
+  addBox('house-bedroom-mattress', centerX + 6.6, floorY + .82, centerZ - 5.8, 3.5, .28, 2.15, bedFabric);
+  addBox('house-bedroom-headboard', centerX + 6.6, floorY + 1.65, centerZ - 6.8, 3.6, 1.9, .18, wood);
+  addBox('house-bedroom-bed-footprint', centerX + 6.6, floorY + .04, centerZ - 5.8, 4.0, .08, 2.55, trim, true);
+  addBox('house-bedroom-nightstand', centerX + 3.7, floorY + .55, centerZ - 5.8, .7, .9, .7, wood, true);
+  addBox('house-bedroom-nightstand-lamp', centerX + 3.7, floorY + 1.25, centerZ - 5.8, .24, .5, .24, warmLight);
+  addBox('house-bedroom-dresser', centerX + 8.0, floorY + .7, centerZ - 7.8, 1.1, 1.3, .9, wood, true);
   addBox('house-bedroom-wall-art', centerX + 7.0, floorY + 3.0, centerZ - 8.85, .08, 1.4, 2.0, mat(0x6b817b));
-  addInteraction('bed', 'Rest at bed', centerX + 4.8, centerZ - 5.5, 2.1, { type: 'rest' });
+  addInteraction('bed', 'Rest at bed', centerX + 6.6, centerZ - 5.8, 2.1, { type: 'rest' });
 
-  // Reach-in closet with a real wardrobe interaction point.
-  addBox('house-closet-back', centerX + 8.1, floorY + 2.0, centerZ - 7.0, .16, 3.8, 3.4, wall);
-  addBox('house-closet-top-shelf', centerX + 7.25, floorY + 3.35, centerZ - 7.0, .25, .18, 3.0, wood);
-  addBox('house-closet-rail', centerX + 7.45, floorY + 2.75, centerZ - 7.0, .08, .08, 2.7, brass);
-  for (let i = 0; i < 6; i++) addBox(`house-closet-clothing-${i + 1}`, centerX + 6.3 + i * .45, floorY + 2.05, centerZ - 7.0, .28, 1.25, .08, [mat(0x263f68), mat(0x9c3f42), mat(0x4e7659), mat(0xc08c48), mat(0x66547f), mat(0xe1e0d9)][i]);
-  addBox('house-closet-drawer-unit', centerX + 8.15, floorY + .8, centerZ - 8.15, 1.2, 1.4, 1.2, wood, true);
-  addBox('house-closet-door-left', centerX + 6.65, floorY + 2.0, centerZ - 5.35, .08, 3.8, 2.7, mat(0xd6c4a9, .8));
-  addBox('house-closet-door-right', centerX + 8.05, floorY + 2.0, centerZ - 5.35, .08, 3.8, 2.7, mat(0xd6c4a9, .8));
-  addInteraction('wardrobe', 'Change clothes', centerX + 7.4, centerZ - 5.45, 2.2, { type: 'wardrobe', colors: ['#263f68', '#9c3f42', '#4e7659', '#c08c48', '#66547f', '#e1e0d9'] });
+  // Enclosed closet sits directly against the bedroom's back wall, with its doors facing the bedroom.
+  const closetWood = mat(0x8b6848, .86), closetDoor = mat(0xd6c4a9, .84);
+  addBox('house-closet-back', centerX + 4.8, floorY + 1.95, centerZ - 8.82, 3.4, 3.7, .14, wall, true);
+  addBox('house-closet-side-left', centerX + 3.1, floorY + 1.95, centerZ - 8.12, .14, 3.7, 1.4, wall, true);
+  addBox('house-closet-side-right', centerX + 6.5, floorY + 1.95, centerZ - 8.12, .14, 3.7, 1.4, wall, true);
+  addBox('house-closet-top-shelf', centerX + 4.8, floorY + 3.2, centerZ - 8.15, 3.15, .16, 1.25, closetWood);
+  addBox('house-closet-rail', centerX + 4.8, floorY + 2.65, centerZ - 8.15, 2.8, .07, .07, brass);
+  for (let i = 0; i < 5; i++) addBox(`house-closet-clothing-${i + 1}`, centerX + 3.65 + i * .57, floorY + 2.0, centerZ - 8.15, .3, 1.25, .08, [mat(0x263f68), mat(0x9c3f42), mat(0x4e7659), mat(0xc08c48), mat(0x66547f)][i]);
+  addBox('house-closet-drawer-unit', centerX + 5.8, floorY + .7, centerZ - 8.15, .75, 1.3, .7, closetWood, true);
+  addBox('house-closet-door-left', centerX + 3.95, floorY + 1.95, centerZ - 7.45, 1.58, 3.7, .08, closetDoor, true);
+  addBox('house-closet-door-right', centerX + 5.65, floorY + 1.95, centerZ - 7.45, 1.58, 3.7, .08, closetDoor, true);
+  addBox('house-closet-door-handle-left', centerX + 4.65, floorY + 1.95, centerZ - 7.36, .05, .35, .06, brass);
+  addBox('house-closet-door-handle-right', centerX + 4.95, floorY + 1.95, centerZ - 7.36, .05, .35, .06, brass);
+  addInteraction('wardrobe', 'Change clothes', centerX + 3.45, centerZ - 6.8, 1.8, { type: 'wardrobe', colors: ['#263f68', '#9c3f42', '#4e7659', '#c08c48', '#66547f', '#e1e0d9'] });
 
   for (const z of [-8.5, 1.0, 7.0]) addWindow('left', z);
   addWindow('right', -7.0, 2.1);
@@ -213,7 +224,7 @@ export function buildHomeyHouseInterior(THREE, { centerX = 483, centerZ = 500, f
   root.userData.coastlineHouseContract = {
     id: 'home-interior', threshold: { x: centerX, z: centerZ + 13, halfWidth: 1.8 }, returnToGarage: { x: centerX, z: centerZ + 10.5 },
     zones: ['entry', 'living', 'dining', 'kitchen', 'hall', 'bathroom', 'laundry', 'office', 'bedroom', 'closet'],
-    wardrobe: { id: 'wardrobe', x: centerX + 7.4, z: centerZ - 5.45, radius: 2.2, clothingColors: ['#263f68', '#9c3f42', '#4e7659', '#c08c48', '#66547f', '#e1e0d9'] },
+    wardrobe: { id: 'wardrobe', x: centerX + 3.45, z: centerZ - 6.8, radius: 1.8, clothingColors: ['#263f68', '#9c3f42', '#4e7659', '#c08c48', '#66547f', '#e1e0d9'] },
   };
   installHomeyWardrobeRuntime();
   return root;
