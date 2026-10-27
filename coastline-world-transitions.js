@@ -173,7 +173,7 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
   const ISLAND_CENTER=Object.freeze({x:500,z:500}), ISLAND_BOUNDS=Object.freeze({minX:390,maxX:610,minZ:390,maxZ:610,width:220,depth:220}), BRIDGE_LENGTH=100;
   const ISLAND_BRIDGE_START_Z=ISLAND_BOUNDS.minZ, ISLAND_BRIDGE_END_Z=ISLAND_BRIDGE_START_Z-BRIDGE_LENGTH;
   const CITY_MAP_EDGE_Z=-750, CITY_BRIDGE_START_Z=CITY_MAP_EDGE_Z, CITY_BRIDGE_END_Z=CITY_BRIDGE_START_Z-BRIDGE_LENGTH;
-  const islandGroundY=(x,z)=>finiteOr(groundY(x,z))+(window.__coastlineWorld2Active?0:COASTLINE_ISLAND_ELEVATION);
+  const islandGroundY=()=>finiteOr(groundY(ISLAND_CENTER.x,ISLAND_CENTER.z));
   const ISLAND_START=Object.freeze({x:500,y:islandGroundY(500,420),z:420,rotationY:Math.PI}), ISLAND_APPROACH=Object.freeze({x:500,z:ISLAND_BRIDGE_END_Z+5,rotationY:Math.PI}), CITY_APPROACH=Object.freeze({x:0,z:CITY_BRIDGE_END_Z-5,rotationY:Math.PI});
   const ISLAND_BRIDGE_DESTINATION=Object.freeze({x:500,y:islandGroundY(500,ISLAND_BRIDGE_END_Z),z:ISLAND_BRIDGE_END_Z,rotationY:0}), CITY_BRIDGE_DESTINATION=Object.freeze({x:0,y:finiteOr(groundY(0,CITY_BRIDGE_END_Z)),z:CITY_BRIDGE_END_Z,rotationY:0});
   const bridgeGroundY=(x,z)=>{
@@ -181,7 +181,11 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
     if(activeId==='city'&&Math.abs(x)<=halfWidth&&z>=CITY_BRIDGE_END_Z&&z<=CITY_BRIDGE_START_Z)
       return coastlineRopeBridgeDeckY(finiteOr(groundY(0,CITY_BRIDGE_START_Z)),(CITY_BRIDGE_START_Z-z)/BRIDGE_LENGTH);
     if(activeId==='island'&&Math.abs(x-ISLAND_CENTER.x)<=halfWidth&&z>=ISLAND_BRIDGE_END_Z&&z<=ISLAND_BRIDGE_START_Z)
-      return coastlineRopeBridgeDeckY(finiteOr(groundY(ISLAND_CENTER.x,ISLAND_CENTER.z)),(ISLAND_BRIDGE_START_Z-z)/BRIDGE_LENGTH);
+      return coastlineRopeBridgeDeckY(islandGroundY(),(ISLAND_BRIDGE_START_Z-z)/BRIDGE_LENGTH);
+    if((activeId==='island'||activeId==='waterfront')&&x>=611.5&&x<=708.5&&Math.abs(z-500)<=halfWidth)
+      return coastlineRopeBridgeDeckY(islandGroundY(),(x-610)/BRIDGE_LENGTH);
+    if((activeId==='waterfront'||activeId==='port')&&x>=291.5&&x<=388.5&&Math.abs(z-500)<=halfWidth)
+      return coastlineRopeBridgeDeckY(islandGroundY(),(390-x)/BRIDGE_LENGTH);
     return null;
   };
   window.__coastlineBridgeGroundY=bridgeGroundY;
@@ -239,7 +243,7 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
   const makeVehicleRenderable=vehicle=>{if(!vehicle?.g)return;vehicle.g.visible=true;vehicle.g.traverse(node=>{node.visible=true;node.userData.coastlineAlwaysVisible=true;});};
   const moveActiveActor=root=>{const actor=activeActor();if(avatar&&avatar.parent!==root)root.add(avatar);const vehicleToMove=player.mode==='vehicle'&&player.vehicle?player.vehicle:(root?.name==='coastline-homey-garage-interior'?garageVehicle:null);if(vehicleToMove?.g&&vehicleToMove.g.parent!==root)root.add(vehicleToMove.g);if(actor&&actor.parent!==root)root.add(actor);if(vehicleToMove)makeVehicleRenderable(vehicleToMove);};
   const applySnapshot=(snapshot,root,spawn=null)=>{if(!snapshot)return;const state=snapshot.player?snapshot:{player:snapshot},playerState=state.player||{},position=playerState.position||{};player.mode=playerState.mode||player.mode;player.x=finiteOr(position.x,player.x);player.y=finiteOr(position.y,0);player.z=finiteOr(position.z,player.z);player.heading=finiteOr(playerState.rotationY,player.heading);if(Number.isInteger(state.vehicleIndex)&&state.vehicleIndex>=0&&vehicles[state.vehicleIndex])player.vehicle=vehicles[state.vehicleIndex];const vehicle=player.vehicle;if(vehicle&&state.vehicle&&(player.mode==='vehicle'||state.vehicleIndex>=0)){const vehicleState=state.vehicle;vehicle.x=finiteOr(vehicleState.position?.x,player.x);vehicle.z=finiteOr(vehicleState.position?.z,player.z);vehicle.heading=finiteOr(vehicleState.heading,finiteOr(vehicleState.rotationY,player.heading));vehicle.speed=finiteOr(vehicleState.speed);if(vehicle.g){vehicle.g.position.set(vehicle.x,finiteOr(vehicleState.position?.y,groundY(vehicle.x,vehicle.z)),vehicle.z);vehicle.g.rotation.y=vehicle.heading;if(vehicle.g.parent!==root)root.add(vehicle.g);makeVehicleRenderable(vehicle);}}else if(avatar&&avatar.parent!==root)root.add(avatar);if(spawn){const x=finiteOr(spawn.x,player.x),z=finiteOr(spawn.z,player.z),y=finiteOr(spawn.y,groundY(x,z));player.x=x;player.y=y;player.z=z;player.heading=finiteOr(spawn.rotationY,player.heading);if(player.mode==='vehicle'&&player.vehicle){const currentVehicle=player.vehicle;currentVehicle.x=x;currentVehicle.z=z;currentVehicle.heading=player.heading;currentVehicle.speed=0;if(currentVehicle.g){currentVehicle.g.position.set(x,y,z);currentVehicle.g.rotation.y=player.heading;if(currentVehicle.g.parent!==root)root.add(currentVehicle.g);makeVehicleRenderable(currentVehicle);}}else if(avatar){avatar.position.set(x,y,z);avatar.rotation.y=player.heading;if(avatar.parent!==root)root.add(avatar);}}else if(player.mode!=='vehicle'&&avatar){avatar.position.set(player.x,groundY(player.x,player.z),player.z);avatar.rotation.y=player.heading;if(avatar.parent!==root)root.add(avatar);}};
-  const createNakedIslandRoot=()=>{const root=createCoastlineIslandRoot({THREE,region:getCoastlineIslandRegion('residential'),groundY,addBridge,addSideBridge});window.__coastlineHomeyDrivewayLights=root.userData.coastlineHomeyDrivewayLights||[];return root;};
+  const createNakedIslandRoot=()=>{const root=createCoastlineIslandRoot({THREE,region:getCoastlineIslandRegion('residential'),groundY:islandGroundY,addBridge,addSideBridge});window.__coastlineHomeyDrivewayLights=root.userData.coastlineHomeyDrivewayLights||[];return root;};
   const createGarageRoot=()=>{const root=buildHomeyGarageInterior(THREE,{centerX:483,centerZ:500,floorY:islandGroundY(483,500)});root.userData.coastlineGarageFloorY=islandGroundY(483,500);window.__coastlineGarageProps=root.userData.coastlineGarageProps||[];return root;};
   const createHouseRoot=()=>buildHomeyHouseInterior(THREE,{centerX:483,centerZ:500,floorY:islandGroundY(483,500)});
   const addCityBridgeAffordance=()=>addBridge(THREE,roots.world1Root,{x:0,startZ:CITY_BRIDGE_START_Z,y:finiteOr(groundY(0,CITY_BRIDGE_START_Z)),length:BRIDGE_LENGTH});
@@ -252,7 +256,7 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
     content:{density:'developed',actorAssets:'shared',renderReadiness:'required'},
     load:async({context,destinationSpawn})=>{
       setIslandCollisionScope(true);window.__coastlineActiveWorldId=worldId;window.__coastlineActiveWorldColliders=[];
-      const root=createCoastlineIslandRoot({THREE,region:getCoastlineIslandRegion(regionId),groundY,addBridge,addSideBridge});
+      const root=createCoastlineIslandRoot({THREE,region:getCoastlineIslandRegion(regionId),groundY:islandGroundY,addBridge,addSideBridge});
       if(regionId==='waterfront'){
         const proceduralVendor=root.getObjectByName('coastline-electric-lemonade-vendor');
         try{
