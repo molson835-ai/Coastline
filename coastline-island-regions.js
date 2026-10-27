@@ -195,12 +195,12 @@ export function createCoastlineIslandRoot({ THREE, region, groundY = () => 0, ad
     shallowChannel.receiveShadow = false;
     root.add(shallowChannel);
     const depthBands = [
-      { name: 'coastline-waterfront-water-depth-shallow', size: 42, color: 0x4da9b8, opacity: .3 },
-      { name: 'coastline-waterfront-water-depth-mid', size: 62, color: 0x267e98, opacity: .22 },
-      { name: 'coastline-waterfront-water-depth-deep', size: 88, color: 0x104d75, opacity: .16 },
+      { name: 'coastline-waterfront-water-depth-shallow', size: 270, width: 16, color: 0x4da9b8, opacity: .28 },
+      { name: 'coastline-waterfront-water-depth-mid', size: 330, width: 18, color: 0x267e98, opacity: .23 },
+      { name: 'coastline-waterfront-water-depth-deep', size: 390, width: 20, color: 0x104d75, opacity: .18 },
     ];
     for (const band of depthBands) {
-      const mesh = new THREE.Mesh(new THREE.RingGeometry(band.size / 2 - 2, band.size / 2, 64), new THREE.MeshBasicMaterial({ color: band.color, transparent: true, opacity: band.opacity, side: THREE.DoubleSide, depthWrite: false }));
+      const mesh = new THREE.Mesh(new THREE.RingGeometry(band.size / 2 - band.width, band.size / 2, 96), new THREE.MeshBasicMaterial({ color: band.color, transparent: true, opacity: band.opacity, side: THREE.DoubleSide, depthWrite: false }));
       mesh.name = band.name; mesh.rotation.x = -Math.PI / 2; mesh.position.set(center.x, edgeY - COASTLINE_ISLAND_WATER_DROP + .02, center.z); root.add(mesh);
     }
   }
