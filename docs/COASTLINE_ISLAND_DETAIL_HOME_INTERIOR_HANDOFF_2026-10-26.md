@@ -167,3 +167,14 @@ Carry these three issues into the next consolidated PR. They are additional scop
 - Only the small GLB driveway lamps remain in the driveway, and they are grounded, functional, interactive, and reset correctly.
 - City map-edge blockers are visually readable before the player reaches them, agree with collision, and do not interfere with intended bridges/transitions.
 - Run exact-head CI and browser regressions; manually inspect the actual preview and Android gameplay before declaring visual/physics acceptance. Keep PRs unmerged until explicitly authorized.
+
+## Decision update — discard imported house interior; use it as design reference (2026-10-27)
+
+User explicitly reversed the imported GLB replacement decision. **Do not load the GLB in-game.** Restore and retain the established procedural `coastline-homey-house-interior.js` as the actual Homey house interior. The imported Modern Apartment GLB is inspiration/reference only; do not scale it into the world or replace/hide the procedural room.
+
+- Removed the runtime loader import/call from `coastline-world-transitions.js`; `createHouseRoot()` now builds the regular procedural interior directly.
+- Removed the GLB loader and chunk handling from the standalone itch package and service-worker runtime. The service-worker cache was bumped to v63.
+- Replaced the browser test that required the 45 MiB GLB to load with a transition/movement regression for the regular procedural interior; added a source regression that checks the procedural builder is used and the experimental loader is absent from runtime/package/cache.
+- The three binary chunks are existing repository assets from earlier work; they are no longer used by the game. Avoid reintroducing their runtime download or package inclusion.
+- Next task is to inspect the GLB's layout as a design reference and selectively improve the procedural home: room zoning and circulation, open-plan kitchen/living/dining flow, realistic kitchen cabinetry/counters/island, coherent bedroom/bathroom/closet placement, lighting, materials, wall/door/window proportions, and tasteful decor. Keep collision geometry separate and conservative so furniture does not trap the player. Reuse the project's procedural meshes/materials; prioritize the strongest layout ideas that fit the existing entrance, world bounds, CTM transitions, and mobile performance. Do not copy the GLB wholesale or claim its layout has been inspected in detail until the asset has actually been examined.
+- Preserve the exterior, garage, door transitions, player movement, closet/wardrobe interaction, and vehicle persistence. PR #128 remains open/unmerged; verify exact-head CI after these changes.
