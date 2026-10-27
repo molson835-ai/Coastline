@@ -131,6 +131,9 @@ test('Homey house layout has hardwood, one living carpet, a clear route, and an 
   assert.match(interior, /house-hardwood-plank-seams/);
   assert.equal((interior.match(/house-living-room-rug/g) || []).length, 1);
   assert.doesNotMatch(interior, /house-dining-rug|house-bedroom-rug|house-hall-runner/);
+  assert.match(interior, /house-bedroom-wall-left', centerX \+ 1\.2, floorY \+ 2\.65, centerZ - 8\.9, \.3, 5\.3, 26/);
+  assert.match(interior, /house-bedroom-wall-front-left/);
+  assert.match(interior, /house-bedroom-wall-front-right/);
   assert.match(interior, /house-closet-back/);
   assert.match(interior, /house-closet-side-left/);
   assert.match(interior, /house-closet-side-right/);
@@ -138,5 +141,5 @@ test('Homey house layout has hardwood, one living carpet, a clear route, and an 
   assert.match(interior, /house-closet-door-right/);
   assert.match(interior, /house-coffee-table-top', centerX - 2\.55/);
   assert.match(interior, /house-sofa-base/);
-  assert.match(interior, /wardrobe: \{ id: 'wardrobe', x: centerX \+ 5\.7, z: centerZ - 8\.65/);
+  assert.match(interior, /wardrobe: \{ id: 'wardrobe', x: centerX \+ 3\.45, z: centerZ - 6\.8/);
 });
