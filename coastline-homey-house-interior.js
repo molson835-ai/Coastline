@@ -165,19 +165,21 @@ export function buildHomeyHouseInterior(THREE, { centerX = 483, centerZ = 500, f
   addBox('house-bedroom-wall-left', centerX + 1.2, floorY + 2.65, centerZ - 8.9, .3, 5.3, 26, wall, true);
   addBox('house-bedroom-wall-back', centerX + 5.9, floorY + 2.65, centerZ - 9.0, 6.2, 5.3, .3, wall, true);
   addBox('house-bedroom-wall-right', centerX + 8.75, floorY + 2.65, centerZ - 6.0, .3, 5.3, wall, true);
-  addBox('house-bedroom-wall-front', centerX + 5.7, floorY + 2.65, centerZ - 4.0, 6.3, 5.3, .3, wall, true);
+  // Split the bedroom front wall around the doorway so the room is genuinely walkable.
+  addBox('house-bedroom-wall-front-left', centerX + 3.0, floorY + 2.65, centerZ - 4.0, .9, 5.3, .3, wall, true);
+  addBox('house-bedroom-wall-front-right', centerX + 6.9, floorY + 2.65, centerZ - 4.0, 3.9, 5.3, .3, wall, true);
   addInteriorDoor('house-bedroom-door', centerX + 4.2, centerZ - 4.0, 1.65);
   // Door leaf is visual only; the doorway itself is kept open for reliable movement.
   // Bed and dresser sit toward the front/right of the bedroom, leaving a clear approach to the rear-wall closet.
-  addBox('house-bedroom-bed-base', centerX + 6.35, floorY + .48, centerZ - 5.4, 4.0, .48, 2.3, wood);
-  addBox('house-bedroom-mattress', centerX + 6.35, floorY + .82, centerZ - 5.4, 3.8, .28, 2.15, bedFabric);
-  addBox('house-bedroom-headboard', centerX + 6.35, floorY + 1.65, centerZ - 6.4, 3.9, 1.9, .18, wood);
-  addBox('house-bedroom-bed-footprint', centerX + 6.35, floorY + .04, centerZ - 5.4, 4.4, .08, 2.75, trim, true);
-  addBox('house-bedroom-nightstand', centerX + 4.0, floorY + .55, centerZ - 5.4, .7, .9, .7, wood, true);
-  addBox('house-bedroom-nightstand-lamp', centerX + 4.0, floorY + 1.25, centerZ - 5.4, .24, .5, .24, warmLight);
-  addBox('house-bedroom-dresser', centerX + 3.75, floorY + .7, centerZ - 5.4, 1.1, 1.3, 2.0, wood, true);
+  addBox('house-bedroom-bed-base', centerX + 6.35, floorY + .48, centerZ - 5.8, 4.0, .48, 2.3, wood);
+  addBox('house-bedroom-mattress', centerX + 6.35, floorY + .82, centerZ - 5.8, 3.8, .28, 2.15, bedFabric);
+  addBox('house-bedroom-headboard', centerX + 6.35, floorY + 1.65, centerZ - 6.8, 3.9, 1.9, .18, wood);
+  addBox('house-bedroom-bed-footprint', centerX + 6.35, floorY + .04, centerZ - 5.8, 4.4, .08, 2.75, trim, true);
+  addBox('house-bedroom-nightstand', centerX + 3.7, floorY + .55, centerZ - 5.8, .7, .9, .7, wood, true);
+  addBox('house-bedroom-nightstand-lamp', centerX + 3.7, floorY + 1.25, centerZ - 5.8, .24, .5, .24, warmLight);
+  addBox('house-bedroom-dresser', centerX + 8.0, floorY + .7, centerZ - 7.8, 1.1, 1.3, .9, wood, true);
   addBox('house-bedroom-wall-art', centerX + 7.0, floorY + 3.0, centerZ - 8.85, .08, 1.4, 2.0, mat(0x6b817b));
-  addInteraction('bed', 'Rest at bed', centerX + 6.35, centerZ - 4.0, 2.1, { type: 'rest' });
+  addInteraction('bed', 'Rest at bed', centerX + 6.35, centerZ - 5.8, 2.1, { type: 'rest' });
 
   // Enclosed closet sits directly against the bedroom's back wall, with its doors facing the bedroom.
   const closetWood = mat(0x8b6848, .86), closetDoor = mat(0xd6c4a9, .84);
@@ -192,7 +194,7 @@ export function buildHomeyHouseInterior(THREE, { centerX = 483, centerZ = 500, f
   addBox('house-closet-door-right', centerX + 5.65, floorY + 1.95, centerZ - 7.45, 1.58, 3.7, .08, closetDoor, true);
   addBox('house-closet-door-handle-left', centerX + 4.65, floorY + 1.95, centerZ - 7.36, .05, .35, .06, brass);
   addBox('house-closet-door-handle-right', centerX + 4.95, floorY + 1.95, centerZ - 7.36, .05, .35, .06, brass);
-  addInteraction('wardrobe', 'Change clothes', centerX + 3.7, centerZ - 6.8, 1.8, { type: 'wardrobe', colors: ['#263f68', '#9c3f42', '#4e7659', '#c08c48', '#66547f', '#e1e0d9'] });
+  addInteraction('wardrobe', 'Change clothes', centerX + 3.45, centerZ - 6.8, 1.8, { type: 'wardrobe', colors: ['#263f68', '#9c3f42', '#4e7659', '#c08c48', '#66547f', '#e1e0d9'] });
 
   for (const z of [-8.5, 1.0, 7.0]) addWindow('left', z);
   addWindow('right', -7.0, 2.1);
@@ -222,7 +224,7 @@ export function buildHomeyHouseInterior(THREE, { centerX = 483, centerZ = 500, f
   root.userData.coastlineHouseContract = {
     id: 'home-interior', threshold: { x: centerX, z: centerZ + 13, halfWidth: 1.8 }, returnToGarage: { x: centerX, z: centerZ + 10.5 },
     zones: ['entry', 'living', 'dining', 'kitchen', 'hall', 'bathroom', 'laundry', 'office', 'bedroom', 'closet'],
-    wardrobe: { id: 'wardrobe', x: centerX + 3.7, z: centerZ - 6.8, radius: 1.8, clothingColors: ['#263f68', '#9c3f42', '#4e7659', '#c08c48', '#66547f', '#e1e0d9'] },
+    wardrobe: { id: 'wardrobe', x: centerX + 3.45, z: centerZ - 6.8, radius: 1.8, clothingColors: ['#263f68', '#9c3f42', '#4e7659', '#c08c48', '#66547f', '#e1e0d9'] },
   };
   installHomeyWardrobeRuntime();
   return root;
