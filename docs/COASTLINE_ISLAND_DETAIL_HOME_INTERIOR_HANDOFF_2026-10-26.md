@@ -139,3 +139,31 @@ User clarified the intended architecture: do not scale the apartment to fit the 
 - The house-interior root is created only when transitioning to `home-interior`, and removed when that world unloads. The exterior house belongs to the separate island/city world and is not modified by the interior loader.
 - The imported model takes over the interior visuals; procedural room visuals are hidden, with the existing collision boundary retained. Further verification must ensure no exterior bleed-through, door/floor alignment, and navigable space. The source asset's scale/orientation may still need a uniform-scale adjustment based on visual inspection; automated tests cannot confirm appearance.
 - Runtime update commit: 8069c18d77fb38b0ba25dad008ce530ad7074099; regression-test update: 34ce4c290a1904c060bdfbcb08437db31ae63c39. PR #128 remains open and unmerged.
+
+
+## Next PR — City bridge elevation, driveway lamps, and visible map-edge barriers (user-requested 2026-10-27)
+
+Carry these three issues into the next consolidated PR. They are additional scope notes, not confirmation that fixes are already implemented.
+
+1. **Vehicle floats at City → Homey Island bridge/land approach.**
+   - Reproduce the transition from the City bridge onto Homey Island, watching the vehicle from the bridge entrance through the landing and onward toward the house.
+   - Find the source of the vertical offset: bridge/road surface height, island terrain elevation, vehicle wheel/ground contact, or transition interpolation/spawn Y. Make the car track the actual drivable surface continuously; it must not hover above the bridge or terrain before snapping down near the house.
+   - Preserve suspension/vehicle visuals and bridge traversal; do not paper over it by lowering the car globally or breaking ground clearance on other roads.
+   - Add a regression/check for vehicle Y relative to the sampled drivable surface across bridge approach, landing, and road segments, plus a manual visual drive-through.
+
+2. **Homey Island driveway lamps: remove duplicate large posts and make small GLB lamps functional.**
+   - Current driveway still shows the existing larger lamp posts as well as smaller lamp posts from the imported GLB. Keep the small GLB lamps only; remove/disable the overlapping larger driveway lamp posts without removing unrelated street lighting elsewhere.
+   - Make the retained small lamps behave functionally like the larger lamps were intended to: appropriate lighting/illumination, collision and vehicle-impact response (fall/knock over), and reset/self-repair after the player leaves the area or transitions inside, following the existing lamp interaction design.
+   - Check for duplicate light sources, z-fighting/overlap, correct ground placement, mobile performance, and no player/car traps. Add tests for one intended lamp set and the functional interaction/reset behavior.
+
+3. **Visible, solid-feeling perimeter blocking at inaccessible City map edges.**
+   - Add visible boundary scenery along City map edges where the player cannot continue, matching the quality/intent of Homey Island's existing perimeter blocking. Do not leave an apparently open road or empty horizon where an invisible blocker stops the player.
+   - Use context-appropriate combinations of mountain ranges, dense tall brush/grass, coastal rocks, fencing, retaining walls, or other natural/man-made barriers. Make it visually obvious that the route ends or access is restricted, while preserving the intended playable skyline and coastal views.
+   - At bridges or map-edge crossings that should appear partially obstructed, use a believable partial concealment such as brush, tall grass, or destructible/breakable wooden barriers that can be walked or driven through where intended. Do not accidentally block required City ↔ Island routes or create invisible walls in apparently passable areas.
+   - Ensure visible barrier placement agrees with movement/vehicle collision boundaries, cover all inaccessible edges consistently, and test both on-foot and vehicle approaches from each map edge. Keep rendering/performance bounded with instancing or shared assets for repeated scenery.
+
+## Acceptance checklist for these next-PR notes
+- City → Homey bridge and landing drive-through has no visible vehicle floating or sudden vertical snap.
+- Only the small GLB driveway lamps remain in the driveway, and they are grounded, functional, interactive, and reset correctly.
+- City map-edge blockers are visually readable before the player reaches them, agree with collision, and do not interfere with intended bridges/transitions.
+- Run exact-head CI and browser regressions; manually inspect the actual preview and Android gameplay before declaring visual/physics acceptance. Keep PRs unmerged until explicitly authorized.
