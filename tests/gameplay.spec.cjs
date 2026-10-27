@@ -144,3 +144,11 @@ test('RGSDev vehicle and Cozy character assets replace legacy runtime visuals', 
   expect(state.vehicles.filter(v=>v.kind!=='car').every(v=>!v.visible && !v.drivable), 'unsupported old rideables should be disabled, not left visible').toBe(true);
   expect(errors, 'asset replacement should not throw runtime errors').toEqual([]);
 });
+
+test('fresh profile starts with 1000 Coast Bucks without overwriting saved balances', async ({ page }) => {
+  await page.addInitScript(() => localStorage.removeItem('coastline-cash-balance-v1'));
+  await page.goto('/game-v3.html?beta=starting-cash-regression', { waitUntil: 'domcontentloaded', timeout: 30000 });
+  await page.waitForFunction(() => Boolean(window.__coastlineTest), null, { timeout: 30000 });
+  const state = await page.evaluate(() => ({ balance: window.__coastlineTest.state().cashBalance, hud: document.getElementById('cash')?.textContent }));
+  expect(state).toEqual({ balance: 1000, hud: '1000' });
+});

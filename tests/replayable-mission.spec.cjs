@@ -4,7 +4,7 @@ test('courier activity remains disabled during the foundation phase', async ({ p
   await page.goto('/game-v3.html', { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => Boolean(window.__coastlineTest), null, { timeout: 30000 });
   const initial = await page.evaluate(() => window.__coastlineTest.state());
-  expect(initial.cashBalance).toBe(250);
+  expect(initial.cashBalance).toBe(1000);
   expect(initial.missionState).toBe('go');
   expect(initial.missionRuns).toBe(0);
 
@@ -12,6 +12,6 @@ test('courier activity remains disabled during the foundation phase', async ({ p
   expect(started).toBe(false);
   const afterAttempt = await page.evaluate(() => window.__coastlineTest.state());
   expect(afterAttempt.missionState).toBe('go');
-  expect(afterAttempt.cashBalance).toBe(250);
+  expect(afterAttempt.cashBalance).toBe(1000);
   expect(afterAttempt.missionRuns).toBe(0);
 });

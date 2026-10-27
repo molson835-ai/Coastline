@@ -63,6 +63,7 @@ if (characterBytes.toString('ascii',0,4) !== 'glTF') throw new Error('Cozy chara
 const charJsonLength = characterBytes.readUInt32LE(12);
 const charJson = JSON.parse(characterBytes.toString('utf8',20,20+charJsonLength).trim());
 const character = { file:characterPath,bytes:characterBytes.length,meshes:charJson.meshes?.length??0,nodes:charJson.nodes?.length??0,skins:charJson.skins?.length??0,animations:(charJson.animations??[]).map(a=>a.name||'(unnamed)'),materials:charJson.materials?.length??0 };
+const characterParts = { nodes:(charJson.nodes??[]).map(node=>({name:node.name||'(unnamed)',mesh:node.mesh??null,skin:node.skin??null,children:node.children??[]})), meshPrimitives:(charJson.meshes??[]).map(mesh=>({name:mesh.name||'(unnamed)',primitives:(mesh.primitives??[]).length,materialIndices:(mesh.primitives??[]).map(primitive=>primitive.material??null)})), materialNames:(charJson.materials??[]).map((material,index)=>({index,name:material.name||'(unnamed)',alphaMode:material.alphaMode||'OPAQUE'})) };
 const individualVehicleFiles = entries.filter(e => /\/[^/]+\/[^/]+\.fbx$/i.test(e.name));
 const requiredVehicleModels = ['Sedan','SUV','Van'];
 const missingVehicleModels = requiredVehicleModels.filter(name => !individualVehicleFiles.some(e => e.name.toLowerCase().endsWith('/'+name.toLowerCase()+'/'+name.toLowerCase()+'.fbx')));
@@ -70,4 +71,4 @@ if (individualVehicleFiles.length < 10 || missingVehicleModels.length) throw new
 if (!licenseTexts.some(item => /CC0/i.test(item.text))) throw new Error('Vehicle pack does not include a readable CC0 license file.');
 if (!['idle','walk','run'].every(name => (character.animations||[]).some(clip=>clip.toLowerCase()===name))) throw new Error('Cozy character is missing required idle/walk/run animation clips.');
 if (glbDetails.some(model=>!model.valid)) throw new Error('At least one vehicle GLB failed structural validation.');
-console.log(JSON.stringify({archive:zipPath,archiveBytes:archive.length,entryCount:entries.length,entries:entries.map(e=>({name:e.name,bytes:e.uncompressedSize})),models,licenseAndReadmeFiles:licenses.map(e=>({name:e.name,bytes:e.uncompressedSize})),licenseTexts,glbDetails,character},null,2));
+console.log(JSON.stringify({archive:zipPath,archiveBytes:archive.length,entryCount:entries.length,entries:entries.map(e=>({name:e.name,bytes:e.uncompressedSize})),models,licenseAndReadmeFiles:licenses.map(e=>({name:e.name,bytes:e.uncompressedSize})),licenseTexts,glbDetails,character,characterParts},null,2));

@@ -129,6 +129,9 @@ test('Homey house layout has hardwood, one living carpet, a clear route, and an 
   const interior = readFileSync(new URL('../coastline-homey-house-interior.js', import.meta.url), 'utf8');
   assert.match(interior, /floor = mat\(0x9b7a54, \.9\)/);
   assert.match(interior, /house-hardwood-plank-seams/);
+  assert.match(interior, /house-interior-floor', centerX, floorY - \.08, centerZ, 22, \.16, 26/);
+  assert.match(interior, /house-left-wall', centerX - 11/);
+  assert.match(interior, /house-right-wall', centerX \+ 11/);
   assert.equal((interior.match(/house-living-room-rug/g) || []).length, 1);
   assert.doesNotMatch(interior, /house-dining-rug|house-bedroom-rug|house-hall-runner/);
   assert.match(interior, /house-bedroom-wall-left', centerX \+ 1\.2, floorY \+ 2\.65, centerZ - 8\.9, \.3, 5\.3, 26/);
