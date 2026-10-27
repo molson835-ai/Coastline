@@ -191,7 +191,6 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
     const id=window.__coastlineActiveWorldId;
     const half=COASTLINE_ROPE_BRIDGE_CONFIG.deckWidth/2;
     const inset=Math.max(0,radius)+0.08;
-    if(id==='city'&&z>-CITY_BRIDGE_START_Z*-1-1){} // retained below as explicit span checks
     if(id==='city'&&z>=CITY_BRIDGE_END_Z+1.5&&z<=CITY_BRIDGE_START_Z-1.5)
       return Math.abs(x)>half-inset;
     if(id==='island'&&z>=ISLAND_BRIDGE_END_Z+1.5&&z<=ISLAND_BRIDGE_START_Z-1.5)
