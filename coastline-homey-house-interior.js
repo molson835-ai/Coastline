@@ -234,24 +234,57 @@ const HOME_WARDROBE_COLORS = [
   { name: 'Ocean Blue', hex: '#263f68' }, { name: 'Coastal Red', hex: '#9c3f42' }, { name: 'Forest Green', hex: '#4e7659' },
   { name: 'Sandstone', hex: '#c08c48' }, { name: 'Harbor Purple', hex: '#66547f' }, { name: 'Classic White', hex: '#e1e0d9' },
 ];
-const HOME_WARDROBE_STYLES = ['Everyday Tee', 'Polo', 'Light Jacket'];
+const HOME_WARDROBE_ACCESSORIES = [
+  { id: 'hat', label: 'Hat', materialPrefix: 'hat_' },
+  { id: 'backpack', label: 'Backpack', materialPrefix: 'back_' },
+];
+const HOME_WARDROBE_DEFAULTS = Object.freeze({ color: '#263f68', accessories: Object.freeze({ hat: true, backpack: true }) });
 
-function applyHomeWardrobeAppearance(player, choice) {
+function applyHomeWardrobeAppearance(player, choice = {}) {
   if (!player) return false;
-  player.coastlineClothing = { style: choice.style, color: choice.color };
+  const color = HOME_WARDROBE_COLORS.some(item => item.hex === choice.color) ? choice.color : HOME_WARDROBE_DEFAULTS.color;
+  const accessories = {
+    hat: choice.accessories?.hat !== false,
+    backpack: choice.accessories?.backpack !== false,
+  };
+  player.coastlineClothing = { color, accessories };
   try { localStorage.setItem('coastlineHomeWardrobe', JSON.stringify(player.coastlineClothing)); } catch {}
   const avatar = window.__coastlineAvatar || window.__coastlinePlayer?.avatar || window.__coastlinePlayer?.g;
   if (!avatar?.traverse) return true;
-  const color = new (window.THREE?.Color || class { constructor(hex) { this.hex = hex; } })(choice.color);
+
   let changed = 0;
   avatar.traverse(node => {
-    if (!node.isMesh) return;
-    const name = `${node.name || ''} ${node.material?.name || ''}`.toLowerCase();
-    if (!/(shirt|jacket|hoodie|top|clothing|outfit)/.test(name)) return;
-    const materials = Array.isArray(node.material) ? node.material : [node.material];
-    for (const material of materials) if (material?.color?.set) { material.color.set(choice.color); changed++; }
-    if (/jacket|hoodie/.test(name)) node.visible = choice.style !== 'Everyday Tee';
-    if (/shirt|top|clothing|outfit/.test(name)) node.visible = choice.style === 'Everyday Tee' || choice.style === 'Polo';
+    if (!node.isMesh || !Array.isArray(node.material) || !node.geometry?.groups) return;
+    if (!node.userData.coastlineWardrobePrepared) {
+      // SkeletonUtils clones character nodes but intentionally shares materials and
+      // geometry. Clone only the player's skinned mesh data so wardrobe choices do
+      // not recolor pedestrians or mutate the source GLB's shared draw groups.
+      node.geometry = node.geometry.clone();
+      node.userData.coastlineWardrobeOriginalGroups = node.geometry.groups.map(group => ({ ...group }));
+      node.material = node.material.map(material => material?.clone?.() || material);
+      node.userData.coastlineWardrobePrepared = true;
+    }
+    const materials = node.material;
+    for (let index = 0; index < materials.length; index++) {
+      const material = materials[index];
+      if (!material?.color?.set) continue;
+      const name = String(material.name || '').toLowerCase();
+      // The audited Cozy Character GLB has one skinned mesh with explicit material
+      // groups for top, bottom, shoes, hat and backpack; skin, hair, eyes and face
+      // detail are intentionally excluded from clothing recolors.
+      if (/^(top_|bottom_|shoes_)/.test(name)) {
+        material.color.set(color);
+        changed++;
+      }
+    }
+    const originalGroups = node.userData.coastlineWardrobeOriginalGroups || [];
+    node.geometry.clearGroups();
+    for (const group of originalGroups) {
+      const materialName = String(materials[group.materialIndex]?.name || '').toLowerCase();
+      const hidden = (!accessories.hat && materialName.startsWith('hat_')) ||
+        (!accessories.backpack && materialName.startsWith('back_'));
+      if (!hidden) node.geometry.addGroup(group.start, group.count, group.materialIndex);
+    }
   });
   player.coastlineClothingAppliedMaterialCount = changed;
   return true;
@@ -260,21 +293,31 @@ function applyHomeWardrobeAppearance(player, choice) {
 function openHomeWardrobeChooser(player) {
   const existing = document.getElementById('coastlineHomeWardrobe'); existing?.remove();
   let saved = null; try { saved = JSON.parse(localStorage.getItem('coastlineHomeWardrobe') || 'null'); } catch {}
-  let selectedStyle = saved?.style || HOME_WARDROBE_STYLES[0];
   let selectedColor = HOME_WARDROBE_COLORS.find(c => c.hex === saved?.color) || HOME_WARDROBE_COLORS[0];
+  let selectedAccessories = { hat: saved?.accessories?.hat !== false, backpack: saved?.accessories?.backpack !== false };
   const overlay = document.createElement('div'); overlay.id = 'coastlineHomeWardrobe'; overlay.setAttribute('role', 'dialog'); overlay.setAttribute('aria-modal', 'true');
   overlay.style.cssText = 'position:fixed;inset:0;z-index:2006;display:flex;align-items:center;justify-content:center;padding:18px;background:#02090edb;backdrop-filter:blur(8px);font-family:system-ui,sans-serif;color:#f4fbff';
   const panel = document.createElement('section'); panel.style.cssText = 'width:min(460px,100%);max-height:86vh;overflow:auto;border:1px solid #8be8ff55;border-radius:20px;background:linear-gradient(145deg,#18272c,#091316 70%);box-shadow:0 28px 90px #000b;padding:20px';
-  panel.innerHTML = '<div style="font-size:11px;letter-spacing:.22em;color:#8be8ff;font-weight:800">HOMEY HOUSE • WARDROBE</div><h2 style="margin:5px 0 2px;font-size:24px">Change clothes</h2><div style="font-size:13px;color:#b6c6ce">Choose an everyday style and color.</div><div style="margin-top:18px;font-size:12px;color:#b6c6ce">STYLE</div><div id="homeWardrobeStyles" style="display:grid;grid-template-columns:1fr;gap:8px;margin-top:8px"></div><div style="margin-top:16px;font-size:12px;color:#b6c6ce">CLOTHING COLOR</div><div id="homeWardrobeColors" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:8px"></div><div style="display:flex;justify-content:flex-end;margin-top:20px"><button id="homeWardrobeClose" type="button" style="padding:11px 18px;border-radius:10px;border:1px solid #80e8ff;background:#7de4fa;color:#07141a;font-weight:900">Done</button></div>';
+  panel.innerHTML = '<div style="font-size:11px;letter-spacing:.22em;color:#8be8ff;font-weight:800">HOMEY HOUSE • WARDROBE</div><h2 style="margin:5px 0 2px;font-size:24px">Clothing & accessories</h2><div style="font-size:13px;color:#b6c6ce">Customize the existing character model. The asset provides clothing material groups plus a hat and backpack; no separate character variants are included.</div><div style="margin-top:18px;font-size:12px;color:#b6c6ce">CLOTHING COLOR</div><div id="homeWardrobeColors" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:8px"></div><div style="margin-top:18px;font-size:12px;color:#b6c6ce">ACCESSORIES</div><div id="homeWardrobeAccessories" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"></div><div style="display:flex;justify-content:flex-end;margin-top:20px"><button id="homeWardrobeClose" type="button" style="padding:11px 18px;border-radius:10px;border:1px solid #80e8ff;background:#7de4fa;color:#07141a;font-weight:900">Done</button></div>';
   overlay.appendChild(panel); document.body.appendChild(overlay);
   const render = () => {
-    const styles = panel.querySelector('#homeWardrobeStyles'); styles.replaceChildren();
-    for (const style of HOME_WARDROBE_STYLES) { const b = document.createElement('button'); b.type='button'; b.textContent=style; b.setAttribute('aria-pressed',String(style===selectedStyle)); b.style.cssText=`padding:11px;text-align:left;border-radius:10px;border:1px solid ${style===selectedStyle?'#8be8ff':'#3a505b'};background:${style===selectedStyle?'#17333e':'#0b171d'};color:#edf8fc;font-weight:700`; b.onclick=()=>{selectedStyle=style;render();}; styles.appendChild(b); }
     const colors = panel.querySelector('#homeWardrobeColors'); colors.replaceChildren();
-    for (const color of HOME_WARDROBE_COLORS) { const b=document.createElement('button'); b.type='button'; b.setAttribute('aria-pressed',String(color.hex===selectedColor.hex)); b.style.cssText=`display:flex;align-items:center;gap:9px;text-align:left;padding:10px;border-radius:10px;border:1px solid ${color.hex===selectedColor.hex?'#8be8ff':'#3a505b'};background:${color.hex===selectedColor.hex?'#17333e':'#0b171d'};color:#edf8fc;font-weight:700`; const sw=document.createElement('span'); sw.style.cssText=`width:23px;height:23px;border-radius:50%;background:${color.hex};border:1px solid #ffffff77`; b.append(sw,document.createTextNode(color.name)); b.onclick=()=>{selectedColor=color;render();}; colors.appendChild(b); }
+    for (const item of HOME_WARDROBE_COLORS) {
+      const b = document.createElement('button'); b.type='button'; b.setAttribute('aria-pressed',String(item.hex===selectedColor.hex));
+      b.style.cssText=`display:flex;align-items:center;gap:9px;text-align:left;padding:10px;border-radius:10px;border:1px solid ${item.hex===selectedColor.hex?'#8be8ff':'#3a505b'};background:${item.hex===selectedColor.hex?'#17333e':'#0b171d'};color:#edf8fc;font-weight:700`;
+      const sw=document.createElement('span'); sw.style.cssText=`width:23px;height:23px;border-radius:50%;background:${item.hex};border:1px solid #ffffff77`;
+      b.append(sw,document.createTextNode(item.name)); b.onclick=()=>{selectedColor=item;render();}; colors.appendChild(b);
+    }
+    const options = panel.querySelector('#homeWardrobeAccessories'); options.replaceChildren();
+    for (const accessory of HOME_WARDROBE_ACCESSORIES) {
+      const enabled = selectedAccessories[accessory.id];
+      const b = document.createElement('button'); b.type='button'; b.textContent=(enabled?'✓  ':'○  ')+accessory.label; b.setAttribute('aria-pressed',String(enabled));
+      b.style.cssText=`padding:12px;text-align:left;border-radius:10px;border:1px solid ${enabled?'#8be8ff':'#3a505b'};background:${enabled?'#17333e':'#0b171d'};color:#edf8fc;font-weight:700`;
+      b.onclick=()=>{selectedAccessories[accessory.id]=!selectedAccessories[accessory.id];render();}; options.appendChild(b);
+    }
   };
   render();
-  panel.querySelector('#homeWardrobeClose').onclick=()=>{applyHomeWardrobeAppearance(player,{style:selectedStyle,color:selectedColor.hex});overlay.remove();};
+  panel.querySelector('#homeWardrobeClose').onclick=()=>{applyHomeWardrobeAppearance(player,{color:selectedColor.hex,accessories:selectedAccessories});overlay.remove();};
   overlay.onclick=e=>{if(e.target===overlay)overlay.remove();};
   return { close: () => overlay.remove() };
 }
@@ -282,12 +325,13 @@ function openHomeWardrobeChooser(player) {
 function installHomeyWardrobeRuntime() {
   if (typeof window === 'undefined' || window.__coastlineHomeWardrobeRuntimeInstalled) return;
   window.__coastlineHomeWardrobeRuntimeInstalled = true;
-  window.__coastlineHomeWardrobe = { colors: HOME_WARDROBE_COLORS, styles: HOME_WARDROBE_STYLES, open: () => openHomeWardrobeChooser(window.__coastlinePlayer) };
+  window.__coastlineHomeWardrobe = { colors: HOME_WARDROBE_COLORS, accessories: HOME_WARDROBE_ACCESSORIES, open: () => openHomeWardrobeChooser(window.__coastlinePlayer) };
   const button = document.createElement('button');
   button.id = 'coastlineHomeWardrobeUse'; button.type = 'button'; button.textContent = 'Change clothes'; button.hidden = true;
   button.style.cssText = 'position:fixed;left:50%;bottom:94px;transform:translateX(-50%);z-index:1900;padding:12px 18px;border-radius:12px;border:1px solid #8be8ff;background:#0b2029e8;color:#f4fbff;font:800 14px system-ui,sans-serif;box-shadow:0 8px 30px #0008';
   document.body.appendChild(button);
   button.addEventListener('click', () => openHomeWardrobeChooser(window.__coastlinePlayer));
+  try { const saved = JSON.parse(localStorage.getItem('coastlineHomeWardrobe') || 'null'); if (saved) applyHomeWardrobeAppearance(window.__coastlinePlayer, saved); } catch {}
   setInterval(() => {
     const player = window.__coastlinePlayer;
     const status = window.__coastlineTransitionTest?.status?.();
