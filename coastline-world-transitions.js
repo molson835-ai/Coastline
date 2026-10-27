@@ -192,7 +192,7 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
     const rockGeo=new THREE.DodecahedronGeometry(1,0),scrubGeo=new THREE.ConeGeometry(1,3.6,5);
     const positions=[];
     for(let v=-700;v<=700;v+=22){
-      positions.push({x:v,z:-712,edge:'north'},{x:v,z:712,edge:'south'},{x:-712,z:v,edge:'west'},{x:712,z:v,edge:'east'});
+      positions.push({x:v,z:-714,edge:'north'},{x:v,z:714,edge:'south'},{x:-714,z:v,edge:'west'},{x:714,z:v,edge:'east'});
     }
     const filtered=positions.filter(p=>!(p.edge==='north'&&Math.abs(p.x)<=13));
     const rocks=new THREE.InstancedMesh(rockGeo,rockMat,filtered.length),scrub=new THREE.InstancedMesh(scrubGeo,scrubMat,filtered.length);
