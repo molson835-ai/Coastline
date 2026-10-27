@@ -117,3 +117,11 @@ test('optimized furnished house GLB is wired into runtime and standalone package
   assert.match(sw, /coastline-static-v62/);
   assert.match(sw, /coastline_home_interior_part_1\.bin/);
 });
+
+test('large optimized house GLB chunks are fetched on demand rather than precached', () => {
+  const sw = readFileSync(new URL('../coastline-sw.js', import.meta.url), 'utf8');
+  const build = readFileSync(new URL('../scripts/build-itch.mjs', import.meta.url), 'utf8');
+  assert.ok(sw.includes("url.pathname.includes('/coastline_home_interior_part_')"));
+  assert.ok(sw.includes("cache:'no-store'"));
+  assert.ok(build.includes("files.filter(file => !file.includes('coastline_home_interior_part_'))"));
+});
