@@ -41,16 +41,22 @@ async function fetchAndReconstructGlb() {
 }
 
 function normalizeInteriorModel(THREE, model, { centerX, centerZ, floorY }) {
-  // The source is a long, narrow furnished apartment. Rotate its long axis into
-  // the house depth and keep its proportions instead of stretching the furniture.
+  // Fit the imported interior to the actual house envelope. The old fixed scale
+  // left a tiny narrow apartment inside the original room. Size the imported
+  // interior to the existing room footprint and ceiling height, then align it.
   model.rotation.y = Math.PI / 2;
-  model.scale.setScalar(0.96);
+  model.scale.set(1, 1, 1);
+  model.updateMatrixWorld(true);
+  const sourceBounds = new THREE.Box3().setFromObject(model);
+  const sourceSize = sourceBounds.getSize(new THREE.Vector3());
+  if (!Number.isFinite(sourceSize.x + sourceSize.y + sourceSize.z) || sourceSize.x < 1 || sourceSize.z < 1 || sourceSize.y < 0.5) {
+    throw new Error('House GLB has implausible dimensions');
+  }
+  const target = { x: 17.4, y: 5.05, z: 25.2 };
+  model.scale.set(target.x / sourceSize.x, target.y / sourceSize.y, target.z / sourceSize.z);
   model.updateMatrixWorld(true);
   const bounds = new THREE.Box3().setFromObject(model);
   const size = bounds.getSize(new THREE.Vector3());
-  if (!Number.isFinite(size.x + size.y + size.z) || size.x < 1 || size.z < 1 || size.y < 0.5) {
-    throw new Error('House GLB has implausible dimensions');
-  }
   const center = bounds.getCenter(new THREE.Vector3());
   model.position.x += centerX - center.x;
   model.position.y += floorY - bounds.min.y;
@@ -70,17 +76,13 @@ function normalizeInteriorModel(THREE, model, { centerX, centerZ, floorY }) {
 }
 
 function hideSupersededProceduralFurniture(root) {
-  // Remove collision footprints for hidden procedural furniture; retain only the visible shell/entry boundaries.
+  // The imported model is the interior, not a second small home inside the old
+  // room. Hide every procedural visual (shell, floor, ceiling, and furniture)
+  // while retaining the existing collision envelope for safe movement.
   const structuralCollision = /^(house-left-wall|house-right-wall|house-back-wall|house-entry-wall-left|house-entry-wall-right)$/;
   root.userData.coastlineColliders = (root.userData.coastlineColliders || []).filter(collider => structuralCollision.test(collider.name));
-  const keepPrefixes = [
-    'house-interior-floor', 'house-left-wall', 'house-right-wall', 'house-back-wall',
-    'house-entry-', 'house-ceiling', 'house-window-'
-  ];
   for (const child of root.children) {
-    if (!child.name?.startsWith('house-')) continue;
-    if (keepPrefixes.some(prefix => child.name.startsWith(prefix))) continue;
-    child.visible = false;
+    if (child.name?.startsWith('house-')) child.visible = false;
   }
 }
 
