@@ -368,3 +368,33 @@ test('City boundary scenery, bridge grounding, and functional small Homey lamps 
   await page.evaluate(() => window.__coastlineTransitionTest.transition('island-to-homey-garage'));
   expect(await page.evaluate(() => window.__coastlineTransitionTest.drivewayLampState().fallen)).toBe(0);
 });
+
+test('Waterfront uses the approved GLB vendor, natural cave props, and automatic bridge transitions', async ({ page }) => {
+  await openGame(page);
+  await page.evaluate(async () => {
+    await window.__coastlineTransitionTest.transition('city-to-island');
+    await window.__coastlineTransitionTest.transition('island-to-waterfront');
+  });
+  await page.waitForFunction(() => Boolean(window.__coastlineWaterfrontVendorActor?.root), null, { timeout: 20000 });
+  const state = await page.evaluate(() => {
+    const root = window.__coastlineRegionRoot;
+    return {
+      activeWorld: window.__coastlineTransitionTest.status().activeWorldId,
+      glbVendor: Boolean(root?.getObjectByName('coastline-waterfront-lemonade-vendor-glb')),
+      caveMountain: Boolean(root?.getObjectByName('coastline-waterfront-cave-mountain')),
+      approachPath: Boolean(root?.getObjectByName('coastline-waterfront-cave-approach-path')),
+      lemonadeCounter: Boolean(root?.getObjectByName('coastline-waterfront-lemonade-counter')),
+      priceSign: Boolean(root?.getObjectByName('coastline-waterfront-lemonade-price-sign')),
+      groundY: root?.userData?.coastlineGroundY,
+      bridgePromptVisible: window.__coastlineTransitionTest.bridgePromptVisible(),
+    };
+  });
+  expect(state.activeWorld).toBe('waterfront');
+  expect(state.glbVendor).toBe(true);
+  expect(state.caveMountain).toBe(true);
+  expect(state.approachPath).toBe(true);
+  expect(state.lemonadeCounter).toBe(true);
+  expect(state.priceSign).toBe(true);
+  expect(Number.isFinite(state.groundY)).toBe(true);
+  expect(state.bridgePromptVisible).toBe(false);
+});
