@@ -292,6 +292,7 @@ test('residential, waterfront, and port islands have developed detail and landsc
 
 
 test('optimized furnished house GLB loads in the actual Homey house world', async ({ page }) => {
+  // The complete GLB is 45 MiB; leave time for local transfer, checksum, and GPU scene parse.
   test.setTimeout(180000);
   await openGame(page);
   await page.evaluate(async () => {
