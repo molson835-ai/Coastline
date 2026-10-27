@@ -1,5 +1,3 @@
-import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/loaders/GLTFLoader.js';
-
 const PARTS = [
   { url: './assets/vehicles/coastline_home_interior_part_1.bin', bytes: 20_000_000 },
   { url: './assets/vehicles/coastline_home_interior_part_2.bin', bytes: 20_000_000 },
@@ -89,6 +87,8 @@ export async function attachOptimizedHomeInterior(THREE, root, placement) {
   report('Loading furnished home interior…');
   try {
     const buffer = await fetchAndReconstructGlb();
+    // Load the parser only on house entry so a CDN hiccup cannot prevent the city/game from starting.
+    const { GLTFLoader } = await import('https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/loaders/GLTFLoader.js');
     const gltf = await new GLTFLoader().parseAsync(buffer, './assets/vehicles/');
     const model = gltf.scene;
     const { size } = normalizeInteriorModel(THREE, model, placement);
