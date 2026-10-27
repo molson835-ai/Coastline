@@ -125,3 +125,11 @@ test('large optimized house GLB chunks are fetched on demand rather than precach
   assert.ok(sw.includes("cache:'no-store'"));
   assert.ok(build.includes("files.filter(file => !file.includes('coastline_home_interior_part_'))"));
 });
+
+test('optimized house GLB uses sequential mobile-memory assembly and verifies integrity', () => {
+  const loader = readFileSync(new URL('../coastline-homey-glb-loader.js', import.meta.url), 'utf8');
+  assert.ok(loader.includes('for (const part of PARTS)'));
+  assert.ok(!loader.includes('Promise.all(PARTS'));
+  assert.ok(loader.includes("crypto.subtle.digest('SHA-256'"));
+  assert.ok(loader.includes('EXPECTED_SHA256'));
+});
