@@ -182,15 +182,15 @@ export function buildHomeyHouseInterior(THREE, { centerX = 483, centerZ = 500, f
 
   // Enclosed rear-wall closet: a defined back, side walls, sliding doors, and reachable wardrobe interaction.
   const closetWood = mat(0x8b6848, .86), closetDoor = mat(0xd6c4a9, .84);
-  addBox('house-closet-back', centerX + 5.7, floorY + 1.95, centerZ - 11.65, 5.0, 3.7, .14, wall);
-  addBox('house-closet-side-left', centerX + 3.2, floorY + 1.95, centerZ - 10.55, .14, 3.7, 2.1, wall);
-  addBox('house-closet-side-right', centerX + 8.2, floorY + 1.95, centerZ - 10.55, .14, 3.7, 2.1, wall);
+  addBox('house-closet-back', centerX + 5.7, floorY + 1.95, centerZ - 11.65, 5.0, 3.7, .14, wall, true);
+  addBox('house-closet-side-left', centerX + 3.2, floorY + 1.95, centerZ - 10.55, .14, 3.7, 2.1, wall, true);
+  addBox('house-closet-side-right', centerX + 8.2, floorY + 1.95, centerZ - 10.55, .14, 3.7, 2.1, wall, true);
   addBox('house-closet-top-shelf', centerX + 5.7, floorY + 3.2, centerZ - 10.55, 4.7, .16, 1.8, closetWood);
   addBox('house-closet-rail', centerX + 5.7, floorY + 2.65, centerZ - 10.55, 4.25, .07, .07, brass);
   for (let i = 0; i < 6; i++) addBox(`house-closet-clothing-${i + 1}`, centerX + 3.95 + i * .7, floorY + 2.0, centerZ - 10.55, .34, 1.25, .08, [mat(0x263f68), mat(0x9c3f42), mat(0x4e7659), mat(0xc08c48), mat(0x66547f), mat(0xe1e0d9)][i]);
   addBox('house-closet-drawer-unit', centerX + 7.35, floorY + .7, centerZ - 10.15, 1.0, 1.3, .75, closetWood, true);
-  addBox('house-closet-door-left', centerX + 4.5, floorY + 1.95, centerZ - 9.48, 2.35, 3.7, .08, closetDoor);
-  addBox('house-closet-door-right', centerX + 6.9, floorY + 1.95, centerZ - 9.48, 2.35, 3.7, .08, closetDoor);
+  addBox('house-closet-door-left', centerX + 4.5, floorY + 1.95, centerZ - 9.48, 2.35, 3.7, .08, closetDoor, true);
+  addBox('house-closet-door-right', centerX + 6.9, floorY + 1.95, centerZ - 9.48, 2.35, 3.7, .08, closetDoor, true);
   addBox('house-closet-door-handle-left', centerX + 5.55, floorY + 1.95, centerZ - 9.39, .05, .35, .06, brass);
   addBox('house-closet-door-handle-right', centerX + 5.85, floorY + 1.95, centerZ - 9.39, .05, .35, .06, brass);
   addInteraction('wardrobe', 'Change clothes', centerX + 5.7, centerZ - 8.65, 2.0, { type: 'wardrobe', colors: ['#263f68', '#9c3f42', '#4e7659', '#c08c48', '#66547f', '#e1e0d9'] });
