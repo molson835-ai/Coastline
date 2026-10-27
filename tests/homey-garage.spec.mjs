@@ -113,9 +113,10 @@ test('optimized furnished house GLB is wired into runtime and standalone package
   assert.match(loader, /checksum mismatch/);
   assert.match(loader, /parseAsync\(buffer/);
   assert.match(loader, /procedural interior retained/);
-  assert.match(loader, /target = \{ x: 17\.4, y: 5\.05, z: 25\.2 \}/);
-  assert.match(loader, /model\.scale\.set\(target\.x \/ sourceSize\.x, target\.y \/ sourceSize\.y, target\.z \/ sourceSize\.z\)/);
-  assert.match(loader, /Hide every procedural visual/);
+  assert.match(loader, /horizontalSpan = Math\.max\(sourceSize\.x, sourceSize\.z\)/);
+  assert.match(loader, /uniformScale = 23 \/ horizontalSpan/);
+  assert.match(loader, /model\.scale\.setScalar\(uniformScale\)/);
+  assert.match(loader, /The separate exterior house world is not modified/);
   assert.match(transitions, /attachOptimizedHomeInterior/);
   assert.match(build, /coastline-homey-glb-loader\.js/);
   assert.match(build, /coastline_home_interior_part_3\.bin/);
