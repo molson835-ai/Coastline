@@ -166,20 +166,20 @@ export function buildHomeyHouseInterior(THREE, { centerX = 483, centerZ = 500, f
   addBox('house-bedroom-wall-back', centerX + 5.9, floorY + 2.65, centerZ - 9.0, 6.2, 5.3, .3, wall, true);
   addBox('house-bedroom-wall-right', centerX + 8.75, floorY + 2.65, centerZ - 6.0, .3, 5.3, wall, true);
   // Split the bedroom front wall around the doorway so the room is genuinely walkable.
-  addBox('house-bedroom-wall-front-left', centerX + 3.0, floorY + 2.65, centerZ - 4.0, .9, 5.3, .3, wall, true);
-  addBox('house-bedroom-wall-front-right', centerX + 6.9, floorY + 2.65, centerZ - 4.0, 3.9, 5.3, .3, wall, true);
+  addBox('house-bedroom-wall-front-left', centerX + 2.85, floorY + 2.65, centerZ - 4.0, .5, 5.3, .3, wall, true);
+  addBox('house-bedroom-wall-front-right', centerX + 7.15, floorY + 2.65, centerZ - 4.0, 3.7, 5.3, .3, wall, true);
   addInteriorDoor('house-bedroom-door', centerX + 4.2, centerZ - 4.0, 1.65);
   // Door leaf is visual only; the doorway itself is kept open for reliable movement.
   // Bed and dresser sit toward the front/right of the bedroom, leaving a clear approach to the rear-wall closet.
-  addBox('house-bedroom-bed-base', centerX + 6.35, floorY + .48, centerZ - 5.8, 4.0, .48, 2.3, wood);
-  addBox('house-bedroom-mattress', centerX + 6.35, floorY + .82, centerZ - 5.8, 3.8, .28, 2.15, bedFabric);
-  addBox('house-bedroom-headboard', centerX + 6.35, floorY + 1.65, centerZ - 6.8, 3.9, 1.9, .18, wood);
-  addBox('house-bedroom-bed-footprint', centerX + 6.35, floorY + .04, centerZ - 5.8, 4.4, .08, 2.75, trim, true);
+  addBox('house-bedroom-bed-base', centerX + 6.6, floorY + .48, centerZ - 5.8, 3.6, .48, 2.3, wood);
+  addBox('house-bedroom-mattress', centerX + 6.6, floorY + .82, centerZ - 5.8, 3.5, .28, 2.15, bedFabric);
+  addBox('house-bedroom-headboard', centerX + 6.6, floorY + 1.65, centerZ - 6.8, 3.6, 1.9, .18, wood);
+  addBox('house-bedroom-bed-footprint', centerX + 6.6, floorY + .04, centerZ - 5.8, 4.0, .08, 2.55, trim, true);
   addBox('house-bedroom-nightstand', centerX + 3.7, floorY + .55, centerZ - 5.8, .7, .9, .7, wood, true);
   addBox('house-bedroom-nightstand-lamp', centerX + 3.7, floorY + 1.25, centerZ - 5.8, .24, .5, .24, warmLight);
   addBox('house-bedroom-dresser', centerX + 8.0, floorY + .7, centerZ - 7.8, 1.1, 1.3, .9, wood, true);
   addBox('house-bedroom-wall-art', centerX + 7.0, floorY + 3.0, centerZ - 8.85, .08, 1.4, 2.0, mat(0x6b817b));
-  addInteraction('bed', 'Rest at bed', centerX + 6.35, centerZ - 5.8, 2.1, { type: 'rest' });
+  addInteraction('bed', 'Rest at bed', centerX + 6.6, centerZ - 5.8, 2.1, { type: 'rest' });
 
   // Enclosed closet sits directly against the bedroom's back wall, with its doors facing the bedroom.
   const closetWood = mat(0x8b6848, .86), closetDoor = mat(0xd6c4a9, .84);
