@@ -109,34 +109,37 @@ const RESIDENTIAL_SHORELINE = Object.freeze([
   [-0.86, -0.38], [-0.82, -0.70],
 ]);
 
+const NATURAL_ISLAND_SHORELINES = Object.freeze({
+  downtown: Object.freeze([
+    [-0.72,-1],[-0.12,-1],[0.36,-.95],[.68,-.82],[.84,-.59],[.78,-.32],[.97,-.12],[1,0],[.91,.22],[.73,.43],[.82,.67],[.5,.86],[.15,.96],[-.18,.94],[-.5,.8],[-.76,.6],[-.91,.31],[-.97,.04],[-.86,-.28],[-.84,-.65]
+  ].map(point=>Object.freeze(point))),
+  waterfront: Object.freeze([
+    [-.82,-.9],[-.34,-1],[.18,-.98],[.58,-.9],[.82,-.72],[.9,-.46],[.78,-.24],[.96,-.08],[1,0],[.94,.18],[.76,.39],[.78,.67],[.48,.86],[.12,.96],[-.2,.9],[-.43,.72],[-.72,.63],[-.9,.38],[-.96,.12],[-1,0],[-.9,-.32],[-.94,-.62]
+  ].map(point=>Object.freeze(point))),
+  port: Object.freeze([
+    [-.75,-1],[-.18,-.98],[.28,-.92],[.68,-.8],[.86,-.6],[.92,-.36],[.8,-.1],[.96,.08],[1,0],[.91,.31],[.7,.58],[.48,.8],[.12,.95],[-.25,.88],[-.62,.78],[-.86,.56],[-.96,.25],[-1,0],[-.88,-.32],[-.9,-.7]
+  ].map(point=>Object.freeze(point))),
+});
+
 /** Point-in-shoreline test shared by rendering tests and the live movement blocker. */
 export function isCoastlineIslandPointInside(x, z, regionId = 'residential') {
   if (!Number.isFinite(x) || !Number.isFinite(z)) return false;
   const region = getCoastlineIslandRegion(regionId);
   if (!region) return false;
-  // Every streamed island root is currently placed in the shared world-space island slot.
+  // Every streamed island occupies the same world-space slot; movement bounds
+  // follow each island's authored irregular shoreline instead of a rounded box.
   const nx = (x - 500) / region.bounds.halfWidth;
   const nz = (z - 500) / region.bounds.halfDepth;
-  if (regionId !== 'residential') {
-    const corner = Math.min(0.22, (region.bounds.cornerRadius || 20) / region.bounds.halfWidth);
-    if (Math.abs(nx) > 1 || Math.abs(nz) > 1) return false;
-    const dx = Math.max(0, Math.abs(nx) - (1 - corner));
-    const dz = Math.max(0, Math.abs(nz) - (1 - corner));
-    return dx * dx + dz * dz <= corner * corner;
-  }
-  const points = RESIDENTIAL_SHORELINE;
-  // Keep bridge landings connected even when floating-point coordinates sit on an edge.
+  const points = regionId === 'residential' ? RESIDENTIAL_SHORELINE : NATURAL_ISLAND_SHORELINES[regionId];
+  if (!points) return false;
   const epsilon = 1e-6;
-  for (let i = 0; i < points.length; i++) {
-    const [ax, az] = points[i], [bx, bz] = points[(i + 1) % points.length];
-    const cross = (nx - ax) * (bz - az) - (nz - az) * (bx - ax);
-    const dot = (nx - ax) * (bx - ax) + (nz - az) * (bz - az);
-    const lengthSquared = (bx - ax) ** 2 + (bz - az) ** 2;
-    if (Math.abs(cross) < epsilon && dot >= -epsilon && dot <= lengthSquared + epsilon) return true;
-  }
   let inside = false;
   for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
     const [xi, zi] = points[i], [xj, zj] = points[j];
+    const cross = (nx - xi) * (zj - zi) - (nz - zi) * (xj - xi);
+    const dot = (nx - xi) * (xj - xi) + (nz - zi) * (zj - zi);
+    const lengthSquared = (xj - xi) ** 2 + (zj - zi) ** 2;
+    if (Math.abs(cross) < epsilon && dot >= -epsilon && dot <= lengthSquared + epsilon) return true;
     if ((zi > nz) !== (zj > nz) && nx < ((xj - xi) * (nz - zi)) / (zj - zi) + xi) inside = !inside;
   }
   return inside;
@@ -144,32 +147,17 @@ export function isCoastlineIslandPointInside(x, z, regionId = 'residential') {
 
 function createIslandShape(THREE, region, scale = 1) {
   const half = region.bounds.halfWidth;
+  const points = region.id === 'residential' ? RESIDENTIAL_SHORELINE : NATURAL_ISLAND_SHORELINES[region.id];
   const shape = new THREE.Shape();
-  if (region.id === 'residential') {
-    shape.moveTo(-half * 0.72 * scale, -half * scale);
-    shape.lineTo(half * 0.18 * scale, -half * scale);
-    shape.quadraticCurveTo(half * 0.7 * scale, -half * scale, half * 0.82 * scale, -half * 0.82 * scale);
-    shape.lineTo(half * 0.72 * scale, -half * 0.48 * scale);
-    shape.quadraticCurveTo(half * 0.66 * scale, -half * 0.2 * scale, half * 0.92 * scale, -half * 0.08 * scale);
-    shape.quadraticCurveTo(half * scale, 0, half * scale, half * 0.08 * scale);
-    shape.quadraticCurveTo(half * 0.98 * scale, half * 0.26 * scale, half * 0.78 * scale, half * 0.34 * scale);
-    shape.quadraticCurveTo(half * 0.86 * scale, half * 0.55 * scale, half * 0.62 * scale, half * 0.66 * scale);
-    shape.quadraticCurveTo(half * 0.36 * scale, half * 0.82 * scale, half * 0.18 * scale, half * 0.96 * scale);
-    shape.quadraticCurveTo(0, half * 1.02 * scale, -half * 0.18 * scale, half * 0.92 * scale);
-    shape.quadraticCurveTo(-half * 0.48 * scale, half * 0.82 * scale, -half * 0.63 * scale, half * 0.62 * scale);
-    shape.quadraticCurveTo(-half * 0.83 * scale, half * 0.43 * scale, -half * 0.92 * scale, half * 0.18 * scale);
-    shape.quadraticCurveTo(-half * 1.01 * scale, -half * 0.12 * scale, -half * 0.86 * scale, -half * 0.38 * scale);
-    shape.quadraticCurveTo(-half * 0.82 * scale, -half * 0.7 * scale, -half * 0.72 * scale, -half * scale);
-    shape.closePath();
-    return shape;
+  if (!points?.length) throw new Error(`island ${region.id} has no authored shoreline`);
+  const contour = points.map(([x, z]) => [x * half * scale, z * half * scale]);
+  const last = contour[contour.length - 1], first = contour[0];
+  shape.moveTo((last[0] + first[0]) / 2, (last[1] + first[1]) / 2);
+  for (let i = 0; i < contour.length; i++) {
+    const current = contour[i], next = contour[(i + 1) % contour.length];
+    shape.quadraticCurveTo(current[0], current[1], (current[0] + next[0]) / 2, (current[1] + next[1]) / 2);
   }
-  const corner = (region.bounds.cornerRadius || 20) * scale;
-  const edge = half * scale, inner = edge - corner;
-  shape.moveTo(-inner, -edge); shape.lineTo(inner, -edge);
-  shape.quadraticCurveTo(edge, -edge, edge, -inner); shape.lineTo(edge, inner);
-  shape.quadraticCurveTo(edge, edge, inner, edge); shape.lineTo(-inner, edge);
-  shape.quadraticCurveTo(-edge, edge, -edge, inner); shape.lineTo(-edge, -inner);
-  shape.quadraticCurveTo(-edge, -edge, -inner, -edge);
+  shape.closePath();
   return shape;
 }
 
