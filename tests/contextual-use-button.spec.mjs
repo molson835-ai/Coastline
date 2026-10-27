@@ -21,7 +21,7 @@ test('touch Use button appears only for an eligible nearby interaction', async (
     const nearVehicle = test.actionButtonVisible();
     const visibleNearVehicle = !action.hidden;
     window.__coastlineActiveWorldId = 'island';
-    test.setWalkPosition(500, 500, 0);
+    test.setWalkPosition(parked.x, parked.z, 0);
     test.refreshActionPrompt();
     const inactiveCityObjectsIgnored = test.actionButtonVisible();
     const hiddenOutsideCity = action.hidden;
