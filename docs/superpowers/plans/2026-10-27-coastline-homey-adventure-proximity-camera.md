@@ -1,6 +1,6 @@
 # Coastline Homey Adventure + Dynamic Proximity Camera Implementation Plan
 
-Approved implementation plan for the next consolidated PR. See the companion design doc for architecture and UX rules.
+Approved implementation plan for the next consolidated PR.
 
 ## Scope
 1. Establish feature branch from merged #129 main head and baseline checks.
