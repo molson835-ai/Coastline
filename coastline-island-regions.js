@@ -609,6 +609,69 @@ export function createCoastlineIslandRoot({ THREE, region, groundY = () => 0, ad
       );
     }
   }
+  if (region.id === 'waterfront') {
+    // Electric Lemonade stand and cave sit on the already-connected Waterfront Island.
+    // The cave mouth stays open; side colliders protect the rock face without sealing the entrance.
+    const standX = center.x + 20, standZ = center.z + 30;
+    const caveX = center.x + 48, caveZ = center.z + 38;
+    const standWood = material(0x76503a, .92), canopyMat = material(0x247c84, .76);
+    const signMat = material(0x163a3d, .65);
+    const stand = new THREE.Group(); stand.name = 'coastline-electric-lemonade-stand';
+    const counter = new THREE.Mesh(new THREE.BoxGeometry(4.8, 1.15, 1.65), standWood);
+    counter.position.set(standX, edgeY + .72, standZ); counter.castShadow = true; counter.receiveShadow = true; stand.add(counter);
+    const counterTop = new THREE.Mesh(new THREE.BoxGeometry(5.05, .16, 1.85), material(0xe1c99a, .65));
+    counterTop.position.set(standX, edgeY + 1.36, standZ); stand.add(counterTop);
+    const canopy = new THREE.Mesh(new THREE.BoxGeometry(5.5, .22, 2.4), canopyMat);
+    canopy.position.set(standX, edgeY + 3.15, standZ - .05); canopy.castShadow = true; stand.add(canopy);
+    for (const dx of [-2.35, 2.35]) for (const dz of [-.9, .9]) {
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(.07, .09, 3.05, 8), standWood);
+      post.position.set(standX + dx, edgeY + 1.62, standZ + dz); stand.add(post);
+    }
+    const signCanvas = document.createElement('canvas'); signCanvas.width = 768; signCanvas.height = 192;
+    const ctx = signCanvas.getContext('2d');
+    ctx.fillStyle = '#12373b'; ctx.fillRect(0, 0, signCanvas.width, signCanvas.height);
+    ctx.strokeStyle = '#f4d889'; ctx.lineWidth = 12; ctx.strokeRect(8, 8, signCanvas.width - 16, signCanvas.height - 16);
+    ctx.fillStyle = '#fff0b8'; ctx.font = '900 58px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('ELECTRIC LEMONADE', signCanvas.width / 2, signCanvas.height / 2);
+    const signTexture = new THREE.CanvasTexture(signCanvas); signTexture.colorSpace = THREE.SRGBColorSpace;
+    const sign = new THREE.Mesh(new THREE.PlaneGeometry(4.6, 1.15), new THREE.MeshStandardMaterial({ map: signTexture, roughness: .75, emissive: 0x132c20, emissiveIntensity: .3 }));
+    sign.name = 'coastline-electric-lemonade-sign'; sign.position.set(standX, edgeY + 2.55, standZ + 1.02); sign.rotation.y = Math.PI; stand.add(sign);
+    // A simple low-poly vendor is a visible attendant, not an interaction hitbox.
+    const vendor = new THREE.Group(); vendor.name = 'coastline-electric-lemonade-vendor';
+    const skin = material(0xb98260, .92), shirt = material(0xd8e7dc, .9), trousers = material(0x344a5b, .9);
+    const torso = new THREE.Mesh(new THREE.CapsuleGeometry(.34, .7, 3, 7), shirt); torso.position.set(standX, edgeY + 1.55, standZ - .48); vendor.add(torso);
+    const head = new THREE.Mesh(new THREE.SphereGeometry(.27, 10, 8), skin); head.position.set(standX, edgeY + 2.25, standZ - .48); vendor.add(head);
+    for (const dx of [-.17, .17]) { const leg = new THREE.Mesh(new THREE.CylinderGeometry(.11, .12, .68, 7), trousers); leg.position.set(standX + dx, edgeY + .68, standZ - .48); vendor.add(leg); }
+    for (const dx of [-.42, .42]) { const arm = new THREE.Mesh(new THREE.CylinderGeometry(.09, .1, .62, 7), shirt); arm.position.set(standX + dx, edgeY + 1.62, standZ - .4); arm.rotation.z = dx < 0 ? -.28 : .28; vendor.add(arm); }
+    stand.add(vendor); root.add(stand);
+    colliders.push({ name: 'coastline-electric-lemonade-counter', x: standX, z: standZ, w: 4.7, d: 1.5 });
+    // Rough boulder shoulders form a cave opening with enough clear width to walk through.
+    const cave = new THREE.Group(); cave.name = 'coastline-electric-lemonade-cave-mouth';
+    const rockMat = material(0x292c2b, .99), rockLight = material(0x41413a, .99), caveBlack = new THREE.MeshBasicMaterial({ color: 0x010203 });
+    const boulders = [
+      [-7, 1.4, -1.4, 5.6, 4.2, 4.2], [-5.5, 4.4, -1.8, 4.7, 3.5, 4.0],
+      [7, 1.4, -1.4, 5.6, 4.2, 4.2], [5.5, 4.4, -1.8, 4.7, 3.5, 4.0],
+      [0, 6.3, -1.6, 9.4, 3.2, 4.5], [-9.2, 3.0, -3.2, 3.4, 5.6, 4.2],
+      [9.2, 3.0, -3.2, 3.4, 5.6, 4.2], [-4.2, .35, 0, 4.6, .7, 3.8],
+      [4.2, .35, 0, 4.6, .7, 3.8]
+    ];
+    for (let i = 0; i < boulders.length; i++) {
+      const [dx, y, dz, sx, sy, sz] = boulders[i];
+      const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(1, 1), i % 3 ? rockMat : rockLight);
+      rock.position.set(caveX + dx, edgeY + y, caveZ + dz); rock.scale.set(sx / 2, sy / 2, sz / 2); rock.rotation.set(i * .11, i * .37, i * .08); rock.castShadow = true; rock.receiveShadow = true; cave.add(rock);
+    }
+    const darkness = new THREE.Mesh(new THREE.PlaneGeometry(7.8, 5.8), caveBlack);
+    darkness.name = 'coastline-electric-lemonade-cave-dark-opening'; darkness.position.set(caveX, edgeY + 2.7, caveZ + 1.1); cave.add(darkness);
+    root.add(cave);
+    colliders.push(
+      { name: 'coastline-electric-lemonade-cave-left-rock', x: caveX - 6.5, z: caveZ + .1, w: 4.2, d: 5.2 },
+      { name: 'coastline-electric-lemonade-cave-right-rock', x: caveX + 6.5, z: caveZ + .1, w: 4.2, d: 5.2 }
+    );
+    root.userData.coastlineElectricLemonade = {
+      stand: { x: standX, z: standZ + 2.4, radius: 3.2 },
+      cave: { x: caveX, z: caveZ + 2.5, radius: 3.0 },
+    };
+  }
   return root;
 }
 
