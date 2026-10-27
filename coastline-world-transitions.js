@@ -206,6 +206,17 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
       return Math.abs(z-500)>half-inset;
     return false;
   };
+  // Keep the vehicle envelope on the visible deck instead of treating a rail
+  // touch as a hard obstacle. The longitudinal coordinate is never clamped.
+  window.__coastlineClampBridgePosition=(x,z,radius=0)=>{
+    const id=window.__coastlineActiveWorldId,half=COASTLINE_ROPE_BRIDGE_CONFIG.deckWidth/2;
+    const lane=Math.max(.35,half-Math.max(0,radius)-.12);
+    if(id==='city'&&z>=CITY_BRIDGE_END_Z&&z<=CITY_BRIDGE_START_Z)return{x:THREE.MathUtils.clamp(x,-lane,lane),z};
+    if(id==='island'&&z>=ISLAND_BRIDGE_END_Z&&z<=ISLAND_BRIDGE_START_Z)return{x:THREE.MathUtils.clamp(x,ISLAND_CENTER.x-lane,ISLAND_CENTER.x+lane),z};
+    if((id==='island'||id==='waterfront')&&x>=610&&x<=710)return{x,z:THREE.MathUtils.clamp(z,ISLAND_CENTER.z-lane,ISLAND_CENTER.z+lane)};
+    if((id==='waterfront'||id==='port')&&x>=290&&x<=390)return{x,z:THREE.MathUtils.clamp(z,ISLAND_CENTER.z-lane,ISLAND_CENTER.z+lane)};
+    return{x,z};
+  };
   const addCityBoundaryScenery=()=>{
     if(roots.world1Root.getObjectByName('coastline-city-map-edge-boundary'))return;
     const boundary=new THREE.Group();boundary.name='coastline-city-map-edge-boundary';
