@@ -98,6 +98,9 @@ test('waterfront shallow-water secret path is foot-only and does not widen the v
   assert.equal(isCoastlineShallowWaterPath(620, 540, 'port', 'on-foot'), false);
   assert.equal(isCoastlineShallowWaterPath(650, 540, 'waterfront', 'on-foot'), false);
   assert.equal(isCoastlineShallowWaterPath(620, 500, 'waterfront', 'on-foot'), false);
+  const fs = await import('node:fs/promises');
+  const game = await fs.readFile(new URL('../game-v3.html', import.meta.url), 'utf8');
+  assert.match(game, /isCoastlineShallowWaterPath\(x,z,regionId,player\.mode==='walk'\?'on-foot':player\.mode\)/);
 });
 
 test('active island roots expose their authored ground elevation for vehicle placement', async () => {
