@@ -14,7 +14,7 @@ const files = [
   'npc-agency-engine.js', 'npc-world-slice.js', 'social-rumor-engine.js',
   'player-reputation-engine.js', 'coastline-runtime-fix.js',
   'coastline-stability-v8.js', 'transition-manager.js', 'transition-manager-browser.js',
-  'coastline-sw.js', 'coastline-world-transitions.js', 'coastline-island-regions.js', 'coastline-homey-garage.js', 'coastline-homey-house-interior.js', 'render-culling.js'
+  'coastline-sw.js', 'coastline-world-transitions.js', 'coastline-island-regions.js', 'coastline-homey-garage.js', 'coastline-homey-house-interior.js', 'coastline-homey-glb-loader.js', 'assets/vehicles/coastline_home_interior_part_1.bin', 'assets/vehicles/coastline_home_interior_part_2.bin', 'assets/vehicles/coastline_home_interior_part_3.bin', 'render-culling.js'
 ];
 for (const file of files) {
   if (!existsSync(path.join(root, file))) throw new Error('Missing runtime file: ' + file);
