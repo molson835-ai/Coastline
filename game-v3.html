@@ -717,7 +717,7 @@ const electricLemonadeNear=point=>player.mode==='walk'&&Math.hypot(player.x-poin
 const electricLemonadeFacingVendor=()=>player.mode==='walk'&&isFacingElectricLemonadeVendor({x:player.x,z:player.z,heading:player.heading},electricLemonadePoints.vendor,{maxDistance:electricLemonadePoints.vendor.maxDistance});
 function openElectricLemonadeTransaction(){
   let panel=document.getElementById('coastlineLemonadeTransaction');
-  if(panel){panel.style.display='grid';return;}
+  if(panel){panel.style.display='grid';const buy=panel.querySelector('#coastlineLemonadeBuy');if(buy){buy.disabled=false;buy.textContent='BUY & DRINK · 10 CB';}const message=panel.querySelector('#coastlineLemonadeMessage');if(message)message.textContent='';const balanceNode=panel.querySelector('#coastlineLemonadeBalance');if(balanceNode)balanceNode.textContent='Your balance: '+(Number(cashBalance)||0)+' CB';return;}
   panel=document.createElement('div');panel.id='coastlineLemonadeTransaction';
   panel.setAttribute('role','dialog');panel.setAttribute('aria-modal','true');panel.setAttribute('aria-labelledby','coastlineLemonadeTitle');
   panel.style.cssText='position:fixed;inset:0;z-index:10020;display:grid;place-items:center;background:#001019cc;padding:18px;box-sizing:border-box;font-family:system-ui,sans-serif';
