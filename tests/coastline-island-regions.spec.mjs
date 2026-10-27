@@ -89,3 +89,13 @@ test('Homey and cave island scenery expose named natural-detail contracts', asyn
   assert.match(source, /coastline-waterfront-lemonade-price-sign/);
   assert.doesNotMatch(source, /coastline-waterfront-resort-main-building/);
 });
+
+
+test('waterfront shallow-water secret path is foot-only and does not widen the vehicle bridge lane', async () => {
+  const { isCoastlineShallowWaterPath } = await import('../coastline-island-regions.js');
+  assert.equal(isCoastlineShallowWaterPath(620, 540, 'waterfront', 'on-foot'), true);
+  assert.equal(isCoastlineShallowWaterPath(620, 540, 'waterfront', 'vehicle'), false);
+  assert.equal(isCoastlineShallowWaterPath(620, 540, 'port', 'on-foot'), false);
+  assert.equal(isCoastlineShallowWaterPath(650, 540, 'waterfront', 'on-foot'), false);
+  assert.equal(isCoastlineShallowWaterPath(620, 500, 'waterfront', 'on-foot'), false);
+});
