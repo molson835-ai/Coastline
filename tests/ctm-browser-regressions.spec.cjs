@@ -85,7 +85,7 @@ test('the physical bridge end zones automatically transition island to City and 
 });
 
 
-test('Homey garage opens only when a vehicle crosses the open threshold and preserves the vehicle', async ({ page }) => {
+test('Homey garage entry action is vehicle-only, proximity-gated, and preserves the vehicle', async ({ page }) => {
   await openGame(page);
   await page.waitForFunction(() => window.__coastlineVehicleAssetSwapStatus?.ok === true, null, { timeout: 45000 });
   const thresholdClear = await page.evaluate(async () => {
@@ -96,9 +96,10 @@ test('Homey garage opens only when a vehicle crosses the open threshold and pres
     window.__coastlineTransitionTest.updatePrompt();
     window.__coastlineTest.setWalkPosition(483, 490, 0);
     window.__coastlineTransitionTest.updatePrompt();
-    return clear;
+    return { clear, entryVisibleOnFoot: window.__coastlineTransitionTest.garageEntryVisible() };
   });
-  expect(thresholdClear, 'open garage threshold must remain physically traversable').toBe(true);
+  expect(thresholdClear.clear, 'open garage threshold must remain physically traversable').toBe(true);
+  expect(thresholdClear.entryVisibleOnFoot, 'on-foot players must not see the garage-entry action').toBe(false);
   await page.waitForTimeout(250);
   expect(await page.evaluate(() => window.__coastlineTransitionTest.status().activeWorldId)).toBe('island');
   await page.evaluate(() => {
@@ -106,11 +107,9 @@ test('Homey garage opens only when a vehicle crosses the open threshold and pres
     window.__coastlineTest.setVehiclePosition(483, 487, 0);
     window.__coastlineTransitionTest.updatePrompt();
   });
-  const before = await page.evaluate(() => window.__coastlineTransitionTest.playerState());
-  await page.evaluate(() => {
-    window.__coastlineTest.setVehiclePosition(483, 490, 0);
-    window.__coastlineTransitionTest.updatePrompt();
-  });
+  const before = await page.evaluate(() => ({ state: window.__coastlineTransitionTest.playerState(), entryVisible: window.__coastlineTransitionTest.garageEntryVisible() }));
+  expect(before.entryVisible, 'a stopped vehicle facing the garage within range should expose the entry action').toBe(true);
+  await page.locator('#coastlineGarageEnter').click();
   await expect.poll(() => page.evaluate(() => window.__coastlineTransitionTest.status().activeWorldId), { timeout: 5000 }).toBe('homey-garage');
   const inside = await page.evaluate(() => {
     window.__coastlineTransitionTest.updatePrompt();
@@ -120,7 +119,7 @@ test('Homey garage opens only when a vehicle crosses the open threshold and pres
     };
   });
   expect(inside.state.mode).toBe('vehicle');
-  expect(inside.state.vehicleIndex).toBe(before.vehicleIndex);
+  expect(inside.state.vehicleIndex).toBe(before.state.vehicleIndex);
   expect(inside.state.position.x).toBeCloseTo(483, 1);
   expect(inside.state.position.z).toBeCloseTo(500, 1);
   expect(inside.state.position.y).toBeCloseTo(inside.garage.floorY, 1);
