@@ -43,7 +43,7 @@ import { createPlayerReputation } from './player-reputation-engine.js';
 import { createSocialRumorEngine } from './social-rumor-engine.js';
 import { createNpcWorldSlice } from './npc-world-slice.js';
 import { createWorldRootRegistry, createCoastlineWorldTransitions } from './coastline-world-transitions.js';
-import { createElectricLemonadeState } from './coastline-electric-lemonade-adventure.js';
+import { createElectricLemonadeState, isFacingElectricLemonadeVendor } from './coastline-electric-lemonade-adventure.js';
 import { createRenderCuller } from './render-culling.js';
 import { EffectComposer } from 'https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/postprocessing/RenderPass.js';
@@ -706,17 +706,41 @@ function refreshElectricLemonadeEffects(){
   const pickup=window.__coastlineElectricDungeonPickup;
   if(pickup)pickup.visible=state.pickupAvailable;
 }
-const electricLemonadePoints={stand:{x:520,z:532.4,radius:3.2},cave:{x:548,z:540.5,radius:3.0},exit:{x:548,z:541.5,radius:3.2},boots:{x:552,z:568,radius:2.8}};
+const electricLemonadePoints={stand:{x:520,z:532.4,radius:3.2},vendor:{x:520,z:530,maxDistance:3.2},cave:{x:548,z:540.5,radius:3.0},exit:{x:548,z:541.5,radius:3.2},boots:{x:552,z:568,radius:2.8}};
 const electricLemonadeNear=point=>player.mode==='walk'&&Math.hypot(player.x-point.x,player.z-point.z)<=point.radius;
+const electricLemonadeFacingVendor=()=>player.mode==='walk'&&isFacingElectricLemonadeVendor({x:player.x,z:player.z,heading:player.heading},electricLemonadePoints.vendor,{maxDistance:electricLemonadePoints.vendor.maxDistance});
+function openElectricLemonadeTransaction(){
+  let panel=document.getElementById('coastlineLemonadeTransaction');
+  if(panel){panel.style.display='grid';return;}
+  panel=document.createElement('div');panel.id='coastlineLemonadeTransaction';
+  panel.setAttribute('role','dialog');panel.setAttribute('aria-modal','true');panel.setAttribute('aria-labelledby','coastlineLemonadeTitle');
+  panel.style.cssText='position:fixed;inset:0;z-index:10020;display:grid;place-items:center;background:#001019cc;padding:18px;box-sizing:border-box;font-family:system-ui,sans-serif';
+  const card=document.createElement('section');
+  card.style.cssText='width:min(360px,100%);border:1px solid #caff7755;border-radius:18px;background:linear-gradient(145deg,#142a24,#07151b);box-shadow:0 18px 55px #000b;padding:22px;color:#f4ffe9;text-align:center';
+  card.innerHTML='<div style="font-size:10px;letter-spacing:.2em;color:#caff77;font-weight:900">HOME-MADE · EXTRA ELECTRIC</div><h2 id="coastlineLemonadeTitle" style="margin:10px 0 4px;font-size:24px">Electric Lemonade</h2><p style="margin:0 0 12px;color:#d2e5c7;font-size:13px">Bright lime fizz with a glow for the cave. One cup costs <b>10 CB</b>.</p><div style="margin:0 auto 16px;width:96px;height:70px;border:2px solid #d8f3ff88;border-radius:8px 8px 20px 20px;background:linear-gradient(180deg,#eaff7b,#8cff00);box-shadow:0 0 24px #aaff35aa"></div><div id="coastlineLemonadeBalance" style="font-size:12px;color:#b7d2bd;margin-bottom:14px"></div><p id="coastlineLemonadeMessage" aria-live="polite" style="min-height:18px;font-size:12px;color:#d8ff91"></p><button id="coastlineLemonadeBuy" style="width:100%;border:0;border-radius:10px;padding:13px;background:#caff77;color:#17251a;font-weight:900;font-size:14px">BUY & DRINK · 10 CB</button><button id="coastlineLemonadeCancel" style="width:100%;margin-top:8px;border:1px solid #ffffff33;border-radius:10px;padding:11px;background:#152c32;color:#e6f5f3;font-weight:800">NOT NOW</button>';
+  panel.appendChild(card);document.body.appendChild(panel);
+  const balance=()=>Number(cashBalance)||0;
+  const balanceNode=card.querySelector('#coastlineLemonadeBalance');
+  balanceNode.textContent='Your balance: '+balance()+' CB';
+  card.querySelector('#coastlineLemonadeCancel').addEventListener('click',()=>{panel.style.display='none';updateTouchControls()});
+  card.querySelector('#coastlineLemonadeBuy').addEventListener('click',()=>{
+    const result=electricLemonadeState.buyLemonade();
+    if(!result.ok){card.querySelector('#coastlineLemonadeMessage').textContent='You need 10 CB before you can buy a cup.';balanceNode.textContent='Your balance: '+balance()+' CB';return;}
+    persistCashBalance();refreshElectricLemonadeEffects();updateTouchControls();
+    card.querySelector('#coastlineLemonadeMessage').textContent='Purchased! Your glow is ready for the cave.';
+    balanceNode.textContent='Your balance: '+balance()+' CB';
+    card.querySelector('#coastlineLemonadeBuy').disabled=true;
+    card.querySelector('#coastlineLemonadeBuy').textContent='ENJOY YOUR LEMONADE';
+    setTimeout(()=>{panel.style.display='none';updateTouchControls()},850);
+    diagEvent('Electric Lemonade purchased: -10 CB; balance '+result.balance);
+  });
+}
 window.__coastlineElectricLemonade={
-  canUse:()=>{const world=window.__coastlineActiveWorldId;if(player.mode!=='walk')return false;if(world==='waterfront')return electricLemonadeNear(electricLemonadePoints.stand)||electricLemonadeNear(electricLemonadePoints.cave);if(world==='electric-lemonade-dungeon')return (electricLemonadeState.snapshot().pickupAvailable&&electricLemonadeNear(electricLemonadePoints.boots))||electricLemonadeNear(electricLemonadePoints.exit);return false},
+  canUse:()=>{const world=window.__coastlineActiveWorldId;if(player.mode!=='walk')return false;if(world==='waterfront')return (electricLemonadeNear(electricLemonadePoints.stand)&&electricLemonadeFacingVendor())||electricLemonadeNear(electricLemonadePoints.cave);if(world==='electric-lemonade-dungeon')return (electricLemonadeState.snapshot().pickupAvailable&&electricLemonadeNear(electricLemonadePoints.boots))||electricLemonadeNear(electricLemonadePoints.exit);return false},
   interact:async()=>{
     const world=window.__coastlineActiveWorldId;
-    if(world==='waterfront'&&electricLemonadeNear(electricLemonadePoints.stand)){
-      const purchase=electricLemonadeState.buyLemonade();
-      if(purchase.ok){persistCashBalance();toast('Electric Lemonade purchased for 10 Coast Bucks (CB). Your glow is ready for the cave.');diagEvent('Electric Lemonade purchased: -10 CB; balance '+purchase.balance)}
-      else toast('You need 10 Coast Bucks to buy Electric Lemonade.');
-      refreshElectricLemonadeEffects();updateTouchControls();return true;
+    if(world==='waterfront'&&electricLemonadeNear(electricLemonadePoints.stand)&&electricLemonadeFacingVendor()){
+      openElectricLemonadeTransaction();return true;
     }
     if(world==='waterfront'&&electricLemonadeNear(electricLemonadePoints.cave)){
       try{await coastlineTransitions.transition('waterfront-to-electric-dungeon');if(window.__coastlineActiveWorldId==='electric-lemonade-dungeon'){electricLemonadeState.enterDungeon();setElectricDungeonLighting(true);refreshElectricLemonadeEffects();toast(electricLemonadeState.snapshot().glowActive?'The glow reveals the cave. Look for the hidden rocket boots.':'The cave is almost completely dark. A glow from Electric Lemonade will help you see.');diagEvent('entered Electric Lemonade dungeon')}}catch(error){toast('The cave entrance is unavailable right now.');diagEvent('cave transition failed: '+String(error?.message||error))}updateTouchControls();return true;
