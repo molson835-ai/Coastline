@@ -97,3 +97,23 @@ test('limousine keeps passenger-car width and height while using a longer propor
   assert.ok(Math.abs(fitted.y - limousine.height) < 0.6);
   assert.ok(Math.abs(fitted.z * lengthCorrection - limousine.length) < 1e-6);
 });
+
+test('optimized furnished house GLB is wired into runtime and standalone package with safe fallback', async () => {
+  const { readFileSync } = await import('node:fs');
+  const loader = readFileSync(new URL('../coastline-homey-glb-loader.js', import.meta.url), 'utf8');
+  const transitions = readFileSync(new URL('../coastline-world-transitions.js', import.meta.url), 'utf8');
+  const build = readFileSync(new URL('../scripts/build-itch.mjs', import.meta.url), 'utf8');
+  const sw = readFileSync(new URL('../coastline-sw.js', import.meta.url), 'utf8');
+  assert.match(loader, /coastline_home_interior_part_1\.bin/);
+  assert.match(loader, /coastline_home_interior_part_2\.bin/);
+  assert.match(loader, /coastline_home_interior_part_3\.bin/);
+  assert.match(loader, /EXPECTED_BYTES = 47_528_304/);
+  assert.match(loader, /0x46546c67/);
+  assert.match(loader, /parseAsync\(buffer/);
+  assert.match(loader, /procedural interior retained/);
+  assert.match(transitions, /attachOptimizedHomeInterior/);
+  assert.match(build, /coastline-homey-glb-loader\.js/);
+  assert.match(build, /coastline_home_interior_part_3\.bin/);
+  assert.match(sw, /coastline-static-v62/);
+  assert.match(sw, /coastline_home_interior_part_1\.bin/);
+});
