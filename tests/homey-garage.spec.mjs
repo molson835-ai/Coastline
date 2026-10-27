@@ -108,9 +108,14 @@ test('optimized furnished house GLB is wired into runtime and standalone package
   assert.match(loader, /coastline_home_interior_part_2\.bin/);
   assert.match(loader, /coastline_home_interior_part_3\.bin/);
   assert.match(loader, /EXPECTED_BYTES = 47_528_304/);
-  assert.match(loader, /0x46546c67/);\n  assert.match(loader, /crypto\.subtle\.digest\('SHA-256'/);\n  assert.match(loader, /checksum mismatch/);
+  assert.match(loader, /0x46546c67/);
+  assert.match(loader, /crypto\.subtle\.digest\('SHA-256'/);
+  assert.match(loader, /checksum mismatch/);
   assert.match(loader, /parseAsync\(buffer/);
   assert.match(loader, /procedural interior retained/);
+  assert.match(loader, /target = \{ x: 17\.4, y: 5\.05, z: 25\.2 \}/);
+  assert.match(loader, /model\.scale\.set\(target\.x \/ sourceSize\.x, target\.y \/ sourceSize\.y, target\.z \/ sourceSize\.z\)/);
+  assert.match(loader, /Hide every procedural visual/);
   assert.match(transitions, /attachOptimizedHomeInterior/);
   assert.match(build, /coastline-homey-glb-loader\.js/);
   assert.match(build, /coastline_home_interior_part_3\.bin/);
