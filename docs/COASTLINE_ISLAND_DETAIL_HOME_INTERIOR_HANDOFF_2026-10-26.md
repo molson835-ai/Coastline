@@ -99,3 +99,13 @@ User approved exploring a full GLB apartment interior instead of continuing to b
 - Branch paths and byte sizes: `assets/vehicles/coastline_home_interior_part_1.bin` (20,000,000), `part_2.bin` (20,000,000), and `part_3.bin` (7,528,304); total 47,528,304 bytes, matching the optimized GLB artifact's reported size.
 - These are raw chunks, not a standalone `.glb`; the game does **not** load them yet. Before runtime integration, reconstruct and validate the GLB byte-for-byte (ideally outside the browser/build if repository tooling permits) or implement a safe concatenation loader, verify the GLB header/Three.js loader support, and update packaging/service-worker rules. Do not treat file presence as proof of a working house interior.
 - PR #128 remains open/unmerged. The copy commit advances only the PR branch; no merge was performed. Recheck CI for the new head and do Android preview verification after integration.
+
+
+## Runtime integration — optimized furnished house GLB (2026-10-27)
+
+- Added `coastline-homey-glb-loader.js` and wired `createHouseRoot()` in `coastline-world-transitions.js` to load the optimized apartment GLB when Homey House Interior is created.
+- Loader fetches the three committed binary chunks from `assets/vehicles/`, checks exact chunk byte counts, verifies GLB v2 header/declared length, verifies SHA-256 `bfa1fd41d535d1cb5f8ad93e3a0902280e0595083d653c3483c187b8d4e1351b`, then parses with Three.js GLTFLoader. Failure leaves the built-in procedural interior available and logs a diagnostic.
+- House loader is included in the itch HTML package. Large chunks are excluded from service-worker precache and fetched on demand to avoid forcing a ~45 MiB download during startup.
+- Added regression assertions for runtime integration, packaging, asset integrity checks, and on-demand fetch behavior.
+- CI on commit `b628a2d8f2123b7cd66e5067563d6505a917fc6d` was still running at handoff update: itch package and Babylon browser smoke in progress; gameplay watchdog pending; graphics quality guard passed. Check exact-head Actions before considering this verified.
+- Not yet confirmed: that the live Cloudflare preview serves all three binary parts with the expected byte lengths, that the GLB parses in browser, visual fit/scale/orientation inside the house, mobile frame time/memory, and movement/collision/transition regression after model load. Do not describe this as fully working until browser and Android acceptance verify the model is visible and positioned correctly.
