@@ -1,4 +1,4 @@
-const VALID_TRIGGERS = new Set(['bridge', 'tunnel', 'garage', 'door', 'elevator', 'generic']);
+const VALID_TRIGGERS = new Set(['bridge', 'tunnel', 'garage', 'door', 'cave', 'elevator', 'generic']);
 const VALID_VEHICLE_POLICIES = new Set(['required', 'allowed', 'forbidden']);
 const VALID_CONTENT_DENSITIES = new Set(['developed', 'sparse']);
 const VALID_ACTOR_ASSET_POLICIES = new Set(['shared']);
