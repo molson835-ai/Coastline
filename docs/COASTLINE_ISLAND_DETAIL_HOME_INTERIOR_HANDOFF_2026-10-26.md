@@ -129,3 +129,13 @@ User reported that entering Homey House showed a tiny trailer-shaped apartment n
 - Added regression assertions for envelope fitting and hiding the superseded procedural visuals. Also repaired malformed literal escaped newlines in tests/homey-garage.spec.mjs that made the engine-test file fail to parse.
 - Runtime loader fix commit: 407d8556640d7be09ae1d363059daadc4c5b6f36; test fix commit: 033eeda92e187cb8ef8b07a0e40e31165389bd46.
 - Still required before acceptance: exact-head browser test must confirm the reconstructed GLB loads; visual inspection must confirm room-scale appearance, floor/door alignment, usable navigation, and no overlap. Visual distortion from per-axis fitting must be inspected. Android memory/frame pacing and model furniture collision are still not verified. PR #128 remains open/unmerged.
+
+
+## Clarification: replace the room, preserve model proportions (2026-10-27)
+
+User clarified the intended architecture: do not scale the apartment to fit the existing procedural room. Replace the interior room with the furnished model at a realistic, proportion-preserving scale; keep the existing exterior house unchanged and never render the interior in the exterior world.
+
+- Updated `coastline-homey-glb-loader.js` to rotate the source model, compute its own horizontal bounds, and apply a single uniform scale so its longest horizontal dimension is about 23 world units. This preserves model/furniture proportions rather than independently stretching width, height, and depth to the previous room dimensions.
+- The house-interior root is created only when transitioning to `home-interior`, and removed when that world unloads. The exterior house belongs to the separate island/city world and is not modified by the interior loader.
+- The imported model takes over the interior visuals; procedural room visuals are hidden, with the existing collision boundary retained. Further verification must ensure no exterior bleed-through, door/floor alignment, and navigable space. The source asset's scale/orientation may still need a uniform-scale adjustment based on visual inspection; automated tests cannot confirm appearance.
+- Runtime update commit: 8069c18d77fb38b0ba25dad008ce530ad7074099; regression-test update: 34ce4c290a1904c060bdfbcb08437db31ae63c39. PR #128 remains open and unmerged.
