@@ -215,3 +215,74 @@ The procedural interior now adds a compact kitchen island with stools and pendan
 - Verified implementation preview for the restored runtime source: https://92fc6a9c-coastline-beta.molson835.workers.dev
 - Still required: inspect final exact-head browser results, verify the newest branch preview deployment, and perform a real bridge drive-through plus Android visual inspection. Desktop CI is not proof of those manual checks.
 - The apartment GLB chunks remain reference-only and must not be loaded, packaged, or cached. Do not merge without explicit user approval.
+
+
+## Deferred follow-up PR scope — after PR #129 merges (2026-10-27)
+
+**Important:** These items are requirements for a *separate upcoming PR*. They are documented here for continuity only; they are not part of the implementation scope of PR #129. Do not begin the follow-up runtime changes until PR #129 has merged, and do not merge either PR without explicit user authorization.
+
+### 1. Make every rope bridge safely traversable
+
+- Turn the existing visible rope guard rails into real driving barriers, so the active vehicle cannot steer off either side of a bridge deck. Audit the City ↔ Homey bridge and the other intended island-to-island bridge spans, not just one bridge.
+- Barrier/collision geometry must follow each bridge's actual span and sag profile instead of using a flat wall that floats above the deck or blocks the bridge entrances.
+- Keep the narrow, exposed single-lane rope-bridge look. Do not turn the bridge into a broad conventional roadway. Player-on-foot behavior should remain intentional and consistent with the visible rails.
+- Test centerline driving, both side edges, forward/reverse movement, and both bridge landings. Assert that a vehicle cannot escape laterally yet can still complete each intended CTM crossing without getting stuck.
+
+### 2. Make the City road network stop before the map perimeter
+
+- Audit procedural City road generation and stop roads before the outer map boundary. Avoid roads that continue to the map edge or create a conspicuous continuous road ring around the City.
+- Make the rope bridges feel like discoveries: preserve reachable, functional approaches, but let terrain, buildings, vegetation, or the existing landscape shape conceal or de-emphasize their approaches naturally. Do not close the bridge corridor, create invisible blockers, or reintroduce landmark-discovery popups.
+- Keep roads purposeful and connected to neighborhoods/destinations rather than drawing a continuous perimeter loop. Keep road collision, vehicle navigation, and visible road endpoints consistent.
+- Add regression checks for road extents, no unintended perimeter loop, and open intended bridge corridors; inspect City edges and bridge approaches in the playable preview.
+
+### 3. Finish the closet/wardrobe character and accessory selector
+
+- Audit the character/accessory GLB pack and asset credits to enumerate all usable character choices and accessories actually present. Do not invent missing options or import the separate three-part apartment GLB as a runtime asset.
+- Expose all supported character variants and accessories as selectable options in the existing closet/wardrobe UI (the wardrobe option cluster/menu). Selecting an option must visibly change the player's character model, appearance, or equipped accessory—not just the selected label.
+- Ensure options compose safely (compatible accessories can be combined; incompatible pieces do not overlap or disappear unpredictably), the player's selected appearance persists through CTM/world transitions, and returning to the wardrobe restores the current selection.
+- Add a complete selection matrix covering every discovered asset option, plus browser tests that verify the visible model/accessory changes and persistence. Record any asset that cannot safely be used and why.
+
+### 4. Add the Electric Lemonade cave/dungeon adventure
+
+**Location and transition**
+- Use the existing neighboring island that actually bridges to Homey/residential Island. Confirm its region ID and bridge route from the current CTM manifest before placing content; do not create a disconnected island or an unintended extra route.
+- Build a small, low-cost mountain with a clearly visible dark cave opening. Entering the cave triggers CTM into a distinct interior dungeon world. Exiting the dungeon returns the player through CTM to the cave mouth/outer island at a coherent position and orientation.
+- The dungeon interior should be pitch black with no accidental ambient fill, skybox light, or visible distant scenery. The purchased body glow is the intended way to illuminate the cave; keep the cave navigable through that glow without making the room itself bright.
+
+**Electric Lemonade stand and paid glow**
+- Place a small lemonade stand outside the cave with a manning pedestrian NPC and a readable sign that says exactly **ELECTRIC LEMONADE**.
+- Offer a cup for **10 Coast Bucks (CB)**. A successful purchase deducts 10 CB once and applies a strong character-body glow/emissive and practical light sufficient to reveal the nearby dungeon. Check the current balance and handle insufficient funds without charging or activating the effect.
+- The effect should be scoped to the dungeon excursion and wear off when the player exits the dungeon via CTM. Make sure the character is no longer glowing after the return transition, including interrupted/failed transition paths. Do not leave an unbounded point-light source behind.
+- Keep the stand/cashier interaction contextual and show a clear purchase price and effect. Use the existing currency persistence and terminology.
+
+**Rocket boots discovery and timed power**
+- Place a partially concealed, discoverable pair of rocket boots inside the dungeon. Finding/activating them grants a temporary movement ability that lets the on-foot character run at approximately car-like speed for **5 minutes**.
+- Only affect the on-foot character's movement; do not silently grant a vehicle, alter normal vehicle physics, or bypass world/CTM boundaries. Preserve collision so high speed cannot pass through walls, leave the dungeon, or skip required triggers.
+- When the five-minute effect expires, restore ordinary movement, remove associated boot effects, and make the boots available at their dungeon pickup location again. A new pickup should be possible on a later visit; avoid a permanent one-time pickup flag.
+- Define reliable timer behavior and testability (including transition/exit, pause, reload/session handling, and boundary cases) before implementation. Do not let the boost stay active indefinitely if a timer is interrupted.
+- Add dungeon pickup/buff/expiry/reset tests, CB purchase and balance tests, darkness/glow lighting assertions, and cave entry/exit CTM tests. Include a visual playtest in the preview to ensure the glow—not hidden room lighting—actually illuminates the dungeon.
+
+### 5. Make the Use/Action button contextual
+
+- Show the Use/Action button only when the player is close enough to a currently usable interaction (for example, a closet, door, vehicle-entry option, purchase stand, or pickup) and the action is actually eligible in the current world/mode.
+- Hide it promptly when no eligible interaction is in range, when the player moves away, when the world changes, or when an interaction becomes unavailable. Keep the on-foot/vehicle-specific rules for the Homey garage and house transitions.
+- Test distances just inside/outside each interaction radius, transitions, and cases where multiple prompts compete. No permanently visible, inert Use button.
+
+### 6. Correct reversed driving steering
+
+- The driving controls currently steer in the opposite direction: pressing/holding Left turns right and Right turns left. Correct the underlying steering sign/mapping rather than masking only one UI control.
+- Audit keyboard, touch/mobile controls, and any controller/gamepad mapping so left consistently steers left and right consistently steers right across forward and reverse driving, camera orientation, and all vehicle types that share the steering handler.
+- Add a behavioral regression that drives forward with a left input and observes a leftward turn, then repeats with right input. Verify keyboard and touch mappings and ensure walking/camera controls are not accidentally inverted.
+
+### Follow-up PR acceptance checklist
+
+- [ ] Current PR #129 is merged before this follow-up implementation begins.
+- [ ] Rope guard-rail collision prevents lateral vehicle falls on every intended bridge and all CTM crossings remain usable.
+- [ ] City roads stop before the map edges; no conspicuous perimeter loop; bridge approaches remain functional but naturally discoverable.
+- [ ] Every usable character/accessory in the character GLB pack is represented in the wardrobe and demonstrably changes the visible player; selections persist through transitions.
+- [ ] Electric Lemonade stand, NPC, exact sign, 10 CB purchase, sufficient-funds handling, dungeon-only glow, and exit cleanup work.
+- [ ] Cave and pitch-black dungeon are connected through CTM; rocket boots provide the five-minute car-speed run and reset after expiry.
+- [ ] Use/Action appears only for nearby eligible interactions.
+- [ ] Left/right steering is corrected and verified for keyboard and touch controls.
+- [ ] New engine/system/browser tests pass on the exact PR head; preview and Android manual checks are recorded separately from automated checks.
+- [ ] Handoff and asset credits are updated; apartment GLB remains unintegrated unless explicitly approved later.
