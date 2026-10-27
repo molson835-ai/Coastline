@@ -289,3 +289,28 @@ test('residential, waterfront, and port islands have developed detail and landsc
   const densities = await page.evaluate(() => window.__coastlineTransitionTest.worldDefinitions().filter(world => ['island','waterfront','port'].includes(world.id)).map(world => world.content.density));
   expect(densities.every(density => density === 'developed')).toBe(true);
 });
+
+
+test('optimized furnished house GLB loads in the actual Homey house world', async ({ page }) => {
+  await openGame(page);
+  await page.evaluate(async () => {
+    await window.__coastlineTransitionTest.transition('city-to-island');
+    await window.__coastlineTransitionTest.transition('island-to-homey-garage');
+    window.__coastlineTest.setWalkPosition(483, 515, 0);
+    window.__coastlineTransitionTest.updatePrompt();
+    window.__coastlineTest.setWalkPosition(483, 516, 0);
+    window.__coastlineTransitionTest.updatePrompt();
+  });
+  await expect.poll(() => page.evaluate(() => window.__coastlineTransitionTest.status().activeWorldId), { timeout: 5000 }).toBe('home-interior');
+  await page.waitForFunction(() => {
+    const house = window.__coastlineTransitionTest.houseState();
+    return house.optimizedInteriorLoaded || Boolean(house.optimizedInteriorError);
+  }, null, { timeout: 120000 });
+  const result = await page.evaluate(() => ({
+    house: window.__coastlineTransitionTest.houseState(),
+    assetStatus: window.__coastlineHomeInteriorAssetStatus,
+  }));
+  expect(result.house.optimizedInteriorLoaded, result.house.optimizedInteriorError || result.assetStatus || 'furnished GLB did not load').toBe(true);
+  expect(result.house.root.meshes).toBeGreaterThan(100);
+  expect(result.assetStatus).toBe('Furnished home interior loaded');
+});
