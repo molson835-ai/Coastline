@@ -2,7 +2,6 @@ import { createTransitionManager } from './transition-manager.js';
 import { COASTLINE_ISLAND_ELEVATION, COASTLINE_ISLAND_WATER_DROP, createCoastlineIslandRoot, getCoastlineIslandRegion } from './coastline-island-regions.js';
 import { buildHomeyGarageInterior, openGarageVehicleChooser, didCrossGarageThreshold, didCrossHouseDoorThreshold, canUseGarageKeyBoard } from './coastline-homey-garage.js';
 import { buildHomeyHouseInterior } from './coastline-homey-house-interior.js';
-import { loadCozyCharacterAsset, createCozyCharacterInstance, setCozyCharacterAnimation } from './coastline-asset-swap.js';
 
 export function createWorldRootRegistry({ THREE, scene }) {
   const originalAdd = scene.add.bind(scene), originalRemove = scene.remove.bind(scene), cityRoot = new THREE.Group();
@@ -196,9 +195,9 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
     const id=window.__coastlineActiveWorldId;
     const half=COASTLINE_ROPE_BRIDGE_CONFIG.deckWidth/2;
     const inset=Math.max(0,radius)+0.08;
-    if(id==='city'&&z>=CITY_BRIDGE_END_Z+1.5&&z<=CITY_BRIDGE_START_Z-1.5)
+    if(id==='city'&&Math.abs(x)<=12&&z>=CITY_BRIDGE_END_Z+1.5&&z<=CITY_BRIDGE_START_Z-1.5)
       return Math.abs(x)>half-inset;
-    if(id==='island'&&z>=ISLAND_BRIDGE_END_Z+1.5&&z<=ISLAND_BRIDGE_START_Z-1.5)
+    if(id==='island'&&Math.abs(x-ISLAND_CENTER.x)<=12&&z>=ISLAND_BRIDGE_END_Z+1.5&&z<=ISLAND_BRIDGE_START_Z-1.5)
       return Math.abs(x-ISLAND_CENTER.x)>half-inset;
     if((id==='island'||id==='waterfront')&&x>=611.5&&x<=708.5)
       return Math.abs(z-500)>half-inset;
@@ -211,8 +210,8 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
   window.__coastlineClampBridgePosition=(x,z,radius=0)=>{
     const id=window.__coastlineActiveWorldId,half=COASTLINE_ROPE_BRIDGE_CONFIG.deckWidth/2;
     const lane=Math.max(.35,half-Math.max(0,radius)-.12);
-    if(id==='city'&&z>=CITY_BRIDGE_END_Z&&z<=CITY_BRIDGE_START_Z)return{x:THREE.MathUtils.clamp(x,-lane,lane),z};
-    if(id==='island'&&z>=ISLAND_BRIDGE_END_Z&&z<=ISLAND_BRIDGE_START_Z)return{x:THREE.MathUtils.clamp(x,ISLAND_CENTER.x-lane,ISLAND_CENTER.x+lane),z};
+    if(id==='city'&&Math.abs(x)<=12&&z>=CITY_BRIDGE_END_Z&&z<=CITY_BRIDGE_START_Z)return{x:THREE.MathUtils.clamp(x,-lane,lane),z};
+    if(id==='island'&&Math.abs(x-ISLAND_CENTER.x)<=12&&z>=ISLAND_BRIDGE_END_Z&&z<=ISLAND_BRIDGE_START_Z)return{x:THREE.MathUtils.clamp(x,ISLAND_CENTER.x-lane,ISLAND_CENTER.x+lane),z};
     if((id==='island'||id==='waterfront')&&x>=610&&x<=710)return{x,z:THREE.MathUtils.clamp(z,ISLAND_CENTER.z-lane,ISLAND_CENTER.z+lane)};
     if((id==='waterfront'||id==='port')&&x>=290&&x<=390)return{x,z:THREE.MathUtils.clamp(z,ISLAND_CENTER.z-lane,ISLAND_CENTER.z+lane)};
     return{x,z};
@@ -272,6 +271,7 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
       if(regionId==='waterfront'){
         const proceduralVendor=root.getObjectByName('coastline-electric-lemonade-vendor');
         try{
+          const {loadCozyCharacterAsset,createCozyCharacterInstance,setCozyCharacterAnimation}=await import('./coastline-asset-swap.js');
           const asset=await loadCozyCharacterAsset();
           const actor=createCozyCharacterInstance(THREE,asset,1.72);
           actor.root.name='coastline-waterfront-lemonade-vendor-glb';
