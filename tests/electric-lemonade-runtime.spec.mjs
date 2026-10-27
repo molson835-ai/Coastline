@@ -19,6 +19,7 @@ test('Electric Lemonade charges exactly 10 CB, illuminates the dungeon, and glow
     const canBuy = window.__coastlineElectricLemonade.canUse();
     const before = window.__coastlineElectricLemonade.state().balance;
     await window.__coastlineElectricLemonade.interact();
+    document.querySelector('#coastlineLemonadeBuy')?.click();
     const afterPurchase = window.__coastlineElectricLemonade.state();
     test.setWalkPosition(548, 540.5, 0);
     await window.__coastlineElectricLemonade.interact();
