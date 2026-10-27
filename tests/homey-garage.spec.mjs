@@ -116,5 +116,5 @@ test('procedural Homey interior includes GLB-inspired functional room zoning', a
   const { readFileSync } = await import('node:fs');
   const interior = readFileSync(new URL('../coastline-homey-house-interior.js', import.meta.url), 'utf8');
   for (const feature of ['house-kitchen-island-base','house-kitchen-upper-cabinet-','house-bathroom-vanity','house-bathroom-shower-tray','house-laundry-washer','house-office-desk','house-bedroom-bed-base','house-closet-rail']) assert.ok(interior.includes(feature), 'missing interior feature: ' + feature);
-  assert.match(interior, /zones: \['entry', 'living', 'dining', 'kitchen', 'hall', 'bedroom', 'closet'\]/);
+  assert.match(interior, /zones: \['entry', 'living', 'dining', 'kitchen', 'hall', 'bathroom', 'laundry', 'office', 'bedroom', 'closet'\]/);
 });
