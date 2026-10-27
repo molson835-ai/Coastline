@@ -2,7 +2,14 @@ const { defineConfig } = require('@playwright/test');
 
 module.exports = defineConfig({
   testDir: './tests',
-  testMatch: '**/*.spec.cjs',
+  testMatch: [
+    '**/*.spec.cjs',
+    '**/bridge-guardrails.spec.mjs',
+    '**/city-road-edges.spec.mjs',
+    '**/coastline-proximity-camera.spec.mjs',
+    '**/contextual-use-button.spec.mjs',
+    '**/electric-lemonade-runtime.spec.mjs'
+  ],
   timeout: 45000,
   expect: { timeout: 15000 },
   reporter: [['list'], ['html', { outputFolder: 'playwright-report', open: 'never' }]],
