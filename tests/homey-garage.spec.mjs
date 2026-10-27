@@ -59,12 +59,12 @@ test('garage collision props expose resettable tire and wrench interactions', ()
   assert.match(islandSource, /coastline-residential-backshore-beachgrass/);
   assert.match(islandSource, /coastline-residential-backshore-bayberry/);
   assert.match(islandSource, /coastline-residential-backshore-driftwood/);
-  assert.match(islandSource, /coastline-villa-path-light-\\$\\{/);
-  assert.match(islandSource, /root\\.userData\\.coastlineHomeyDrivewayLights = drivewayLights/);
-  assert.match(islandSource, /new THREE\\.PointLight\\(0xffd28a, \\.28, 5\\.5, 2\\)/);
-  assert.match(islandSource, /fall\\(\\) \\{ if \\(this\\.fallen\\) return; this\\.fallen = true/);
-  assert.match(islandSource, /reset\\(\\) \\{ this\\.fallen = false/);
-  assert.doesNotMatch(islandSource, /coastline-homey-driveway-light/);
+  assert.ok(islandSource.includes('coastline-villa-path-light-${'));
+  assert.ok(islandSource.includes('root.userData.coastlineHomeyDrivewayLights = drivewayLights'));
+  assert.ok(islandSource.includes('new THREE.PointLight(0xffd28a, .28, 5.5, 2)'));
+  assert.ok(islandSource.includes('fall() { if (this.fallen) return; this.fallen = true'));
+  assert.ok(islandSource.includes('reset() { this.fallen = false'));
+  assert.equal(islandSource.includes('coastline-homey-driveway-light'), false);
 });
 
 test('paint palette offers distinct, named finishes without touching non-paint vehicle roles', () => {
