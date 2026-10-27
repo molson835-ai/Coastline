@@ -97,3 +97,16 @@ test('limousine keeps passenger-car width and height while using a longer propor
   assert.ok(Math.abs(fitted.y - limousine.height) < 0.6);
   assert.ok(Math.abs(fitted.z * lengthCorrection - limousine.length) < 1e-6);
 });
+
+
+test('Homey house uses the regular procedural interior, not the experimental GLB replacement', async () => {
+  const { readFileSync } = await import('node:fs');
+  const transitions = readFileSync(new URL('../coastline-world-transitions.js', import.meta.url), 'utf8');
+  const build = readFileSync(new URL('../scripts/build-itch.mjs', import.meta.url), 'utf8');
+  const sw = readFileSync(new URL('../coastline-sw.js', import.meta.url), 'utf8');
+  assert.match(transitions, /import \\{ buildHomeyHouseInterior \\} from '\\.\\/coastline-homey-house-interior\\.js'/);
+  assert.match(transitions, /const createHouseRoot=\\(\\)=>buildHomeyHouseInterior\\(THREE,/);
+  assert.doesNotMatch(transitions, /attachOptimizedHomeInterior|coastline-homey-glb-loader/);
+  assert.doesNotMatch(build, /coastline-homey-glb-loader|coastline_home_interior_part_/);
+  assert.doesNotMatch(sw, /coastline-homey-glb-loader|coastline_home_interior_part_/);
+});
