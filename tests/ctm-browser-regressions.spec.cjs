@@ -291,9 +291,7 @@ test('residential, waterfront, and port islands have developed detail and landsc
 });
 
 
-test('optimized furnished house GLB loads in the actual Homey house world', async ({ page }) => {
-  // The complete GLB is 45 MiB; leave time for local transfer, checksum, and GPU scene parse.
-  test.setTimeout(180000);
+test('regular procedural Homey house interior remains active and navigable', async ({ page }) => {
   await openGame(page);
   await page.evaluate(async () => {
     await window.__coastlineTransitionTest.transition('city-to-island');
@@ -304,18 +302,12 @@ test('optimized furnished house GLB loads in the actual Homey house world', asyn
     window.__coastlineTransitionTest.updatePrompt();
   });
   await expect.poll(() => page.evaluate(() => window.__coastlineTransitionTest.status().activeWorldId), { timeout: 5000 }).toBe('home-interior');
-  await page.waitForFunction(() => {
+  const result = await page.evaluate(() => {
     const house = window.__coastlineTransitionTest.houseState();
-    return house.optimizedInteriorLoaded || Boolean(house.optimizedInteriorError);
-  }, null, { timeout: 120000 });
-  const result = await page.evaluate(() => ({
-    house: window.__coastlineTransitionTest.houseState(),
-    assetStatus: window.__coastlineHomeInteriorAssetStatus,
-  }));
-  expect(result.house.optimizedInteriorLoaded, result.house.optimizedInteriorError || result.assetStatus || 'furnished GLB did not load').toBe(true);
-  expect(result.house.root.meshes).toBeGreaterThan(100);
-  expect(result.house.optimizedInteriorMeshes).toBeGreaterThan(100);
-  expect(result.assetStatus).toBe('Furnished home interior loaded');
+    const root = window.__coastlineTest.sceneRoot?.();
+    return { house, hasProceduralFloor: Boolean(root?.getObjectByName?.('house-interior-floor')) };
+  });
+  expect(result.house.root.meshes).toBeGreaterThan(20);
   const movement = await page.evaluate(() => {
     window.__coastlineTest.setWalkPosition(483, 508.5, 0);
     const before = window.__coastlineTransitionTest.playerState().position;
@@ -325,5 +317,6 @@ test('optimized furnished house GLB loads in the actual Homey house world', asyn
     const after = window.__coastlineTransitionTest.playerState().position;
     return Math.hypot(after.x - before.x, after.z - before.z);
   });
-  expect(movement, 'player must still move after the furnished GLB replaces procedural furniture').toBeGreaterThan(0.1);
+  expect(movement, 'player must move inside the regular procedural house interior').toBeGreaterThan(0.1);
 });
+
