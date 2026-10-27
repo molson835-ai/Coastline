@@ -59,7 +59,12 @@ test('garage collision props expose resettable tire and wrench interactions', ()
   assert.match(islandSource, /coastline-residential-backshore-beachgrass/);
   assert.match(islandSource, /coastline-residential-backshore-bayberry/);
   assert.match(islandSource, /coastline-residential-backshore-driftwood/);
-  assert.match(islandSource, /coastline-homey-driveway-light/);
+  assert.match(islandSource, /coastline-villa-path-light-\\$\\{/);
+  assert.match(islandSource, /root\\.userData\\.coastlineHomeyDrivewayLights = drivewayLights/);
+  assert.match(islandSource, /new THREE\\.PointLight\\(0xffd28a, \\.28, 5\\.5, 2\\)/);
+  assert.match(islandSource, /fall\\(\\) \\{ if \\(this\\.fallen\\) return; this\\.fallen = true/);
+  assert.match(islandSource, /reset\\(\\) \\{ this\\.fallen = false/);
+  assert.doesNotMatch(islandSource, /coastline-homey-driveway-light/);
 });
 
 test('paint palette offers distinct, named finishes without touching non-paint vehicle roles', () => {
@@ -117,4 +122,21 @@ test('procedural Homey interior includes GLB-inspired functional room zoning', a
   const interior = readFileSync(new URL('../coastline-homey-house-interior.js', import.meta.url), 'utf8');
   for (const feature of ['house-kitchen-island-base','house-kitchen-upper-cabinet-','house-bathroom-vanity','house-bathroom-shower-tray','house-laundry-washer','house-office-desk','house-bedroom-bed-base','house-closet-rail']) assert.ok(interior.includes(feature), 'missing interior feature: ' + feature);
   assert.match(interior, /zones: \['entry', 'living', 'dining', 'kitchen', 'hall', 'bathroom', 'laundry', 'office', 'bedroom', 'closet'\]/);
+});
+
+
+test('Homey house layout has hardwood, one living carpet, a clear route, and an enclosed rear closet', () => {
+  const interior = readFileSync(new URL('../coastline-homey-house-interior.js', import.meta.url), 'utf8');
+  assert.match(interior, /floor = mat\(0x9b7a54, \.9\)/);
+  assert.match(interior, /house-hardwood-plank-seams/);
+  assert.equal((interior.match(/house-living-room-rug/g) || []).length, 1);
+  assert.doesNotMatch(interior, /house-dining-rug|house-bedroom-rug|house-hall-runner/);
+  assert.match(interior, /house-closet-back/);
+  assert.match(interior, /house-closet-side-left/);
+  assert.match(interior, /house-closet-side-right/);
+  assert.match(interior, /house-closet-door-left/);
+  assert.match(interior, /house-closet-door-right/);
+  assert.match(interior, /house-coffee-table-top', centerX - 2\.55/);
+  assert.match(interior, /house-sofa-base/);
+  assert.match(interior, /wardrobe: \{ id: 'wardrobe', x: centerX \+ 5\.7, z: centerZ - 8\.65/);
 });
