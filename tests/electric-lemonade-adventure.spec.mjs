@@ -93,6 +93,6 @@ test('vendor interaction requires close proximity and facing the stand', async (
   assert.equal(isFacingElectricLemonadeVendor({ x: 520, z: 529, heading: 0 }, { x: 520, z: 532 }), true);
   assert.equal(isFacingElectricLemonadeVendor({ x: 520, z: 535, heading: 0 }, { x: 520, z: 532 }), false);
   assert.equal(isFacingElectricLemonadeVendor({ x: 520, z: 529, heading: Math.PI / 2 }, { x: 520, z: 532 }), false);
-  assert.equal(isFacingElectricLemonadeVendor({ x: 520, z: 529, heading: 0 }, { x: 520, z: 532, maxDistance: 2 }), false);
+  assert.equal(isFacingElectricLemonadeVendor({ x: 520, z: 529, heading: 0 }, { x: 520, z: 532 }, { maxDistance: 2 }), false);
   assert.equal(isFacingElectricLemonadeVendor({ x: Number.NaN, z: 529, heading: 0 }, { x: 520, z: 532 }), false);
 });
