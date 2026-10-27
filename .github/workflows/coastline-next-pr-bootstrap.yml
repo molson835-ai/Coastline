@@ -79,7 +79,10 @@ jobs:
               if old in text:
                   text=text.replace(old,new,1)
                   changed=True
-          if not changed:
+          if not changed and not (
+              'desired=coastlineCameraSafeDesired(target,camYaw,4.2,1.8);' in text
+              and 'desired=coastlineCameraSafeDesired(target,camYaw,7,3.0);' in text
+          ):
               raise SystemExit('camera target expressions not found; refusing silent no-op')
           path.write_text(text)
 
