@@ -109,3 +109,12 @@ User approved exploring a full GLB apartment interior instead of continuing to b
 - Added regression assertions for runtime integration, packaging, asset integrity checks, and on-demand fetch behavior.
 - CI on commit `b628a2d8f2123b7cd66e5067563d6505a917fc6d` was still running at handoff update: itch package and Babylon browser smoke in progress; gameplay watchdog pending; graphics quality guard passed. Check exact-head Actions before considering this verified.
 - Not yet confirmed: that the live Cloudflare preview serves all three binary parts with the expected byte lengths, that the GLB parses in browser, visual fit/scale/orientation inside the house, mobile frame time/memory, and movement/collision/transition regression after model load. Do not describe this as fully working until browser and Android acceptance verify the model is visible and positioned correctly.
+
+
+### Follow-up hardening — 2026-10-27
+
+- GLTFLoader is dynamically imported only when entering the house; a CDN/parser problem therefore cannot prevent the main game from starting.
+- GLB chunks are fetched sequentially into one preallocated buffer to lower peak memory; checksum and GLB-v2 header/length checks must pass before parsing.
+- When the furnished model replaces procedural furniture, stale hidden furniture collision footprints are removed while visible shell/entry wall colliders remain.
+- Added a browser regression that actually transitions into Homey House, waits for the reconstructed GLB to load or fail, asserts that the GLB contributes over 100 meshes and reports successful loading, and confirms the player can still move afterward. The test allows up to 180 seconds for the 45 MiB asset and browser parse.
+- Code-under-test commit: `0ebbfcbe4a51b28878205545bc9e8911bf595798`. At handoff time, graphics guard passed; Babylon preview validation and itch HTML package were running; gameplay watchdog was queued/pending. Do not treat browser acceptance as passed until the exact-head workflow results finish. PR #128 remains open and unmerged.
