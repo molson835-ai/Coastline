@@ -335,3 +335,6 @@ Run engine/system/vehicle/Playwright and itch package checks against the exact P
 
 
 Bedroom circulation note: the bed's solid footprint and nightstand were overlapping the straight doorway-to-closet walking line in the original layout. The follow-up rotates the bed into the east side of the room, moves the dresser and bedside table away from that corridor, and increases the clear bedroom doorway width. A Playwright path probe now asks the live collision function about four points along that corridor; every point must be traversable.
+
+
+Cave follow-up note (2026-10-28): source inspection found a second rectangular artifact beyond the displaced marina boardwalk. The approach was a flat PlaneGeometry(15, 11) stone-colored slab placed directly over the ground. It is replaced with a curved, irregular ShapeGeometry path whose edges taper and wander naturally into the cave mouth. An engine regression now forbids the old rectangular plane and requires the irregular shape.

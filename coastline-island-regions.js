@@ -824,11 +824,32 @@ export function createCoastlineIslandRoot({ THREE, region, groundY = () => 0, ad
       mesh.rotation.z=(i-1)*.08;mesh.castShadow=true;mesh.receiveShadow=true;mountain.add(mesh);
     });
     root.add(mountain);
-    const caveApproach = new THREE.Mesh(new THREE.PlaneGeometry(15, 11), material(0x817b69, .98));
+    // An irregular stone path blends into the landscape. The old flat rectangular
+    // plane looked like the bottom of a missing building, so vary the edges to
+    // follow a natural footpath that widens toward shore and narrows at the cave.
+    const caveApproachShape = new THREE.Shape();
+    caveApproachShape.moveTo(-3.9, -5.8);
+    caveApproachShape.quadraticCurveTo(-5.6, -4.2, -4.8, -2.3);
+    caveApproachShape.quadraticCurveTo(-5.1, -.8, -4.2, .9);
+    caveApproachShape.quadraticCurveTo(-3.6, 2.6, -4.6, 4.3);
+    caveApproachShape.lineTo(-3.2, 5.7);
+    caveApproachShape.quadraticCurveTo(-1.1, 6.2, .5, 5.6);
+    caveApproachShape.quadraticCurveTo(2.2, 6.0, 4.1, 4.7);
+    caveApproachShape.lineTo(3.5, 3.0);
+    caveApproachShape.quadraticCurveTo(4.6, 1.0, 4.1, -.9);
+    caveApproachShape.quadraticCurveTo(5.2, -2.8, 4.1, -4.3);
+    caveApproachShape.lineTo(3.2, -5.9);
+    caveApproachShape.quadraticCurveTo(.7, -6.4, -1.4, -5.7);
+    caveApproachShape.closePath();
+    const caveApproach = new THREE.Mesh(
+      new THREE.ShapeGeometry(caveApproachShape, 2),
+      material(0x817b69, .98)
+    );
     caveApproach.name = 'coastline-waterfront-cave-approach-path';
     caveApproach.rotation.x = -Math.PI / 2;
     caveApproach.position.set(caveX, edgeY + .025, caveZ + 8.5);
-    caveApproach.receiveShadow = true; root.add(caveApproach);
+    caveApproach.receiveShadow = true;
+    root.add(caveApproach);
     // Smaller loose stones and hardy coastal plants frame the route, never the doorway.
     const caveRubble = new THREE.InstancedMesh(new THREE.DodecahedronGeometry(1,0), material(0x77766a,.99), 22);
     caveRubble.name = 'coastline-waterfront-cave-rubble';

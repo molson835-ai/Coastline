@@ -60,6 +60,9 @@ test('cave has a mountain silhouette and the dock boardwalk clears its approach'
   assert.match(source, /coastline-waterfront-cave-mountain-left-slope/);
   assert.match(source, /coastline-waterfront-cave-mountain-right-slope/);
   assert.match(source, /coastline-waterfront-cave-mountain-rear-ridge/);
+  assert.match(source, /const caveApproachShape = new THREE\.Shape\(\)/);
+  assert.match(source, /new THREE\.ShapeGeometry\(caveApproachShape, 2\)/);
+  assert.doesNotMatch(source, /new THREE\.PlaneGeometry\(15, 11\)/);
   assert.ok((500 + 64 - 5) > (538 + 8.5 + 5.5 + 1));
 });
 
