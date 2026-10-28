@@ -30,6 +30,11 @@ export const COASTLINE_WILDLIFE_ASSETS = Object.freeze({
   }),
 });
 
+export function shouldUpdateCoastlineWildlife(instanceWorldId, activeWorldId, mountedInActiveWorld = false) {
+  if (!activeWorldId) return true;
+  return instanceWorldId === activeWorldId || mountedInActiveWorld === true;
+}
+
 export function getCoastlineWildlifePlacementPlan(worldId) {
   if (worldId === 'city') {
     return [
@@ -488,7 +493,11 @@ export function createCoastlineWildlifeAssets({ THREE, vehicles, wildlife, world
   };
 
   const update = (dt = 0, now = performance.now()) => {
+    const activeWorldId = typeof window !== 'undefined' ? window.__coastlineActiveWorldId : null;
+    const activeRoot = typeof window !== 'undefined' ? window.__coastlineActiveWorldRoot : null;
     for (const v of wildlife) {
+      const mountedInActiveWorld = Boolean(v.occupied && activeRoot && v.g?.parent === activeRoot);
+      if (!shouldUpdateCoastlineWildlife(v.worldId, activeWorldId, mountedInActiveWorld)) continue;
       if (v.animationMixer) {
         if (v.occupied) selectAnimation(v, Math.abs(v.speed || 0) > 7 ? 'run' : Math.abs(v.speed || 0) > .4 ? 'walk' : 'idle');
         else selectAnimation(v, 'walk');
