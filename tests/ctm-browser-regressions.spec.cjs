@@ -533,6 +533,19 @@ test('the active driving runtime normalizes left/right keyboard and touch inputs
   expect(keyboardD.d).toBe(false);
   expect(keyboardD.a).toBe(true);
 
+  const textField = await page.evaluate(() => {
+    const input = document.createElement('input');
+    input.setAttribute('aria-label', 'control mapping regression field');
+    document.body.appendChild(input);
+    input.focus();
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'a', bubbles: true, cancelable: true }));
+    const state = window.__coastlineTest.steeringKeyState();
+    input.dispatchEvent(new KeyboardEvent('keyup', { key: 'a', bubbles: true, cancelable: true }));
+    input.remove();
+    return state;
+  });
+  expect(textField.d).toBe(false);
+
   const touchA = await page.evaluate(() => {
     const button = document.querySelector('[data-k="a"]');
     if (!button) return { missing: true };

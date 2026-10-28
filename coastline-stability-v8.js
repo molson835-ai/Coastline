@@ -24,14 +24,14 @@ window.addEventListener('beforeunload',releaseGraphics,{capture:true});
 
 const held=new Set();
 const opposite=k=>k==='a'?'d':k==='d'?'a':k;
-const driving=()=>document.getElementById('mode')?.textContent?.trim()==='DRIVING';
+const isTypingTarget=target=>!!target?.closest?.('input,textarea,select,[contenteditable="true"]');
 function synthetic(type,key){
   const e=new KeyboardEvent(type,{key,bubbles:true,cancelable:true});
   Object.defineProperty(e,'__coastlineSteeringNormalized',{value:true});
   window.dispatchEvent(e);
 }
 window.addEventListener('keydown',e=>{
-  if(e.__coastlineSteeringNormalized)return;
+  if(e.__coastlineSteeringNormalized||isTypingTarget(e.target))return;
   const k=e.key?.toLowerCase();
   if(k!=='a'&&k!=='d')return;
   if(held.has(k)){e.preventDefault();e.stopImmediatePropagation();return}
@@ -42,7 +42,7 @@ window.addEventListener('keydown',e=>{
   held.add(k);synthetic('keydown',opposite(k));
 },true);
 window.addEventListener('keyup',e=>{
-  if(e.__coastlineSteeringNormalized)return;
+  if(e.__coastlineSteeringNormalized||isTypingTarget(e.target))return;
   const k=e.key?.toLowerCase();
   if((k==='a'||k==='d')&&held.has(k)){
     e.preventDefault();e.stopImmediatePropagation();
