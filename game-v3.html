@@ -573,8 +573,6 @@ for(const p of pedestrians)attachNeutralCharacter(p.g,[p.phone,p.cup,p.backpack,
 loadCozyCharacterAsset().then(asset=>{
   const playerActor=createCozyCharacterInstance(THREE,asset,1.95);
   attachCozyCharacter(avatar,playerActor);
-  window.__coastlineAvatar=avatar;
-  window.__coastlineHomeWardrobe?.applySaved?.();
   for(const p of pedestrians){p.cozyActor=createCozyCharacterInstance(THREE,asset,2.2);attachCozyCharacter(p.g,p.cozyActor,[p.phone,p.cup,p.backpack,p.hat]);}
   window.__coastlineAvatar=avatar;
   window.__coastlineHomeWardrobe?.applySaved?.();
