@@ -145,6 +145,38 @@ export function isCoastlineIslandPointInside(x, z, regionId = 'residential') {
   return inside;
 }
 
+
+function coastlineBoundaryGap(region,x,z,center={x:500,z:500}) {
+  const rx=x-center.x,rz=z-center.z,halfX=region.bounds.halfWidth,halfZ=region.bounds.halfDepth;
+  // Rope-bridge deck width is 5.2 world units. Leave a 9-unit visual portal
+  // (4.5 each side) so vehicles fit with a small margin without hiding whole
+  // shoreline sections beside the bridge.
+  const north=(region.bridge?.entry==='north'||region.bridge?.exit==='north')&&rz < -halfZ*.9&&Math.abs(rx)<4.5;
+  const east=(region.bridge?.entry==='east'||region.bridge?.exit==='east')&&rx>halfX*.9&&Math.abs(rz)<4.5;
+  const west=(region.bridge?.entry==='west'||region.bridge?.exit==='west')&&rx<-halfX*.9&&Math.abs(rz)<4.5;
+  return north||east||west;
+}
+/** Visible short segments share the authored shoreline vertices used by movement collision. */
+export function getCoastlineIslandBoundarySegments(regionId,maxSegmentLength=2.35) {
+  const region=getCoastlineIslandRegion(regionId);
+  if(!region||!Number.isFinite(maxSegmentLength)||maxSegmentLength<=0)return [];
+  const halfX=region.bounds.halfWidth,halfZ=region.bounds.halfDepth;
+  const points=region.id==='residential'?RESIDENTIAL_SHORELINE:NATURAL_ISLAND_SHORELINES[region.id];
+  if(!Array.isArray(points)||points.length<3)return [];
+  const center={x:500,z:500},result=[];
+  for(let i=0;i<points.length;i++){
+    const [ax,az]=points[i],[bx,bz]=points[(i+1)%points.length];
+    const x1=center.x+ax*halfX,z1=center.z+az*halfZ,x2=center.x+bx*halfX,z2=center.z+bz*halfZ;
+    const dx=x2-x1,dz=z2-z1,length=Math.hypot(dx,dz),steps=Math.max(1,Math.ceil(length/maxSegmentLength));
+    for(let step=0;step<steps;step++){
+      const t0=step/steps,t1=(step+1)/steps,sx=x1+dx*t0,sz=z1+dz*t0,ex=x1+dx*t1,ez=z1+dz*t1,mx=(sx+ex)/2,mz=(sz+ez)/2;
+      if(coastlineBoundaryGap(region,mx,mz,center))continue;
+      result.push({x1:sx,z1:sz,x2:ex,z2:ez,x:mx,z:mz,length:Math.hypot(ex-sx,ez-sz),rotationY:Math.atan2(-(ez-sz),ex-sx)});
+    }
+  }
+  return result;
+}
+
 function createIslandShape(THREE, region, scale = 1) {
   const half = region.bounds.halfWidth;
   const points = region.id === 'residential' ? RESIDENTIAL_SHORELINE : NATURAL_ISLAND_SHORELINES[region.id];
@@ -321,6 +353,22 @@ export function createCoastlineIslandRoot({ THREE, region, groundY = () => 0, ad
   shorelineRocks.instanceMatrix.needsUpdate = true;
   shorelineRocks.castShadow = false; shorelineRocks.receiveShadow = true;
   root.add(shorelineRocks);
+
+  // Decorative boulder samples leave gaps; fill with close-set instanced rocks
+  // aligned to the same authored shoreline used by movement collision.
+  const visibleBoundarySegments=getCoastlineIslandBoundarySegments(region.id,2.35);
+  const visibleBoundary=new THREE.InstancedMesh(new THREE.DodecahedronGeometry(1,0),material(region.theme==='working-harbor'?0x5d6662:0x696c61,.99),visibleBoundarySegments.length);
+  visibleBoundary.name='coastline-'+region.id+'-visible-boundary-wall';
+  const boundaryDummy=new THREE.Object3D();
+  visibleBoundarySegments.forEach((segment,i)=>{
+    const height=1.95+(i%4)*.28,depth=1.75+(i%3)*.18;
+    boundaryDummy.position.set(segment.x,edgeY+height/2-.04,segment.z);
+    boundaryDummy.scale.set((segment.length+.38)/2,height/2,depth/2);
+    boundaryDummy.rotation.set((i%3-1)*.035,segment.rotationY,(i%2?1:-1)*.025);
+    boundaryDummy.updateMatrix();visibleBoundary.setMatrixAt(i,boundaryDummy.matrix);
+  });
+  visibleBoundary.instanceMatrix.needsUpdate=true;visibleBoundary.castShadow=false;visibleBoundary.receiveShadow=true;
+  root.add(visibleBoundary);
 
   // Sparse regions still need a live collision perimeter. Keep gaps centered on
   // the side-bridge landings so the route remains traversable between worlds.
@@ -575,10 +623,16 @@ export function createCoastlineIslandRoot({ THREE, region, groundY = () => 0, ad
     }
     // The garden is deliberately modest so the mobile scene remains inexpensive.
     addBox('coastline-residential-park', center.x + 42, edgeY + 0.03, center.z - 51, 24, 0.08, 18, lawn, false, false);
+    // Marked turnout lets on-foot arrivals find and re-enter a vehicle.
+    addBox('coastline-residential-homey-parking-approach',center.x,edgeY+.025,center.z-72,12,.08,22,roadMat,false,false);
+    addBox('coastline-residential-homey-parking-apron',center.x,edgeY+.045,center.z-60,42,.10,11,roadMat,false,false);
+    const parkingLineMat=material(0xe4dfca,.85);
+    for(const x of [center.x-21,center.x-7,center.x+7,center.x+21])addBox('coastline-residential-homey-parking-bay-line',x,edgeY+.103,center.z-60,.11,.025,8.4,parkingLineMat,false,false);
   } else if (region.theme === 'resort-marina') {
     const boardwalk = material(0x92765a, 0.92);
     const water = material(0x438c9a, 0.36, 0.08);
-    addBox('coastline-waterfront-boardwalk', center.x, edgeY + 0.04, center.z + 40, 120, 0.2, 10, boardwalk);
+    // The old boardwalk passed beneath the cave approach; move it beside the marina docks.
+    addBox('coastline-waterfront-boardwalk',center.x+5,edgeY+.04,center.z+64,120,.2,10,boardwalk);
     addBox('coastline-waterfront-marina-water', center.x + 42, edgeY - 0.02, center.z + 65, 48, 0.08, 30, water, false, false);
     for (let i = 0; i < 4; i++) addBox(`coastline-waterfront-dock-${i + 1}`, center.x + 20 + i * 12, edgeY + 0.1, center.z + 65, 2.4, 0.25, 32, boardwalk);
     // The former large resort was removed to preserve a natural mountain/cave island.
@@ -753,20 +807,49 @@ export function createCoastlineIslandRoot({ THREE, region, groundY = () => 0, ad
     const mountain = new THREE.Group(); mountain.name = 'coastline-waterfront-cave-mountain';
     const mountainMat = material(0x4d5147, .99), mountainLight = material(0x696b5d, .99);
     const mountainChunks = [
-      [-13,2.8,-3.5,10,5.5,9],[-8,5.7,-4.2,9,8,8],[-1,7.8,-5.2,11,10,9],
-      [7,5.8,-4.4,10,8,8],[13,3,-3.2,8,5.8,8],[-4,3.5,-9,10,5.5,7],[5,3.2,-8,9,5.1,7]
+      [-15,3.0,-7.0,13,7,11],[-10,6.0,-9.0,16,12,15],[-2,8.2,-12.0,19,15,17],
+      [8,6.0,-10.0,16,12,15],[15,3.5,-7.0,12,7.2,11],[-8,4.5,-15.0,14,9,13],[7,5.0,-16.0,15,10,14]
     ];
     mountainChunks.forEach(([dx,y,dz,sx,sy,sz],i)=>{
       const chunk=new THREE.Mesh(new THREE.DodecahedronGeometry(1,1),i%3?mountainMat:mountainLight);
+      chunk.name='coastline-waterfront-cave-mountain-ridge-'+(i+1);
       chunk.position.set(caveX+dx,edgeY+y,caveZ+dz);chunk.scale.set(sx/2,sy/2,sz/2);
       chunk.rotation.set(i*.17,i*.39,i*.09);chunk.castShadow=true;chunk.receiveShadow=true;mountain.add(chunk);
     });
+    const mountainPeakSpecs=[{dx:-9,y:7.2,dz:-12,radius:9.5,height:15.5},{dx:0,y:9,dz:-15,radius:11.5,height:19},{dx:9,y:7,dz:-12,radius:8.8,height:14.5}];
+    mountainPeakSpecs.forEach((peak,i)=>{
+      const mesh=new THREE.Mesh(new THREE.ConeGeometry(peak.radius,peak.height,7,2),i===1?mountainMat:mountainLight);
+      mesh.name='coastline-waterfront-cave-mountain-peak-'+(i+1);
+      mesh.position.set(caveX+peak.dx,edgeY+peak.y,caveZ+peak.dz);
+      mesh.rotation.z=(i-1)*.08;mesh.castShadow=true;mesh.receiveShadow=true;mountain.add(mesh);
+    });
     root.add(mountain);
-    const caveApproach = new THREE.Mesh(new THREE.PlaneGeometry(15, 11), material(0x817b69, .98));
+    // An irregular stone path blends into the landscape. The old flat rectangular
+    // plane looked like the bottom of a missing building, so vary the edges to
+    // follow a natural footpath that widens toward shore and narrows at the cave.
+    const caveApproachShape = new THREE.Shape();
+    caveApproachShape.moveTo(-3.9, -5.8);
+    caveApproachShape.quadraticCurveTo(-5.6, -4.2, -4.8, -2.3);
+    caveApproachShape.quadraticCurveTo(-5.1, -.8, -4.2, .9);
+    caveApproachShape.quadraticCurveTo(-3.6, 2.6, -4.6, 4.3);
+    caveApproachShape.lineTo(-3.2, 5.7);
+    caveApproachShape.quadraticCurveTo(-1.1, 6.2, .5, 5.6);
+    caveApproachShape.quadraticCurveTo(2.2, 6.0, 4.1, 4.7);
+    caveApproachShape.lineTo(3.5, 3.0);
+    caveApproachShape.quadraticCurveTo(4.6, 1.0, 4.1, -.9);
+    caveApproachShape.quadraticCurveTo(5.2, -2.8, 4.1, -4.3);
+    caveApproachShape.lineTo(3.2, -5.9);
+    caveApproachShape.quadraticCurveTo(.7, -6.4, -1.4, -5.7);
+    caveApproachShape.closePath();
+    const caveApproach = new THREE.Mesh(
+      new THREE.ShapeGeometry(caveApproachShape, 2),
+      material(0x817b69, .98)
+    );
     caveApproach.name = 'coastline-waterfront-cave-approach-path';
     caveApproach.rotation.x = -Math.PI / 2;
     caveApproach.position.set(caveX, edgeY + .025, caveZ + 8.5);
-    caveApproach.receiveShadow = true; root.add(caveApproach);
+    caveApproach.receiveShadow = true;
+    root.add(caveApproach);
     // Smaller loose stones and hardy coastal plants frame the route, never the doorway.
     const caveRubble = new THREE.InstancedMesh(new THREE.DodecahedronGeometry(1,0), material(0x77766a,.99), 22);
     caveRubble.name = 'coastline-waterfront-cave-rubble';
@@ -804,8 +887,11 @@ export function createCoastlineIslandRoot({ THREE, region, groundY = () => 0, ad
     darkness.name = 'coastline-electric-lemonade-cave-dark-opening'; darkness.position.set(caveX, edgeY + 2.7, caveZ + 1.1); cave.add(darkness);
     root.add(cave);
     colliders.push(
-      { name: 'coastline-electric-lemonade-cave-left-rock', x: caveX - 6.5, z: caveZ + .1, w: 4.2, d: 5.2 },
-      { name: 'coastline-electric-lemonade-cave-right-rock', x: caveX + 6.5, z: caveZ + .1, w: 4.2, d: 5.2 }
+      {name:'coastline-waterfront-cave-mountain-left-slope',x:caveX-12,z:caveZ-5,w:10,d:12},
+      {name:'coastline-waterfront-cave-mountain-right-slope',x:caveX+12,z:caveZ-5,w:10,d:12},
+      {name:'coastline-waterfront-cave-mountain-rear-ridge',x:caveX,z:caveZ-13,w:30,d:10},
+      {name:'coastline-electric-lemonade-cave-left-rock',x:caveX-6.5,z:caveZ+.1,w:4.2,d:5.2},
+      {name:'coastline-electric-lemonade-cave-right-rock',x:caveX+6.5,z:caveZ+.1,w:4.2,d:5.2}
     );
     root.userData.coastlineElectricLemonade = {
       stand: { x: standX, z: standZ + 2.4, radius: 3.2 },

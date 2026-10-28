@@ -1,3 +1,30 @@
+// Coastline world guard is installed from an early gameplay module so the
+// runtime and tests share the same world boundary. Vehicle A/D steering is
+// intentionally NOT rewritten here: coastline-sw.js already owns the physical
+// mapping, where A/left is left and D/right is right.
+if (typeof window !== 'undefined' && !window.__coastlineWorldGuardInstalled) {
+  window.__coastlineWorldGuardInstalled = true;
+
+  // A manually selected inactive world must not accidentally inherit the City
+  // root. Real CTM transitions replace this sentinel with the destination root.
+  let activeWorldValue = window.__coastlineActiveWorldId;
+  const inactiveWorldSentinel = { name: 'coastline-inactive-world-sentinel' };
+  const existingActiveWorldDescriptor = Object.getOwnPropertyDescriptor(window, '__coastlineActiveWorldId');
+  if (!existingActiveWorldDescriptor || existingActiveWorldDescriptor.configurable) {
+    Object.defineProperty(window, '__coastlineActiveWorldId', {
+      configurable: true,
+      enumerable: true,
+      get: () => activeWorldValue,
+      set: value => {
+        activeWorldValue = value;
+        if (value !== 'city' && (!window.__coastlineActiveWorldRoot || window.__coastlineActiveWorldRoot.name === 'coastline-city-root')) {
+          window.__coastlineActiveWorldRoot = inactiveWorldSentinel;
+        }
+      },
+    });
+  }
+}
+
 // Coastline 2.1 world truth: deterministic terrain, road hierarchy, lanes, sidewalks,
 // parking, regions and streaming-friendly spatial data. The design borrows principles
 // repeatedly visible in top-tier open worlds: handcrafted-feeling road flow, distinct

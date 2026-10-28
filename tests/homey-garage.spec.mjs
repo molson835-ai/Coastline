@@ -144,7 +144,10 @@ test('Homey house layout has hardwood, one living carpet, a clear route, and an 
   assert.match(interior, /house-closet-door-right/);
   assert.match(interior, /house-coffee-table-top', centerX - 2\.55/);
   assert.match(interior, /house-sofa-base/);
-  assert.match(interior, /wardrobe: \{ id: 'wardrobe', x: centerX \+ 3\.45, z: centerZ - 6\.8/);
+  assert.match(interior, /wardrobe: \{ id: 'wardrobe', x: centerX \+ 4\.9, z: centerZ - 6\.2/);
+  assert.match(interior, /house-closet-door-left.*false/);
+  assert.match(interior, /house-dining-table', centerX \+ 8\.0/);
+  assert.match(interior, /house-tv-console', centerX \+ 9\.55/);
 });
 
 test('walking collision is limited to vehicles actually parented in the Homey garage', () => {

@@ -409,3 +409,160 @@ test('walking across the physical bridge automatically hands off through CTM wit
   await expect.poll(() => page.evaluate(() => window.__coastlineTransitionTest.status().activeWorldId), { timeout: 5000 }).toBe('city');
   expect(await page.evaluate(() => window.__coastlineTransitionTest.bridgePromptVisible())).toBe(false);
 });
+
+
+test('outdoor island cars can be entered/exited and steering directions remain correct', async ({ page }) => {
+  await openGame(page);
+  await page.waitForFunction(() => window.__coastlineVehicleAssetSwapStatus?.ok === true, null, { timeout: 30000 });
+  await page.evaluate(() => window.__coastlineTransitionTest.transition('city-to-island'));
+  await page.waitForFunction(() => window.__coastlineTransitionTest.activeWorldFleet().length >= 2, null, { timeout: 30000 });
+  const fleet = await page.evaluate(() => window.__coastlineTransitionTest.activeWorldFleet());
+  expect(fleet.length).toBeGreaterThanOrEqual(2);
+  expect(fleet.every(car => car.visible && car.drivable && !car.occupied)).toBe(true);
+  const entering = await page.evaluate(() => {
+    const entry = window.__coastlineTransitionTest.activeWorldFleet()[0];
+    const car = window.__coastlineVehicleRegistry.find(vehicle => vehicle.homeyFleetId === entry.id);
+    if (!car) return null;
+    window.__coastlineTest.setWalkPosition(car.x, car.z + 4, Math.PI);
+    window.__coastlineTest.refreshActionPrompt();
+    return {
+      nearest: window.__coastlineTest.nearestVehicleState(),
+      useVisible: window.__coastlineTest.actionButtonVisible(),
+      entryId: entry.id,
+      carIndex: window.__coastlineVehicleRegistry.indexOf(car)
+    };
+  });
+  expect(entering).not.toBeNull();
+  expect(entering.nearest?.parentMatches).toBe(true);
+  expect(entering.nearest?.fleetId).toBe(entering.entryId);
+  expect(entering.nearest?.distance).toBeLessThan(6);
+  expect(entering.useVisible).toBe(true);
+  await page.locator('#actionButton').click();
+  const enteredState = await page.evaluate(() => window.__coastlineTransitionTest.playerState());
+  expect(enteredState.mode).toBe('vehicle');
+  expect(enteredState.vehicleIndex).toBe(entering.carIndex);
+  await page.evaluate(() => window.__coastlineTest.exitVehicle());
+  expect(await page.evaluate(() => window.__coastlineTransitionTest.playerState().mode)).toBe('walk');
+  const steering = await page.evaluate(() => ({
+    left: window.__coastlineTest.steeringProbe('a'),
+    right: window.__coastlineTest.steeringProbe('d')
+  }));
+  expect(steering.left).toBeLessThan(0);
+  expect(steering.right).toBeGreaterThan(0);
+  for (const transition of ['island-to-waterfront', 'waterfront-to-port']) {
+    await page.evaluate(id => window.__coastlineTransitionTest.transition(id), transition);
+    await page.waitForFunction(() => window.__coastlineTransitionTest.activeWorldFleet().length >= 2, null, { timeout: 30000 });
+    expect(await page.evaluate(() => window.__coastlineTransitionTest.activeWorldFleet().every(car => car.visible && car.drivable))).toBe(true);
+  }
+});
+
+test('wardrobe edits apply to the loaded character and Homey threshold headings face away from each CTM', async ({ page }) => {
+  await openGame(page);
+  await page.waitForFunction(() => window.__coastlineCharacterAssetSwapStatus?.ok === true, null, { timeout: 30000 });
+  await page.evaluate(() => window.__coastlineTest.setVehiclePosition(500, 400, Math.PI));
+  await page.evaluate(() => window.__coastlineTransitionTest.transition('city-to-island'));
+  await page.evaluate(() => window.__coastlineTransitionTest.transition('island-to-homey-garage'));
+  await page.evaluate(() => window.__coastlineTest.setWalkPosition(483, 500, Math.PI));
+  await page.evaluate(() => window.__coastlineTransitionTest.transition('homey-garage-to-house'));
+  await page.waitForFunction(() => Boolean(window.__coastlineHomeWardrobe && window.__coastlineAvatar?.userData?.cozyActor), null, { timeout: 30000 });
+  const appearance = await page.evaluate(() => {
+    window.__coastlineHomeWardrobe.apply({
+      topColor: '#9c3f42', bottomColor: '#263f68', hairColor: '#874d2d',
+      hairStyle: 'spiky', bodyShape: 'slim', presentation: 'feminine',
+      accessories: { hat: false, backpack: false }
+    });
+    const materials = [];
+    window.__coastlineAvatar.traverse(node => {
+      if (!node.isMesh) return;
+      for (const material of (Array.isArray(node.material) ? node.material : [node.material])) {
+        if (['top_primary', 'bottom_primary', 'hair'].includes(String(material?.name || ''))) {
+          materials.push({ name: material.name, color: material.color?.getHexString?.() });
+        }
+      }
+    });
+    return {
+      applied: window.__coastlinePlayer.coastlineClothingAppliedMaterialCount,
+      hairOverlay: Boolean(window.__coastlineAvatar.userData.cozyActor.root.getObjectByName('coastline-wardrobe-hair-overlay')),
+      materials
+    };
+  });
+  expect(appearance.applied).toBeGreaterThan(0);
+  expect(appearance.hairOverlay).toBe(true);
+  expect(appearance.materials.some(item => item.name === 'top_primary' && item.color === '9c3f42')).toBe(true);
+  expect((await page.evaluate(() => window.__coastlineTransitionTest.playerState())).heading).toBeCloseTo(Math.PI, 3);
+  await page.evaluate(() => window.__coastlineTransitionTest.transition('home-to-homey-garage'));
+  expect((await page.evaluate(() => window.__coastlineTransitionTest.playerState())).heading).toBeCloseTo(0, 3);
+});
+
+
+test('the bedroom doorway-to-closet walking corridor has no furniture collider across it', async ({ page }) => {
+  await openGame(page);
+  // The garage threshold is intentionally vehicle-only in this corrective PR.
+  await page.evaluate(() => window.__coastlineTest.setVehiclePosition(500, 400, Math.PI));
+  await page.evaluate(() => window.__coastlineTransitionTest.transition('city-to-island'));
+  await page.evaluate(() => window.__coastlineTransitionTest.transition('island-to-homey-garage'));
+  await page.evaluate(() => window.__coastlineTest.setWalkPosition(483, 500, Math.PI));
+  await page.evaluate(() => window.__coastlineTransitionTest.transition('homey-garage-to-house'));
+  const probes = await page.evaluate(() => [
+    [487.2, 496.5], [487.2, 495.5], [487.6, 494.5], [487.9, 493.8]
+  ].map(([x,z]) => ({ x, z, blocked: window.__coastlineTest.buildingBlocked(x,z,.55) })));
+  expect(probes.every(point => !point.blocked), JSON.stringify(probes)).toBe(true);
+});
+
+
+test('the active driving runtime preserves left/right keyboard and touch inputs', async ({ page }) => {
+  await openGame(page);
+  await page.waitForFunction(() => Boolean(window.__coastlineTest?.steeringKeyState), null, { timeout: 30000 });
+
+  // Assert the real runtime mode. Do not fake the HUD text or invert A/D in the test:
+  // the game maps A/left to keys.a and D/right to keys.d, then vehicle physics
+  // determines the steering direction from those logical inputs.
+  const initial = await page.evaluate(() => window.__coastlineTest.steeringKeyState());
+  expect(initial.mode).toBe('vehicle');
+
+  const keyboardA = await page.evaluate(() => {
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'a', bubbles: true, cancelable: true }));
+    const state = window.__coastlineTest.steeringKeyState();
+    window.dispatchEvent(new KeyboardEvent('keyup', { key: 'a', bubbles: true, cancelable: true }));
+    return state;
+  });
+  expect(keyboardA.a, 'A/left should set only the logical left input').toBe(true);
+  expect(keyboardA.d, 'A/left must not be remapped to right').toBe(false);
+  expect(keyboardA.mode).toBe('vehicle');
+
+  const keyboardD = await page.evaluate(() => {
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'd', bubbles: true, cancelable: true }));
+    const state = window.__coastlineTest.steeringKeyState();
+    window.dispatchEvent(new KeyboardEvent('keyup', { key: 'd', bubbles: true, cancelable: true }));
+    return state;
+  });
+  expect(keyboardD.d, 'D/right should set only the logical right input').toBe(true);
+  expect(keyboardD.a, 'D/right must not be remapped to left').toBe(false);
+  expect(keyboardD.mode).toBe('vehicle');
+
+  const touchA = await page.evaluate(() => {
+    const button = document.querySelector('[data-k="a"]');
+    if (!button) return { missing: true };
+    button.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true, pointerId: 77, pointerType: 'touch' }));
+    const state = window.__coastlineTest.steeringKeyState();
+    button.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, cancelable: true, pointerId: 77, pointerType: 'touch' }));
+    return state;
+  });
+  expect(touchA.missing).not.toBe(true);
+  expect(touchA.a, 'left touch control should set only logical left').toBe(true);
+  expect(touchA.d, 'left touch control must not be remapped to right').toBe(false);
+  expect(touchA.mode).toBe('vehicle');
+
+  const touchD = await page.evaluate(() => {
+    const button = document.querySelector('[data-k="d"]');
+    if (!button) return { missing: true };
+    button.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true, pointerId: 78, pointerType: 'touch' }));
+    const state = window.__coastlineTest.steeringKeyState();
+    button.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, cancelable: true, pointerId: 78, pointerType: 'touch' }));
+    return state;
+  });
+  expect(touchD.missing).not.toBe(true);
+  expect(touchD.d, 'right touch control should set only logical right').toBe(true);
+  expect(touchD.a, 'right touch control must not be remapped to left').toBe(false);
+  expect(touchD.mode).toBe('vehicle');
+});
