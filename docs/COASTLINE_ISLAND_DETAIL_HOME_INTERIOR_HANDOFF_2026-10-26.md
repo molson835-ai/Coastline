@@ -338,3 +338,6 @@ Bedroom circulation note: the bed's solid footprint and nightstand were overlapp
 
 
 Cave follow-up note (2026-10-28): source inspection found a second rectangular artifact beyond the displaced marina boardwalk. The approach was a flat PlaneGeometry(15, 11) stone-colored slab placed directly over the ground. It is replaced with a curved, irregular ShapeGeometry path whose edges taper and wander naturally into the cave mouth. An engine regression now forbids the old rectangular plane and requires the irregular shape.
+
+
+Car-access follow-up (2026-10-28): the active-world car finder and exit collision were already scoped, but the contextual Use-button gate still returned only custom island interactions outside City, so it could hide Use beside a valid local parked car. The general interaction chain also searched City garages, benches, buildings and pedestrians at shared coordinates in inactive worlds. The runtime now exposes Use when an active-world car is within range and limits those other interactions to entities in the active root; the outdoor car regression verifies the prompt is visible before interacting.

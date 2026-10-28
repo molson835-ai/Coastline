@@ -84,6 +84,9 @@ test('outdoor parked cars belong to the active root and hidden-world vehicles ar
   assert.match(world, /homeyFleetId:/);
   assert.match(game, /function vehicleInActiveWorld\(v\)/);
   assert.match(game, /!vehicleInActiveWorld\(v\)/);
+  assert.match(game, /activeId!=='city'\)return !!window\.__coastlineCustomUseAvailable\?\.\(\)\|\|!!nearestVehicle\(\)/);
+  assert.match(game, /p\.g\?\.parent===activeRoot/);
+  assert.match(game, /b\.group\?\.parent!==activeRoot/);
   assert.match(regions, /coastline-residential-homey-parking-apron/);
 });
 
