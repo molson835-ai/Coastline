@@ -57,6 +57,32 @@ export const COASTLINE_ISLAND_REGIONS = Object.freeze([
   }),
 ]);
 
+export const COASTLINE_CAVE_THRESHOLD = Object.freeze({ x: 548, z: 540.5, radius: 1.0 });
+export const COASTLINE_CAVE_PORTAL_CLEAR_WIDTH = 6.0;
+
+export function getCoastlineCaveColliders(caveX = 548, caveZ = 538) {
+  return [
+    {name:'coastline-waterfront-cave-mountain-left-slope',x:caveX-12,z:caveZ-5,w:10,d:12},
+    {name:'coastline-waterfront-cave-mountain-right-slope',x:caveX+12,z:caveZ-5,w:10,d:12},
+    {name:'coastline-waterfront-cave-mountain-rear-ridge',x:caveX,z:caveZ-13,w:30,d:10},
+    {name:'coastline-waterfront-cave-mountain-left-wing',x:caveX-10.5,z:caveZ-1,w:13,d:21},
+    {name:'coastline-waterfront-cave-mountain-right-wing',x:caveX+10.5,z:caveZ-1,w:13,d:21},
+    {name:'coastline-waterfront-cave-rear-wall',x:caveX,z:caveZ-10.5,w:28,d:8},
+    {name:'coastline-waterfront-cave-left-portal-jamb',x:caveX-4.5,z:caveZ-.3,w:3,d:8.2},
+    {name:'coastline-waterfront-cave-right-portal-jamb',x:caveX+4.5,z:caveZ-.3,w:3,d:8.2},
+    {name:'coastline-electric-lemonade-cave-left-rock',x:caveX-6.5,z:caveZ+.1,w:4.2,d:5.2},
+    {name:'coastline-electric-lemonade-cave-right-rock',x:caveX+6.5,z:caveZ+.1,w:4.2,d:5.2},
+  ];
+}
+
+export function isCoastlineCavePointBlocked(x, z, radius = 0) {
+  if (![x,z,radius].every(Number.isFinite) || radius < 0) return true;
+  return getCoastlineCaveColliders().some(collider =>
+    Math.abs(x - collider.x) <= collider.w / 2 + radius &&
+    Math.abs(z - collider.z) <= collider.d / 2 + radius
+  );
+}
+
 export const COASTLINE_ISLAND_ELEVATION = 6;
 export const COASTLINE_ISLAND_WATER_DROP = 3.0;
 
@@ -886,13 +912,9 @@ export function createCoastlineIslandRoot({ THREE, region, groundY = () => 0, ad
     const darkness = new THREE.Mesh(new THREE.PlaneGeometry(7.8, 5.8), caveBlack);
     darkness.name = 'coastline-electric-lemonade-cave-dark-opening'; darkness.position.set(caveX, edgeY + 2.7, caveZ + 1.1); cave.add(darkness);
     root.add(cave);
-    colliders.push(
-      {name:'coastline-waterfront-cave-mountain-left-slope',x:caveX-12,z:caveZ-5,w:10,d:12},
-      {name:'coastline-waterfront-cave-mountain-right-slope',x:caveX+12,z:caveZ-5,w:10,d:12},
-      {name:'coastline-waterfront-cave-mountain-rear-ridge',x:caveX,z:caveZ-13,w:30,d:10},
-      {name:'coastline-electric-lemonade-cave-left-rock',x:caveX-6.5,z:caveZ+.1,w:4.2,d:5.2},
-      {name:'coastline-electric-lemonade-cave-right-rock',x:caveX+6.5,z:caveZ+.1,w:4.2,d:5.2}
-    );
+    // The same explicit cave collider contract is used by foot and vehicle collision.
+    // Only the doorway corridor remains traversable; mountain sides and rear are solid.
+    colliders.push(...getCoastlineCaveColliders(caveX, caveZ));
     root.userData.coastlineElectricLemonade = {
       stand: { x: standX, z: standZ + 2.4, radius: 3.2 },
       cave: { x: caveX, z: caveZ + 2.5, radius: 3.0 },
