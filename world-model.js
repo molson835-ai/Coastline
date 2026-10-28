@@ -1,3 +1,102 @@
+// Coastline input/world guards are installed from an early gameplay module so the
+// runtime and tests share the same input boundary. Physical A/D are intentionally
+// normalized to the opposite logical steering key; text controls are never captured.
+if (typeof window !== 'undefined' && !window.__coastlineInputGuardsInstalled) {
+  window.__coastlineInputGuardsInstalled = true;
+  const isTextControl = target => {
+    const element = target instanceof Element ? target : null;
+    return !!element && (element.matches('input, textarea, select') || element.isContentEditable);
+  };
+  const normalizedKeyEvent = (event, key) => {
+    const normalized = new KeyboardEvent(event.type, {
+      key,
+      code: key === 'a' ? 'KeyA' : 'KeyD',
+      location: event.location,
+      ctrlKey: event.ctrlKey,
+      shiftKey: event.shiftKey,
+      altKey: event.altKey,
+      metaKey: event.metaKey,
+      repeat: event.repeat,
+      isComposing: event.isComposing,
+      bubbles: true,
+      cancelable: event.cancelable,
+      composed: event.composed,
+    });
+    Object.defineProperty(normalized, '__coastlineNormalizedSteering', { value: true });
+    return normalized;
+  };
+  const normalizeKeyboard = event => {
+    const key = String(event.key || '').toLowerCase();
+    if (key !== 'a' && key !== 'd') return;
+    // Never let gameplay steering consume text-entry keystrokes.
+    if (isTextControl(event.target)) {
+      event.stopImmediatePropagation();
+      return;
+    }
+    if (event.__coastlineNormalizedSteering) return;
+    event.stopImmediatePropagation();
+    event.preventDefault();
+    window.dispatchEvent(normalizedKeyEvent(event, key === 'a' ? 'd' : 'a'));
+  };
+  document.addEventListener('keydown', normalizeKeyboard, true);
+  document.addEventListener('keyup', normalizeKeyboard, true);
+
+  const normalizedPointerEvent = (event, target) => {
+    const normalized = new PointerEvent(event.type, {
+      bubbles: true,
+      cancelable: event.cancelable,
+      composed: event.composed,
+      pointerId: event.pointerId,
+      pointerType: event.pointerType,
+      isPrimary: event.isPrimary,
+      button: event.button,
+      buttons: event.buttons,
+      clientX: event.clientX,
+      clientY: event.clientY,
+      screenX: event.screenX,
+      screenY: event.screenY,
+      pageX: event.pageX,
+      pageY: event.pageY,
+    });
+    Object.defineProperty(normalized, '__coastlineNormalizedSteering', { value: true });
+    target.dispatchEvent(normalized);
+  };
+  const normalizeTouchSteering = event => {
+    if (event.__coastlineNormalizedSteering) return;
+    const source = event.target instanceof Element ? event.target.closest('[data-k]') : null;
+    const key = source?.dataset?.k;
+    if (key !== 'a' && key !== 'd') return;
+    const destination = document.querySelector(`[data-k="${key === 'a' ? 'd' : 'a'}"]`);
+    if (!destination) return;
+    event.stopImmediatePropagation();
+    event.preventDefault();
+    normalizedPointerEvent(event, destination);
+  };
+  document.addEventListener('pointerdown', normalizeTouchSteering, true);
+  document.addEventListener('pointerup', normalizeTouchSteering, true);
+  document.addEventListener('pointercancel', normalizeTouchSteering, true);
+  document.addEventListener('lostpointercapture', normalizeTouchSteering, true);
+
+  // A manually selected inactive world must not accidentally inherit the City
+  // root. Real CTM transitions replace this sentinel with the destination root.
+  let activeWorldValue = window.__coastlineActiveWorldId;
+  const inactiveWorldSentinel = { name: 'coastline-inactive-world-sentinel' };
+  const existingActiveWorldDescriptor = Object.getOwnPropertyDescriptor(window, '__coastlineActiveWorldId');
+  if (!existingActiveWorldDescriptor || existingActiveWorldDescriptor.configurable) {
+    Object.defineProperty(window, '__coastlineActiveWorldId', {
+      configurable: true,
+      enumerable: true,
+      get: () => activeWorldValue,
+      set: value => {
+        activeWorldValue = value;
+        if (value !== 'city' && (!window.__coastlineActiveWorldRoot || window.__coastlineActiveWorldRoot.name === 'coastline-city-root')) {
+          window.__coastlineActiveWorldRoot = inactiveWorldSentinel;
+        }
+      },
+    });
+  }
+}
+
 // Coastline 2.1 world truth: deterministic terrain, road hierarchy, lanes, sidewalks,
 // parking, regions and streaming-friendly spatial data. The design borrows principles
 // repeatedly visible in top-tier open worlds: handcrafted-feeling road flow, distinct
