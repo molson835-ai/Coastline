@@ -64,6 +64,7 @@ test('outdoor parked cars belong to the active root and hidden-world vehicles ar
   const game = await read('game-v3.html');
   const regions = await read('coastline-island-regions.js');
   assert.match(world, /installOutdoorFleet\(activeRoot,activeId\)/);
+  assert.match(world, /window\.__coastlineEnsureActiveWorldFleet=\(\)=>installOutdoorFleet/);
   assert.match(world, /activeWorldFleets\.get\(root\)/);
   assert.match(world, /homeyFleetId:/);
   assert.match(game, /function vehicleInActiveWorld\(v\)/);
