@@ -137,5 +137,9 @@ test('wildlife simulation is gated to the active world while preserving a mount 
   assert.equal(shouldUpdateCoastlineWildlife('island', 'home-interior', true), true);
   assert.equal(shouldUpdateCoastlineWildlife('island', 'home-interior', false), false);
   const source = await readFile(new URL('../coastline-wildlife-assets.js', import.meta.url), 'utf8');
-  assert.match(source, /if\s*\(!shouldUpdateCoastlineWildlife\(v\.worldId, activeWorldId, mountedInActiveWorld\)\)\s*continue/);
+  assert.match(source, /if\s*\(!shouldUpdateCoastlineWildlife\(v\.worldId, activeWorldId, mountedInActiveWorld\)\)\s*\{\s*skippedInactive\+\+;\s*continue/);
+  assert.match(source, /diagnostics\.activeWorldId\s*=\s*activeWorldId/);
+  assert.match(source, /diagnostics\.lastUpdated\s*=\s*updated/);
+  assert.match(source, /diagnostics\.skippedInactive\s*=\s*skippedInactive/);
+  assert.match(source, /lastUpdated:\s*diagnostics\.lastUpdated/);
 });
