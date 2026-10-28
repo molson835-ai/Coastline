@@ -495,6 +495,8 @@ test('wardrobe edits apply to the loaded character and Homey threshold headings 
 
 test('the bedroom doorway-to-closet walking corridor has no furniture collider across it', async ({ page }) => {
   await openGame(page);
+  // The garage threshold is intentionally vehicle-only in this corrective PR.
+  await page.evaluate(() => window.__coastlineTest.setVehiclePosition(500, 400, Math.PI));
   await page.evaluate(() => window.__coastlineTransitionTest.transition('city-to-island'));
   await page.evaluate(() => window.__coastlineTransitionTest.transition('island-to-homey-garage'));
   await page.evaluate(() => window.__coastlineTest.setWalkPosition(483, 500, Math.PI));
