@@ -141,7 +141,7 @@ test('RGSDev vehicle and Cozy character assets replace legacy runtime visuals', 
   expect(state.character.ok, 'Cozy skinned character should load').toBe(true);
   expect(state.character.animations).toEqual(expect.arrayContaining(['idle','walk','run']));
   expect(state.vehicles.filter(v=>v.kind==='car').every(v=>v.model && v.model!=='neutral-fallback'), 'all road cars should use RGSDev models').toBe(true);
-  expect(state.vehicles.filter(v=>v.kind!=='car').every(v=>!v.visible && !v.drivable), 'unsupported old rideables should be disabled, not left visible').toBe(true);
+  expect(state.vehicles.filter(v=>v.kind!=='car' && !['horse','ostrich'].includes(v.kind)).every(v=>!v.visible && !v.drivable), 'unsupported legacy rideables should be disabled, while the new horse/ostrich mounts remain independently rideable').toBe(true);
   expect(errors, 'asset replacement should not throw runtime errors').toEqual([]);
 });
 

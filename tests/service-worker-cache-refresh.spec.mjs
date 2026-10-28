@@ -5,7 +5,9 @@ import { readFile } from 'node:fs/promises';
 const worker = await readFile(new URL('../coastline-sw.js', import.meta.url), 'utf8');
 
 test('service worker activates a fresh cache generation after deployment', () => {
-  assert.match(worker, /const CACHE_NAME='coastline-static-v65'/);
+  const cacheGeneration = worker.match(/const CACHE_NAME='coastline-static-v(\d+)'/);
+  assert.ok(cacheGeneration, 'service worker declares a versioned static cache');
+  assert.ok(Number(cacheGeneration[1]) > 65, 'deployment cache generation must advance beyond the pre-wildlife v65 cache');
   assert.match(worker, /'\.\/coastline-homey-garage\.js'/);
   assert.match(worker, /'\.\/coastline-homey-house-interior\.js'/);
   assert.match(worker, /'\.\/coastline-vehicle-sizing\.js'/);

@@ -1,0 +1,5 @@
+# Local licensed source asset; download from the official creator page.
+assets/animals/warhorse-lite.glb
+
+# Generated build output
+dist/

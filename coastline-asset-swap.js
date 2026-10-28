@@ -223,12 +223,14 @@ export async function loadRgsdevVehiclePack(THREE) {
 export async function createRgsdevVehicleVisual(THREE, name='Sedan', target) { const pack = await loadRgsdevVehiclePack(THREE); const source = pack.models.get(name) || pack.models.get('Sedan') || pack.models.values().next().value; if (!source) throw new Error('No compatible vehicle model is available in the RGSDev pack'); return fitVehicle(THREE, source, target); }
 
 export async function applyRgsdevFleet(THREE, vehicles, onStatus = () => {}) {
-  for (const vehicle of vehicles) { if (!vehicle?.g) continue; removeVisualChildren(vehicle.g); if (vehicle.kind === 'car') { vehicle.g.visible = false; vehicle.g.userData.coastlineAssetPending = true; } else { vehicle.g.visible = false; vehicle.drivable = false; vehicle.occupied = false; } }
+  for (const vehicle of vehicles) { if (!vehicle?.g) continue; if (vehicle.isMount || ['horse','ostrich'].includes(vehicle.kind)) continue; removeVisualChildren(vehicle.g); if (vehicle.kind === 'car') { vehicle.g.visible = false; vehicle.g.userData.coastlineAssetPending = true; } else { vehicle.g.visible = false; vehicle.drivable = false; vehicle.occupied = false; } }
   try {
     const pack = await loadRgsdevVehiclePack(THREE), variants = [...pack.models.keys()].filter(name => !/ambulance|bus|firetruck|police|truck|van/i.test(name)), available = variants.length ? variants : [...pack.models.keys()];
     let replaced=0, disabled=0, carIndex=0;
     for (const vehicle of vehicles) {
       if (!vehicle?.g) continue;
+      // Wildlife mounts are registered in the shared vehicle list, but are not legacy road vehicles.
+      if (vehicle.isMount || ['horse','ostrich'].includes(vehicle.kind)) continue;
       if (vehicle.kind !== 'car') { removeVisualChildren(vehicle.g); vehicle.g.visible = false; vehicle.drivable = false; vehicle.occupied = false; disabled++; continue; }
       const hero = !!vehicle.g.userData?.coastlineHeroVehicle?.singleShell;
       const name = hero && pack.models.has('SUV') ? 'SUV' : available[carIndex++ % available.length];
@@ -240,7 +242,7 @@ export async function applyRgsdevFleet(THREE, vehicles, onStatus = () => {}) {
   } catch (error) {
     console.error('[Coastline] Replacement vehicle pack failed; legacy vehicle models remain disabled.',error);
     let placeholders=0,disabled=0;
-    for (const vehicle of vehicles) { if (!vehicle?.g) continue; removeVisualChildren(vehicle.g); if (vehicle.kind==='car') { vehicle.g.add(makeNeutralVehiclePlaceholder(THREE)); vehicle.g.visible=true; vehicle.g.userData.coastlineAssetPending=false; vehicle.rgsdevModelName='neutral-fallback'; placeholders++; } else { vehicle.g.visible=false; vehicle.drivable=false; vehicle.occupied=false; disabled++; } }
+    for (const vehicle of vehicles) { if (!vehicle?.g) continue; if (vehicle.isMount || ['horse','ostrich'].includes(vehicle.kind)) continue; removeVisualChildren(vehicle.g); if (vehicle.kind==='car') { vehicle.g.add(makeNeutralVehiclePlaceholder(THREE)); vehicle.g.visible=true; vehicle.g.userData.coastlineAssetPending=false; vehicle.rgsdevModelName='neutral-fallback'; placeholders++; } else { vehicle.g.visible=false; vehicle.drivable=false; vehicle.occupied=false; disabled++; } }
     onStatus({ok:false,reason:'replacement-pack-load-failed',error:String(error),placeholders,disabled,ready:false});
     return {ok:false,reason:'replacement-pack-load-failed',placeholders,disabled,error,ready:false};
   }

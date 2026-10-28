@@ -31,3 +31,26 @@
 - **Status:** Candidate replacement for the procedural Homey house interior. The optimized mobile GLB has been prepared and structurally validated outside the repository; it is not yet wired into the runtime or included in the repository.
 - **Optimization report:** Original 209,556,540 bytes; optimized candidate 47,528,304 bytes (77.3% smaller), with conservative mesh decimation, quantized positions/normals, 16-bit indices where valid, and 512-pixel JPEG textures. The optimized scene retains 241 meshes and 101 materials. Desktop parser/structure validation passed; browser rendering and Android performance remain unverified.
 - **Attribution:** Credit Visthétique and link the source/license in any distribution of the optimized asset. This modified version is a derivative of the original CC BY 4.0 model.
+
+## Grab3D — Cave Entrance (CC0)
+
+- **Source:** [Grab3D Cave Entrance](https://grab3d.com/models/nature/cave-entrance/)
+- **Asset path:** `assets/cave-entrance.glb`; included in the itch HTML package and loaded lazily with the Waterfront world.
+- **License:** CC0 1.0; free to modify and use commercially, no attribution required.
+- **Use in Coastline Drive:** Visual rocky threshold only. Movement is governed by Coastline's explicit cave collider contract and the CTM trigger, not by the visual mesh. The portal is the only traversable route through the surrounding mountain.
+
+## Literock Studios — Warhorse Lite
+
+- **Source:** [Warhorse Lite — Free Rigged & Animated 3D Horse](https://literock-studios.itch.io/warhorse-lite)
+- **Local-only asset path:** `assets/animals/warhorse-lite.glb`, ignored by Git and supplied by the developer from the official creator download.
+- **Runtime path:** `assets/animals/warhorse-lite.glb` in a locally generated itch package when the optional local GLB is present. The original ZIP, FBX, preview image, and standalone GLB are not committed to the public repository.
+- **Validated rig/clips:** The downloaded GLB includes a skin, `saddle_socket`, and `canter_loop`, `idle_loop`, `rear`, and `walk_loop` clips.
+- **License:** Free for commercial and personal games, no royalties. The creator prohibits standalone resale or redistribution of the asset itself. Do not publish the source archive or standalone model in the repository. Verify the creator's current terms before distribution.
+- **Use in Coastline Drive:** Rideable mount. Coastline retains its own movement, collision, rider attachment, camera, and world-transition logic. Public CI and builds without the local licensed file use the lightweight procedural fallback.
+
+## Innerscene — Ostrich (CC0)
+
+- **Source:** [Innerscene Ostrich GLB](https://www.innerscene.com/tools/library/3d-parts/ostrich-a92752fd)
+- **License:** CC0 public domain, including commercial use and modification.
+- **Use in Coastline Drive:** Static GLB geometry used for ambient wildlife and as the visual body of a rideable mount. The supplied model has no skeleton or animation clips; Coastline adds movement state and a lightweight body bob, and does not claim it has the horse's leg animation.
+- **Performance:** The model is loaded only when wildlife is initialized. Static meshes are grouped by material where supported to cut draw calls; the large source asset is not included in the service-worker's eager precache. The current branch fetches the original source model when no optimized local copy is present, so a local compressed copy remains the preferred release configuration.
