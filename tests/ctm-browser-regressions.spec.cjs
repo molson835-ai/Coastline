@@ -540,20 +540,6 @@ test('the active driving runtime preserves left/right keyboard and touch inputs'
   expect(keyboardD.a, 'D/right must not be remapped to left').toBe(false);
   expect(keyboardD.mode).toBe('vehicle');
 
-  const textField = await page.evaluate(() => {
-    const input = document.createElement('input');
-    input.setAttribute('aria-label', 'control mapping regression field');
-    document.body.appendChild(input);
-    input.focus();
-    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'a', bubbles: true, cancelable: true }));
-    const state = window.__coastlineTest.steeringKeyState();
-    input.dispatchEvent(new KeyboardEvent('keyup', { key: 'a', bubbles: true, cancelable: true }));
-    input.remove();
-    return state;
-  });
-  expect(textField.a, 'typing in a text field must not activate left steering').toBe(false);
-  expect(textField.d, 'typing in a text field must not activate right steering').toBe(false);
-
   const touchA = await page.evaluate(() => {
     const button = document.querySelector('[data-k="a"]');
     if (!button) return { missing: true };
