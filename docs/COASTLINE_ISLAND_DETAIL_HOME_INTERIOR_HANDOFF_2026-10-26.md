@@ -303,7 +303,7 @@ The procedural interior now adds a compact kitchen island with stools and pendan
 - Instanced visible rock segments follow the collision shoreline while leaving bridge mouths open, and Homey receives a marked parking apron.
 - Outdoor streamed islands get local parked cars; enterable-car lookup, foot collision and exit-space checks are scoped to the active world root. Parked copies own their geometry/materials and are cleaned when the world unloads unless one becomes the player's selected car.
 - The boardwalk is moved to the marina side; the cave has higher faceted peaks and ridge shapes plus flank/rear collision volumes.
-- Garage-to-house spawn heading points inward; house-to-garage points outward. The service-worker cache generation is bumped to v64 to refresh mobile clients.
+- Garage-to-house spawn heading points inward; house-to-garage points outward. The service-worker cache generation is bumped to v65 to refresh mobile clients.
 
 ### Acceptance is not complete until the PR checks and phone pass finish
 Run engine/system/vehicle/Playwright and itch package checks against the exact PR head. Then manually test the published build on Android: closet access and visible clothing/hair/accessory changes; car entry and exit on Residential/Waterfront/Port; left/right driving in forward and reverse; transition direction; island boundaries; cave approach and entry/exit. Passing source checks cannot replace the Android playtest.
