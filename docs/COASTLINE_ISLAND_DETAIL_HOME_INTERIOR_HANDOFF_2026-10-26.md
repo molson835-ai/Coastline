@@ -329,3 +329,6 @@ Run engine/system/vehicle/Playwright and itch package checks against the exact P
 - Gobkit Animal Pack Vol. 5: https://gobkit.itch.io/gobkit-free-animal-pack-vol-5
 - Quaternius Ultimate Animated Animal Pack: https://quaternius.com/packs/ultimateanimatedanimals.html
 - Grab3D Character Mixer source/export limitations: https://grab3d.com/tools/character-mixer/
+
+
+- City boundary audit found movement collision stops around ±710 while rock/scrub decoration sampled every 22 units at ±714. A continuous instanced rock course now fills those visual gaps all around City; the north bridge gap is narrowed to the 5.2-unit deck plus clearance. This complements the polygon-matched island shoreline wall.

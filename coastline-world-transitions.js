@@ -239,7 +239,32 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
     });
     rocks.instanceMatrix.needsUpdate=true;scrub.instanceMatrix.needsUpdate=true;
     rocks.castShadow=false;rocks.receiveShadow=true;scrub.castShadow=false;scrub.receiveShadow=true;
-    boundary.add(rocks,scrub);roots.world1Root.add(boundary);
+
+    // The City collision limit sits around +/-710 while the decorative edge
+    // rocks were spaced 22 units apart. Add a continuous rock course so blocked
+    // outer-edge ground has visible landscape coverage. Keep the north bridge
+    // portal only as wide as the 5.2-unit deck plus a small clearance.
+    const coursePoints=[];
+    for(let v=-714;v<=714;v+=2.3){
+      coursePoints.push(
+        {x:v,z:-714,edge:'north'},
+        {x:v,z:714,edge:'south'},
+        {x:-714,z:v,edge:'west'},
+        {x:714,z:v,edge:'east'}
+      );
+    }
+    const courseFiltered=coursePoints.filter(p=>!(p.edge==='north'&&Math.abs(p.x)<4.5));
+    const course=new THREE.InstancedMesh(rockGeo,rockMat,courseFiltered.length);
+    course.name='coastline-city-map-edge-continuous-rock-course';
+    courseFiltered.forEach((p,i)=>{
+      const y=finiteOr(groundY(p.x,p.z));
+      dummy.position.set(p.x,y+.72,p.z);
+      dummy.rotation.set((i%3-1)*.025,p.edge==='east'||p.edge==='west'?Math.PI/2:0,(i%2?1:-1)*.015);
+      dummy.scale.set(1.48,.72,.82);
+      dummy.updateMatrix();course.setMatrixAt(i,dummy.matrix);
+    });
+    course.instanceMatrix.needsUpdate=true;course.castShadow=false;course.receiveShadow=true;
+    boundary.add(rocks,scrub,course);roots.world1Root.add(boundary);
   };
   let pendingIslandRoot=null,pendingGarageRoot=null,pendingHouseRoot=null,pendingDungeonRoot=null,garageVehicle=null,garageBoardButton=null,garageEntryButton=null,previousVehiclePosition=null,previousFootPosition=null,failNextIslandLoad=false,updatePromptCallback=()=>{},autoTransitionPromise=null,lastAutoTrigger={eligible:false,reason:'not-checked',world:null,x:null,z:null,heading:null,error:null};
   const setIslandCollisionScope=active=>{window.__coastlineWorld2Active=Boolean(active);};

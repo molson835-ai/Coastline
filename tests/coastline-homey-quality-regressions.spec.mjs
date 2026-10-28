@@ -60,6 +60,14 @@ test('cave has a mountain silhouette and the dock boardwalk clears its approach'
   assert.ok((500 + 64 - 5) > (538 + 8.5 + 5.5 + 1));
 });
 
+test('City map-edge collision has a continuous visible rock course with a deck-width north bridge gap', async () => {
+  const world = await read('coastline-world-transitions.js');
+  assert.match(world, /coastline-city-map-edge-continuous-rock-course/);
+  assert.match(world, /for\(let v=-714;v<=714;v\+=2\.3\)/);
+  assert.match(world, /p\.edge==='north'&&Math\.abs\(p\.x\)<4\.5/);
+  assert.match(world, /collision limit sits around \/\+\/-710/);
+});
+
 test('outdoor parked cars belong to the active root and hidden-world vehicles are filtered', async () => {
   const world = await read('coastline-world-transitions.js');
   const game = await read('game-v3.html');
