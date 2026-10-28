@@ -332,3 +332,6 @@ Run engine/system/vehicle/Playwright and itch package checks against the exact P
 
 
 - City boundary audit found movement collision stops around ±710 while rock/scrub decoration sampled every 22 units at ±714. A continuous instanced rock course now fills those visual gaps all around City; the north bridge gap is narrowed to the 5.2-unit deck plus clearance. This complements the polygon-matched island shoreline wall.
+
+
+Bedroom circulation note: the bed's solid footprint and nightstand were overlapping the straight doorway-to-closet walking line in the original layout. The follow-up rotates the bed into the east side of the room, moves the dresser and bedside table away from that corridor, and increases the clear bedroom doorway width. A Playwright path probe now asks the live collision function about four points along that corridor; every point must be traversable.

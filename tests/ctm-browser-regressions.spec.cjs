@@ -488,3 +488,16 @@ test('wardrobe edits apply to the loaded character and Homey threshold headings 
   await page.evaluate(() => window.__coastlineTransitionTest.transition('home-to-homey-garage'));
   expect((await page.evaluate(() => window.__coastlineTransitionTest.playerState())).heading).toBeCloseTo(0, 3);
 });
+
+
+test('the bedroom doorway-to-closet walking corridor has no furniture collider across it', async ({ page }) => {
+  await openGame(page);
+  await page.evaluate(() => window.__coastlineTransitionTest.transition('city-to-island'));
+  await page.evaluate(() => window.__coastlineTransitionTest.transition('island-to-homey-garage'));
+  await page.evaluate(() => window.__coastlineTest.setWalkPosition(483, 500, Math.PI));
+  await page.evaluate(() => window.__coastlineTransitionTest.transition('homey-garage-to-house'));
+  const probes = await page.evaluate(() => [
+    [487.2, 496.5], [487.2, 495.5], [487.6, 494.5], [487.9, 493.8]
+  ].map(([x,z]) => ({ x, z, blocked: window.__coastlineTest.buildingBlocked(x,z,.55) })));
+  expect(probes.every(point => !point.blocked), JSON.stringify(probes)).toBe(true);
+});

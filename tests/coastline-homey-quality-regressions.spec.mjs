@@ -24,7 +24,7 @@ test('wardrobe exposes live material channels, hair presets and body/presentatio
   assert.doesNotMatch(interior, /!Array\.isArray\(node\.material\).*?geometry\?\.groups/);
 });
 
-test('closet opening is wide/non-blocking and dining/TV furniture is off the path', async () => {
+test('closet opening is wide/non-blocking and bedroom furniture leaves the route clear', async () => {
   const interior = await read('coastline-homey-house-interior.js');
   assert.match(interior, /closetLeftDoor\.rotation\.y = -Math\.PI \/ 2/);
   assert.match(interior, /closetRightDoor\.rotation\.y = Math\.PI \/ 2/);
@@ -33,6 +33,9 @@ test('closet opening is wide/non-blocking and dining/TV furniture is off the pat
   assert.match(interior, /house-dining-table', centerX \+ 8\.0/);
   assert.match(interior, /house-tv-console', centerX \+ 9\.55/);
   assert.match(interior, /house-hall-console', centerX \+ 9\.55/);
+  assert.match(interior, /house-bedroom-bed-footprint', centerX \+ 7\.3, floorY \+ \.04, centerZ - 5\.8, 2\.55, \.08, 4\.0, trim, true/);
+  assert.match(interior, /house-bedroom-wall-front-right', centerX \+ 7\.45, floorY \+ 2\.65, centerZ - 4\.0, 2\.6/);
+  assert.match(interior, /addInteriorDoor\('house-bedroom-door', centerX \+ 4\.2, centerZ - 4\.0, 2\.0\)/);
   assert.match(interior, /wardrobe: \{ id: 'wardrobe', x: centerX \+ 4\.9, z: centerZ - 6\.2/);
 });
 

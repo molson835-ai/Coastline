@@ -169,17 +169,20 @@ export function buildHomeyHouseInterior(THREE, { centerX = 483, centerZ = 500, f
   addBox('house-bedroom-wall-right', centerX + 8.75, floorY + 2.65, centerZ - 6.0, .3, 5.3, wall, true);
   // Split the bedroom front wall around the doorway so the room is genuinely walkable.
   addBox('house-bedroom-wall-front-left', centerX + 2.85, floorY + 2.65, centerZ - 4.0, .5, 5.3, .3, wall, true);
-  addBox('house-bedroom-wall-front-right', centerX + 7.15, floorY + 2.65, centerZ - 4.0, 3.7, 5.3, .3, wall, true);
-  addInteriorDoor('house-bedroom-door', centerX + 4.2, centerZ - 4.0, 1.65);
+  // The widened bedroom doorway aligns with the route to the walk-in closet.
+  addBox('house-bedroom-wall-front-right', centerX + 7.45, floorY + 2.65, centerZ - 4.0, 2.6, 5.3, .3, wall, true);
+  addInteriorDoor('house-bedroom-door', centerX + 4.2, centerZ - 4.0, 2.0);
   // Door leaf is visual only; the doorway itself is kept open for reliable movement.
-  // Bed and dresser sit toward the front/right of the bedroom, leaving a clear approach to the rear-wall closet.
-  addBox('house-bedroom-bed-base', centerX + 6.6, floorY + .48, centerZ - 5.8, 3.6, .48, 2.3, wood);
-  addBox('house-bedroom-mattress', centerX + 6.6, floorY + .82, centerZ - 5.8, 3.5, .28, 2.15, bedFabric);
-  addBox('house-bedroom-headboard', centerX + 6.6, floorY + 1.65, centerZ - 6.8, 3.6, 1.9, .18, wood);
-  addBox('house-bedroom-bed-footprint', centerX + 6.6, floorY + .04, centerZ - 5.8, 4.0, .08, 2.55, trim, true);
-  addBox('house-bedroom-nightstand', centerX + 3.7, floorY + .55, centerZ - 5.8, .7, .9, .7, wood, true);
-  addBox('house-bedroom-nightstand-lamp', centerX + 3.7, floorY + 1.25, centerZ - 5.8, .24, .5, .24, warmLight);
-  addBox('house-bedroom-dresser', centerX + 8.0, floorY + .7, centerZ - 7.8, 1.1, 1.3, .9, wood, true);
+  // Keep the bed on the east side and orient its long edge north/south.
+  // The previous bed-footprint collider cut across the only path from the doorway to the closet.
+  addBox('house-bedroom-bed-base', centerX + 7.3, floorY + .48, centerZ - 5.8, 2.3, .48, 3.6, wood);
+  addBox('house-bedroom-mattress', centerX + 7.3, floorY + .82, centerZ - 5.8, 2.15, .28, 3.5, bedFabric);
+  addBox('house-bedroom-headboard', centerX + 7.3, floorY + 1.65, centerZ - 7.25, 2.3, 1.9, .18, wood);
+  addBox('house-bedroom-bed-footprint', centerX + 7.3, floorY + .04, centerZ - 5.8, 2.55, .08, 4.0, trim, true);
+  // A compact bedside table sits beside the foot of the bed rather than in the closet route.
+  addBox('house-bedroom-nightstand', centerX + 5.3, floorY + .55, centerZ - 3.2, .7, .9, .7, wood, true);
+  addBox('house-bedroom-nightstand-lamp', centerX + 5.3, floorY + 1.25, centerZ - 3.2, .24, .5, .24, warmLight);
+  addBox('house-bedroom-dresser', centerX + 7.5, floorY + .7, centerZ - 2.5, 1.1, 1.3, .9, wood, true);
   addBox('house-bedroom-wall-art', centerX + 7.0, floorY + 3.0, centerZ - 8.85, .08, 1.4, 2.0, mat(0x6b817b));
   addInteraction('bed', 'Rest at bed', centerX + 6.6, centerZ - 5.8, 2.1, { type: 'rest' });
 
