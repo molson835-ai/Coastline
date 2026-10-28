@@ -510,28 +510,35 @@ test('the bedroom doorway-to-closet walking corridor has no furniture collider a
 });
 
 
-test('the active driving runtime normalizes left/right keyboard and touch inputs', async ({ page }) => {
+test('the active driving runtime preserves left/right keyboard and touch inputs', async ({ page }) => {
   await openGame(page);
   await page.waitForFunction(() => Boolean(window.__coastlineTest?.steeringKeyState), null, { timeout: 30000 });
-  // The normalizer intentionally swaps A/D to the opposite engine key. Verify the
-  // event pipeline while the mode label is "DRIVING", rather than calling updateVehicle directly.
-  await page.evaluate(() => { document.getElementById('mode').textContent = 'DRIVING'; });
+
+  // Assert the real runtime mode. Do not fake the HUD text or invert A/D in the test:
+  // the game maps A/left to keys.a and D/right to keys.d, then vehicle physics
+  // determines the steering direction from those logical inputs.
+  const initial = await page.evaluate(() => window.__coastlineTest.steeringKeyState());
+  expect(initial.mode).toBe('vehicle');
+
   const keyboardA = await page.evaluate(() => {
     window.dispatchEvent(new KeyboardEvent('keydown', { key: 'a', bubbles: true, cancelable: true }));
     const state = window.__coastlineTest.steeringKeyState();
     window.dispatchEvent(new KeyboardEvent('keyup', { key: 'a', bubbles: true, cancelable: true }));
     return state;
   });
-  expect(keyboardA.a).toBe(false);
-  expect(keyboardA.d).toBe(true);
+  expect(keyboardA.a, 'A/left should set only the logical left input').toBe(true);
+  expect(keyboardA.d, 'A/left must not be remapped to right').toBe(false);
+  expect(keyboardA.mode).toBe('vehicle');
+
   const keyboardD = await page.evaluate(() => {
     window.dispatchEvent(new KeyboardEvent('keydown', { key: 'd', bubbles: true, cancelable: true }));
     const state = window.__coastlineTest.steeringKeyState();
     window.dispatchEvent(new KeyboardEvent('keyup', { key: 'd', bubbles: true, cancelable: true }));
     return state;
   });
-  expect(keyboardD.d).toBe(false);
-  expect(keyboardD.a).toBe(true);
+  expect(keyboardD.d, 'D/right should set only the logical right input').toBe(true);
+  expect(keyboardD.a, 'D/right must not be remapped to left').toBe(false);
+  expect(keyboardD.mode).toBe('vehicle');
 
   const textField = await page.evaluate(() => {
     const input = document.createElement('input');
@@ -544,7 +551,8 @@ test('the active driving runtime normalizes left/right keyboard and touch inputs
     input.remove();
     return state;
   });
-  expect(textField.d).toBe(false);
+  expect(textField.a, 'typing in a text field must not activate left steering').toBe(false);
+  expect(textField.d, 'typing in a text field must not activate right steering').toBe(false);
 
   const touchA = await page.evaluate(() => {
     const button = document.querySelector('[data-k="a"]');
@@ -555,8 +563,10 @@ test('the active driving runtime normalizes left/right keyboard and touch inputs
     return state;
   });
   expect(touchA.missing).not.toBe(true);
-  expect(touchA.a).toBe(false);
-  expect(touchA.d).toBe(true);
+  expect(touchA.a, 'left touch control should set only logical left').toBe(true);
+  expect(touchA.d, 'left touch control must not be remapped to right').toBe(false);
+  expect(touchA.mode).toBe('vehicle');
+
   const touchD = await page.evaluate(() => {
     const button = document.querySelector('[data-k="d"]');
     if (!button) return { missing: true };
@@ -566,6 +576,7 @@ test('the active driving runtime normalizes left/right keyboard and touch inputs
     return state;
   });
   expect(touchD.missing).not.toBe(true);
-  expect(touchD.d).toBe(false);
-  expect(touchD.a).toBe(true);
+  expect(touchD.d, 'right touch control should set only logical right').toBe(true);
+  expect(touchD.a, 'right touch control must not be remapped to left').toBe(false);
+  expect(touchD.mode).toBe('vehicle');
 });
