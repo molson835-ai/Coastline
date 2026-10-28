@@ -137,5 +137,6 @@ test('visible shoreline barriers follow island collision shapes in short segment
   }
   const homey = getCoastlineIslandBoundarySegments('residential');
   assert.ok(homey.some(segment => segment.z < 405 && Math.abs(segment.x - 500) > 17));
-  assert.ok(!homey.some(segment => segment.z < 401 && Math.abs(segment.x - 500) < 17), 'north bridge landing must remain open');
+  assert.ok(!homey.some(segment => segment.z < 401 && Math.abs(segment.x - 500) < 4.5), 'north bridge deck mouth must remain open');
+  assert.ok(homey.some(segment => segment.z < 401 && Math.abs(segment.x - 500) > 5 && Math.abs(segment.x - 500) < 17), 'shoreline immediately beside the bridge must still have visible barriers');
 });

@@ -148,9 +148,12 @@ export function isCoastlineIslandPointInside(x, z, regionId = 'residential') {
 
 function coastlineBoundaryGap(region,x,z,center={x:500,z:500}) {
   const rx=x-center.x,rz=z-center.z,halfX=region.bounds.halfWidth,halfZ=region.bounds.halfDepth;
-  const north=(region.bridge?.entry==='north'||region.bridge?.exit==='north')&&rz < -halfZ*.9&&Math.abs(rx)<17;
-  const east=(region.bridge?.entry==='east'||region.bridge?.exit==='east')&&rx>halfX*.9&&Math.abs(rz)<10.5;
-  const west=(region.bridge?.entry==='west'||region.bridge?.exit==='west')&&rx<-halfX*.9&&Math.abs(rz)<10.5;
+  // Rope-bridge deck width is 5.2 world units. Leave a 9-unit visual portal
+  // (4.5 each side) so vehicles fit with a small margin without hiding whole
+  // shoreline sections beside the bridge.
+  const north=(region.bridge?.entry==='north'||region.bridge?.exit==='north')&&rz < -halfZ*.9&&Math.abs(rx)<4.5;
+  const east=(region.bridge?.entry==='east'||region.bridge?.exit==='east')&&rx>halfX*.9&&Math.abs(rz)<4.5;
+  const west=(region.bridge?.entry==='west'||region.bridge?.exit==='west')&&rx<-halfX*.9&&Math.abs(rz)<4.5;
   return north||east||west;
 }
 /** Visible short segments share the authored shoreline vertices used by movement collision. */

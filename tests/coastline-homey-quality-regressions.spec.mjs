@@ -45,7 +45,8 @@ test('visible island boundary segments cover the collision outline and preserve 
     assert.ok(Math.max(...segments.map(segment => segment.length)) <= 2.35 + 1e-6);
   }
   const residential = getCoastlineIslandBoundarySegments('residential');
-  assert.ok(residential.every(segment => !(segment.z < 401 && Math.abs(segment.x - 500) < 17)));
+  assert.ok(residential.every(segment => !(segment.z < 401 && Math.abs(segment.x - 500) < 4.5)));
+  assert.ok(residential.some(segment => segment.z < 401 && Math.abs(segment.x - 500) > 5 && Math.abs(segment.x - 500) < 17));
 });
 
 test('cave has a mountain silhouette and the dock boardwalk clears its approach', async () => {
