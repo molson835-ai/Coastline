@@ -140,3 +140,14 @@ test('visible shoreline barriers follow island collision shapes in short segment
   assert.ok(!homey.some(segment => segment.z < 401 && Math.abs(segment.x - 500) < 4.5), 'north bridge deck mouth must remain open');
   assert.ok(homey.some(segment => segment.z < 401 && Math.abs(segment.x - 500) > 5 && Math.abs(segment.x - 500) < 17), 'shoreline immediately beside the bridge must still have visible barriers');
 });
+
+
+test('City Island tree generation uses a readable palm silhouette without generic deciduous variants', async () => {
+  const fs = await import('node:fs/promises');
+  const game = await fs.readFile(new URL('../game-v3.html', import.meta.url), 'utf8');
+  assert.match(game, /treePalmFrondGeo/);
+  assert.match(game, /treePalmCrownGeo/);
+  assert.match(game, /variant:'palm'/);
+  assert.doesNotMatch(game, /if\(variant===0\).*?else if\(variant===1\)/s);
+  assert.doesNotMatch(game, /treeRoundGeo/);
+});
