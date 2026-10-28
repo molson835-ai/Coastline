@@ -6,6 +6,7 @@ import {
   getCoastlineIslandRegion,
   validateCoastlineIslandManifest,
   isCoastlineIslandPointInside,
+  getCoastlineIslandBoundarySegments,
 } from '../coastline-island-regions.js';
 
 test('four-island manifest defines four distinct, named coastal regions', () => {
@@ -124,4 +125,17 @@ test('all island shorelines are irregular and retain their bridge landing points
   assert.equal(isCoastlineIslandPointInside(390, 500, 'waterfront'), true, 'west Waterfront bridge landing stays connected');
   assert.equal(isCoastlineIslandPointInside(390, 500, 'port'), true, 'Port bridge landing stays connected');
   assert.equal(isCoastlineIslandPointInside(500, 390, 'residential'), true, 'Homey bridge landing stays connected');
+});
+
+
+test('visible shoreline barriers follow island collision shapes in short segments and leave bridge landings open', () => {
+  for (const region of COASTLINE_ISLAND_REGIONS) {
+    const segments = getCoastlineIslandBoundarySegments(region.id, 2.35);
+    assert.ok(segments.length > 100, region.id + ' should have continuous visible shoreline coverage');
+    assert.ok(segments.every(segment => segment.length <= 2.35 + 1e-6), region.id + ' has an oversized visual barrier gap');
+    assert.ok(segments.every(segment => Number.isFinite(segment.x) && Number.isFinite(segment.z) && Number.isFinite(segment.rotationY)));
+  }
+  const homey = getCoastlineIslandBoundarySegments('residential');
+  assert.ok(homey.some(segment => segment.z < 405 && Math.abs(segment.x - 500) > 17));
+  assert.ok(!homey.some(segment => segment.z < 401 && Math.abs(segment.x - 500) < 17), 'north bridge landing must remain open');
 });

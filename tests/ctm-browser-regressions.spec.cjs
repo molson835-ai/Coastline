@@ -409,3 +409,81 @@ test('walking across the physical bridge automatically hands off through CTM wit
   await expect.poll(() => page.evaluate(() => window.__coastlineTransitionTest.status().activeWorldId), { timeout: 5000 }).toBe('city');
   expect(await page.evaluate(() => window.__coastlineTransitionTest.bridgePromptVisible())).toBe(false);
 });
+
+
+test('outdoor island cars can be entered/exited and steering directions remain correct', async ({ page }) => {
+  await openGame(page);
+  await page.waitForFunction(() => window.__coastlineVehicleAssetSwapStatus?.ok === true, null, { timeout: 30000 });
+  await page.evaluate(() => window.__coastlineTransitionTest.transition('city-to-island'));
+  await page.waitForFunction(() => window.__coastlineTransitionTest.activeWorldFleet().length >= 2, null, { timeout: 30000 });
+  const fleet = await page.evaluate(() => window.__coastlineTransitionTest.activeWorldFleet());
+  expect(fleet.length).toBeGreaterThanOrEqual(2);
+  expect(fleet.every(car => car.visible && car.drivable && !car.occupied)).toBe(true);
+  const entering = await page.evaluate(() => {
+    const entry = window.__coastlineTransitionTest.activeWorldFleet()[0];
+    const car = window.__coastlineVehicleRegistry.find(vehicle => vehicle.homeyFleetId === entry.id);
+    if (!car) return null;
+    window.__coastlineTest.setWalkPosition(car.x, car.z + 4, Math.PI);
+    const nearest = window.__coastlineTest.nearestVehicleState();
+    const success = window.__coastlineTest.enterVehicle(car);
+    return { nearest, success, mode: window.__coastlineTransitionTest.playerState().mode,
+      vehicleIndex: window.__coastlineTransitionTest.playerState().vehicleIndex,
+      carIndex: window.__coastlineVehicleRegistry.indexOf(car) };
+  });
+  expect(entering).not.toBeNull();
+  expect(entering.nearest?.parentMatches).toBe(true);
+  expect(entering.success).toBe(true);
+  expect(entering.mode).toBe('vehicle');
+  expect(entering.vehicleIndex).toBe(entering.carIndex);
+  await page.evaluate(() => window.__coastlineTest.exitVehicle());
+  expect(await page.evaluate(() => window.__coastlineTransitionTest.playerState().mode)).toBe('walk');
+  const steering = await page.evaluate(() => ({
+    left: window.__coastlineTest.steeringProbe('a'),
+    right: window.__coastlineTest.steeringProbe('d')
+  }));
+  expect(steering.left).toBeLessThan(0);
+  expect(steering.right).toBeGreaterThan(0);
+  for (const transition of ['island-to-waterfront', 'waterfront-to-port']) {
+    await page.evaluate(id => window.__coastlineTransitionTest.transition(id), transition);
+    await page.waitForFunction(() => window.__coastlineTransitionTest.activeWorldFleet().length >= 2, null, { timeout: 30000 });
+    expect(await page.evaluate(() => window.__coastlineTransitionTest.activeWorldFleet().every(car => car.visible && car.drivable))).toBe(true);
+  }
+});
+
+test('wardrobe edits apply to the loaded character and Homey threshold headings face away from each CTM', async ({ page }) => {
+  await openGame(page);
+  await page.waitForFunction(() => window.__coastlineCharacterAssetSwapStatus?.ok === true, null, { timeout: 30000 });
+  await page.evaluate(() => window.__coastlineTest.setVehiclePosition(500, 400, Math.PI));
+  await page.evaluate(() => window.__coastlineTransitionTest.transition('city-to-island'));
+  await page.evaluate(() => window.__coastlineTransitionTest.transition('island-to-homey-garage'));
+  await page.evaluate(() => window.__coastlineTest.setWalkPosition(483, 500, Math.PI));
+  await page.evaluate(() => window.__coastlineTransitionTest.transition('homey-garage-to-house'));
+  await page.waitForFunction(() => Boolean(window.__coastlineHomeWardrobe && window.__coastlineAvatar?.userData?.cozyActor), null, { timeout: 30000 });
+  const appearance = await page.evaluate(() => {
+    window.__coastlineHomeWardrobe.apply({
+      topColor: '#9c3f42', bottomColor: '#263f68', hairColor: '#874d2d',
+      hairStyle: 'spiky', bodyShape: 'slim', presentation: 'feminine',
+      accessories: { hat: false, backpack: false }
+    });
+    const materials = [];
+    window.__coastlineAvatar.traverse(node => {
+      if (!node.isMesh) return;
+      for (const material of (Array.isArray(node.material) ? node.material : [node.material])) {
+        if (['top_primary', 'bottom_primary', 'hair'].includes(String(material?.name || ''))) {
+          materials.push({ name: material.name, color: material.color?.getHexString?.() });
+        }
+      }
+    });
+    return {
+      applied: window.__coastlinePlayer.coastlineClothingAppliedMaterialCount,
+      hairOverlay: Boolean(window.__coastlineAvatar.userData.cozyActor.root.getObjectByName('coastline-wardrobe-hair-overlay')),
+      materials
+    };
+  });
+  expect(appearance.applied).toBeGreaterThan(0);
+  expect(appearance.hairOverlay).toBe(true);
+  expect(appearance.materials.some(item => item.name === 'top_primary' && item.color === '9c3f42')).toBe(true);
+  expect((await page.evaluate(() => window.__coastlineTransitionTest.playerState())).heading).toBeCloseTo(Math.PI, 3);
+  await page.evaluate(() => window.__coastlineTransitionTest.transition('home-to-homey-garage'));
+  expect((await page.evaluate(() => window.__coastlineTransitionTest.playerState())).heading).toBeCloseTo(0, 3);
+});
