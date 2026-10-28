@@ -461,16 +461,15 @@ const barkCanvas=document.createElement('canvas');barkCanvas.width=128;barkCanva
 const leafCanvas=document.createElement('canvas');leafCanvas.width=leafCanvas.height=256;const leafCtx=leafCanvas.getContext('2d');leafCtx.fillStyle='#547d42';leafCtx.fillRect(0,0,256,256);for(let i=0;i<1800;i++){const x=(i*73)%256,y=(i*151)%256,r=1+(i%5),g=65+(i*13)%90;leafCtx.fillStyle='rgba('+Math.floor(g*.72)+','+g+','+Math.floor(g*.55)+','+(.12+(i%4)*.08)+')';leafCtx.beginPath();leafCtx.ellipse(x,y,r,1+(i%3),i%3,0,Math.PI*2);leafCtx.fill()}for(let i=0;i<95;i++){const x=(i*61)%256,y=(i*109)%256;leafCtx.strokeStyle='rgba(197,213,131,.22)';leafCtx.lineWidth=1;leafCtx.beginPath();leafCtx.moveTo(x,y);leafCtx.lineTo(x+4+(i%7),y+2+(i%5));leafCtx.stroke()}const leafTexture=new THREE.CanvasTexture(leafCanvas);leafTexture.colorSpace=THREE.SRGBColorSpace;leafTexture.wrapS=leafTexture.wrapT=THREE.RepeatWrapping;leafTexture.repeat.set(1.5,1.5);treeLeaf.forEach(m=>{m.map=leafTexture;m.needsUpdate=true});
 const treeTrunkGeo=new THREE.CylinderGeometry(.22,.34,1,9);
 const treePalmCrownGeo=new THREE.SphereGeometry(.48,8,6);
-const treePalmFrondGeo=new THREE.ConeGeometry(.32,3.8,5);
 const treePalmCanopyGeo=(()=>{
  const positions=[],indices=[],frondCount=9,steps=6;
  for(let frond=0;frond<frondCount;frond++){
   const angle=frond*Math.PI*2/frondCount;
-  const dx=Math.cos(angle),dz=Math.sin(angle),px=-dz,pz=dx,base=positions.length/3;
+  const dx=Math.cos(angle),dz=Math.sin(angle),px=-dz*.58,pz=dx*.58,py=.82,base=positions.length/3;
   for(let step=0;step<steps;step++){
    const t=step/(steps-1),radius=3.45*t,y=-.12*t-.92*t*t,width=.035+Math.sin(Math.PI*t)*.34;
-   positions.push(dx*radius+px*width,y,dz*radius+pz*width);
-   positions.push(dx*radius-px*width,y,dz*radius-pz*width);
+   positions.push(dx*radius+px*width,y+py*width,dz*radius+pz*width);
+   positions.push(dx*radius-px*width,y-py*width,dz*radius-pz*width);
   }
   for(let step=0;step<steps-1;step++){
    const a=base+step*2,b=a+1,c=a+2,d=a+3;

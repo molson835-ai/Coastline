@@ -301,3 +301,40 @@ test('four-region CTM route reaches distinct Residential, Waterfront and Port wo
   expect(returned.vehicle).toBe(true);
   expect(errors).toEqual([]);
 });
+
+
+test('garage → house → garage round trip preserves the parked vehicle and on-foot state', async ({ page }) => {
+  const errors = await openGame(page);
+  const result = await page.evaluate(async () => {
+    const transitions = window.__coastlineTransitionTest;
+    await transitions.transition('city-to-island');
+    window.__coastlineEnsureActiveWorldFleet?.();
+    const vehicle = window.__coastlineVehicleRegistry.find(item => item.kind === 'car' && item.g?.parent === window.__coastlineActiveWorldRoot);
+    if (!vehicle) throw new Error('No local City/Homey car was available for the garage transition test');
+    window.__coastlineTest.enterVehicle(vehicle);
+    if (window.__coastlineTest.playerState().mode !== 'vehicle') throw new Error('Vehicle entry failed before garage transition');
+    await transitions.transition('island-to-homey-garage');
+    if (transitions.status().activeWorldId !== 'homey-garage') throw new Error('Garage transition did not activate');
+    window.__coastlineTest.exitVehicle();
+    if (window.__coastlineTest.playerState().mode !== 'walk') throw new Error('Could not safely exit vehicle in garage');
+    await transitions.transition('homey-garage-to-house');
+    const houseWorld = transitions.status().activeWorldId;
+    const vehiclePreservedInHouse = transitions.garageVehicleRef() === vehicle;
+    await transitions.transition('home-to-homey-garage');
+    return {
+      activeWorldId: transitions.status().activeWorldId,
+      houseWorld,
+      mode: window.__coastlineTest.playerState().mode,
+      vehiclePreservedInHouse,
+      sameParkedVehicle: transitions.garageVehicleRef() === vehicle,
+      vehicleGeometryChildren: vehicle.g?.children?.length ?? 0,
+    };
+  });
+  expect(result.houseWorld).toBe('home-interior');
+  expect(result.activeWorldId).toBe('homey-garage');
+  expect(result.mode).toBe('walk');
+  expect(result.vehiclePreservedInHouse).toBe(true);
+  expect(result.sameParkedVehicle).toBe(true);
+  expect(result.vehicleGeometryChildren).toBeGreaterThan(0);
+  expect(errors).toEqual([]);
+});

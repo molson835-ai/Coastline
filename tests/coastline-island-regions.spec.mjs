@@ -145,9 +145,12 @@ test('visible shoreline barriers follow island collision shapes in short segment
 test('City Island tree generation uses a readable palm silhouette without generic deciduous variants', async () => {
   const fs = await import('node:fs/promises');
   const game = await fs.readFile(new URL('../game-v3.html', import.meta.url), 'utf8');
-  assert.match(game, /treePalmFrondGeo/);
-  assert.match(game, /treePalmCrownGeo/);
-  assert.match(game, /variant:'palm'/);
-  assert.doesNotMatch(game, /if\(variant===0\).*?else if\(variant===1\)/s);
-  assert.doesNotMatch(game, /treeRoundGeo/);
+  const treeStart = game.indexOf('const treeTrunkGeo=');
+  const treeEnd = game.indexOf('// Dense but inexpensive ground cover', treeStart);
+  assert.ok(treeStart >= 0 && treeEnd > treeStart, 'City tree-generation block is present');
+  const trees = game.slice(treeStart, treeEnd);
+  assert.match(trees, /treePalmCanopyGeo/);
+  assert.match(trees, /treePalmCrownGeo/);
+  assert.match(trees, /variant:'palm'/);
+  assert.doesNotMatch(trees, /treeRoundGeo|treeCrownGeo|if\(variant===0\)/);
 });
