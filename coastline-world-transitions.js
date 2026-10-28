@@ -338,9 +338,10 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
     const current=activeWorldFleets.get(root);
     if(current?.length&&current.every(vehicle=>vehicle.g?.parent===root))return current;
     if(current)disposeOutdoorFleet(root);
-    const sources=vehicles.filter(vehicle=>vehicle?.kind==='car'&&vehicle!==player.vehicle&&vehicle!==garageVehicle&&vehicle.g&&
-      vehicle.drivable!==false&&vehicle.g.visible!==false&&!vehicle.homeyAccessibleFleet&&!vehicle.homeyFleetRetired&&
-      !vehicle.g.userData?.coastlineNeutralFallback&&vehicle.rgsdevModelName!=='neutral-fallback');
+    const sources=vehicles.filter(vehicle=>vehicle?.kind==='car'&&vehicle!==player.vehicle&&vehicle!==garageVehicle&&
+      vehicle.g?.parent===roots.world1Root&&vehicle.drivable!==false&&vehicle.g.visible!==false&&
+      !vehicle.homeyAccessibleFleet&&!vehicle.homeyFleetRetired&&!vehicle.g.userData?.coastlineNeutralFallback&&
+      vehicle.rgsdevModelName!=='neutral-fallback');
     if(!sources.length)return [];
     const fleet=[];
     for(let i=0;i<OUTDOOR_FLEET_SLOTS.length;i++)fleet.push(createOutdoorVehicleClone(sources[i%sources.length],OUTDOOR_FLEET_SLOTS[i],i,root,worldId));
