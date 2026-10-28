@@ -7,7 +7,7 @@ const worker = await readFile(new URL('../coastline-sw.js', import.meta.url), 'u
 test('service worker activates a fresh cache generation after deployment', () => {
   const cacheGeneration = worker.match(/const CACHE_NAME='coastline-static-v(\d+)'/);
   assert.ok(cacheGeneration, 'service worker declares a versioned static cache');
-  assert.ok(Number(cacheGeneration[1]) > 65, 'deployment cache generation must advance beyond the pre-wildlife v65 cache');
+  assert.ok(Number(cacheGeneration[1]) > 66, 'deployment cache generation must advance beyond the pre-wildlife v65 cache');
   assert.match(worker, /'\.\/coastline-homey-garage\.js'/);
   assert.match(worker, /'\.\/coastline-homey-house-interior\.js'/);
   assert.match(worker, /'\.\/coastline-vehicle-sizing\.js'/);
