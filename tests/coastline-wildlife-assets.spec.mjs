@@ -74,8 +74,8 @@ test('wildlife loader uses GLB animation, rider socket, source paths, and CTM-ow
   assert.match(loader, /loadCaveIntoRoot/);
   assert.match(loader, /assets\/cave-entrance\.glb/);
   assert.match(loader, /assets\/animals\/warhorse-lite\.glb/);
-  assert.match(loader, /window\.__COASTLINE_PACKAGED_ASSETS__ === true/);
-  assert.match(loader, /if \(packagedAssets\)[\s\S]*?fetch\(config\.local/);
+  assert.match(loader, /window\.__COASTLINE_WARHORSE_ASSET_AVAILABLE__ === true/);
+  assert.match(loader, /if \(horseAssetAvailable\)[\s\S]*?fetch\(config\.local/);
   assert.doesNotMatch(loader, /loadWarhorseFromArchive|Warhorse_Lite_v1\.0\.0\.zip/);
   assert.match(loader, /__COASTLINE_WARHORSE_ASSET_AVAILABLE__ === true/);
   assert.match(packageBuilder, /window\.__COASTLINE_PACKAGED_ASSETS__=true/);
