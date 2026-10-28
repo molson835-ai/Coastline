@@ -508,3 +508,51 @@ test('the bedroom doorway-to-closet walking corridor has no furniture collider a
   ].map(([x,z]) => ({ x, z, blocked: window.__coastlineTest.buildingBlocked(x,z,.55) })));
   expect(probes.every(point => !point.blocked), JSON.stringify(probes)).toBe(true);
 });
+
+
+test('the active driving runtime normalizes left/right keyboard and touch inputs', async ({ page }) => {
+  await openGame(page);
+  await page.waitForFunction(() => Boolean(window.__coastlineTest?.steeringKeyState), null, { timeout: 30000 });
+  // The normalizer intentionally swaps A/D to the opposite engine key. Verify the
+  // event pipeline while the mode label is "DRIVING", rather than calling updateVehicle directly.
+  await page.evaluate(() => { document.getElementById('mode').textContent = 'DRIVING'; });
+  const keyboardA = await page.evaluate(() => {
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'a', bubbles: true, cancelable: true }));
+    const state = window.__coastlineTest.steeringKeyState();
+    window.dispatchEvent(new KeyboardEvent('keyup', { key: 'a', bubbles: true, cancelable: true }));
+    return state;
+  });
+  expect(keyboardA.a).toBe(false);
+  expect(keyboardA.d).toBe(true);
+  const keyboardD = await page.evaluate(() => {
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'd', bubbles: true, cancelable: true }));
+    const state = window.__coastlineTest.steeringKeyState();
+    window.dispatchEvent(new KeyboardEvent('keyup', { key: 'd', bubbles: true, cancelable: true }));
+    return state;
+  });
+  expect(keyboardD.d).toBe(false);
+  expect(keyboardD.a).toBe(true);
+
+  const touchA = await page.evaluate(() => {
+    const button = document.querySelector('[data-k="a"]');
+    if (!button) return { missing: true };
+    button.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true, pointerId: 77, pointerType: 'touch' }));
+    const state = window.__coastlineTest.steeringKeyState();
+    button.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, cancelable: true, pointerId: 77, pointerType: 'touch' }));
+    return state;
+  });
+  expect(touchA.missing).not.toBe(true);
+  expect(touchA.a).toBe(false);
+  expect(touchA.d).toBe(true);
+  const touchD = await page.evaluate(() => {
+    const button = document.querySelector('[data-k="d"]');
+    if (!button) return { missing: true };
+    button.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true, pointerId: 78, pointerType: 'touch' }));
+    const state = window.__coastlineTest.steeringKeyState();
+    button.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, cancelable: true, pointerId: 78, pointerType: 'touch' }));
+    return state;
+  });
+  expect(touchD.missing).not.toBe(true);
+  expect(touchD.d).toBe(false);
+  expect(touchD.a).toBe(true);
+});

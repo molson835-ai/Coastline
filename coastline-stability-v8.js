@@ -35,10 +35,11 @@ window.addEventListener('keydown',e=>{
   const k=e.key?.toLowerCase();
   if(k!=='a'&&k!=='d')return;
   if(held.has(k)){e.preventDefault();e.stopImmediatePropagation();return}
-  if(!driving()){
-    e.preventDefault();e.stopImmediatePropagation();
-    held.add(k);synthetic('keydown',opposite(k));
-  }
+  // Apply the same physical left/right direction in vehicles and on foot.
+  // The previous conditional skipped the swap while driving, so vehicle controls
+  // remained reversed even though the on-foot path was normalized.
+  e.preventDefault();e.stopImmediatePropagation();
+  held.add(k);synthetic('keydown',opposite(k));
 },true);
 window.addEventListener('keyup',e=>{
   if(e.__coastlineSteeringNormalized)return;
@@ -57,7 +58,6 @@ function normalizeTouch(e){
   if(k!=='a'&&k!=='d')return;
   const isStart=e.type==='pointerdown'||e.type==='touchstart';
   if(isStart){
-    if(driving())return;
     e.stopImmediatePropagation();
     if(!held.has(k)){held.add(k);synthetic('keydown',opposite(k))}
     return;
