@@ -104,36 +104,24 @@ test('failed island load cleans partial shell resources, preserves City, and can
   expect(errors).toEqual([]);
 });
 
-test('bridge prompt only appears for a nearby vehicle facing the island bridge, and walking cannot trigger it', async ({ page }) => {
+test('bridge handoffs are automatic and never expose a manual transition prompt', async ({ page }) => {
   await openGame(page);
   await page.evaluate(() => window.__coastlineTransitionTest.transition('city-to-island'));
 
   await page.evaluate(() => {
-    window.__coastlineTest.setVehiclePosition(500, 370, Math.PI);
+    window.__coastlineTest.setVehiclePosition(500, 290, Math.PI);
     window.__coastlineTransitionTest.updatePrompt();
   });
   await expect(page.locator('#coastlineWorldTransition')).toBeHidden();
+  await expect.poll(() => page.evaluate(() => window.__coastlineTransitionTest.status().activeWorldId), { timeout: 5000 }).toBe('city');
 
-  await page.evaluate(() => {
-    window.__coastlineTest.setVehiclePosition(500, 370, 0);
-    window.__coastlineTransitionTest.updatePrompt();
-  });
-  await expect(page.locator('#coastlineWorldTransition')).toBeVisible();
-  const facingToward = await page.locator('#coastlineWorldTransition').evaluate(button => ({ padding: getComputedStyle(button).padding, text: button.textContent }));
-  expect(facingToward.padding).toBe('6px 8px');
-  expect(facingToward.text).toBe('CROSS TO CITY');
-
-  await page.evaluate(() => {
-    window.__coastlineTest.setVehiclePosition(500, 350, 0);
-    window.__coastlineTransitionTest.updatePrompt();
-  });
-  await expect(page.locator('#coastlineWorldTransition')).toBeHidden();
-
+  await page.evaluate(() => window.__coastlineTransitionTest.transition('city-to-island'));
   await page.evaluate(() => {
     window.__coastlineTest.setWalkPosition(500, 290, Math.PI);
     window.__coastlineTransitionTest.updatePrompt();
   });
   await expect(page.locator('#coastlineWorldTransition')).toBeHidden();
+  await expect.poll(() => page.evaluate(() => window.__coastlineTransitionTest.status().activeWorldId), { timeout: 5000 }).toBe('city');
 });
 
 

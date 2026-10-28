@@ -54,3 +54,15 @@ test('City boundary scenery leaves the north bridge corridor open and vehicle gr
   assert.match(game, /vehicleGroundY\(v\.x,v\.z\)/);
   assert.ok(game.includes('Math.abs(x)+r>=710||Math.abs(z)+r>=710'));
 });
+
+test('bridge edge contact clamps only the lateral coordinate and preserves forward progress', async () => {
+  const fs = await import('node:fs/promises');
+  const transitions = await fs.readFile(new URL('../coastline-world-transitions.js', import.meta.url), 'utf8');
+  const game = await fs.readFile(new URL('../game-v3.html', import.meta.url), 'utf8');
+  assert.match(transitions, /window\.__coastlineClampBridgePosition=/);
+  assert.match(transitions, /THREE\.MathUtils\.clamp\(x,-lane,lane\),z/);
+  assert.match(transitions, /THREE\.MathUtils\.clamp\(z,ISLAND_CENTER\.z-lane,ISLAND_CENTER\.z\+lane\)/);
+  assert.match(game, /bridgeClamped=window\.__coastlineClampBridgePosition\?\.\(rawNX,rawNZ,bridgeRadius\)/);
+  assert.match(game, /const radius=bridgeRadius/);
+  assert.match(game, /player\.mode==='walk'&&window\.__coastlineBridgeSideBlocked\?\.\(x,z,Math\.min\(r,\.55\)\)/);
+});

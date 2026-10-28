@@ -60,6 +60,34 @@ export const COASTLINE_ISLAND_REGIONS = Object.freeze([
 export const COASTLINE_ISLAND_ELEVATION = 6;
 export const COASTLINE_ISLAND_WATER_DROP = 3.0;
 
+// Water depth is a deterministic gameplay contract, independent of rendered meshes.
+// Distances are world units measured from the authored shallow-water shelf.
+export const COASTLINE_WATER_DEPTH_BANDS = Object.freeze({
+  shoreMax: 0.45,
+  shallowMax: 1.25,
+  midMax: 4.5,
+});
+
+export function getCoastlineWaterDepthBand(depth) {
+  if (!Number.isFinite(depth) || depth < 0) return 'deep';
+  if (depth <= COASTLINE_WATER_DEPTH_BANDS.shoreMax) return 'shore';
+  if (depth <= COASTLINE_WATER_DEPTH_BANDS.shallowMax) return 'shallow';
+  if (depth <= COASTLINE_WATER_DEPTH_BANDS.midMax) return 'mid';
+  return 'deep';
+}
+
+export function canTraverseCoastlineWater(depth, mode = 'on-foot') {
+  return mode === 'on-foot' &&
+    (getCoastlineWaterDepthBand(depth) === 'shore' || getCoastlineWaterDepthBand(depth) === 'shallow');
+}
+
+/** Authored shallow-water footpath on the Waterfront's southeast edge. */
+export function isCoastlineShallowWaterPath(x, z, regionId = 'waterfront', mode = 'on-foot') {
+  if (regionId !== 'waterfront' || mode !== 'on-foot' || !Number.isFinite(x) || !Number.isFinite(z)) return false;
+  const insidePath = x >= 602 && x <= 638 && z >= 522 && z <= 558;
+  return insidePath && canTraverseCoastlineWater(0.8, mode);
+}
+
 export const COASTLINE_WORLD_POPULATION_LIMITS = Object.freeze({
   city: Object.freeze({ traffic: 12, pedestrians: 16 }),
   downtown: COASTLINE_ISLAND_REGIONS[0].population,
@@ -81,34 +109,37 @@ const RESIDENTIAL_SHORELINE = Object.freeze([
   [-0.86, -0.38], [-0.82, -0.70],
 ]);
 
+const NATURAL_ISLAND_SHORELINES = Object.freeze({
+  downtown: Object.freeze([
+    [-0.72,-1],[-0.12,-1],[0.36,-.95],[.68,-.82],[.84,-.59],[.78,-.32],[.97,-.12],[1,0],[.91,.22],[.73,.43],[.82,.67],[.5,.86],[.15,.96],[-.18,.94],[-.5,.8],[-.76,.6],[-.91,.31],[-.97,.04],[-.86,-.28],[-.84,-.65]
+  ].map(point=>Object.freeze(point))),
+  waterfront: Object.freeze([
+    [-.82,-.9],[-.34,-1],[.18,-.98],[.58,-.9],[.82,-.72],[.9,-.46],[.78,-.24],[.96,-.08],[1,0],[.94,.18],[.76,.39],[.78,.67],[.48,.86],[.12,.96],[-.2,.9],[-.43,.72],[-.72,.63],[-.9,.38],[-.96,.12],[-1,0],[-.9,-.32],[-.94,-.62]
+  ].map(point=>Object.freeze(point))),
+  port: Object.freeze([
+    [-.75,-1],[-.18,-.98],[.28,-.92],[.68,-.8],[.86,-.6],[.92,-.36],[.8,-.1],[.96,.08],[1,0],[.91,.31],[.7,.58],[.48,.8],[.12,.95],[-.25,.88],[-.62,.78],[-.86,.56],[-.96,.25],[-1,0],[-.88,-.32],[-.9,-.7]
+  ].map(point=>Object.freeze(point))),
+});
+
 /** Point-in-shoreline test shared by rendering tests and the live movement blocker. */
 export function isCoastlineIslandPointInside(x, z, regionId = 'residential') {
   if (!Number.isFinite(x) || !Number.isFinite(z)) return false;
   const region = getCoastlineIslandRegion(regionId);
   if (!region) return false;
-  // Every streamed island root is currently placed in the shared world-space island slot.
+  // Every streamed island occupies the same world-space slot; movement bounds
+  // follow each island's authored irregular shoreline instead of a rounded box.
   const nx = (x - 500) / region.bounds.halfWidth;
   const nz = (z - 500) / region.bounds.halfDepth;
-  if (regionId !== 'residential') {
-    const corner = Math.min(0.22, (region.bounds.cornerRadius || 20) / region.bounds.halfWidth);
-    if (Math.abs(nx) > 1 || Math.abs(nz) > 1) return false;
-    const dx = Math.max(0, Math.abs(nx) - (1 - corner));
-    const dz = Math.max(0, Math.abs(nz) - (1 - corner));
-    return dx * dx + dz * dz <= corner * corner;
-  }
-  const points = RESIDENTIAL_SHORELINE;
-  // Keep bridge landings connected even when floating-point coordinates sit on an edge.
+  const points = regionId === 'residential' ? RESIDENTIAL_SHORELINE : NATURAL_ISLAND_SHORELINES[regionId];
+  if (!points) return false;
   const epsilon = 1e-6;
-  for (let i = 0; i < points.length; i++) {
-    const [ax, az] = points[i], [bx, bz] = points[(i + 1) % points.length];
-    const cross = (nx - ax) * (bz - az) - (nz - az) * (bx - ax);
-    const dot = (nx - ax) * (bx - ax) + (nz - az) * (bz - az);
-    const lengthSquared = (bx - ax) ** 2 + (bz - az) ** 2;
-    if (Math.abs(cross) < epsilon && dot >= -epsilon && dot <= lengthSquared + epsilon) return true;
-  }
   let inside = false;
   for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
     const [xi, zi] = points[i], [xj, zj] = points[j];
+    const cross = (nx - xi) * (zj - zi) - (nz - zi) * (xj - xi);
+    const dot = (nx - xi) * (xj - xi) + (nz - zi) * (zj - zi);
+    const lengthSquared = (xj - xi) ** 2 + (zj - zi) ** 2;
+    if (Math.abs(cross) < epsilon && dot >= -epsilon && dot <= lengthSquared + epsilon) return true;
     if ((zi > nz) !== (zj > nz) && nx < ((xj - xi) * (nz - zi)) / (zj - zi) + xi) inside = !inside;
   }
   return inside;
@@ -116,32 +147,17 @@ export function isCoastlineIslandPointInside(x, z, regionId = 'residential') {
 
 function createIslandShape(THREE, region, scale = 1) {
   const half = region.bounds.halfWidth;
+  const points = region.id === 'residential' ? RESIDENTIAL_SHORELINE : NATURAL_ISLAND_SHORELINES[region.id];
   const shape = new THREE.Shape();
-  if (region.id === 'residential') {
-    shape.moveTo(-half * 0.72 * scale, -half * scale);
-    shape.lineTo(half * 0.18 * scale, -half * scale);
-    shape.quadraticCurveTo(half * 0.7 * scale, -half * scale, half * 0.82 * scale, -half * 0.82 * scale);
-    shape.lineTo(half * 0.72 * scale, -half * 0.48 * scale);
-    shape.quadraticCurveTo(half * 0.66 * scale, -half * 0.2 * scale, half * 0.92 * scale, -half * 0.08 * scale);
-    shape.quadraticCurveTo(half * scale, 0, half * scale, half * 0.08 * scale);
-    shape.quadraticCurveTo(half * 0.98 * scale, half * 0.26 * scale, half * 0.78 * scale, half * 0.34 * scale);
-    shape.quadraticCurveTo(half * 0.86 * scale, half * 0.55 * scale, half * 0.62 * scale, half * 0.66 * scale);
-    shape.quadraticCurveTo(half * 0.36 * scale, half * 0.82 * scale, half * 0.18 * scale, half * 0.96 * scale);
-    shape.quadraticCurveTo(0, half * 1.02 * scale, -half * 0.18 * scale, half * 0.92 * scale);
-    shape.quadraticCurveTo(-half * 0.48 * scale, half * 0.82 * scale, -half * 0.63 * scale, half * 0.62 * scale);
-    shape.quadraticCurveTo(-half * 0.83 * scale, half * 0.43 * scale, -half * 0.92 * scale, half * 0.18 * scale);
-    shape.quadraticCurveTo(-half * 1.01 * scale, -half * 0.12 * scale, -half * 0.86 * scale, -half * 0.38 * scale);
-    shape.quadraticCurveTo(-half * 0.82 * scale, -half * 0.7 * scale, -half * 0.72 * scale, -half * scale);
-    shape.closePath();
-    return shape;
+  if (!points?.length) throw new Error(`island ${region.id} has no authored shoreline`);
+  const contour = points.map(([x, z]) => [x * half * scale, z * half * scale]);
+  const last = contour[contour.length - 1], first = contour[0];
+  shape.moveTo((last[0] + first[0]) / 2, (last[1] + first[1]) / 2);
+  for (let i = 0; i < contour.length; i++) {
+    const current = contour[i], next = contour[(i + 1) % contour.length];
+    shape.quadraticCurveTo(current[0], current[1], (current[0] + next[0]) / 2, (current[1] + next[1]) / 2);
   }
-  const corner = (region.bounds.cornerRadius || 20) * scale;
-  const edge = half * scale, inner = edge - corner;
-  shape.moveTo(-inner, -edge); shape.lineTo(inner, -edge);
-  shape.quadraticCurveTo(edge, -edge, edge, -inner); shape.lineTo(edge, inner);
-  shape.quadraticCurveTo(edge, edge, inner, edge); shape.lineTo(-inner, edge);
-  shape.quadraticCurveTo(-edge, edge, -edge, inner); shape.lineTo(-edge, -inner);
-  shape.quadraticCurveTo(-edge, -edge, -inner, -edge);
+  shape.closePath();
   return shape;
 }
 
@@ -157,6 +173,8 @@ export function createCoastlineIslandRoot({ THREE, region, groundY = () => 0, ad
   const edgeY = Number.isFinite(groundY(center.x, center.z)) ? groundY(center.x, center.z) : 0;
   const root = new THREE.Group();
   root.name = `coastline-island-${region.id}-root`;
+  root.userData.coastlineGroundY = edgeY;
+  root.userData.coastlineRegionId = region.id;
   const colliders = [];
   root.userData.coastlineColliders = colliders;
 
@@ -168,6 +186,24 @@ export function createCoastlineIslandRoot({ THREE, region, groundY = () => 0, ad
   const concreteMat = material(0x777c7a, 0.88);
   const oceanMat = material(0x176b80, 0.34, 0.08);
   const ocean = new THREE.Mesh(new THREE.PlaneGeometry(740, 740), oceanMat);
+  if (region.id === 'waterfront') {
+    const shallowMat = new THREE.MeshStandardMaterial({ color: 0x62c6c6, roughness: .34, metalness: .04, transparent: true, opacity: .68, side: THREE.DoubleSide });
+    const shallowChannel = new THREE.Mesh(new THREE.PlaneGeometry(36, 36), shallowMat);
+    shallowChannel.name = 'coastline-waterfront-shallow-water-secret-path';
+    shallowChannel.rotation.x = -Math.PI / 2;
+    shallowChannel.position.set(620, edgeY - .16, 540); // raised tidal shelf: foot route, not a drivable vehicle surface
+    shallowChannel.receiveShadow = false;
+    root.add(shallowChannel);
+    const depthBands = [
+      { name: 'coastline-waterfront-water-depth-shallow', size: 270, width: 16, color: 0x4da9b8, opacity: .28 },
+      { name: 'coastline-waterfront-water-depth-mid', size: 330, width: 18, color: 0x267e98, opacity: .23 },
+      { name: 'coastline-waterfront-water-depth-deep', size: 390, width: 20, color: 0x104d75, opacity: .18 },
+    ];
+    for (const band of depthBands) {
+      const mesh = new THREE.Mesh(new THREE.RingGeometry(band.size / 2 - band.width, band.size / 2, 96), new THREE.MeshBasicMaterial({ color: band.color, transparent: true, opacity: band.opacity, side: THREE.DoubleSide, depthWrite: false }));
+      mesh.name = band.name; mesh.rotation.x = -Math.PI / 2; mesh.position.set(center.x, edgeY - COASTLINE_ISLAND_WATER_DROP + .02, center.z); root.add(mesh);
+    }
+  }
   ocean.name = `coastline-${region.id}-surrounding-ocean`;
   ocean.rotation.x = -Math.PI / 2;
   // Keep the sea surface below the island shelf and the full rope-bridge sag.
@@ -501,6 +537,42 @@ export function createCoastlineIslandRoot({ THREE, region, groundY = () => 0, ad
       }
     }
     root.userData.coastlineHomeyDrivewayLights = drivewayLights;
+    // Additional Homey polish: layered ground-cover beds, shrubs and stepping stones.
+    // All pieces are static, non-collidable and grouped into a small number of meshes.
+    const groundCoverMat = material(0x3e6b3f, .99);
+    const gardenSoilMat = material(0x69543d, .99);
+    const steppingStoneMat = material(0xb4b0a2, .95);
+    const homeyGroundcover = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 6, 4), groundCoverMat, 28);
+    homeyGroundcover.name = 'coastline-residential-garden-groundcover';
+    const homeyShrubs = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 7, 5), bushMat, 16);
+    homeyShrubs.name = 'coastline-residential-neighborhood-shrubs';
+    const homeyDummy = new THREE.Object3D();
+    for (let i = 0; i < 28; i++) {
+      const side = i % 2 ? 1 : -1;
+      const x = center.x + 28 + side * (8 + (i % 4) * 1.5);
+      const z = center.z - 48 + Math.floor(i / 2) * 3.2;
+      homeyDummy.position.set(x, edgeY + .11, z);
+      homeyDummy.scale.set(1.4 + (i % 3) * .3, .16 + (i % 2) * .06, .85 + (i % 4) * .12);
+      homeyDummy.rotation.set(0, (i % 7) * .42, 0); homeyDummy.updateMatrix();
+      homeyGroundcover.setMatrixAt(i, homeyDummy.matrix);
+    }
+    for (let i = 0; i < 16; i++) {
+      const side = i % 2 ? 1 : -1;
+      homeyDummy.position.set(center.x + 30 + side * (10 + (i % 3) * 2.5), edgeY + .52, center.z - 42 + Math.floor(i / 2) * 5.2);
+      homeyDummy.scale.set(.95 + (i % 3) * .2, .72 + (i % 2) * .2, .85 + (i % 4) * .12);
+      homeyDummy.rotation.set(0, i * .57, 0); homeyDummy.updateMatrix();
+      homeyShrubs.setMatrixAt(i, homeyDummy.matrix);
+    }
+    homeyGroundcover.instanceMatrix.needsUpdate = true; homeyShrubs.instanceMatrix.needsUpdate = true;
+    homeyGroundcover.castShadow = false; homeyShrubs.castShadow = false;
+    root.add(homeyGroundcover, homeyShrubs);
+    addBox('coastline-residential-garden-soil-bed', center.x + 30, edgeY + .045, center.z - 43, 28, .07, 42, gardenSoilMat, false, false);
+    for (let i = 0; i < 7; i++) {
+      const stone = new THREE.Mesh(new THREE.BoxGeometry(1.25, .12, 1.05), steppingStoneMat);
+      stone.name = `coastline-residential-garden-stepping-stone-${i + 1}`;
+      stone.position.set(center.x + 5 + (i % 2) * .18, edgeY + .09, center.z - 20 - i * 2.6);
+      stone.rotation.y = (i % 3 - 1) * .08; stone.receiveShadow = true; root.add(stone);
+    }
     // The garden is deliberately modest so the mobile scene remains inexpensive.
     addBox('coastline-residential-park', center.x + 42, edgeY + 0.03, center.z - 51, 24, 0.08, 18, lawn, false, false);
   } else if (region.theme === 'resort-marina') {
@@ -509,8 +581,7 @@ export function createCoastlineIslandRoot({ THREE, region, groundY = () => 0, ad
     addBox('coastline-waterfront-boardwalk', center.x, edgeY + 0.04, center.z + 40, 120, 0.2, 10, boardwalk);
     addBox('coastline-waterfront-marina-water', center.x + 42, edgeY - 0.02, center.z + 65, 48, 0.08, 30, water, false, false);
     for (let i = 0; i < 4; i++) addBox(`coastline-waterfront-dock-${i + 1}`, center.x + 20 + i * 12, edgeY + 0.1, center.z + 65, 2.4, 0.25, 32, boardwalk);
-    const resort = material(0xf0e7d4, 0.78);
-    addBox('coastline-waterfront-resort', center.x - 42, edgeY + 7, center.z - 5, 26, 14, 22, resort);
+    // The former large resort was removed to preserve a natural mountain/cave island.
   } else if (region.theme === 'working-harbor') {
     const containerColors = [0x9a4f3e, 0x3f6979, 0xc19a4e, 0x657d67].map(color => material(color, 0.82, 0.12));
     const warehouse = material(0xaaa99f, 0.86, 0.08);
@@ -618,7 +689,14 @@ export function createCoastlineIslandRoot({ THREE, region, groundY = () => 0, ad
     const signMat = material(0x163a3d, .65);
     const stand = new THREE.Group(); stand.name = 'coastline-electric-lemonade-stand';
     const counter = new THREE.Mesh(new THREE.BoxGeometry(4.8, 1.15, 1.65), standWood);
+    counter.name = 'coastline-waterfront-lemonade-counter';
     counter.position.set(standX, edgeY + .72, standZ); counter.castShadow = true; counter.receiveShadow = true; stand.add(counter);
+    // Narrow plank seams add a visible handmade timber finish without extra simulation.
+    const plankSeamMat = material(0x493326, .98);
+    for (let i = 0; i < 5; i++) {
+      const seam = new THREE.Mesh(new THREE.BoxGeometry(.035, 1.02, 1.67), plankSeamMat);
+      seam.position.set(standX - 1.9 + i * .95, edgeY + .72, standZ); seam.castShadow = false; stand.add(seam);
+    }
     const counterTop = new THREE.Mesh(new THREE.BoxGeometry(5.05, .16, 1.85), material(0xe1c99a, .65));
     counterTop.position.set(standX, edgeY + 1.36, standZ); stand.add(counterTop);
     const canopy = new THREE.Mesh(new THREE.BoxGeometry(5.5, .22, 2.4), canopyMat);
@@ -634,17 +712,80 @@ export function createCoastlineIslandRoot({ THREE, region, groundY = () => 0, ad
     ctx.fillStyle = '#fff0b8'; ctx.font = '900 58px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillText('ELECTRIC LEMONADE', signCanvas.width / 2, signCanvas.height / 2);
     const signTexture = new THREE.CanvasTexture(signCanvas); signTexture.colorSpace = THREE.SRGBColorSpace;
+    // A small freestanding price sign is easier to read than a banner across the stand.
+    const priceSign = new THREE.Group(); priceSign.name = 'coastline-waterfront-lemonade-price-sign';
+    const priceBoard = new THREE.Mesh(new THREE.BoxGeometry(1.15, .8, .12), material(0x153c30, .78));
+    priceBoard.position.set(standX + 3.5, edgeY + 1.15, standZ + .65); priceSign.add(priceBoard);
+    const pricePost = new THREE.Mesh(new THREE.CylinderGeometry(.045, .06, 1.5, 6), standWood);
+    pricePost.position.set(standX + 3.5, edgeY + .55, standZ + .65); priceSign.add(pricePost);
+    const priceCanvas = document.createElement('canvas'); priceCanvas.width = 256; priceCanvas.height = 192;
+    const priceCtx = priceCanvas.getContext('2d'); priceCtx.fillStyle = '#153c30'; priceCtx.fillRect(0,0,256,192);
+    priceCtx.strokeStyle = '#d8f99a'; priceCtx.lineWidth = 8; priceCtx.strokeRect(5,5,246,182);
+    priceCtx.fillStyle = '#d8ff6c'; priceCtx.textAlign = 'center'; priceCtx.font = '900 48px system-ui'; priceCtx.fillText('10 CB',128,112);
+    const priceTexture = new THREE.CanvasTexture(priceCanvas); priceTexture.colorSpace = THREE.SRGBColorSpace;
+    const priceFace = new THREE.Mesh(new THREE.PlaneGeometry(1.03,.68), new THREE.MeshBasicMaterial({map:priceTexture,transparent:false}));
+    priceFace.position.set(standX + 3.5, edgeY + 1.15, standZ + .585); priceFace.rotation.y = Math.PI; priceSign.add(priceFace);
+    stand.add(priceSign);
+    const lemonadeGlow = new THREE.MeshStandardMaterial({ color: 0xd9ff45, emissive: 0x9dff00, emissiveIntensity: 2.6, roughness: .22 });
+    const pitcher = new THREE.Mesh(new THREE.CylinderGeometry(.24,.3,.62,10), new THREE.MeshStandardMaterial({color:0xb6dce0,roughness:.22,metalness:.05,transparent:true,opacity:.7}));
+    pitcher.name = 'coastline-waterfront-lemonade-pitcher'; pitcher.position.set(standX - 1.2, edgeY + 1.78, standZ + .05); stand.add(pitcher);
+    const pitcherLiquid = new THREE.Mesh(new THREE.CylinderGeometry(.205,.25,.42,10), lemonadeGlow);
+    pitcherLiquid.position.set(standX - 1.2, edgeY + 1.76, standZ + .05); stand.add(pitcherLiquid);
+    for (let i = 0; i < 3; i++) {
+      const glass = new THREE.Mesh(new THREE.CylinderGeometry(.12,.095,.28,8), new THREE.MeshStandardMaterial({color:0xc8e6e8,roughness:.2,transparent:true,opacity:.62}));
+      glass.name = `coastline-waterfront-lemonade-glass-${i + 1}`;
+      glass.position.set(standX - .45 + i * .48, edgeY + 1.59, standZ + .35); stand.add(glass);
+      const liquid = new THREE.Mesh(new THREE.CylinderGeometry(.09,.075,.16,8), lemonadeGlow);
+      liquid.position.set(standX - .45 + i * .48, edgeY + 1.62, standZ + .35); stand.add(liquid);
+    }
     const sign = new THREE.Mesh(new THREE.PlaneGeometry(4.6, 1.15), new THREE.MeshStandardMaterial({ map: signTexture, roughness: .75, emissive: 0x132c20, emissiveIntensity: .3 }));
     sign.name = 'coastline-electric-lemonade-sign'; sign.position.set(standX, edgeY + 2.55, standZ + 1.02); sign.rotation.y = Math.PI; stand.add(sign);
-    // A simple low-poly vendor is a visible attendant, not an interaction hitbox.
+    // Keep a recognizable temporary attendant; runtime can replace this group with the approved GLB when its loader is ready.
     const vendor = new THREE.Group(); vendor.name = 'coastline-electric-lemonade-vendor';
     const skin = material(0xb98260, .92), shirt = material(0xd8e7dc, .9), trousers = material(0x344a5b, .9);
-    const torso = new THREE.Mesh(new THREE.CapsuleGeometry(.34, .7, 3, 7), shirt); torso.position.set(standX, edgeY + 1.55, standZ - .48); vendor.add(torso);
-    const head = new THREE.Mesh(new THREE.SphereGeometry(.27, 10, 8), skin); head.position.set(standX, edgeY + 2.25, standZ - .48); vendor.add(head);
-    for (const dx of [-.17, .17]) { const leg = new THREE.Mesh(new THREE.CylinderGeometry(.11, .12, .68, 7), trousers); leg.position.set(standX + dx, edgeY + .68, standZ - .48); vendor.add(leg); }
-    for (const dx of [-.42, .42]) { const arm = new THREE.Mesh(new THREE.CylinderGeometry(.09, .1, .62, 7), shirt); arm.position.set(standX + dx, edgeY + 1.62, standZ - .4); arm.rotation.z = dx < 0 ? -.28 : .28; vendor.add(arm); }
+    const torso = new THREE.Mesh(new THREE.CapsuleGeometry(.34, .7, 3, 7), shirt); torso.position.set(standX, edgeY + 1.55, standZ - 1.2); vendor.add(torso);
+    const head = new THREE.Mesh(new THREE.SphereGeometry(.27, 10, 8), skin); head.position.set(standX, edgeY + 2.25, standZ - 1.2); vendor.add(head);
+    for (const dx of [-.17, .17]) { const leg = new THREE.Mesh(new THREE.CylinderGeometry(.11, .12, .68, 7), trousers); leg.position.set(standX + dx, edgeY + .68, standZ - 1.2); vendor.add(leg); }
+    for (const dx of [-.42, .42]) { const arm = new THREE.Mesh(new THREE.CylinderGeometry(.09, .1, .62, 7), shirt); arm.position.set(standX + dx, edgeY + 1.62, standZ - 1.12); arm.rotation.z = dx < 0 ? -.28 : .28; vendor.add(arm); }
     stand.add(vendor); root.add(stand);
     colliders.push({ name: 'coastline-electric-lemonade-counter', x: standX, z: standZ, w: 4.7, d: 1.5 });
+    // A low, broad mountain silhouette surrounds the cave; the cave mouth remains an open corridor.
+    const mountain = new THREE.Group(); mountain.name = 'coastline-waterfront-cave-mountain';
+    const mountainMat = material(0x4d5147, .99), mountainLight = material(0x696b5d, .99);
+    const mountainChunks = [
+      [-13,2.8,-3.5,10,5.5,9],[-8,5.7,-4.2,9,8,8],[-1,7.8,-5.2,11,10,9],
+      [7,5.8,-4.4,10,8,8],[13,3,-3.2,8,5.8,8],[-4,3.5,-9,10,5.5,7],[5,3.2,-8,9,5.1,7]
+    ];
+    mountainChunks.forEach(([dx,y,dz,sx,sy,sz],i)=>{
+      const chunk=new THREE.Mesh(new THREE.DodecahedronGeometry(1,1),i%3?mountainMat:mountainLight);
+      chunk.position.set(caveX+dx,edgeY+y,caveZ+dz);chunk.scale.set(sx/2,sy/2,sz/2);
+      chunk.rotation.set(i*.17,i*.39,i*.09);chunk.castShadow=true;chunk.receiveShadow=true;mountain.add(chunk);
+    });
+    root.add(mountain);
+    const caveApproach = new THREE.Mesh(new THREE.PlaneGeometry(15, 11), material(0x817b69, .98));
+    caveApproach.name = 'coastline-waterfront-cave-approach-path';
+    caveApproach.rotation.x = -Math.PI / 2;
+    caveApproach.position.set(caveX, edgeY + .025, caveZ + 8.5);
+    caveApproach.receiveShadow = true; root.add(caveApproach);
+    // Smaller loose stones and hardy coastal plants frame the route, never the doorway.
+    const caveRubble = new THREE.InstancedMesh(new THREE.DodecahedronGeometry(1,0), material(0x77766a,.99), 22);
+    caveRubble.name = 'coastline-waterfront-cave-rubble';
+    const cavePlants = new THREE.InstancedMesh(new THREE.SphereGeometry(1,6,4), material(0x496b43,.99), 14);
+    cavePlants.name = 'coastline-waterfront-cave-coastal-plants';
+    const caveDummy = new THREE.Object3D();
+    for(let i=0;i<22;i++){
+      const side=i%2?-1:1, x=caveX+side*(7.2+(i%4)*1.25), z=caveZ+2+(Math.floor(i/2)%5)*2.6;
+      caveDummy.position.set(x,edgeY+.22+(i%3)*.06,z); caveDummy.scale.set(.45+(i%3)*.18,.32+(i%2)*.14,.38+(i%4)*.1);
+      caveDummy.rotation.set(i*.1,i*.37,i*.08); caveDummy.updateMatrix(); caveRubble.setMatrixAt(i,caveDummy.matrix);
+    }
+    for(let i=0;i<14;i++){
+      const side=i%2?-1:1;
+      caveDummy.position.set(caveX+side*(10+(i%3)*1.8),edgeY+.42,caveZ-1+Math.floor(i/2)*3.4);
+      caveDummy.scale.set(.85+(i%3)*.25,.5+(i%2)*.16,.72+(i%4)*.12);
+      caveDummy.rotation.set(0,i*.61,0); caveDummy.updateMatrix(); cavePlants.setMatrixAt(i,caveDummy.matrix);
+    }
+    caveRubble.instanceMatrix.needsUpdate=true; cavePlants.instanceMatrix.needsUpdate=true;
+    caveRubble.castShadow=false; cavePlants.castShadow=false; root.add(caveRubble,cavePlants);
     // Rough boulder shoulders form a cave opening with enough clear width to walk through.
     const cave = new THREE.Group(); cave.name = 'coastline-electric-lemonade-cave-mouth';
     const rockMat = material(0x292c2b, .99), rockLight = material(0x41413a, .99), caveBlack = new THREE.MeshBasicMaterial({ color: 0x010203 });
@@ -652,8 +793,7 @@ export function createCoastlineIslandRoot({ THREE, region, groundY = () => 0, ad
       [-7, 1.4, -1.4, 5.6, 4.2, 4.2], [-5.5, 4.4, -1.8, 4.7, 3.5, 4.0],
       [7, 1.4, -1.4, 5.6, 4.2, 4.2], [5.5, 4.4, -1.8, 4.7, 3.5, 4.0],
       [0, 6.3, -1.6, 9.4, 3.2, 4.5], [-9.2, 3.0, -3.2, 3.4, 5.6, 4.2],
-      [9.2, 3.0, -3.2, 3.4, 5.6, 4.2], [-4.2, .35, 0, 4.6, .7, 3.8],
-      [4.2, .35, 0, 4.6, .7, 3.8]
+      [9.2, 3.0, -3.2, 3.4, 5.6, 4.2]
     ];
     for (let i = 0; i < boulders.length; i++) {
       const [dx, y, dz, sx, sy, sz] = boulders[i];

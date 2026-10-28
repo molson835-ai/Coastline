@@ -8,6 +8,25 @@ export const ELECTRIC_LEMONADE_PRICE_CB = 10;
 export const ROCKET_BOOTS_DURATION_MS = 5 * 60 * 1000;
 export const ROCKET_BOOTS_STORAGE_KEY = 'coastlineRocketBootsExpiresAtV1';
 
+
+/**
+ * True only when an on-foot player is close enough to the vendor and looking
+ * generally toward the target. Heading follows Coastline's sin(x)/cos(z) convention.
+ */
+export function isFacingElectricLemonadeVendor(
+  player,
+  target,
+  { maxDistance = 3.2, minimumFacingDot = 0.45 } = {},
+) {
+  if (![player?.x, player?.z, player?.heading, target?.x, target?.z, maxDistance, minimumFacingDot].every(Number.isFinite)) return false;
+  const dx = target.x - player.x;
+  const dz = target.z - player.z;
+  const distance = Math.hypot(dx, dz);
+  if (distance > maxDistance || distance < 1e-6) return false;
+  const facingDot = (dx * Math.sin(player.heading) + dz * Math.cos(player.heading)) / distance;
+  return facingDot >= minimumFacingDot;
+}
+
 export function createElectricLemonadeState({
   getBalance,
   setBalance,

@@ -60,3 +60,68 @@ test('all islands use developed-quality scenery while retaining bounded populati
     assert.ok(region.visual.vegetation && region.visual.vegetation.length > 0);
   }
 });
+
+
+test('water depth classification is stable and only shallow water is traversable on foot', async () => {
+  const {
+    getCoastlineWaterDepthBand,
+    canTraverseCoastlineWater,
+  } = await import('../coastline-island-regions.js');
+  assert.equal(getCoastlineWaterDepthBand(0.2), 'shore');
+  assert.equal(getCoastlineWaterDepthBand(0.8), 'shallow');
+  assert.equal(getCoastlineWaterDepthBand(2), 'mid');
+  assert.equal(getCoastlineWaterDepthBand(8), 'deep');
+  assert.equal(getCoastlineWaterDepthBand(Number.NaN), 'deep');
+  assert.equal(canTraverseCoastlineWater(0.8, 'on-foot'), true);
+  assert.equal(canTraverseCoastlineWater(0.8, 'vehicle'), false);
+  assert.equal(canTraverseCoastlineWater(2, 'on-foot'), false);
+  assert.equal(canTraverseCoastlineWater(8, 'vehicle'), false);
+});
+
+test('Homey and cave island scenery expose named natural-detail contracts', async () => {
+  const fs = await import('node:fs/promises');
+  const source = await fs.readFile(new URL('../coastline-island-regions.js', import.meta.url), 'utf8');
+  assert.match(source, /coastline-residential-garden-groundcover/);
+  assert.match(source, /coastline-residential-neighborhood-shrubs/);
+  assert.match(source, /coastline-waterfront-cave-mountain/);
+  assert.match(source, /coastline-waterfront-cave-approach-path/);
+  assert.match(source, /coastline-waterfront-lemonade-counter/);
+  assert.match(source, /coastline-waterfront-lemonade-price-sign/);
+  assert.doesNotMatch(source, /coastline-waterfront-resort-main-building/);
+});
+
+
+test('waterfront shallow-water secret path is foot-only and does not widen the vehicle bridge lane', async () => {
+  const { isCoastlineShallowWaterPath } = await import('../coastline-island-regions.js');
+  assert.equal(isCoastlineShallowWaterPath(620, 540, 'waterfront', 'on-foot'), true);
+  assert.equal(isCoastlineShallowWaterPath(620, 540, 'waterfront', 'vehicle'), false);
+  assert.equal(isCoastlineShallowWaterPath(620, 540, 'port', 'on-foot'), false);
+  assert.equal(isCoastlineShallowWaterPath(650, 540, 'waterfront', 'on-foot'), false);
+  assert.equal(isCoastlineShallowWaterPath(620, 500, 'waterfront', 'on-foot'), false);
+  const fs = await import('node:fs/promises');
+  const game = await fs.readFile(new URL('../game-v3.html', import.meta.url), 'utf8');
+  assert.match(game, /isCoastlineShallowWaterPath\(x,z,regionId,player\.mode==='walk'\?'on-foot':player\.mode\)/);
+});
+
+test('active island roots expose their authored ground elevation for vehicle placement', async () => {
+  const fs = await import('node:fs/promises');
+  const source = await fs.readFile(new URL('../coastline-island-regions.js', import.meta.url), 'utf8');
+  const transitions = await fs.readFile(new URL('../coastline-world-transitions.js', import.meta.url), 'utf8');
+  const game = await fs.readFile(new URL('../game-v3.html', import.meta.url), 'utf8');
+  assert.match(source, /root\.userData\.coastlineGroundY = edgeY/);
+  assert.match(transitions, /window\.__coastlineIslandRoot=root/);
+  assert.match(transitions, /window\.__coastlineRegionRoot=root/);
+  assert.match(game, /root\?\.userData\?\.coastlineGroundY/);
+});
+
+
+test('all island shorelines are irregular and retain their bridge landing points', () => {
+  for (const id of ['downtown', 'residential', 'waterfront', 'port']) {
+    assert.equal(isCoastlineIslandPointInside(500, 500, id), true, id + ' must include its center');
+    assert.equal(isCoastlineIslandPointInside(650, 500, id), false, id + ' must reject points beyond its natural edge');
+  }
+  assert.equal(isCoastlineIslandPointInside(610, 500, 'waterfront'), true, 'east Waterfront bridge landing stays connected');
+  assert.equal(isCoastlineIslandPointInside(390, 500, 'waterfront'), true, 'west Waterfront bridge landing stays connected');
+  assert.equal(isCoastlineIslandPointInside(390, 500, 'port'), true, 'Port bridge landing stays connected');
+  assert.equal(isCoastlineIslandPointInside(500, 390, 'residential'), true, 'Homey bridge landing stays connected');
+});

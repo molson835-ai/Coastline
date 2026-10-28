@@ -86,3 +86,13 @@ test('active boost expiry persists across reload but expired storage cannot gran
   assert.equal(expired.isRocketBoostActive(), false);
   assert.equal(expired.snapshot().pickupAvailable, true);
 });
+
+
+test('vendor interaction requires close proximity and facing the stand', async () => {
+  const { isFacingElectricLemonadeVendor } = await import('../coastline-electric-lemonade-adventure.js');
+  assert.equal(isFacingElectricLemonadeVendor({ x: 520, z: 529, heading: 0 }, { x: 520, z: 532 }), true);
+  assert.equal(isFacingElectricLemonadeVendor({ x: 520, z: 535, heading: 0 }, { x: 520, z: 532 }), false);
+  assert.equal(isFacingElectricLemonadeVendor({ x: 520, z: 529, heading: Math.PI / 2 }, { x: 520, z: 532 }), false);
+  assert.equal(isFacingElectricLemonadeVendor({ x: 520, z: 529, heading: 0 }, { x: 520, z: 532 }, { maxDistance: 2 }), false);
+  assert.equal(isFacingElectricLemonadeVendor({ x: Number.NaN, z: 529, heading: 0 }, { x: 520, z: 532 }), false);
+});
