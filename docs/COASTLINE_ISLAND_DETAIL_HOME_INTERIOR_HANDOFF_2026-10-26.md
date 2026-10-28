@@ -286,3 +286,46 @@ The procedural interior now adds a compact kitchen island with stools and pendan
 - [ ] Left/right steering is corrected and verified for keyboard and touch controls.
 - [ ] New engine/system/browser tests pass on the exact PR head; preview and Android manual checks are recorded separately from automated checks.
 - [ ] Handoff and asset credits are updated; apartment GLB remains unintegrated unless explicitly approved later.
+
+
+## 2026-10-28 — Consolidated Homey and island correction
+
+### Confirmed implementation causes
+- The bundled Cozy character GLB has named material slots for skin, body, hair, eyes, hat, top, bottom, shoes, backpack and hands. The earlier wardrobe guard required an array of materials plus geometry groups; this skipped some valid mesh/material arrangements. It also needed to apply saved options again after async avatar attachment.
+- Dining/TV/hall furniture blocked the path into the closet, and decorative closet doors had collision enabled.
+- The collision polygon covered the complete island shoreline while decorative rock scenery sampled only parts of it. That created movement barriers with no visible counterpart.
+- The long Waterfront boardwalk overlapped the cave approach and produced the rectangular ground slab. Existing cave chunks were too low and sparse to read as a mountain.
+- Vehicle selection and safe exit checks considered cars in hidden/inactive worlds. The streamed islands also needed local parked cars for on-foot players.
+
+### Corrective implementation in this branch
+- Live character wardrobe color channels, hair overlays, body/presentation profiles, accessories and persisted application after model load. The current single exported GLB still does not include the entire modular mixer source library; full original mesh swaps require separate exported variants.
+- Wider non-colliding closet opening; dining nook and TV/hall storage moved out of the main route.
+- Instanced visible rock segments follow the collision shoreline while leaving bridge mouths open, and Homey receives a marked parking apron.
+- Outdoor streamed islands get local parked cars; enterable-car lookup, foot collision and exit-space checks are scoped to the active world root. Parked copies own their geometry/materials and are cleaned when the world unloads unless one becomes the player's selected car.
+- The boardwalk is moved to the marina side; the cave has higher faceted peaks and ridge shapes plus flank/rear collision volumes.
+- Garage-to-house spawn heading points inward; house-to-garage points outward. The service-worker cache generation is bumped to v64 to refresh mobile clients.
+
+### Acceptance is not complete until the PR checks and phone pass finish
+Run engine/system/vehicle/Playwright and itch package checks against the exact PR head. Then manually test the published build on Android: closet access and visible clothing/hair/accessory changes; car entry and exit on Residential/Waterfront/Port; left/right driving in forward and reverse; transition direction; island boundaries; cave approach and entry/exit. Passing source checks cannot replace the Android playtest.
+
+## Future PR work (explicitly out of scope for this corrective PR)
+
+1. **Engine audio on first vehicle entry.** The engine sound remains silent until the user exits and re-enters a vehicle. Trace audio-context activation/unlock, per-vehicle engine loop lifecycle, and entering/exiting paths. Start sound on the first successful entry, and resume correctly after Android app/tab suspend and resume. Cover the first entry with an automated lifecycle regression.
+
+2. **City-Island tree silhouettes.** City Island must use palm trees only for any tree-shaped vegetation. Other low plants and shrubs may remain. Audit the actual spawned mesh/asset catalog rather than trusting the tree labels alone.
+
+3. **Replace current animals with a consistent rigged GLB pack; make animals rideable.** Review candidates, import only the selected licensed assets and README/license files into assets, replace the existing animal visuals, and integrate mount/dismount, rider seat sockets, locomotion and camera/collision. When mounted, in a convertible, on a motorcycle or otherwise exposed, show the appropriate exposed player character body/pose rather than hiding the entire avatar.
+   - [Gobkit Free Animal Pack](https://gobkit.itch.io/gobkit-free-animal-pack) documents 10 CC0 rigged/animated GLBs; [Animal Pack Vol. 2](https://gobkit.itch.io/gobkit-free-animal-pack-vol-2) and [Vol. 5](https://gobkit.itch.io/gobkit-free-animal-pack-vol-5) offer additional species and provide GLB/animation details on their pack pages.
+   - [Quaternius Ultimate Animated Animal Pack](https://quaternius.com/packs/ultimateanimatedanimals.html) lists 12 animals, 12+ animations per animal and glTF format under CC0.
+   - Before downloading into the game, check the exact archive's included license/readme, species list, rig/animation format, triangle count and texture cost. Mounted animals require more than swapping a mesh: add mount/dismount, attachment points, pose/animation integration, camera, collision, persistence and low-end Android checks.
+
+4. **Homey garage automatic threshold transitions.** Replace the current explicit garage-entry button with automatic CTM handoff at the threshold. Driving in forward or reverse, walking in, and walking out forward or backward must all work. Use threshold-crossing direction, keep player/vehicle state coherent, and add hysteresis/debounce to prevent repeated transitions.
+
+5. **Circus cannon long-distance CTM.** Place a circus-style launch cannon behind a large bush on the far side of the cave island. Show a contextual Use action only at close range. Play a short animation of the character climbing into the barrel, fire the cannon, show the player flying through the air, and land on a new previously inaccessible island. The destination should get the intended Coastline scenery quality, a safe landing and return route, state/camera handling, transition failure recovery and Android performance checks.
+
+### External asset research checked 2026-10-28
+- Gobkit Animal Pack: https://gobkit.itch.io/gobkit-free-animal-pack
+- Gobkit Animal Pack Vol. 2: https://gobkit.itch.io/gobkit-free-animal-pack-vol-2
+- Gobkit Animal Pack Vol. 5: https://gobkit.itch.io/gobkit-free-animal-pack-vol-5
+- Quaternius Ultimate Animated Animal Pack: https://quaternius.com/packs/ultimateanimatedanimals.html
+- Grab3D Character Mixer source/export limitations: https://grab3d.com/tools/character-mixer/
