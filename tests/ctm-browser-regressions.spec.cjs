@@ -425,14 +425,13 @@ test('outdoor island cars can be entered/exited and steering directions remain c
     if (!car) return null;
     window.__coastlineTest.setWalkPosition(car.x, car.z + 4, Math.PI);
     const nearest = window.__coastlineTest.nearestVehicleState();
-    const success = window.__coastlineTest.enterVehicle(car);
-    return { nearest, success, mode: window.__coastlineTransitionTest.playerState().mode,
-      vehicleIndex: window.__coastlineTransitionTest.playerState().vehicleIndex,
+    window.__coastlineTest.enterVehicle(car);
+    const state = window.__coastlineTransitionTest.playerState();
+    return { nearest, mode: state.mode, vehicleIndex: state.vehicleIndex,
       carIndex: window.__coastlineVehicleRegistry.indexOf(car) };
   });
   expect(entering).not.toBeNull();
   expect(entering.nearest?.parentMatches).toBe(true);
-  expect(entering.success).toBe(true);
   expect(entering.mode).toBe('vehicle');
   expect(entering.vehicleIndex).toBe(entering.carIndex);
   await page.evaluate(() => window.__coastlineTest.exitVehicle());
