@@ -1,0 +1,33 @@
+name: Apply Cozy hair fit fix
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Apply fix
+        run: node scripts/apply-cozy-hair-fix.mjs
+      - name: Verify focused tests
+        run: node --test tests/coastline-homey-quality-regressions.spec.mjs tests/coastline-wildlife-assets.spec.mjs
+      - name: Remove temporary patch machinery
+        run: rm -f scripts/apply-cozy-hair-fix.mjs .github/workflows/apply-cozy-hair-fix.yml
+      - name: Commit and push corrected source
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add coastline-homey-house-interior.js tests/coastline-homey-quality-regressions.spec.mjs scripts/apply-cozy-hair-fix.mjs .github/workflows/apply-cozy-hair-fix.yml
+          git commit -m 'Fix Cozy character hair and head fit [cozy-hair-fix]'
+          git push origin HEAD:fix/cozy-hair-head-fit
