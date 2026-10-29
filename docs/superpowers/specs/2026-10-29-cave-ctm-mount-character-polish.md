@@ -12,7 +12,9 @@ Base: `main` after merged PR #135
 3. Only after the cave geometry and threshold are in their final position, repair and verify the CTM trigger/return lifecycle.
 4. Build the cavern labyrinth and then add rocket boots inside it. Do not implement or tune the rocket boots against the old threshold coordinates.
 5. Upgrade horse/ostrich mounting and animation behavior, convertible driver visibility, and character head/hair appearance.
-6. Run targeted tests, full automated checks, package smoke test, then request a real Android playtest. Do not merge or deploy without explicit authorization.
+6. Correct mobile/keyboard steering mappings and add a joystick-vs-button control evaluation.
+7. Fix Homey CTM destination heading so the character exits facing away from the portal and continues in the intended travel direction.
+8. Run targeted tests, full automated checks, package smoke test, then request a real Android playtest. Do not merge or deploy without explicit authorization.
 
 ## Cave Island geometry and collision
 
@@ -28,8 +30,19 @@ Base: `main` after merged PR #135
 - Keep CTM as the sole world-transition authority.
 - Move the cave threshold only after geometry is finalized; then align trigger volume, approach direction, destination spawn, return point, and world IDs.
 - Cover repeated entry/exit, rapid re-entry, failed load/recovery, spawn placement, and player/vehicle state preservation.
+- For Homey Island transitions, calculate destination heading from the destination portal's outward direction (or a clearly authored destination heading), not by blindly reusing the entry heading. After crossing, the character must face away from the CTM and continue along the path away from it. Verify both entering and returning, walking forward/backward, and garage/interior transitions as applicable.
 - Create a meaningfully sized connected cavern labyrinth with multiple routes, bends, branches, dead ends, landmarks, and a reliable exit. Keep it navigable and visually legible without discovery popups or missions.
 - Implement rocket boots only after the relocated threshold is working. Ensure activation, duration/state, movement, landing, cave collision, and world exit are handled safely.
+
+## Mobile driving controls research and acceptance
+
+- Current issue: left/right steering remains reversed. Fix the underlying input-to-steering mapping first, rather than masking it with a cosmetic UI change.
+- Research indicates analog steering is common for driving games, but virtual joysticks have no tactile feedback and can be harder to use precisely. Apple recommends a horizontal thumbstick or D-pad for steering, with acceleration/braking on separate controls; Microsoft guidance stresses accessible thumb placement, responsive press states, and testing relative versus absolute joystick behavior.
+- Implement a free, lightweight virtual horizontal steering joystick as a candidate option, with distinct accelerator and brake/reverse buttons. Keep keyboard steering mappings correct and consistent.
+- Compare it against corrected left/right buttons on the actual Android browser build. If practical, provide a small in-game control preference (joystick/buttons); otherwise test both in a temporary/dev-only mode and select the more reliable default based on real-device results.
+- Steering joystick should use horizontal axis only; add a dead zone, smooth proportional steering, speed-aware steering sensitivity, return-to-center, pointer/touch cancellation, multi-touch-safe handling, and release-on-blur/visibility-change so steering never sticks.
+- Do not bind vertical joystick movement to acceleration/braking. Keep forward/reverse separate, and verify left means left, right means right, both when moving forward and reversing.
+- Preserve keyboard and any gamepad controls; do not add paid libraries/plugins.
 
 ## Rideable wildlife
 
@@ -51,7 +64,7 @@ Base: `main` after merged PR #135
 
 - Add focused deterministic tests for cave geometry orientation/configuration, rock collision and barrier cleanup, threshold/CTM round trips, labyrinth connectivity/exit, and rocket boots after threshold relocation.
 - Add asset contract checks for Warhorse animation names, saddle socket, license/packaging restrictions, and compatible ostrich mount behavior.
-- Add browser regressions for convertible head visibility and helmet/hair toggle.
+- Add browser regressions for convertible head visibility, helmet/hair toggle, correct steering polarity, joystick pointer/touch lifecycle, and Homey destination heading away from CTM.
 - Run engine/system/gameplay tests, Babylon preview validation, graphics-quality guard, HTML5 package build and smoke test.
 - Clearly report automated results separately from the Android playtest; desktop CI is not proof of mobile acceptance.
 - Keep all tools/assets free. Do not merge or deploy without explicit user authorization.
