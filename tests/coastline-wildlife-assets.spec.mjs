@@ -82,6 +82,11 @@ test('wildlife loader uses GLB animation, rider socket, source paths, and CTM-ow
   assert.equal(COASTLINE_WILDLIFE_ASSETS.ostrich.license, 'CC0');
   assert.match(transitions, /coastlineWildlifeAssets\?\.attachWorld/);
   assert.match(transitions, /coastlineWildlifeAssets\?\.detachWorld/);
+  assert.match(transitions, /electric-dungeon-maze-west-first/);
+  assert.match(transitions, /electric-dungeon-maze-east-first/);
+  assert.match(transitions, /electric-dungeon-maze-dead-end-marker/);
+  assert.match(transitions, /electric-dungeon-landmark-/);
+  assert.match(transitions, /destinationSpawn:\{x:520,y:islandGroundY\(520,545\),z:541\.5,rotationY:Math\.PI\}/, 'dungeon return points outside facing away from the portal');
   assert.match(game, /isCoastlineCaveThreshold/);
   assert.match(game, /steer=\(keys\.a\?1:0\)-\(keys\.d\?1:0\)/, 'left/right steering polarity is corrected');
   assert.match(game, /exit:\{x:520,z:541\.5,radius:3\.2\},boots:\{x:520,z:558,radius:2\.8\}/, 'cave exit and boot pickup follow relocated cave entrance');
