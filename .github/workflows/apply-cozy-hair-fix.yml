@@ -2,7 +2,7 @@ name: Apply Cozy hair fit fix
 
 on:
   pull_request:
-    types: [opened, reopened]
+    types: [opened, reopened, synchronize]
     branches: [main]
 
 permissions:
