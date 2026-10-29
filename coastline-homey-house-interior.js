@@ -393,7 +393,7 @@ function applyWardrobeHeadwear(THREE,actorRoot,appearance) {
   const shell=new THREE.Mesh(new THREE.SphereGeometry(.19,18,12,0,Math.PI*2,0,Math.PI*.62),shellMat);
   shell.name='coastline-wardrobe-headwear-shell';shell.position.set(0,.055,0);shell.scale.set(1,1.05,1);shell.castShadow=true;group.add(shell);
   const rim=new THREE.Mesh(new THREE.CylinderGeometry(.19,.19,.035,18),shellMat);
-  rim.name='coastline-wardrobe-headwear-rim';rim.position.y-.005;rim.position.set(0,-.015,0);rim.castShadow=true;group.add(rim);
+  rim.name='coastline-wardrobe-headwear-rim';rim.position.set(0,-.015,0);rim.castShadow=true;group.add(rim);
   head.add(group);
 }
 function applyHomeWardrobeAppearance(player,choice={}) {
