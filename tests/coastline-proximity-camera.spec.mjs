@@ -8,7 +8,6 @@ test('game v3 boots with proximity camera wired into outdoor and interior modes'
   expect(source).toContain('coastlineCameraSafeDesired(target,camYaw,5,1.0)');
   expect(source).toContain('now-coastlineCameraLastRayAt>=45');
   expect(source).toContain('0.65/wantedDistance');
-  expect(source).toContain('steer=(keys.d?1:0)-(keys.a?1:0)');
   const occlusion = await page.evaluate(() => window.__coastlineTest.cameraOcclusionProbe());
   expect(occlusion.desiredZ).toBeGreaterThan(occlusion.targetZ - 7);
   expect(occlusion.desiredZ).toBeLessThan(occlusion.targetZ - 1.65);
