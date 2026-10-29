@@ -28,11 +28,11 @@ function installReplacementRuntimeCorrections() {
       // This is the authored Cozy hair mesh itself. Expand its existing local
       // perimeter modestly so it covers the measured scalp bounds. No cap/sphere
       // replacement is created, so material, skinning and hair-color controls remain intact.
-      node.scale.x *= 1.08;
-      node.scale.z *= 1.08;
-      node.scale.y *= 1.04;
+      node.scale.x *= 1.65;
+      node.scale.z *= 1.65;
+      node.scale.y *= 1.35;
       node.userData.coastlineAuthoredHairCorrected = true;
-      node.userData.coastlineHairCorrection = { authored: true, xz: 1.08, y: 1.04 };
+      node.userData.coastlineHairCorrection = { authored: true, xz: 1.65, y: 1.35 };
     });
   };
 
@@ -43,10 +43,10 @@ function installReplacementRuntimeCorrections() {
     const cave = root.userData?.coastlineCaveGLB || root.getObjectByName?.('coastline-waterfront-cave-entrance-glb');
     if (cave && !cave.userData.coastlineReplacementOrientationApplied) {
       // The packaged cave's doorway is opposite the old loader assumption. Keep
-      // position/scale and reverse only yaw so the opening faces the -Z approach.
-      cave.rotation.y = 0;
+      // position/scale and reverse only yaw so the opening faces the opposite approach after the live orientation check.
+      cave.rotation.y = Math.PI;
       cave.userData.coastlineReplacementOrientationApplied = true;
-      cave.userData.coastlineDoorwayFacing = '-Z';
+      cave.userData.coastlineDoorwayFacing = 'reversed';
     }
 
     const actor = root.userData?.coastlineLemonadeVendorActor || window.__coastlineWaterfrontVendorActor;
