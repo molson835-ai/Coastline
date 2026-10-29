@@ -18,6 +18,8 @@ test('wardrobe exposes live material channels, hair presets and body/presentatio
   for (const style of ['androgynous','masculine','feminine']) assert.ok(interior.includes("value:'" + style + "'"), 'missing presentation ' + style);
   assert.match(interior, /function wardrobeMaterialChannel/);
   assert.match(interior, /coastline-wardrobe-hair-overlay/);
+  assert.match(interior, /coastline-wardrobe-headwear-overlay/);
+  assert.match(interior, /hairStyle=appearance\.hairStyle==='original'\?'short':appearance\.hairStyle/, 'removing headwear restores visible fallback hair');
   assert.match(interior, /window\.__coastlineHomeyHouseContract = root\.userData\.coastlineHouseContract/);
   assert.match(game, /window\.__coastlineAvatar=avatar/);
   assert.match(game, /window\.__coastlineHomeWardrobe\?\.applySaved\?\.\(\)/);
