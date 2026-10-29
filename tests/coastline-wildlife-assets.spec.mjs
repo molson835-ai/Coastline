@@ -40,7 +40,7 @@ test('animal and cave scales normalize to plausible world-unit heights', () => {
 test('cave threshold triggers only on foot inside Waterfront portal radius', () => {
   const onThreshold = { worldId: 'waterfront', mode: 'walk', ...COASTLINE_CAVE_THRESHOLD };
   assert.equal(isCoastlineCaveThreshold(onThreshold), true);
-  assert.equal(isCoastlineCaveThreshold({ ...onThreshold, x: onThreshold.x + 1.05 }), false);
+  assert.equal(isCoastlineCaveThreshold({ ...onThreshold, x: onThreshold.x + 2.5 }), false);
   assert.equal(isCoastlineCaveThreshold({ ...onThreshold, worldId: 'city' }), false);
   assert.equal(isCoastlineCaveThreshold({ ...onThreshold, mode: 'vehicle' }), false);
   assert.equal(isCoastlineCaveThreshold({ ...onThreshold, mode: 'interior' }), false);
@@ -50,13 +50,12 @@ test('cave rock collision leaves a walkable doorway and blocks the mountain side
   const colliders = getCoastlineCaveColliders();
   assert.ok(colliders.length >= 9);
   assert.ok(colliders.some(c => c.name.includes('portal-jamb')));
-  assert.equal(COASTLINE_CAVE_PORTAL_CLEAR_WIDTH, 6);
-  assert.equal(isCoastlineCavePointBlocked(548, 537.2, 0.45), false, 'character fits through centered portal');
-  assert.equal(isCoastlineCavePointBlocked(548, 537.2, 1.8), false, 'vehicle envelope fits through portal corridor');
-  assert.equal(isCoastlineCavePointBlocked(542, 537.2, 0.45), true, 'left rock face blocks foot movement');
-  assert.equal(isCoastlineCavePointBlocked(554, 537.2, 1.8), true, 'right rock face blocks a vehicle');
-  assert.equal(isCoastlineCavePointBlocked(548, 527, 0.45), true, 'rear of mountain is solid');
-  assert.equal(isCoastlineCavePointBlocked(536, 528, 0.45), true, 'side/rear mountain is solid');
+  assert.equal(COASTLINE_CAVE_PORTAL_CLEAR_WIDTH, 3);
+  assert.equal(isCoastlineCavePointBlocked(COASTLINE_CAVE_THRESHOLD.x, COASTLINE_CAVE_THRESHOLD.z, 0.45), false, 'character fits through the centered portal');
+  assert.equal(isCoastlineCavePointBlocked(514, COASTLINE_CAVE_THRESHOLD.z, 0.45), true, 'left stone shoulder blocks foot movement');
+  assert.equal(isCoastlineCavePointBlocked(526, COASTLINE_CAVE_THRESHOLD.z, 0.45), true, 'right stone shoulder blocks foot movement');
+  assert.equal(isCoastlineCavePointBlocked(520, 558, 0.45), true, 'rear of mountain is solid behind the north-facing cave body');
+  assert.equal(isCoastlineCavePointBlocked(508, 558, 0.45), true, 'side/rear mountain is solid');
 });
 
 test('wildlife loader uses GLB animation, rider socket, source paths, and CTM-owned root lifecycle', async () => {
@@ -68,6 +67,9 @@ test('wildlife loader uses GLB animation, rider socket, source paths, and CTM-ow
   ]);
   assert.match(loader, /GLTFLoader/);
   assert.match(loader, /AnimationMixer/);
+  assert.match(loader, /Do not apply Warhorse clips to the ostrich/);
+  assert.match(loader, /coastlineProceduralBaseRotation/);
+  assert.match(loader, /key\.includes\('canter'\) \|\| key\.includes\('run'\)/);
   assert.match(loader, /saddle_socket/);
   assert.match(loader, /skeletonUtils\?\.clone/);
   assert.match(loader, /coastline-ostrich-normalized|model\.rotation\.y \+= -Math\.PI \/ 2/);
@@ -82,7 +84,25 @@ test('wildlife loader uses GLB animation, rider socket, source paths, and CTM-ow
   assert.equal(COASTLINE_WILDLIFE_ASSETS.ostrich.license, 'CC0');
   assert.match(transitions, /coastlineWildlifeAssets\?\.attachWorld/);
   assert.match(transitions, /coastlineWildlifeAssets\?\.detachWorld/);
+  assert.match(transitions, /electric-dungeon-maze-west-first/);
+  assert.match(transitions, /electric-dungeon-maze-east-first/);
+  assert.match(transitions, /electric-dungeon-maze-dead-end-marker/);
+  assert.match(transitions, /electric-dungeon-landmark-/);
+  assert.match(transitions, /destinationSpawn:\{x:520,y:islandGroundY\(\),z:537\.5,rotationY:Math\.PI\}/, 'dungeon return points outside facing away from the portal at island height');
+  assert.match(transitions, /id:'homey-garage-to-island'[\s\S]*?z:484,rotationY:Math\.PI/, 'Homey vehicle arrival points out of the garage');
+  assert.match(transitions, /id:'homey-garage-to-house'[\s\S]*?z:508\.5,rotationY:Math\.PI/, 'house interior arrival faces into the room, away from its door');
   assert.match(game, /isCoastlineCaveThreshold/);
+  assert.match(game, /steer=THREE\.MathUtils\.clamp\(\(keys\.d\?1:0\)-\(keys\.a\?1:0\),-1,1\)/, 'D-pad controls follow the behind-car screen-space convention');
+  assert.doesNotMatch(game, /driveStick|touchSteer|driveControls/, 'joystick is removed in favor of the D-pad');
+  assert.match(game, /document\.addEventListener\('visibilitychange'/, 'touch input clears when the app is backgrounded');
+  assert.match(game, /document\.querySelectorAll\('\.touch \[data-k\]'\)/, 'D-pad buttons share pointer-safe input handling');
+  assert.match(game, /data-steer-button/, 'button steering remains available outside driving mode');
+  assert.match(game, /roadster|convertible|open\.?top/i, 'open-top vehicle can show a seated driver');
+  assert.match(game, /coastlineOpenTopDriver&&avatar\.parent===v\.g/, 'open-top driver is restored to the world when exiting');
+  assert.match(game, /exit:\{x:520,z:542\.5,radius:3\.2\},boots:\{x:524,z:568,radius:2\.8\}/, 'exit and pickup align with the cave portal');
+  assert.match(loader, /cave\.rotation\.set\(-Math\.PI \/ 2, Math\.PI, 0\);[\s\S]*?boundsScale\(cave, 'cave'\);[\s\S]*?cave\.position\.z \+= 545 -/, 'GLB cave is axis-corrected and centered at portal');
+  assert.match(loader, /proceduralDarkness\.visible = false/, 'procedural stone shoulders remain visible around the GLB');
+  assert.doesNotMatch(loader, /for \(const child of mouth\.children\) child\.visible = false/, 'stone shoulders are not hidden');
   assert.match(game, /wildlifeAssetState/);
   assert.match(packageBuilder, /coastline-wildlife-assets\.js/);
   assert.match(packageBuilder, /assets\/cave-entrance\.glb/);
@@ -127,7 +147,6 @@ test('active wildlife replaces legacy procedural deer and bird flock placeholder
   assert.doesNotMatch(game, /const birdMat=M\(0x302b42/);
   assert.match(game, /deer:0/);
 });
-
 
 test('wildlife simulation is gated to the active world while preserving a mount attached to the active root', async () => {
   const { shouldUpdateCoastlineWildlife } = await import('../coastline-wildlife-assets.js');

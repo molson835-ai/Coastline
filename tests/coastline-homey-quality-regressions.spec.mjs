@@ -18,6 +18,10 @@ test('wardrobe exposes live material channels, hair presets and body/presentatio
   for (const style of ['androgynous','masculine','feminine']) assert.ok(interior.includes("value:'" + style + "'"), 'missing presentation ' + style);
   assert.match(interior, /function wardrobeMaterialChannel/);
   assert.match(interior, /coastline-wardrobe-hair-overlay/);
+  assert.match(interior, /coastline-wardrobe-headwear-overlay/);
+  assert.match(interior, /hairStyle=appearance\.hairStyle==='original'\?'short':appearance\.hairStyle/, 'removing headwear restores visible fallback hair');
+  assert.match(interior, /sphere\('cap',0,\.235,0,\.18,\.13,\.18\)/, 'scalp overlay covers the top of the head');
+  assert.match(interior, /long-back',0,\.075,-\.11,\.16,\.28,\.11/, 'long hair starts at the crown instead of only the neck');
   assert.match(interior, /window\.__coastlineHomeyHouseContract = root\.userData\.coastlineHouseContract/);
   assert.match(game, /window\.__coastlineAvatar=avatar/);
   assert.match(game, /window\.__coastlineHomeWardrobe\?\.applySaved\?\.\(\)/);
@@ -54,7 +58,8 @@ test('visible island boundary segments cover the collision outline and preserve 
 
 test('cave has a mountain silhouette and the dock boardwalk clears its approach', async () => {
   const source = await read('coastline-island-regions.js');
-  assert.match(source, /coastline-waterfront-boardwalk',center\.x\+5,edgeY\+\.04,center\.z\+64/);
+  assert.match(source, /coastline-waterfront-boardwalk',center\.x\+5,edgeY\+\.04,center\.z\+92/);
+  assert.match(source, /coastline-waterfront-dock-\$\{i \+ 1\}.*center\.z \+ 92/);
   assert.match(source, /coastline-waterfront-cave-mountain-peak-/);
   assert.match(source, /new THREE\.ConeGeometry\(peak\.radius,peak\.height,7,2\)/);
   assert.match(source, /coastline-waterfront-cave-mountain-left-slope/);
@@ -63,7 +68,7 @@ test('cave has a mountain silhouette and the dock boardwalk clears its approach'
   assert.match(source, /const caveApproachShape = new THREE\.Shape\(\)/);
   assert.match(source, /new THREE\.ShapeGeometry\(caveApproachShape, 2\)/);
   assert.doesNotMatch(source, /new THREE\.PlaneGeometry\(15, 11\)/);
-  assert.ok((500 + 64 - 5) > (538 + 8.5 + 5.5 + 1));
+  assert.ok((500 + 92 - 5) > (500 + 45 + 15 + 11.5 + 2), 'boardwalk starts beyond the cave mountain');
 });
 
 test('City map-edge collision has a continuous visible rock course with a deck-width north bridge gap', async () => {
@@ -94,6 +99,8 @@ test('Homey threshold destinations continue travel direction', async () => {
   const world = await read('coastline-world-transitions.js');
   assert.match(world, /id:'homey-garage-to-house'[\s\S]{0,190}rotationY:Math\.PI/);
   assert.match(world, /id:'home-to-homey-garage'[\s\S]{0,190}rotationY:0/);
+  assert.match(world, /id:'island-to-homey-garage'[\s\S]{0,190}rotationY:0/);
+  assert.match(world, /id:'homey-garage-to-island'[\s\S]{0,190}rotationY:Math\.PI/);
 });
 
 test('wardrobe is honest that the installed model is one selected export', async () => {

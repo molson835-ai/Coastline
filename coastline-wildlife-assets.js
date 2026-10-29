@@ -390,6 +390,7 @@ export function createCoastlineWildlifeAssets({ THREE, vehicles, wildlife, world
         else if (key.includes('walk')) v.animationActions.walk = action;
         else if (key.includes('canter') || key.includes('run')) v.animationActions.run = action;
         else if (key.includes('rear')) v.animationActions.rear = action;
+        else if (!v.animationActions.idle) v.animationActions.idle = action;
       }
       selectAnimation(v, 'idle');
     }
@@ -407,14 +408,18 @@ export function createCoastlineWildlifeAssets({ THREE, vehicles, wildlife, world
     const cave = cloneAsset(THREE, template.scene, template.skeletonUtils);
     if (!cave) return false;
     cave.name = 'coastline-waterfront-cave-entrance-glb';
+    // Grab3D's cave is Z-up; rotate into Y-up and point its doorway toward the -Z approach.
+    cave.rotation.set(-Math.PI / 2, Math.PI, 0);
     boundsScale(cave, 'cave');
-    // The cave's portal faces the approach (+Z); its back nests into the authored mountain.
-    cave.position.x = 548;
-    cave.position.z = 534.5;
-    cave.position.y = Number.isFinite(root.userData?.coastlineGroundY) ? root.userData.coastlineGroundY : groundY(500, 500);
-    cave.rotation.y = 0;
+    cave.updateMatrixWorld(true);
+    const fittedBounds = new THREE.Box3().setFromObject(cave);
+    const floorY = Number.isFinite(root.userData?.coastlineGroundY) ? root.userData.coastlineGroundY : groundY(500, 500);
+    cave.position.x += 520 - (fittedBounds.min.x + fittedBounds.max.x) / 2;
+    cave.position.z += 545 - (fittedBounds.min.z + fittedBounds.max.z) / 2;
+    cave.position.y += floorY - fittedBounds.min.y;
     cave.traverse(node => { if (node.isMesh) { node.castShadow = true; node.receiveShadow = true; node.userData.coastlineSharedWildlifeAsset = true; } });
-    for (const child of mouth.children) child.visible = false;
+    const proceduralDarkness = mouth.getObjectByName('coastline-electric-lemonade-cave-dark-opening');
+    if (proceduralDarkness) proceduralDarkness.visible = false;
     mouth.add(cave);
     root.userData.coastlineCaveGLB = cave;
     return true;
@@ -528,10 +533,31 @@ export function createCoastlineWildlifeAssets({ THREE, vehicles, wildlife, world
   };
 
   const updateMountAnimation = (v, dt) => {
-    if (v?.animationMixer) {
+    if (!v) return;
+    if (v.animationMixer) {
       selectAnimation(v, Math.abs(v.speed || 0) > 7 ? 'run' : Math.abs(v.speed || 0) > .4 ? 'walk' : 'idle');
       v.animationMixer.update(dt);
+      return;
     }
+    // Do not apply Warhorse clips to the ostrich: the rigs are unrelated. When the
+    // ostrich export has no compatible clips, animate its own named bones procedurally.
+    const model = v.visual;
+    if (v.kind !== 'ostrich' || !model?.traverse) return;
+    v.proceduralGaitPhase = (v.proceduralGaitPhase || 0) + dt * (Math.abs(v.speed || 0) > 7 ? 10 : Math.abs(v.speed || 0) > .4 ? 6 : 1.2);
+    const moving = Math.abs(v.speed || 0) > .4;
+    model.traverse(node => {
+      if (!node.isBone) return;
+      const name = String(node.name || '').toLowerCase();
+      if (!/(leg|thigh|shin|foot|neck|head)/.test(name)) return;
+      const base = node.userData.coastlineProceduralBaseRotation || (node.userData.coastlineProceduralBaseRotation = node.rotation.clone());
+      node.rotation.copy(base);
+      if (!moving) return;
+      const side = /left|\.l\b|_l\b/.test(name) ? 1 : /right|\.r\b|_r\b/.test(name) ? -1 : (name.length % 2 ? 1 : -1);
+      const stride = Math.sin(v.proceduralGaitPhase * 2 + side * Math.PI / 2);
+      if (/(leg|thigh|shin|foot)/.test(name)) node.rotation.x = base.x + stride * .38;
+      else if (/neck/.test(name)) node.rotation.x = base.x + Math.sin(v.proceduralGaitPhase) * .035;
+      else if (/head/.test(name)) node.rotation.x = base.x + Math.sin(v.proceduralGaitPhase * .5) * .025;
+    });
   };
 
   const getState = () => ({

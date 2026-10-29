@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Coastline QA Lab</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,sans-serif;background:#06121b;color:#f0f8fb}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden}
+#game{position:fixed;inset:0;width:100%;height:100%;border:0;background:#08131a}
+#lab{position:fixed;top:10px;left:10px;z-index:100;width:min(300px,calc(100vw - 20px));max-height:calc(100vh - 20px);overflow:auto;border:1px solid #8ca9b855;border-radius:14px;background:#071721ed;backdrop-filter:blur(10px);box-shadow:0 10px 35px #0008;padding:12px}
+.head{display:flex;align-items:center;justify-content:space-between;gap:8px}.head h1{font-size:14px;letter-spacing:.12em;margin:0}.head small{color:#8ddce7;font-size:10px}
+button{width:100%;border:1px solid #77bac955;border-radius:9px;background:#123444;color:#f3fbff;font-weight:800;font-size:11px;padding:10px 8px;cursor:pointer}
+button:disabled{opacity:.4;cursor:default}.buttons{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:12px 0}
+#collapse{padding:4px 8px;width:auto;background:#1b3947}#lab.minimized .body{display:none}
+#note{font-size:11px;line-height:1.45;color:#d5e7ec;white-space:pre-wrap;overflow-wrap:anywhere}
+#live{font-size:10px;line-height:1.5;color:#9fbcc5;border-top:1px solid #ffffff20;padding-top:8px;margin-top:8px;white-space:pre-wrap}
+.tip{font-size:10px;color:#9ab4bd;line-height:1.4;margin:8px 0 0}
+@media(max-width:600px){#lab{width:min(255px,calc(100vw - 16px));top:8px;left:8px;max-height:52vh;padding:9px}.buttons{gap:5px;margin:8px 0}button{padding:8px 6px;font-size:10px}.head h1{font-size:12px}#live{max-height:90px;overflow:auto}}
+</style>
+</head>
+<body>
+<iframe id="game" title="Coastline live gameplay QA target" src="./game-v3.html?devStaticWorld=1&amp;qaLab=1"></iframe>
+<section id="lab" aria-label="Coastline QA Lab">
+  <div class="head"><div><h1>COASTLINE QA LAB</h1><small>Real gameplay source · static AI mode</small></div><button id="collapse" type="button" aria-label="Collapse QA panel">−</button></div>
+  <div class="body">
+    <div class="buttons">
+      <button data-scenario="drive" type="button">DRIVING / D-PAD</button>
+      <button data-scenario="hair" type="button">PLAYER HAIR</button>
+      <button data-scenario="cave" type="button">CAVE ENTRANCE</button>
+      <button data-scenario="homey" type="button">HOMEY CTM</button>
+    </div>
+    <button id="caveAction" type="button" disabled>ENTER / EXIT CAVE</button>
+    <button id="reset" type="button">RESET GAME</button>
+    <div id="note" role="status" aria-live="polite">Loading the game and its test hooks…</div>
+    <div id="live">Waiting for game state…</div>
+    <p class="tip">Use the game controls inside the frame. The panel only resets state and moves the player to repeatable test positions; it does not mock steering, hair, collision, or CTM logic.</p>
+  </div>
+</section>
+<script>
+(() => {
+  const frame=document.getElementById('game'),panel=document.getElementById('lab');
+  const note=document.getElementById('note'),live=document.getElementById('live'),caveAction=document.getElementById('caveAction');
+  const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+  async function ready(){
+    const started=Date.now();
+    while(Date.now()-started<60000){
+      const g=frame.contentWindow;
+      if(g&&g.__coastlineTest&&g.__coastlineTransitionTest)return g;
+      await wait(120);
+    }
+    throw new Error('Game hooks did not become ready within 60 seconds.');
+  }
+  async function until(predicate,timeout=10000){
+    const started=Date.now();
+    while(Date.now()-started<timeout){if(predicate())return true;await wait(100);}
+    return false;
+  }
+  async function reset(){
+    note.textContent='Reloading the actual game for a clean scenario…';
+    const loaded=new Promise(resolve=>frame.addEventListener('load',resolve,{once:true}));
+    frame.src='./game-v3.html?devStaticWorld=1&qaLab=1&reset='+Date.now();
+    await loaded;
+    return ready();
+  }
+  function updateLive(){
+    const g=frame.contentWindow,test=g?.__coastlineTest,ctm=g?.__coastlineTransitionTest;
+    if(!test||!ctm){live.textContent='Waiting for game state…';caveAction.disabled=true;return;}
+    const state=test.state(),facing=test.avatarVisualFacing?.(),world=ctm.status()?.activeWorldId||g.__coastlineActiveWorldId||'unknown';
+    caveAction.disabled=!(g.__coastlineElectricLemonade?.canUse?.());
+    live.textContent='World: '+world+'\nMode: '+state.mode+'\nPosition: '+state.x.toFixed(1)+', '+state.z.toFixed(1)+'\nHeading: '+state.heading.toFixed(3)+' rad\nAvatar facing: '+(facing?.parentHeading??'n/a')+'\nCave USE available: '+!caveAction.disabled;
+  }
+  async function scenario(name){
+    try{
+      note.textContent='Preparing '+name+' scenario…';
+      const g=await reset(),test=g.__coastlineTest,ctm=g.__coastlineTransitionTest;
+      if(name==='drive'){
+        test.setVehiclePosition(0,0,0);
+        note.textContent='Driving lane ready. Tap and hold the real left/right D-pad buttons and check the measured heading; accelerator and reverse are on the other D-pad.';
+      }else if(name==='hair'){
+        await until(()=>Boolean(g.__coastlineAvatar?.userData?.cozyActor?.root&&g.__coastlineHomeWardrobe),45000);
+        test.setWalkPosition(0,0,0);
+        const applied=g.__coastlineHomeWardrobe?.apply?.({hairStyle:'long',accessories:{hat:false}});
+        note.textContent=applied===false?'The wardrobe hook is present but did not find an actor root.':'Long-hair style selected on the live player model. Orbit around the head and inspect the scalp, side coverage, and back length.';
+      }else if(name==='cave'){
+        await ctm.transition('city-to-island');
+        await ctm.transition('island-to-waterfront');
+        test.setWalkPosition(520,542.5,0);ctm.updatePrompt();
+        note.textContent='Player positioned at the actual cave portal. Check the rock join and walk-in route, then use the in-game USE or ENTER / EXIT CAVE button.';
+      }else if(name==='homey'){
+        await ctm.transition('city-to-island');
+        await ctm.transition('island-to-homey-garage');
+        test.setWalkPosition(483,515,0);ctm.updatePrompt();
+        test.setWalkPosition(483,516,0);ctm.updatePrompt();
+        const reached=await until(()=>ctm.status()?.activeWorldId==='home-interior',8000);
+        note.textContent=reached?'House interior reached on foot. Check facing after one or two movement frames; then exit and check the parked car direction.':'The house-door CTM did not trigger. Treat this as a failed scenario and inspect the transition state.';
+      }
+      updateLive();
+    }catch(error){note.textContent='Scenario error: '+String(error?.message||error);}
+  }
+  document.querySelectorAll('[data-scenario]').forEach(button=>button.addEventListener('click',()=>scenario(button.dataset.scenario)));
+  caveAction.addEventListener('click',async()=>{
+    try{
+      const g=await ready();
+      await g.__coastlineElectricLemonade.interact();
+      await wait(120);
+      updateLive();
+      note.textContent='Gameplay interaction invoked. Verify active world, floor placement, wall blocking, glow and return transition.';
+    }catch(error){note.textContent='Cave action failed: '+String(error?.message||error);}
+  });
+  document.getElementById('reset').addEventListener('click',async()=>{
+    try{await reset();note.textContent='Fresh city scene loaded.';updateLive();}
+    catch(error){note.textContent=String(error?.message||error);}
+  });
+  document.getElementById('collapse').addEventListener('click',()=>{
+    panel.classList.toggle('minimized');
+    document.getElementById('collapse').textContent=panel.classList.contains('minimized')?'+':'−';
+  });
+  frame.addEventListener('load',()=>{note.textContent='Game loaded. Choose a focused scenario.';updateLive();});
+  setInterval(updateLive,400);
+})();
+</script>
+</body>
+</html>
