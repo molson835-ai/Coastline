@@ -574,6 +574,8 @@ test('Homey CTM destination headings persist through walking frames and vehicle 
     const ctm=window.__coastlineTransitionTest,test=window.__coastlineTest;
     await ctm.transition('city-to-island');
     await ctm.transition('island-to-homey-garage');
+    const garageArrival=ctm.playerState();
+    if(garageArrival.heading!==0)throw new Error('Garage arrival must face away from the outside doorway');
     test.setWalkPosition(483,515,0);ctm.updatePrompt();
     test.setWalkPosition(483,516,0);ctm.updatePrompt();
   });

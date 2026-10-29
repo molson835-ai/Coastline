@@ -99,7 +99,7 @@ test('Homey threshold destinations continue travel direction', async () => {
   const world = await read('coastline-world-transitions.js');
   assert.match(world, /id:'homey-garage-to-house'[\s\S]{0,190}rotationY:Math\.PI/);
   assert.match(world, /id:'home-to-homey-garage'[\s\S]{0,190}rotationY:Math\.PI/);
-  assert.match(world, /id:'island-to-homey-garage'[\s\S]{0,190}rotationY:Math\.PI/);
+  assert.match(world, /id:'island-to-homey-garage'[\s\S]{0,190}rotationY:0/);
   assert.match(world, /id:'homey-garage-to-island'[\s\S]{0,190}rotationY:Math\.PI/);
 });
 
