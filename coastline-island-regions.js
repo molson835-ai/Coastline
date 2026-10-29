@@ -62,16 +62,16 @@ export const COASTLINE_CAVE_PORTAL_CLEAR_WIDTH = 6.0;
 
 export function getCoastlineCaveColliders(caveX = 520, caveZ = 545) {
   return [
-    {name:'coastline-waterfront-cave-mountain-left-slope',x:caveX-12,z:caveZ-5,w:10,d:12},
-    {name:'coastline-waterfront-cave-mountain-right-slope',x:caveX+12,z:caveZ-5,w:10,d:12},
-    {name:'coastline-waterfront-cave-mountain-rear-ridge',x:caveX,z:caveZ-13,w:30,d:10},
-    {name:'coastline-waterfront-cave-mountain-left-wing',x:caveX-10.5,z:caveZ-1,w:13,d:21},
-    {name:'coastline-waterfront-cave-mountain-right-wing',x:caveX+10.5,z:caveZ-1,w:13,d:21},
-    {name:'coastline-waterfront-cave-rear-wall',x:caveX,z:caveZ-10.5,w:28,d:8},
-    {name:'coastline-waterfront-cave-left-portal-jamb',x:caveX-4.5,z:caveZ-.3,w:3,d:8.2},
-    {name:'coastline-waterfront-cave-right-portal-jamb',x:caveX+4.5,z:caveZ-.3,w:3,d:8.2},
-    {name:'coastline-electric-lemonade-cave-left-rock',x:caveX-6.5,z:caveZ+.1,w:4.2,d:5.2},
-    {name:'coastline-electric-lemonade-cave-right-rock',x:caveX+6.5,z:caveZ+.1,w:4.2,d:5.2},
+    {name:'coastline-waterfront-cave-mountain-left-slope',x:caveX-12,z:caveZ+5,w:10,d:12},
+    {name:'coastline-waterfront-cave-mountain-right-slope',x:caveX+12,z:caveZ+5,w:10,d:12},
+    {name:'coastline-waterfront-cave-mountain-rear-ridge',x:caveX,z:caveZ+13,w:30,d:10},
+    {name:'coastline-waterfront-cave-mountain-left-wing',x:caveX-10.5,z:caveZ+1,w:13,d:21},
+    {name:'coastline-waterfront-cave-mountain-right-wing',x:caveX+10.5,z:caveZ+1,w:13,d:21},
+    {name:'coastline-waterfront-cave-rear-wall',x:caveX,z:caveZ+10.5,w:28,d:8},
+    {name:'coastline-waterfront-cave-left-portal-jamb',x:caveX-4.5,z:caveZ+.3,w:3,d:8.2},
+    {name:'coastline-waterfront-cave-right-portal-jamb',x:caveX+4.5,z:caveZ+.3,w:3,d:8.2},
+    {name:'coastline-electric-lemonade-cave-left-rock',x:caveX-6.5,z:caveZ-.1,w:4.2,d:5.2},
+    {name:'coastline-electric-lemonade-cave-right-rock',x:caveX+6.5,z:caveZ-.1,w:4.2,d:5.2},
   ];
 }
 
@@ -839,14 +839,14 @@ export function createCoastlineIslandRoot({ THREE, region, groundY = () => 0, ad
     mountainChunks.forEach(([dx,y,dz,sx,sy,sz],i)=>{
       const chunk=new THREE.Mesh(new THREE.DodecahedronGeometry(1,1),i%3?mountainMat:mountainLight);
       chunk.name='coastline-waterfront-cave-mountain-ridge-'+(i+1);
-      chunk.position.set(caveX+dx,edgeY+y,caveZ+dz);chunk.scale.set(sx/2,sy/2,sz/2);
+      chunk.position.set(caveX+dx,edgeY+y,caveZ-dz);chunk.scale.set(sx/2,sy/2,sz/2);
       chunk.rotation.set(i*.17,i*.39,i*.09);chunk.castShadow=true;chunk.receiveShadow=true;mountain.add(chunk);
     });
     const mountainPeakSpecs=[{dx:-9,y:7.2,dz:-12,radius:9.5,height:15.5},{dx:0,y:9,dz:-15,radius:11.5,height:19},{dx:9,y:7,dz:-12,radius:8.8,height:14.5}];
     mountainPeakSpecs.forEach((peak,i)=>{
       const mesh=new THREE.Mesh(new THREE.ConeGeometry(peak.radius,peak.height,7,2),i===1?mountainMat:mountainLight);
       mesh.name='coastline-waterfront-cave-mountain-peak-'+(i+1);
-      mesh.position.set(caveX+peak.dx,edgeY+peak.y,caveZ+peak.dz);
+      mesh.position.set(caveX+peak.dx,edgeY+peak.y,caveZ-peak.dz);
       mesh.rotation.z=(i-1)*.08;mesh.castShadow=true;mesh.receiveShadow=true;mountain.add(mesh);
     });
     root.add(mountain);
@@ -873,7 +873,7 @@ export function createCoastlineIslandRoot({ THREE, region, groundY = () => 0, ad
     );
     caveApproach.name = 'coastline-waterfront-cave-approach-path';
     caveApproach.rotation.x = -Math.PI / 2;
-    caveApproach.position.set(caveX, edgeY + .025, caveZ + 8.5);
+    caveApproach.position.set(caveX, edgeY + .025, caveZ - 8.5);
     caveApproach.receiveShadow = true;
     root.add(caveApproach);
     // Smaller loose stones and hardy coastal plants frame the route, never the doorway.
@@ -883,13 +883,13 @@ export function createCoastlineIslandRoot({ THREE, region, groundY = () => 0, ad
     cavePlants.name = 'coastline-waterfront-cave-coastal-plants';
     const caveDummy = new THREE.Object3D();
     for(let i=0;i<22;i++){
-      const side=i%2?-1:1, x=caveX+side*(7.2+(i%4)*1.25), z=caveZ+2+(Math.floor(i/2)%5)*2.6;
+      const side=i%2?-1:1, x=caveX+side*(7.2+(i%4)*1.25), z=caveZ-2+(Math.floor(i/2)%5)*2.6;
       caveDummy.position.set(x,edgeY+.22+(i%3)*.06,z); caveDummy.scale.set(.45+(i%3)*.18,.32+(i%2)*.14,.38+(i%4)*.1);
       caveDummy.rotation.set(i*.1,i*.37,i*.08); caveDummy.updateMatrix(); caveRubble.setMatrixAt(i,caveDummy.matrix);
     }
     for(let i=0;i<14;i++){
       const side=i%2?-1:1;
-      caveDummy.position.set(caveX+side*(10+(i%3)*1.8),edgeY+.42,caveZ-1+Math.floor(i/2)*3.4);
+      caveDummy.position.set(caveX+side*(10+(i%3)*1.8),edgeY+.42,caveZ+1+Math.floor(i/2)*3.4);
       caveDummy.scale.set(.85+(i%3)*.25,.5+(i%2)*.16,.72+(i%4)*.12);
       caveDummy.rotation.set(0,i*.61,0); caveDummy.updateMatrix(); cavePlants.setMatrixAt(i,caveDummy.matrix);
     }
@@ -907,17 +907,17 @@ export function createCoastlineIslandRoot({ THREE, region, groundY = () => 0, ad
     for (let i = 0; i < boulders.length; i++) {
       const [dx, y, dz, sx, sy, sz] = boulders[i];
       const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(1, 1), i % 3 ? rockMat : rockLight);
-      rock.position.set(caveX + dx, edgeY + y, caveZ + dz); rock.scale.set(sx / 2, sy / 2, sz / 2); rock.rotation.set(i * .11, i * .37, i * .08); rock.castShadow = true; rock.receiveShadow = true; cave.add(rock);
+      rock.position.set(caveX + dx, edgeY + y, caveZ - dz); rock.scale.set(sx / 2, sy / 2, sz / 2); rock.rotation.set(i * .11, i * .37, i * .08); rock.castShadow = true; rock.receiveShadow = true; cave.add(rock);
     }
     const darkness = new THREE.Mesh(new THREE.PlaneGeometry(7.8, 5.8), caveBlack);
-    darkness.name = 'coastline-electric-lemonade-cave-dark-opening'; darkness.position.set(caveX, edgeY + 2.7, caveZ + 1.1); cave.add(darkness);
+    darkness.name = 'coastline-electric-lemonade-cave-dark-opening'; darkness.position.set(caveX, edgeY + 2.7, caveZ - 1.1); cave.add(darkness);
     root.add(cave);
     // The same explicit cave collider contract is used by foot and vehicle collision.
     // Only the doorway corridor remains traversable; mountain sides and rear are solid.
     colliders.push(...getCoastlineCaveColliders(caveX, caveZ));
     root.userData.coastlineElectricLemonade = {
       stand: { x: standX, z: standZ + 2.4, radius: 3.2 },
-      cave: { x: caveX, z: caveZ + 2.5, radius: 3.0 },
+      cave: { x: caveX, z: caveZ - 2.5, radius: 3.0 },
     };
   }
   return root;
