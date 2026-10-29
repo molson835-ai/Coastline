@@ -88,7 +88,7 @@ test('wildlife loader uses GLB animation, rider socket, source paths, and CTM-ow
   assert.match(transitions, /electric-dungeon-maze-east-first/);
   assert.match(transitions, /electric-dungeon-maze-dead-end-marker/);
   assert.match(transitions, /electric-dungeon-landmark-/);
-  assert.match(transitions, /destinationSpawn:\{x:520,y:finiteOr\(groundY\(500,500\)\),z:537\.5,rotationY:Math\.PI\}/, 'dungeon return points outside facing away from the portal');
+  assert.match(transitions, /destinationSpawn:\{x:520,y:islandGroundY\(\),z:537\.5,rotationY:Math\.PI\}/, 'dungeon return points outside facing away from the portal at island height');
   assert.match(transitions, /id:'homey-garage-to-island'[\s\S]*?z:484,rotationY:Math\.PI/, 'Homey vehicle arrival points out of the garage');
   assert.match(transitions, /id:'homey-garage-to-house'[\s\S]*?z:508\.5,rotationY:Math\.PI/, 'house interior arrival faces into the room, away from its door');
   assert.match(game, /isCoastlineCaveThreshold/);
