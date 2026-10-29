@@ -1,15 +1,15 @@
 name: Apply Cozy hair fit fix
 
 on:
-  push:
-    branches: [fix/cozy-hair-head-fit]
+  pull_request:
+    types: [opened]
+    branches: [main]
 
 permissions:
   contents: write
 
 jobs:
   apply:
-    if: "!contains(github.event.head_commit.message, '[cozy-hair-fix]')"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
