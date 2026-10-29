@@ -754,7 +754,7 @@ function refreshElectricLemonadeEffects(){
   const pickup=window.__coastlineElectricDungeonPickup;
   if(pickup)pickup.visible=state.pickupAvailable;
 }
-const electricLemonadePoints={stand:{x:520,z:531.5,radius:3.2},vendor:{x:520,z:528.8,maxDistance:3.2},cave:{...COASTLINE_CAVE_THRESHOLD},exit:{x:520,z:542.5,radius:10},boots:{x:524,z:568,radius:2.8}};
+const electricLemonadePoints={stand:{x:520,z:531.5,radius:3.2},vendor:{x:520,z:528.8,maxDistance:3.2},cave:{...COASTLINE_CAVE_THRESHOLD},exit:{x:520,z:542.5,radius:3.2},boots:{x:524,z:568,radius:2.8}};
 const electricLemonadeNear=point=>point===electricLemonadePoints.cave?isCoastlineCaveThreshold({worldId:window.__coastlineActiveWorldId,mode:player.mode,x:player.x,z:player.z,threshold:point}):player.mode==='walk'&&Math.hypot(player.x-point.x,player.z-point.z)<=point.radius;
 const electricLemonadeFacingVendor=()=>player.mode==='walk'&&isFacingElectricLemonadeVendor({x:player.x,z:player.z,heading:player.heading},electricLemonadePoints.vendor,{maxDistance:electricLemonadePoints.vendor.maxDistance});
 function openElectricLemonadeTransaction(){

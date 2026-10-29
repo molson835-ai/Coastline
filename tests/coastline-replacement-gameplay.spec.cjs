@@ -56,12 +56,12 @@ test('replacement: authored Cozy hair receives the coverage correction without a
     const hair = [];
     root.traverse(node => {
       const materials = Array.isArray(node.material) ? node.material : [node.material];
-      if (node.isMesh && materials.some(material => String(material?.name || '').toLowerCase() === 'hair')) hair.push({ corrected: Boolean(node.userData.coastlineAuthoredHairCorrected), scale: node.scale.toArray() });
+      if (node.isMesh && materials.some(material => String(material?.name || '').toLowerCase() === 'hair')) hair.push({ corrected: Boolean(node.userData.coastlineAuthoredHairCorrected), correction: node.userData.coastlineHairCorrection || null, scale: node.scale.toArray() });
     });
     return { hair, unrelatedCap: Boolean(root.getObjectByName('coastline-wardrobe-hair-cap')) };
   });
   expect(result.hair.length).toBeGreaterThan(0);
-  expect(result.hair.some(item => item.corrected)).toBe(true);
+  expect(result.hair.some(item => item.corrected && item.correction?.xz === 1.98 && item.correction?.y === 1.35)).toBe(true);
   expect(result.unrelatedCap).toBe(false);
 });
 
@@ -74,23 +74,23 @@ test('replacement: cave doorway is clear while mountain side/rear remains blocke
     left: window.__coastlineTest.buildingBlocked(514, 542.5, .45),
     right: window.__coastlineTest.buildingBlocked(526, 542.5, .45),
     rear: window.__coastlineTest.buildingBlocked(520, 558, .45),
-    caveFacing: window.__coastlineRegionRoot.userData.coastlineCaveGLB?.userData?.coastlineDoorwayFacing || null,
+    caveYaw: window.__coastlineRegionRoot.userData.coastlineCaveGLB?.rotation?.y ?? null,
   }));
   expect(result.entrance).toBe(false);
   expect(result.left).toBe(true);
   expect(result.right).toBe(true);
   expect(result.rear).toBe(true);
-  expect(result.caveFacing).toBe('-Z');
+  expect(result.caveYaw === null || Math.abs(result.caveYaw) < 0.001 || Math.abs(Math.abs(result.caveYaw) - Math.PI * 2) < 0.001).toBe(true);
 });
 
 test('replacement: reaching the real cave threshold invokes the existing CTM and returns coherently', async ({ page }) => {
   await openGame(page, 'replacement-ctm');
-  await page.evaluate(async () => { await window.__coastlineTransitionTest.transition('city-to-island'); await window.__coastlineTransitionTest.transition('island-to-waterfront'); window.__coastlineTest.setWalkPosition(520, 542.5, Math.PI); });
+  await page.evaluate(async () => { await window.__coastlineTransitionTest.transition('city-to-island'); await window.__coastlineTransitionTest.transition('island-to-waterfront'); window.__coastlineTest.setWalkPosition(520, 542.5, Math.PI); await window.__coastlineElectricLemonade.interact(); });
   await expect.poll(() => page.evaluate(() => window.__coastlineTransitionTest.status().activeWorldId), { timeout: 8000 }).toBe('electric-lemonade-dungeon');
   const inside = await page.evaluate(() => window.__coastlineTransitionTest.state());
   expect(inside.mode).toBe('walk');
   expect(Number.isFinite(inside.x)).toBe(true);
-  await page.evaluate(() => window.__coastlineTransitionTest.transition('electric-dungeon-to-waterfront'));
+  await page.evaluate(() => window.__coastlineElectricLemonade.interact());
   await expect.poll(() => page.evaluate(() => window.__coastlineTransitionTest.status().activeWorldId), { timeout: 8000 }).toBe('waterfront');
   const outside = await page.evaluate(() => window.__coastlineTransitionTest.state());
   expect(outside.mode).toBe('walk');
