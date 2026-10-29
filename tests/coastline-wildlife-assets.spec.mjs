@@ -90,7 +90,10 @@ test('wildlife loader uses GLB animation, rider socket, source paths, and CTM-ow
   assert.match(transitions, /id:'homey-garage-to-island'[\s\S]*?z:484,rotationY:0/, 'Homey Island arrival faces away from the garage CTM');
   assert.match(transitions, /id:'homey-garage-to-house'[\s\S]*?z:508\.5,rotationY:0/, 'house interior arrival faces into the room, away from its door');
   assert.match(game, /isCoastlineCaveThreshold/);
-  assert.match(game, /steer=\(keys\.a\?1:0\)-\(keys\.d\?1:0\)/, 'left/right steering polarity is corrected');
+  assert.match(game, /steer=THREE\.MathUtils\.clamp\(\(keys\.a\?1:0\)-\(keys\.d\?1:0\)\+touchSteer,-1,1\)/, 'left/right steering polarity and proportional joystick are corrected');
+  assert.match(game, /driveStick\.addEventListener\('pointermove',updateDriveStick\)/, 'joystick tracks horizontal touch movement');
+  assert.match(game, /document\.addEventListener\('visibilitychange'/, 'touch input clears when the app is backgrounded');
+  assert.match(game, /data-steer-button/, 'button steering remains available outside driving mode');
   assert.match(game, /exit:\{x:520,z:541\.5,radius:3\.2\},boots:\{x:520,z:558,radius:2\.8\}/, 'cave exit and boot pickup follow relocated cave entrance');
   assert.match(loader, /cave\.position\.x = 520;[\s\S]*?cave\.position\.z = 541\.5;[\s\S]*?cave\.rotation\.y = Math\.PI;/, 'GLB cave mouth is relocated and faces back toward the lemonade stand');
   assert.match(game, /wildlifeAssetState/);
