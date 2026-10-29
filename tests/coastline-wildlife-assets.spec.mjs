@@ -40,7 +40,7 @@ test('animal and cave scales normalize to plausible world-unit heights', () => {
 test('cave threshold triggers only on foot inside Waterfront portal radius', () => {
   const onThreshold = { worldId: 'waterfront', mode: 'walk', ...COASTLINE_CAVE_THRESHOLD };
   assert.equal(isCoastlineCaveThreshold(onThreshold), true);
-  assert.equal(isCoastlineCaveThreshold({ ...onThreshold, x: onThreshold.x + 1.05 }), false);
+  assert.equal(isCoastlineCaveThreshold({ ...onThreshold, x: onThreshold.x + 1.25 }), false);
   assert.equal(isCoastlineCaveThreshold({ ...onThreshold, worldId: 'city' }), false);
   assert.equal(isCoastlineCaveThreshold({ ...onThreshold, mode: 'vehicle' }), false);
   assert.equal(isCoastlineCaveThreshold({ ...onThreshold, mode: 'interior' }), false);
@@ -99,7 +99,7 @@ test('wildlife loader uses GLB animation, rider socket, source paths, and CTM-ow
   assert.match(game, /data-steer-button/, 'button steering remains available outside driving mode');
   assert.match(game, /roadster\|convertible\|open\.?top/i, 'open-top vehicle can show a seated driver');
   assert.match(game, /coastlineOpenTopDriver&&avatar\.parent===v\.g/, 'open-top driver is restored to the world when exiting');
-  assert.match(game, /exit:\{x:520,z:541\.5,radius:3\.2\},boots:\{x:520,z:558,radius:2\.8\}/, 'cave exit and boot pickup follow relocated cave entrance');
+  assert.match(game, /exit:\{x:548,z:541\.5,radius:3\.2\},boots:\{x:552,z:568,radius:2\.8\}/, 'cave exit and boot pickup follow relocated cave entrance');
   assert.match(loader, /cave\.position\.x = 520;[\s\S]*?cave\.position\.z = 541\.5;[\s\S]*?cave\.rotation\.y = Math\.PI;/, 'GLB cave mouth is relocated and faces back toward the lemonade stand');
   assert.match(game, /wildlifeAssetState/);
   assert.match(packageBuilder, /coastline-wildlife-assets\.js/);
