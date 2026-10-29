@@ -74,8 +74,8 @@ test('cave rock collision leaves a walkable doorway and blocks the mountain side
   assert.equal(isCoastlineCavePointBlocked(COASTLINE_CAVE_THRESHOLD.x, COASTLINE_CAVE_THRESHOLD.z, 0.45), false, 'character fits through the centered portal');
   assert.equal(isCoastlineCavePointBlocked(514, COASTLINE_CAVE_THRESHOLD.z, 0.45), true, 'left stone shoulder blocks foot movement');
   assert.equal(isCoastlineCavePointBlocked(526, COASTLINE_CAVE_THRESHOLD.z, 0.45), true, 'right stone shoulder blocks foot movement');
-  assert.equal(isCoastlineCavePointBlocked(520, 558, 0.45), true, 'rear of mountain is solid behind the north-facing cave body');
-  assert.equal(isCoastlineCavePointBlocked(508, 558, 0.45), true, 'side/rear mountain is solid');
+  assert.equal(isCoastlineCavePointBlocked(COASTLINE_CAVE_ANCHOR.x, COASTLINE_CAVE_ANCHOR.z + 13, 0.45), true, 'rear of mountain is solid behind the north-facing cave body');
+  assert.equal(isCoastlineCavePointBlocked(508, COASTLINE_CAVE_ANCHOR.z + 13, 0.45), true, 'side/rear mountain is solid');
 });
 
 test('wildlife loader uses GLB animation, rider socket, source paths, and CTM-owned root lifecycle', async () => {
