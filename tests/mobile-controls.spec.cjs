@@ -10,8 +10,8 @@ test('mobile driving controls are visible and operate the vehicle', async ({ pag
 
   const driveControls = page.locator('#driveControls');
   const stick = page.locator('#driveStick');
-  const gas = page.locator('#driveGas');
-  const brake = page.locator('#driveBrake');
+  const gas = page.locator('#driveControls .drive-pedals button[data-k="w"]');
+  const brake = page.locator('#driveControls .drive-pedals button[data-k="s"]');
   const action = page.locator('#actionButton');
 
   await expect(driveControls).toBeVisible();
