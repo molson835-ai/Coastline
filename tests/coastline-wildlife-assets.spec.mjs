@@ -8,6 +8,8 @@ import {
   isCoastlineCaveThreshold,
 } from '../coastline-wildlife-assets.js';
 import {
+  COASTLINE_CAVE_ANCHOR,
+  COASTLINE_LEMONADE_STAND_ANCHOR,
   COASTLINE_CAVE_PORTAL_CLEAR_WIDTH,
   COASTLINE_CAVE_THRESHOLD,
   getCoastlineCaveColliders,
@@ -35,6 +37,24 @@ test('animal and cave scales normalize to plausible world-unit heights', () => {
   assert.ok(Math.abs(getCoastlineTargetScale('ostrich', 2.4) * 2.4 - 2.25) < 1e-9);
   assert.ok(Math.abs(getCoastlineTargetScale('cave', 3.96) * 3.96 - 5.35) < 1e-9);
   assert.equal(getCoastlineTargetScale('horse', 0), 1);
+});
+
+test('cave and lemonade stand move inland together while preserving their 15-unit spacing', async () => {
+  assert.deepEqual(COASTLINE_CAVE_ANCHOR, { x: 520, z: 525 });
+  assert.deepEqual(COASTLINE_LEMONADE_STAND_ANCHOR, { x: 520, z: 510 });
+  assert.equal(COASTLINE_CAVE_ANCHOR.z - COASTLINE_LEMONADE_STAND_ANCHOR.z, 15);
+  assert.deepEqual(COASTLINE_CAVE_THRESHOLD, { x: 520, z: 522.5, radius: 2.25 });
+
+  const [regions, loader, game] = await Promise.all([
+    read('coastline-island-regions.js'),
+    read('coastline-wildlife-assets.js'),
+    read('game-v3.html'),
+  ]);
+  assert.match(regions, /const standX = COASTLINE_LEMONADE_STAND_ANCHOR\.x, standZ = COASTLINE_LEMONADE_STAND_ANCHOR\.z/);
+  assert.match(regions, /const caveX = COASTLINE_CAVE_ANCHOR\.x, caveZ = COASTLINE_CAVE_ANCHOR\.z/);
+  assert.match(loader, /COASTLINE_CAVE_ANCHOR/);
+  assert.match(game, /stand:\{x:520,z:511\.5,radius:3\.2\}/);
+  assert.match(game, /vendor:\{x:520,z:508\.8,maxDistance:3\.2\}/);
 });
 
 test('cave threshold triggers only on foot inside Waterfront portal radius', () => {
