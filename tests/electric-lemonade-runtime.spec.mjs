@@ -21,14 +21,14 @@ test('Electric Lemonade charges exactly 10 CB, illuminates the dungeon, and glow
     await window.__coastlineElectricLemonade.interact();
     document.querySelector('#coastlineLemonadeBuy')?.click();
     const afterPurchase = window.__coastlineElectricLemonade.state();
-    test.setWalkPosition(520, 540.5, 0);
+    test.setWalkPosition(520, 542.5, 0);
     await window.__coastlineElectricLemonade.interact();
     const inDungeon = window.__coastlineTransitionTest.status().activeWorldId;
     const lit = test.electricLemonadeVisualState();
     test.setWalkPosition(524, 568, 0);
     await window.__coastlineElectricLemonade.interact();
     const boots = window.__coastlineElectricLemonade.state();
-    test.setWalkPosition(520, 540.5, Math.PI);
+    test.setWalkPosition(520, 542.5, Math.PI);
     await window.__coastlineElectricLemonade.interact();
     const exited = window.__coastlineElectricLemonade.state();
     const afterExitVisual = test.electricLemonadeVisualState();
@@ -46,7 +46,7 @@ test('dungeon remains dark without a purchased glow and blocks an on-foot route 
   await page.addInitScript(() => localStorage.setItem('coastline-cash-balance-v1', '0'));
   await enterWaterfront(page);
   const result = await page.evaluate(async () => {
-    window.__coastlineTest.setWalkPosition(520, 540.5, 0);
+    window.__coastlineTest.setWalkPosition(520, 542.5, 0);
     await window.__coastlineElectricLemonade.interact();
     const visual = window.__coastlineTest.electricLemonadeVisualState();
     const blocked = window.__coastlineTest.buildingBlocked(504.5, 558, .45);

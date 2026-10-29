@@ -57,7 +57,7 @@ export const COASTLINE_ISLAND_REGIONS = Object.freeze([
   }),
 ]);
 
-export const COASTLINE_CAVE_THRESHOLD = Object.freeze({ x: 520, z: 540.5, radius: 2.25 });
+export const COASTLINE_CAVE_THRESHOLD = Object.freeze({ x: 520, z: 542.5, radius: 2.25 });
 export const COASTLINE_CAVE_PORTAL_CLEAR_WIDTH = 3.0;
 
 export function getCoastlineCaveColliders(caveX = 520, caveZ = 545) {
@@ -917,7 +917,7 @@ export function createCoastlineIslandRoot({ THREE, region, groundY = () => 0, ad
     colliders.push(...getCoastlineCaveColliders(caveX, caveZ));
     root.userData.coastlineElectricLemonade = {
       stand: { x: standX, z: standZ + 2.4, radius: 3.2 },
-      cave: { x: caveX, z: caveZ - 4.5, radius: 3.0 },
+      cave: { x: caveX, z: caveZ - 2.5, radius: 3.0 },
     };
   }
   return root;
