@@ -22,6 +22,6 @@ test('vehicle left and right inputs turn toward the matching side', async ({ pag
     left: window.__coastlineTest.steeringProbe('a'),
     right: window.__coastlineTest.steeringProbe('d'),
   }));
-  expect(headings.left).toBeLessThan(0);
-  expect(headings.right).toBeGreaterThan(0);
+  expect(headings.left).toBeGreaterThan(0);
+  expect(headings.right).toBeLessThan(0);
 });

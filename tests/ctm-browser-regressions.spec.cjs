@@ -566,3 +566,35 @@ test('the active driving runtime preserves left/right keyboard and touch inputs'
   expect(touchD.a, 'right touch control must not be remapped to left').toBe(false);
   expect(touchD.mode).toBe('vehicle');
 });
+
+
+test('Homey CTM destination headings persist through walking frames and vehicle handoff', async ({ page }) => {
+  await openGame(page);
+  await page.evaluate(async () => {
+    const ctm=window.__coastlineTransitionTest,test=window.__coastlineTest;
+    await ctm.transition('city-to-island');
+    await ctm.transition('island-to-homey-garage');
+    test.setWalkPosition(483,515,0);ctm.updatePrompt();
+    test.setWalkPosition(483,516,0);ctm.updatePrompt();
+  });
+  await expect.poll(()=>page.evaluate(()=>window.__coastlineTransitionTest.status().activeWorldId),{timeout:8000}).toBe('home-interior');
+  await page.evaluate(()=>window.__coastlineTest.advanceTestFrame(1/60,2));
+  const inside=await page.evaluate(()=>({state:window.__coastlineTest.state(),facing:window.__coastlineTest.avatarVisualFacing()}));
+  expect(inside.state.heading).toBeCloseTo(Math.PI,1);
+  expect(inside.facing.parentHeading).toBeCloseTo(Math.PI,1);
+  await page.evaluate(()=>{
+    const ctm=window.__coastlineTransitionTest,test=window.__coastlineTest;
+    test.setWalkPosition(483,512.5,0);ctm.updatePrompt();
+    test.setWalkPosition(483,513.5,0);ctm.updatePrompt();
+  });
+  await expect.poll(()=>page.evaluate(()=>window.__coastlineTransitionTest.status().activeWorldId),{timeout:8000}).toBe('homey-garage');
+  await page.evaluate(async ()=>{
+    const ctm=window.__coastlineTransitionTest,test=window.__coastlineTest;
+    test.enterVehicle(ctm.garageVehicleRef());
+    await ctm.transition('homey-garage-to-island');
+  });
+  await expect.poll(()=>page.evaluate(()=>window.__coastlineTransitionTest.status().activeWorldId),{timeout:8000}).toBe('island');
+  const outside=await page.evaluate(()=>window.__coastlineTransitionTest.playerState());
+  expect(outside.heading).toBeCloseTo(Math.PI,1);
+  expect(outside.position.z).toBeCloseTo(484,1);
+});

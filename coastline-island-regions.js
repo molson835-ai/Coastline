@@ -917,7 +917,7 @@ export function createCoastlineIslandRoot({ THREE, region, groundY = () => 0, ad
     colliders.push(...getCoastlineCaveColliders(caveX, caveZ));
     root.userData.coastlineElectricLemonade = {
       stand: { x: standX, z: standZ + 2.4, radius: 3.2 },
-      cave: { x: caveX, z: caveZ - 2.5, radius: 3.0 },
+      cave: { x: caveX, z: caveZ - 4.5, radius: 3.0 },
     };
   }
   return root;
