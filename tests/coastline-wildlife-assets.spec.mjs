@@ -127,3 +127,19 @@ test('active wildlife replaces legacy procedural deer and bird flock placeholder
   assert.doesNotMatch(game, /const birdMat=M\(0x302b42/);
   assert.match(game, /deer:0/);
 });
+
+
+test('wildlife simulation is gated to the active world while preserving a mount attached to the active root', async () => {
+  const { shouldUpdateCoastlineWildlife } = await import('../coastline-wildlife-assets.js');
+  assert.equal(shouldUpdateCoastlineWildlife('city', 'city'), true);
+  assert.equal(shouldUpdateCoastlineWildlife('city', 'island'), false);
+  assert.equal(shouldUpdateCoastlineWildlife('waterfront', 'port'), false);
+  assert.equal(shouldUpdateCoastlineWildlife('island', 'home-interior', true), true);
+  assert.equal(shouldUpdateCoastlineWildlife('island', 'home-interior', false), false);
+  const source = await readFile(new URL('../coastline-wildlife-assets.js', import.meta.url), 'utf8');
+  assert.match(source, /if\s*\(!shouldUpdateCoastlineWildlife\(v\.worldId, activeWorldId, mountedInActiveWorld\)\)\s*\{\s*skippedInactive\+\+;\s*continue/);
+  assert.match(source, /diagnostics\.activeWorldId\s*=\s*activeWorldId/);
+  assert.match(source, /diagnostics\.lastUpdated\s*=\s*updated/);
+  assert.match(source, /diagnostics\.skippedInactive\s*=\s*skippedInactive/);
+  assert.match(source, /lastUpdated:\s*diagnostics\.lastUpdated/);
+});

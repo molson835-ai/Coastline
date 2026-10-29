@@ -30,6 +30,11 @@ export const COASTLINE_WILDLIFE_ASSETS = Object.freeze({
   }),
 });
 
+export function shouldUpdateCoastlineWildlife(instanceWorldId, activeWorldId, mountedInActiveWorld = false) {
+  if (!activeWorldId) return true;
+  return instanceWorldId === activeWorldId || mountedInActiveWorld === true;
+}
+
 export function getCoastlineWildlifePlacementPlan(worldId) {
   if (worldId === 'city') {
     return [
@@ -180,6 +185,9 @@ export function createCoastlineWildlifeAssets({ THREE, vehicles, wildlife, world
     loaded: { horse: false, ostrich: false, cave: false },
     source: { horse: 'pending', ostrich: 'pending', cave: 'pending' },
     errors: [],
+    activeWorldId: null,
+    lastUpdated: 0,
+    skippedInactive: 0,
   };
   let templatesPromise = null;
 
@@ -488,7 +496,13 @@ export function createCoastlineWildlifeAssets({ THREE, vehicles, wildlife, world
   };
 
   const update = (dt = 0, now = performance.now()) => {
+    const activeWorldId = typeof window !== 'undefined' ? window.__coastlineActiveWorldId : null;
+    const activeRoot = typeof window !== 'undefined' ? window.__coastlineActiveWorldRoot : null;
+    let updated = 0, skippedInactive = 0;
     for (const v of wildlife) {
+      const mountedInActiveWorld = Boolean(v.occupied && activeRoot && v.g?.parent === activeRoot);
+      if (!shouldUpdateCoastlineWildlife(v.worldId, activeWorldId, mountedInActiveWorld)) { skippedInactive++; continue; }
+      updated++;
       if (v.animationMixer) {
         if (v.occupied) selectAnimation(v, Math.abs(v.speed || 0) > 7 ? 'run' : Math.abs(v.speed || 0) > .4 ? 'walk' : 'idle');
         else selectAnimation(v, 'walk');
@@ -508,6 +522,9 @@ export function createCoastlineWildlifeAssets({ THREE, vehicles, wildlife, world
       v.g.position.set(v.x, floor + (v.kind === 'ostrich' ? Math.abs(Math.sin(v.phase * 4)) * .035 : 0), v.z);
       v.g.rotation.y = Math.atan2(tx - v.x, tz - v.z);
     }
+    diagnostics.activeWorldId = activeWorldId ?? null;
+    diagnostics.lastUpdated = updated;
+    diagnostics.skippedInactive = skippedInactive;
   };
 
   const updateMountAnimation = (v, dt) => {
@@ -522,6 +539,9 @@ export function createCoastlineWildlifeAssets({ THREE, vehicles, wildlife, world
     loaded: { ...diagnostics.loaded },
     source: { ...diagnostics.source },
     errors: [...diagnostics.errors],
+    activeWorldId: diagnostics.activeWorldId,
+    lastUpdated: diagnostics.lastUpdated,
+    skippedInactive: diagnostics.skippedInactive,
     cityCount: attached.get(typeof window !== 'undefined' && window.__coastlineActiveWorldRoot?.name === 'coastline-city-root' ? window.__coastlineActiveWorldRoot : null)?.length || 0,
     totalInstances: wildlife.length,
     instances: wildlife.map(v => ({ kind: v.kind, id: v.id, worldId: v.worldId, source: v.templateSource, x: v.x, z: v.z, rideable: v.drivable !== false })),

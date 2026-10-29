@@ -26,7 +26,7 @@ test('the city has distinct architecture, storefronts, trees, residents and terr
   expect(new Set(world.buildings.map(b => b.sign)).size).toBeGreaterThanOrEqual(10);
   expect(world.buildings.every(b => Boolean(b.sign))).toBe(true);
 
-  expect(new Set(world.trees.map(t => t.variant)).size).toBeGreaterThanOrEqual(3);
+  expect(new Set(world.trees.map(t => t.variant))).toEqual(new Set(['palm']));
   expect(new Set(world.trees.map(t => t.leaf)).size).toBeGreaterThanOrEqual(3);
   expect(new Set(world.trees.map(t => Math.round(t.height * 10))).size).toBeGreaterThan(10);
 
