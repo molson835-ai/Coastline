@@ -336,28 +336,32 @@ function applyWardrobeHair(THREE,actorRoot,appearance) {
   if(!actorRoot||!THREE)return;
   const old=actorRoot.getObjectByName('coastline-wardrobe-hair-overlay');
   if(old)disposeWardrobeOverlay(old);
-  if(appearance.hairStyle==='original'||appearance.accessories.hat)return;
+  if(appearance.accessories.hat)return;
   const head=actorRoot.getObjectByName('head');if(!head?.add)return;
+  // This character export can be bald when its original hair group is absent. If the
+  // player removes headwear while leaving the default 'original' style selected,
+  // give them a short procedural hairstyle instead of an empty scalp.
+  const hairStyle=appearance.hairStyle==='original'?'short':appearance.hairStyle;
   const group=new THREE.Group();group.name='coastline-wardrobe-hair-overlay';
   const material=new THREE.MeshStandardMaterial({color:appearance.hairColor,roughness:.87,metalness:0});
   const sphere=(name,x,y,z,sx,sy,sz)=>{const mesh=new THREE.Mesh(new THREE.SphereGeometry(1,12,8),material);mesh.name='coastline-wardrobe-hair-'+name;mesh.position.set(x,y,z);mesh.scale.set(sx,sy,sz);mesh.castShadow=true;mesh.receiveShadow=true;group.add(mesh);return mesh};
   const cap=()=>sphere('cap',0,.085,0,.145,.105,.145);
-  if(appearance.hairStyle==='short'){
+  if(hairStyle==='short'){
     cap();sphere('side-left',-.112,.005,0,.048,.105,.105);sphere('side-right',.112,.005,0,.048,.105,.105);
-  }else if(appearance.hairStyle==='spiky'){
+  }else if(hairStyle==='spiky'){
     cap();
     for(const [x,y,z,sx,sy,sz] of [[-.08,.17,0,.043,.12,.043],[-.025,.19,.02,.045,.14,.045],[.04,.17,0,.04,.12,.04],[.085,.15,-.015,.038,.1,.04],[0,.16,-.075,.04,.11,.04]]){
       const spike=new THREE.Mesh(new THREE.ConeGeometry(1,1.35,6),material);spike.name='coastline-wardrobe-hair-spike';spike.position.set(x,y,z);spike.scale.set(sx,sy,sz);spike.castShadow=true;group.add(spike);
     }
-  }else if(appearance.hairStyle==='curly'){
+  }else if(hairStyle==='curly'){
     cap();for(let i=0;i<12;i++){const angle=i*Math.PI*2/12,radius=.105;sphere('curl',Math.cos(angle)*radius,.1+(i%3)*.012,Math.sin(angle)*radius,.055,.052,.055);}
-  }else if(appearance.hairStyle==='bob'){
+  }else if(hairStyle==='bob'){
     cap();sphere('bob-left',-.12,-.02,0,.055,.16,.12);sphere('bob-right',.12,-.02,0,.055,.16,.12);sphere('bob-back',0,-.055,-.075,.145,.11,.09);
-  }else if(appearance.hairStyle==='long'){
+  }else if(hairStyle==='long'){
     cap();sphere('long-left',-.12,-.085,-.025,.055,.245,.09);sphere('long-right',.12,-.085,-.025,.055,.245,.09);sphere('long-back',0,-.14,-.07,.13,.2,.07);
-  }else if(appearance.hairStyle==='ponytail'){
+  }else if(hairStyle==='ponytail'){
     cap();sphere('ponytail-tie',0,.09,-.12,.065,.065,.065);sphere('ponytail',0,-.09,-.17,.065,.22,.075);sphere('ponytail-tip',0,-.245,-.18,.06,.075,.07);
-  }else if(appearance.hairStyle==='bun'){
+  }else if(hairStyle==='bun'){
     cap();sphere('bun',0,.19,-.055,.095,.09,.095);sphere('bun-base',0,.115,-.04,.07,.05,.07);
   }
   head.add(group);actorRoot.userData.coastlineWardrobeHairStyle=appearance.hairStyle;
@@ -377,6 +381,20 @@ function applyWardrobeBodyProfile(THREE,actorRoot,appearance) {
     else if(name.startsWith('upperleg.'))x=shape.upperLeg;
     node.scale.copy(node.userData.coastlineWardrobeBaseScale).multiply(new THREE.Vector3(x,1,1));
   });
+}
+function applyWardrobeHeadwear(THREE,actorRoot,appearance) {
+  if(!actorRoot||!THREE)return;
+  const old=actorRoot.getObjectByName('coastline-wardrobe-headwear-overlay');
+  if(old)disposeWardrobeOverlay(old);
+  if(!appearance.accessories.hat)return;
+  const head=actorRoot.getObjectByName('head');if(!head?.add)return;
+  const group=new THREE.Group();group.name='coastline-wardrobe-headwear-overlay';
+  const shellMat=new THREE.MeshStandardMaterial({color:appearance.hatColor,roughness:.72,metalness:.08});
+  const shell=new THREE.Mesh(new THREE.SphereGeometry(.19,18,12,0,Math.PI*2,0,Math.PI*.62),shellMat);
+  shell.name='coastline-wardrobe-headwear-shell';shell.position.set(0,.055,0);shell.scale.set(1,1.05,1);shell.castShadow=true;group.add(shell);
+  const rim=new THREE.Mesh(new THREE.CylinderGeometry(.19,.19,.035,18),shellMat);
+  rim.name='coastline-wardrobe-headwear-rim';rim.position.y-.005;rim.position.set(0,-.015,0);rim.castShadow=true;group.add(rim);
+  head.add(group);
 }
 function applyHomeWardrobeAppearance(player,choice={}) {
   if(!player)return false;
@@ -419,7 +437,7 @@ function applyHomeWardrobeAppearance(player,choice={}) {
       node.visible=node.userData.coastlineWardrobeOriginalVisible!==false&&!(onlyHat&&!appearance.accessories.hat)&&!(onlyBackpack&&!appearance.accessories.backpack)&&!(names.length===1&&names[0]==='hair'&&appearance.hairStyle!=='original');
     }
   });
-  if(actorRoot){applyWardrobeBodyProfile(THREE,actorRoot,appearance);applyWardrobeHair(THREE,actorRoot,appearance);}
+  if(actorRoot){applyWardrobeBodyProfile(THREE,actorRoot,appearance);applyWardrobeHair(THREE,actorRoot,appearance);applyWardrobeHeadwear(THREE,actorRoot,appearance);}
   else window.__coastlineWardrobeApplyPending=true;
   player.coastlineClothingAppliedMaterialCount=changed;
   player.coastlineClothingAppliedChannels=HOME_WARDROBE_CHANNELS.map(channel=>channel.id);
