@@ -9,6 +9,7 @@ test('QA Lab embeds the real game and exposes focused D-pad scenarios', async ({
   }
   await expect.poll(()=>page.evaluate(()=>Boolean(document.querySelector('#game')?.contentWindow?.__coastlineTest)),{timeout:45000}).toBe(true);
   await page.locator('[data-scenario="drive"]').click();
+  await expect.poll(()=>page.locator('#note').textContent(),{timeout:45000}).toContain('Driving lane ready');
   await expect.poll(()=>page.evaluate(()=>document.querySelector('#game')?.contentWindow?.__coastlineTest?.state()?.mode),{timeout:45000}).toBe('vehicle');
   const game=page.frameLocator('#game');
   await expect(game.locator('.left-controls button[data-k="w"]')).toBeVisible();

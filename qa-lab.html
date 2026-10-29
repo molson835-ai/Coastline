@@ -58,7 +58,9 @@ button:disabled{opacity:.4;cursor:default}.buttons{display:grid;grid-template-co
   }
   async function reset(){
     note.textContent='Reloading the actual game for a clean scenario…';
+    const loaded=new Promise(resolve=>frame.addEventListener('load',resolve,{once:true}));
     frame.src='./game-v3.html?devStaticWorld=1&qaLab=1&reset='+Date.now();
+    await loaded;
     return ready();
   }
   function updateLive(){
