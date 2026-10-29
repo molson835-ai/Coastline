@@ -8,17 +8,18 @@ test('mobile driving controls are visible and operate the vehicle', async ({ pag
   await expect(page.locator('canvas').first()).toBeAttached({ timeout: 30000 });
   await page.waitForFunction(() => Boolean(window.__coastlineTest), null, { timeout: 30000 });
 
-  const forward = page.getByRole('button', { name: 'Forward' });
-  const left = page.getByRole('button', { name: 'Steer or turn left' });
+  const driveControls = page.locator('#driveControls');
+  const stick = page.locator('#driveStick');
+  const gas = page.locator('#driveGas');
+  const brake = page.locator('#driveBrake');
   const action = page.locator('#actionButton');
 
-  await expect(forward).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Reverse' })).toBeVisible();
-  await expect(left).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Steer or turn right' })).toBeVisible();
+  await expect(driveControls).toBeVisible();
+  await expect(stick).toBeVisible();
+  await expect(gas).toBeVisible();
+  await expect(brake).toBeVisible();
   await expect(action).toBeVisible();
 
-  // Find an open stretch away from other vehicles and solid world props so this test measures controls, not spawn placement.
   const spawn = await page.evaluate(() => {
     const api = window.__coastlineTest;
     const roster = api.vehicleRoster();
@@ -41,48 +42,45 @@ test('mobile driving controls are visible and operate the vehicle', async ({ pag
   await page.evaluate(({ x, z }) => window.__coastlineTest.setVehiclePosition(x, z, 0), spawn);
   const before = await page.evaluate(() => window.__coastlineTest.state());
 
-  await forward.hover();
+  const gasBox = await gas.boundingBox();
+  expect(gasBox).not.toBeNull();
+  const gasX = gasBox.x + gasBox.width / 2, gasY = gasBox.y + gasBox.height / 2;
+  await page.mouse.move(gasX, gasY);
   await page.mouse.down();
-  await page.evaluate(() => window.__coastlineTest.advanceTestFrame(1/60, 60));
   try {
-    await expect.poll(async () => page.evaluate(({ x, z }) => {
-      const now = window.__coastlineTest.state();
-      return Math.hypot(now.x - x, now.z - z);
-    }, { x: before.x, z: before.z }), { timeout: 5000, message: 'forward control should move the car along its heading' }).toBeGreaterThan(0.5);
+    await page.evaluate(() => window.__coastlineTest.advanceTestFrame(1/60, 60));
   } finally {
     await page.mouse.up();
   }
   const afterDrive = await page.evaluate(() => window.__coastlineTest.state());
-  expect(Math.hypot(afterDrive.x - before.x, afterDrive.z - before.z), 'forward control should move the car along its heading').toBeGreaterThan(0.5);
+  expect(Math.hypot(afterDrive.x - before.x, afterDrive.z - before.z), 'accelerator should move the car').toBeGreaterThan(0.5);
 
-  await left.hover();
-  const headingBeforeSteer = (await page.evaluate(() => window.__coastlineTest.state())).heading;
+  const stickBox = await stick.boundingBox();
+  expect(stickBox).not.toBeNull();
+  const stickCenterX = stickBox.x + stickBox.width / 2, stickCenterY = stickBox.y + stickBox.height / 2;
+  const headingBeforeLeft = (await page.evaluate(() => window.__coastlineTest.state())).heading;
+  await page.mouse.move(stickCenterX, stickCenterY);
   await page.mouse.down();
-  await page.evaluate(() => window.__coastlineTest.advanceTestFrame(1/60, 30));
   try {
-    await expect.poll(async () => page.evaluate(heading => window.__coastlineTest.state().heading - heading, headingBeforeSteer), {
-      timeout: 3000,
-      message: 'left control should steer the car'
-    }).toBeLessThan(-0.01);
+    await page.mouse.move(stickBox.x + stickBox.width * 0.15, stickCenterY, { steps: 4 });
+    await page.evaluate(() => window.__coastlineTest.advanceTestFrame(1/60, 30));
   } finally {
     await page.mouse.up();
   }
-  const afterSteer = await page.evaluate(() => window.__coastlineTest.state());
-  expect(afterSteer.heading - headingBeforeSteer, 'left control should steer the car left').toBeLessThan(-0.01);
+  const headingAfterLeft = (await page.evaluate(() => window.__coastlineTest.state())).heading;
+  expect(headingAfterLeft - headingBeforeLeft, 'left joystick movement should steer left').toBeLessThan(-0.01);
 
-  const right = page.getByRole('button', { name: 'Steer or turn right' });
   const headingBeforeRight = (await page.evaluate(() => window.__coastlineTest.state())).heading;
-  await right.hover();
+  await page.mouse.move(stickCenterX, stickCenterY);
   await page.mouse.down();
-  await page.evaluate(() => window.__coastlineTest.advanceTestFrame(1/60, 30));
   try {
-    await expect.poll(async () => page.evaluate(heading => window.__coastlineTest.state().heading - heading, headingBeforeRight), {
-      timeout: 3000,
-      message: 'right control should steer the car right'
-    }).toBeGreaterThan(0.01);
+    await page.mouse.move(stickBox.x + stickBox.width * 0.85, stickCenterY, { steps: 4 });
+    await page.evaluate(() => window.__coastlineTest.advanceTestFrame(1/60, 30));
   } finally {
     await page.mouse.up();
   }
+  const headingAfterRight = (await page.evaluate(() => window.__coastlineTest.state())).heading;
+  expect(headingAfterRight - headingBeforeRight, 'right joystick movement should steer right').toBeGreaterThan(0.01);
 
   await action.click({ force: true });
   await expect(page.locator('#mode')).toHaveText('ON FOOT');
