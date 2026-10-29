@@ -11,21 +11,11 @@ function installReplacementRuntimeCorrections() {
   let caveTransitionInFlight = false;
 
   const patchVehicleVisuals = () => {
-    const vehicles = window.__coastlineVehicleRegistry;
-    const THREE = window.__coastlineThree;
-    if (!Array.isArray(vehicles) || !THREE?.Group) return;
-    for (const vehicle of vehicles) {
-      if (!vehicle?.g || vehicle.kind !== 'car' || !vehicle.rgsdevModelName || vehicle.g.userData.coastlineRgsdevForwardCorrection) continue;
-      const children = [...vehicle.g.children];
-      if (!children.length) continue;
-      const visual = new THREE.Group();
-      visual.name = 'coastline-rgsdev-forward-axis-correction';
-      visual.rotation.y = Math.PI;
-      for (const child of children) visual.add(child);
-      vehicle.g.add(visual);
-      vehicle.g.userData.coastlineRgsdevForwardCorrection = true;
-      vehicle.g.userData.coastlineRgsdevForwardAxis = '-Z-authored-to-+Z-runtime';
-    }
+    // Keep the original vehicle model orientation and camera-follow relationship.
+    // The prior 180-degree visual wrapper made the vehicle's visible nose disagree
+    // with the camera's existing behind-the-vehicle placement. Steering correction
+    // must be solved independently without rotating the whole vehicle presentation.
+    return;
   };
 
   const patchAuthoredHair = () => {
