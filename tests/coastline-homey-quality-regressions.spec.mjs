@@ -22,6 +22,7 @@ test('wardrobe exposes live material channels, hair presets and body/presentatio
   assert.match(interior, /const hairStyle=appearance\.hairStyle;\s*if\(hairStyle==='original'\)return;/, 'original GLB hair is preserved instead of replaced by a fallback overlay');
   assert.match(interior, /sphere\('cap',0,\.235,0,\.245,\.14,\.222\)/, 'procedural scalp overlay is sized to the Cozy head bounds');
   assert.match(interior, /long-left',-\.225,\.075,-\.015,\.06,\.28,\.12/, 'long hair sides sit outside the head perimeter');
+  assert.match(interior, /long-left',-\.225,\.075,-\.015,\.06,\.28,\.12/, 'long hair sides sit outside the head perimeter');
   assert.match(interior, /long-back',0,\.075,-\.205,\.16,\.28,\.065/, 'long hair back panel starts behind the head instead of inside the neck');
   assert.match(interior, /window\.__coastlineHomeyHouseContract = root\.userData\.coastlineHouseContract/);
   assert.match(game, /window\.__coastlineAvatar=avatar/);

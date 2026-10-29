@@ -339,17 +339,14 @@ function applyWardrobeHair(THREE,actorRoot,appearance) {
   if(appearance.accessories.hat)return;
   const head=actorRoot.getObjectByName('head');if(!head?.add)return;
   // The Cozy export is a single skinned character with its original hair in the GLB.
-  // Keep that authored hair when "original" is selected. Procedural styles are only
-  // overlays, and their fit is calibrated from the actual head-weighted bounds of
-  // assets/grab3d-cozy-character.glb (head radius ~= X .235 / Z .212 in head space).
+  // Keep that authored hair when "original" is selected. Procedural styles are only overlays.
   const hairStyle=appearance.hairStyle;
   if(hairStyle==='original')return;
   const group=new THREE.Group();group.name='coastline-wardrobe-hair-overlay';
   const material=new THREE.MeshStandardMaterial({color:appearance.hairColor,roughness:.87,metalness:0});
   const sphere=(name,x,y,z,sx,sy,sz)=>{const mesh=new THREE.Mesh(new THREE.SphereGeometry(1,12,8),material);mesh.name='coastline-wardrobe-hair-'+name;mesh.position.set(x,y,z);mesh.scale.set(sx,sy,sz);mesh.castShadow=true;mesh.receiveShadow=true;group.add(mesh);return mesh};
-  // These dimensions deliberately sit just outside the authored head shell. The old
-  // .18 cap was smaller than the Cozy head (.235 X / .212 Z), so the scalp disappeared
-  // behind the head mesh and long hair appeared to originate inside the skull/neck.
+  // Cozy head-weighted bounds are approximately X .235 / Z .212 in head space.
+  // The previous .18 cap was inside the head shell, making the head hide the hair.
   const cap=()=>sphere('cap',0,.235,0,.245,.14,.222);
   if(hairStyle==='short'){
     cap();sphere('side-left',-.225,.115,0,.055,.15,.13);sphere('side-right',.225,.115,0,.055,.15,.13);
