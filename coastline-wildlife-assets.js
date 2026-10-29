@@ -409,10 +409,10 @@ export function createCoastlineWildlifeAssets({ THREE, vehicles, wildlife, world
     cave.name = 'coastline-waterfront-cave-entrance-glb';
     boundsScale(cave, 'cave');
     // The cave's portal faces the approach (+Z); its back nests into the authored mountain.
-    cave.position.x = 548;
-    cave.position.z = 534.5;
+    cave.position.x = 520;
+    cave.position.z = 541.5;
     cave.position.y = Number.isFinite(root.userData?.coastlineGroundY) ? root.userData.coastlineGroundY : groundY(500, 500);
-    cave.rotation.y = 0;
+    cave.rotation.y = Math.PI;
     cave.traverse(node => { if (node.isMesh) { node.castShadow = true; node.receiveShadow = true; node.userData.coastlineSharedWildlifeAsset = true; } });
     for (const child of mouth.children) child.visible = false;
     mouth.add(cave);
