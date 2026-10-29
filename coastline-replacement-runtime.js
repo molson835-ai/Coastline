@@ -8,7 +8,6 @@
 function installReplacementRuntimeCorrections() {
   if (typeof window === 'undefined' || window.__coastlineReplacementRuntimeInstalled) return;
   window.__coastlineReplacementRuntimeInstalled = true;
-  let caveTransitionInFlight = false;
 
   const patchVehicleVisuals = () => {
     // Keep the original vehicle model orientation and camera-follow relationship.
@@ -28,26 +27,17 @@ function installReplacementRuntimeCorrections() {
       // This is the authored Cozy hair mesh itself. Expand its existing local
       // perimeter modestly so it covers the measured scalp bounds. No cap/sphere
       // replacement is created, so material, skinning and hair-color controls remain intact.
-      node.scale.x *= 1.65;
-      node.scale.z *= 1.65;
+      node.scale.x *= 1.98;
+      node.scale.z *= 1.98;
       node.scale.y *= 1.35;
       node.userData.coastlineAuthoredHairCorrected = true;
-      node.userData.coastlineHairCorrection = { authored: true, xz: 1.65, y: 1.35 };
+      node.userData.coastlineHairCorrection = { authored: true, xz: 1.98, y: 1.35 };
     });
   };
 
   const patchCaveAndVendor = () => {
     const root = window.__coastlineRegionRoot;
     if (!root || window.__coastlineActiveWorldId !== 'waterfront') return;
-
-    const cave = root.userData?.coastlineCaveGLB || root.getObjectByName?.('coastline-waterfront-cave-entrance-glb');
-    if (cave && !cave.userData.coastlineReplacementOrientationApplied) {
-      // The packaged cave's doorway is opposite the old loader assumption. Keep
-      // position/scale and reverse only yaw so the opening faces the opposite approach after the live orientation check.
-      cave.rotation.y = Math.PI;
-      cave.userData.coastlineReplacementOrientationApplied = true;
-      cave.userData.coastlineDoorwayFacing = 'reversed';
-    }
 
     const actor = root.userData?.coastlineLemonadeVendorActor || window.__coastlineWaterfrontVendorActor;
     if (actor?.root) {
@@ -63,16 +53,6 @@ function installReplacementRuntimeCorrections() {
       window.__coastlineWaterfrontVendorActor = actor;
     }
 
-    // Use the existing Electric Lemonade interaction, which delegates to the
-    // existing CTM manager. This makes the actual entrance itself the trigger,
-    // while the in-flight guard guarantees one transition per arrival.
-    const player = window.__coastlinePlayer;
-    if (!caveTransitionInFlight && player?.mode === 'walk' && typeof window.__coastlineElectricLemonade?.canUse === 'function' && window.__coastlineElectricLemonade.canUse()) {
-      if (Math.hypot(player.x - 520, player.z - 542.5) <= 2.25) {
-        caveTransitionInFlight = true;
-        Promise.resolve(window.__coastlineElectricLemonade.interact()).finally(() => setTimeout(() => { caveTransitionInFlight = false; }, 250));
-      }
-    }
   };
 
   window.__coastlineReplacementVisualPatch = () => {
@@ -84,7 +64,6 @@ function installReplacementRuntimeCorrections() {
     return {
       vehicles: Array.isArray(window.__coastlineVehicleRegistry) ? window.__coastlineVehicleRegistry.filter(v => v?.g?.userData?.coastlineRgsdevForwardCorrection).length : 0,
       authoredHairCorrected,
-      caveOrientationCorrected: Boolean(window.__coastlineRegionRoot?.userData?.coastlineCaveGLB?.userData?.coastlineReplacementOrientationApplied),
       lemonadeVendorLivingWorld: Boolean(window.__coastlineWaterfrontVendorActor?.root?.userData?.coastlineLivingWorldVendor),
     };
   };
