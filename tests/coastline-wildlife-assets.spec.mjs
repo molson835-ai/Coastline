@@ -68,6 +68,9 @@ test('wildlife loader uses GLB animation, rider socket, source paths, and CTM-ow
   ]);
   assert.match(loader, /GLTFLoader/);
   assert.match(loader, /AnimationMixer/);
+  assert.match(loader, /Do not apply Warhorse clips to the ostrich/);
+  assert.match(loader, /coastlineProceduralBaseRotation/);
+  assert.match(loader, /key\.includes\('canter'\) \|\| key\.includes\('run'\)/);
   assert.match(loader, /saddle_socket/);
   assert.match(loader, /skeletonUtils\?\.clone/);
   assert.match(loader, /coastline-ostrich-normalized|model\.rotation\.y \+= -Math\.PI \/ 2/);
