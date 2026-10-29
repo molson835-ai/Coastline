@@ -341,14 +341,17 @@ function applyWardrobeHair(THREE,actorRoot,appearance) {
   // The Cozy export is a single skinned character with its original hair in the GLB.
   // Keep that authored hair when "original" is selected. Procedural styles are only overlays.
   const hairStyle=appearance.hairStyle;
-  if(hairStyle==='original')return;
   const group=new THREE.Group();group.name='coastline-wardrobe-hair-overlay';
   const material=new THREE.MeshStandardMaterial({color:appearance.hairColor,roughness:.87,metalness:0});
   const sphere=(name,x,y,z,sx,sy,sz)=>{const mesh=new THREE.Mesh(new THREE.SphereGeometry(1,12,8),material);mesh.name='coastline-wardrobe-hair-'+name;mesh.position.set(x,y,z);mesh.scale.set(sx,sy,sz);mesh.castShadow=true;mesh.receiveShadow=true;group.add(mesh);return mesh};
   // Cozy head-weighted bounds are approximately X .235 / Z .212 in head space.
-  // The previous .18 cap was inside the head shell, making the head hide the hair.
-  const cap=()=>sphere('cap',0,.235,0,.245,.14,.222);
-  if(hairStyle==='short'){
+  // Widen the scalp cap by another 10% and add it as a subtle crown fill for the
+  // authored "original" hairstyle, whose scalp currently shows through near the top.
+  // Keep the head/bones unchanged so facial proportions and skinning remain stable.
+  const cap=()=>sphere('cap',0,.235,0,.27,.14,.244);
+  if(hairStyle==='original'){
+    cap();
+  }else if(hairStyle==='short'){
     cap();sphere('side-left',-.225,.115,0,.055,.15,.13);sphere('side-right',.225,.115,0,.055,.15,.13);
   }else if(hairStyle==='spiky'){
     cap();
