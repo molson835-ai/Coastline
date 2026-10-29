@@ -345,24 +345,24 @@ function applyWardrobeHair(THREE,actorRoot,appearance) {
   const group=new THREE.Group();group.name='coastline-wardrobe-hair-overlay';
   const material=new THREE.MeshStandardMaterial({color:appearance.hairColor,roughness:.87,metalness:0});
   const sphere=(name,x,y,z,sx,sy,sz)=>{const mesh=new THREE.Mesh(new THREE.SphereGeometry(1,12,8),material);mesh.name='coastline-wardrobe-hair-'+name;mesh.position.set(x,y,z);mesh.scale.set(sx,sy,sz);mesh.castShadow=true;mesh.receiveShadow=true;group.add(mesh);return mesh};
-  const cap=()=>sphere('cap',0,.085,0,.145,.105,.145);
+  const cap=()=>sphere('cap',0,.235,0,.18,.13,.18);
   if(hairStyle==='short'){
-    cap();sphere('side-left',-.112,.005,0,.048,.105,.105);sphere('side-right',.112,.005,0,.048,.105,.105);
+    cap();sphere('side-left',-.145,.125,0,.055,.145,.14);sphere('side-right',.145,.125,0,.055,.145,.14);
   }else if(hairStyle==='spiky'){
     cap();
-    for(const [x,y,z,sx,sy,sz] of [[-.08,.17,0,.043,.12,.043],[-.025,.19,.02,.045,.14,.045],[.04,.17,0,.04,.12,.04],[.085,.15,-.015,.038,.1,.04],[0,.16,-.075,.04,.11,.04]]){
+    for(const [x,y,z,sx,sy,sz] of [[-.08,.32,0,.043,.12,.043],[-.025,.34,.02,.045,.14,.045],[.04,.32,0,.04,.12,.04],[.085,.30,-.015,.038,.1,.04],[0,.31,-.075,.04,.11,.04]]){
       const spike=new THREE.Mesh(new THREE.ConeGeometry(1,1.35,6),material);spike.name='coastline-wardrobe-hair-spike';spike.position.set(x,y,z);spike.scale.set(sx,sy,sz);spike.castShadow=true;group.add(spike);
     }
   }else if(hairStyle==='curly'){
-    cap();for(let i=0;i<12;i++){const angle=i*Math.PI*2/12,radius=.105;sphere('curl',Math.cos(angle)*radius,.1+(i%3)*.012,Math.sin(angle)*radius,.055,.052,.055);}
+    cap();for(let i=0;i<12;i++){const angle=i*Math.PI*2/12,radius=.135;sphere('curl',Math.cos(angle)*radius,.23+(i%3)*.012,Math.sin(angle)*radius,.055,.054,.055);}
   }else if(hairStyle==='bob'){
-    cap();sphere('bob-left',-.12,-.02,0,.055,.16,.12);sphere('bob-right',.12,-.02,0,.055,.16,.12);sphere('bob-back',0,-.055,-.075,.145,.11,.09);
+    cap();sphere('bob-left',-.15,.07,0,.055,.22,.135);sphere('bob-right',.15,.07,0,.055,.22,.135);sphere('bob-back',0,.04,-.105,.17,.15,.11);
   }else if(hairStyle==='long'){
-    cap();sphere('long-left',-.12,-.085,-.025,.055,.245,.09);sphere('long-right',.12,-.085,-.025,.055,.245,.09);sphere('long-back',0,-.14,-.07,.13,.2,.07);
+    cap();sphere('long-left',-.145,.075,-.015,.065,.27,.12);sphere('long-right',.145,.075,-.015,.065,.27,.12);sphere('long-back',0,.075,-.11,.16,.28,.11);
   }else if(hairStyle==='ponytail'){
-    cap();sphere('ponytail-tie',0,.09,-.12,.065,.065,.065);sphere('ponytail',0,-.09,-.17,.065,.22,.075);sphere('ponytail-tip',0,-.245,-.18,.06,.075,.07);
+    cap();sphere('ponytail-tie',0,.24,-.14,.065,.065,.065);sphere('ponytail',0,.02,-.17,.065,.22,.075);sphere('ponytail-tip',0,-.15,-.18,.06,.075,.07);
   }else if(hairStyle==='bun'){
-    cap();sphere('bun',0,.19,-.055,.095,.09,.095);sphere('bun-base',0,.115,-.04,.07,.05,.07);
+    cap();sphere('bun',0,.35,-.055,.095,.09,.095);sphere('bun-base',0,.28,-.04,.07,.05,.07);
   }
   head.add(group);actorRoot.userData.coastlineWardrobeHairStyle=appearance.hairStyle;
 }
@@ -391,9 +391,9 @@ function applyWardrobeHeadwear(THREE,actorRoot,appearance) {
   const group=new THREE.Group();group.name='coastline-wardrobe-headwear-overlay';
   const shellMat=new THREE.MeshStandardMaterial({color:appearance.hatColor,roughness:.72,metalness:.08});
   const shell=new THREE.Mesh(new THREE.SphereGeometry(.19,18,12,0,Math.PI*2,0,Math.PI*.62),shellMat);
-  shell.name='coastline-wardrobe-headwear-shell';shell.position.set(0,.055,0);shell.scale.set(1,1.05,1);shell.castShadow=true;group.add(shell);
+  shell.name='coastline-wardrobe-headwear-shell';shell.position.set(0,.18,0);shell.scale.set(1,1.05,1);shell.castShadow=true;group.add(shell);
   const rim=new THREE.Mesh(new THREE.CylinderGeometry(.19,.19,.035,18),shellMat);
-  rim.name='coastline-wardrobe-headwear-rim';rim.position.set(0,-.015,0);rim.castShadow=true;group.add(rim);
+  rim.name='coastline-wardrobe-headwear-rim';rim.position.set(0,.11,0);rim.castShadow=true;group.add(rim);
   head.add(group);
 }
 function applyHomeWardrobeAppearance(player,choice={}) {

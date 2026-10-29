@@ -57,21 +57,21 @@ export const COASTLINE_ISLAND_REGIONS = Object.freeze([
   }),
 ]);
 
-export const COASTLINE_CAVE_THRESHOLD = Object.freeze({ x: 520, z: 542.5, radius: 1.15 });
-export const COASTLINE_CAVE_PORTAL_CLEAR_WIDTH = 6.0;
+export const COASTLINE_CAVE_THRESHOLD = Object.freeze({ x: 520, z: 540.5, radius: 2.25 });
+export const COASTLINE_CAVE_PORTAL_CLEAR_WIDTH = 3.0;
 
 export function getCoastlineCaveColliders(caveX = 520, caveZ = 545) {
   return [
-    {name:'coastline-waterfront-cave-mountain-left-slope',x:caveX-12,z:caveZ+5,w:10,d:12},
-    {name:'coastline-waterfront-cave-mountain-right-slope',x:caveX+12,z:caveZ+5,w:10,d:12},
-    {name:'coastline-waterfront-cave-mountain-rear-ridge',x:caveX,z:caveZ+13,w:30,d:10},
-    {name:'coastline-waterfront-cave-mountain-left-wing',x:caveX-10.5,z:caveZ+1,w:13,d:21},
-    {name:'coastline-waterfront-cave-mountain-right-wing',x:caveX+10.5,z:caveZ+1,w:13,d:21},
-    {name:'coastline-waterfront-cave-rear-wall',x:caveX,z:caveZ+10.5,w:28,d:8},
-    {name:'coastline-waterfront-cave-left-portal-jamb',x:caveX-4.5,z:caveZ+.3,w:3,d:8.2},
-    {name:'coastline-waterfront-cave-right-portal-jamb',x:caveX+4.5,z:caveZ+.3,w:3,d:8.2},
-    {name:'coastline-electric-lemonade-cave-left-rock',x:caveX-6.5,z:caveZ-.1,w:4.2,d:5.2},
-    {name:'coastline-electric-lemonade-cave-right-rock',x:caveX+6.5,z:caveZ-.1,w:4.2,d:5.2},
+    {name:'coastline-waterfront-cave-mountain-left-slope',x:caveX-12,z:caveZ+2,w:16,d:18},
+    {name:'coastline-waterfront-cave-mountain-right-slope',x:caveX+12,z:caveZ+2,w:16,d:18},
+    {name:'coastline-waterfront-cave-mountain-rear-ridge',x:caveX,z:caveZ+13,w:34,d:10},
+    {name:'coastline-waterfront-cave-mountain-left-wing',x:caveX-9,z:caveZ+4,w:10,d:18},
+    {name:'coastline-waterfront-cave-mountain-right-wing',x:caveX+9,z:caveZ+4,w:10,d:18},
+    {name:'coastline-waterfront-cave-rear-wall',x:caveX,z:caveZ+10.5,w:32,d:8},
+    {name:'coastline-waterfront-cave-left-portal-jamb',x:caveX-2.2,z:caveZ-1.6,w:1.4,d:5.8},
+    {name:'coastline-waterfront-cave-right-portal-jamb',x:caveX+2.2,z:caveZ-1.6,w:1.4,d:5.8},
+    {name:'coastline-electric-lemonade-cave-left-rock',x:caveX-7,z:caveZ+1,w:6,d:7},
+    {name:'coastline-electric-lemonade-cave-right-rock',x:caveX+7,z:caveZ+1,w:6,d:7},
   ];
 }
 
@@ -658,9 +658,9 @@ export function createCoastlineIslandRoot({ THREE, region, groundY = () => 0, ad
     const boardwalk = material(0x92765a, 0.92);
     const water = material(0x438c9a, 0.36, 0.08);
     // The old boardwalk passed beneath the cave approach; move it beside the marina docks.
-    addBox('coastline-waterfront-boardwalk',center.x+5,edgeY+.04,center.z+64,120,.2,10,boardwalk);
-    addBox('coastline-waterfront-marina-water', center.x + 42, edgeY - 0.02, center.z + 65, 48, 0.08, 30, water, false, false);
-    for (let i = 0; i < 4; i++) addBox(`coastline-waterfront-dock-${i + 1}`, center.x + 20 + i * 12, edgeY + 0.1, center.z + 65, 2.4, 0.25, 32, boardwalk);
+    addBox('coastline-waterfront-boardwalk',center.x+5,edgeY+.04,center.z+92,120,.2,10,boardwalk);
+    addBox('coastline-waterfront-marina-water', center.x + 70, edgeY - 0.02, center.z + 92, 72, 0.08, 30, water, false, false);
+    for (let i = 0; i < 4; i++) addBox(`coastline-waterfront-dock-${i + 1}`, center.x + 45 + i * 12, edgeY + 0.1, center.z + 92, 2.4, 0.25, 32, boardwalk);
     // The former large resort was removed to preserve a natural mountain/cave island.
   } else if (region.theme === 'working-harbor') {
     const containerColors = [0x9a4f3e, 0x3f6979, 0xc19a4e, 0x657d67].map(color => material(color, 0.82, 0.12));

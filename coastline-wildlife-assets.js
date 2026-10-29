@@ -408,14 +408,18 @@ export function createCoastlineWildlifeAssets({ THREE, vehicles, wildlife, world
     const cave = cloneAsset(THREE, template.scene, template.skeletonUtils);
     if (!cave) return false;
     cave.name = 'coastline-waterfront-cave-entrance-glb';
+    // Grab3D's cave is Z-up; rotate into Y-up and point its doorway toward the -Z approach.
+    cave.rotation.set(-Math.PI / 2, Math.PI, 0);
     boundsScale(cave, 'cave');
-    // The cave's portal faces the approach (+Z); its back nests into the authored mountain.
-    cave.position.x = 520;
-    cave.position.z = 541.5;
-    cave.position.y = Number.isFinite(root.userData?.coastlineGroundY) ? root.userData.coastlineGroundY : groundY(500, 500);
-    cave.rotation.y = Math.PI;
+    cave.updateMatrixWorld(true);
+    const fittedBounds = new THREE.Box3().setFromObject(cave);
+    const floorY = Number.isFinite(root.userData?.coastlineGroundY) ? root.userData.coastlineGroundY : groundY(500, 500);
+    cave.position.x += 520 - (fittedBounds.min.x + fittedBounds.max.x) / 2;
+    cave.position.z += 545 - (fittedBounds.min.z + fittedBounds.max.z) / 2;
+    cave.position.y += floorY - fittedBounds.min.y;
     cave.traverse(node => { if (node.isMesh) { node.castShadow = true; node.receiveShadow = true; node.userData.coastlineSharedWildlifeAsset = true; } });
-    for (const child of mouth.children) child.visible = false;
+    const proceduralDarkness = mouth.getObjectByName('coastline-electric-lemonade-cave-dark-opening');
+    if (proceduralDarkness) proceduralDarkness.visible = false;
     mouth.add(cave);
     root.userData.coastlineCaveGLB = cave;
     return true;
