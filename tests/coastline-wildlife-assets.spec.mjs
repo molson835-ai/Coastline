@@ -92,7 +92,7 @@ test('wildlife loader uses GLB animation, rider socket, source paths, and CTM-ow
   assert.match(transitions, /id:'homey-garage-to-island'[\s\S]*?z:484,rotationY:Math\.PI/, 'Homey vehicle arrival points out of the garage');
   assert.match(transitions, /id:'homey-garage-to-house'[\s\S]*?z:508\.5,rotationY:Math\.PI/, 'house interior arrival faces into the room, away from its door');
   assert.match(game, /isCoastlineCaveThreshold/);
-  assert.match(game, /steer=THREE\.MathUtils\.clamp\(\(keys\.a\?1:0\)-\(keys\.d\?1:0\),-1,1\)/, 'D-pad controls follow the behind-car screen-space convention');
+  assert.match(game, /steer=THREE\.MathUtils\.clamp\(\(keys\.d\?1:0\)-\(keys\.a\?1:0\),-1,1\)/, 'D-pad controls follow the behind-car screen-space convention');
   assert.doesNotMatch(game, /driveStick|touchSteer|driveControls/, 'joystick is removed in favor of the D-pad');
   assert.match(game, /document\.addEventListener\('visibilitychange'/, 'touch input clears when the app is backgrounded');
   assert.match(game, /document\.querySelectorAll\('\.touch \[data-k\]'\)/, 'D-pad buttons share pointer-safe input handling');
