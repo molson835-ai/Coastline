@@ -51,12 +51,12 @@ test('cave rock collision leaves a walkable doorway and blocks the mountain side
   assert.ok(colliders.length >= 9);
   assert.ok(colliders.some(c => c.name.includes('portal-jamb')));
   assert.equal(COASTLINE_CAVE_PORTAL_CLEAR_WIDTH, 6);
-  assert.equal(isCoastlineCavePointBlocked(548, 537.2, 0.45), false, 'character fits through centered portal');
-  assert.equal(isCoastlineCavePointBlocked(548, 537.2, 1.8), false, 'vehicle envelope fits through portal corridor');
-  assert.equal(isCoastlineCavePointBlocked(542, 537.2, 0.45), true, 'left rock face blocks foot movement');
-  assert.equal(isCoastlineCavePointBlocked(554, 537.2, 1.8), true, 'right rock face blocks a vehicle');
-  assert.equal(isCoastlineCavePointBlocked(548, 527, 0.45), true, 'rear of mountain is solid');
-  assert.equal(isCoastlineCavePointBlocked(536, 528, 0.45), true, 'side/rear mountain is solid');
+  assert.equal(isCoastlineCavePointBlocked(520, 542.5, 0.45), false, 'character fits through relocated centered portal');
+  assert.equal(isCoastlineCavePointBlocked(520, 542.5, 1.8), false, 'vehicle envelope fits through portal corridor');
+  assert.equal(isCoastlineCavePointBlocked(514, 542.5, 0.45), true, 'left rock face blocks foot movement');
+  assert.equal(isCoastlineCavePointBlocked(526, 542.5, 1.8), true, 'right rock face blocks a vehicle');
+  assert.equal(isCoastlineCavePointBlocked(520, 532, 0.45), true, 'rear of mountain is solid');
+  assert.equal(isCoastlineCavePointBlocked(508, 533, 0.45), true, 'side/rear mountain is solid');
 });
 
 test('wildlife loader uses GLB animation, rider socket, source paths, and CTM-owned root lifecycle', async () => {
@@ -83,6 +83,9 @@ test('wildlife loader uses GLB animation, rider socket, source paths, and CTM-ow
   assert.match(transitions, /coastlineWildlifeAssets\?\.attachWorld/);
   assert.match(transitions, /coastlineWildlifeAssets\?\.detachWorld/);
   assert.match(game, /isCoastlineCaveThreshold/);
+  assert.match(game, /steer=\(keys\.a\?1:0\)-\(keys\.d\?1:0\)/, 'left/right steering polarity is corrected');
+  assert.match(game, /exit:\{x:520,z:541\.5,radius:3\.2\},boots:\{x:520,z:558,radius:2\.8\}/, 'cave exit and boot pickup follow relocated cave entrance');
+  assert.match(loader, /cave\.position\.x = 520;[\s\S]*?cave\.position\.z = 541\.5;[\s\S]*?cave\.rotation\.y = Math\.PI;/, 'GLB cave mouth is relocated and faces back toward the lemonade stand');
   assert.match(game, /wildlifeAssetState/);
   assert.match(packageBuilder, /coastline-wildlife-assets\.js/);
   assert.match(packageBuilder, /assets\/cave-entrance\.glb/);
