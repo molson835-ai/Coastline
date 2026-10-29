@@ -446,6 +446,27 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
     add('electric-dungeon-ceiling',548,floorY+8.2,558,32,.4,44,wallMat);
     add('electric-dungeon-entry-left',539,floorY+2.2,538,.5,4.4,.5,wallMat,true);
     add('electric-dungeon-entry-right',557,floorY+2.2,538,.5,4.4,.5,wallMat,true);
+    // Walkable branching labyrinth: offset wall runs create bends, side routes and
+    // dead ends with enough clearance for the player capsule. The entry and boot alcove
+    // remain connected; all wall segments are collidable rather than visual-only.
+    const mazeWall=(name,x,z,w,d)=>add(name,x,floorY+2.1,z,w,4.2,d,rockMat,true);
+    mazeWall('electric-dungeon-maze-west-first',541.5,548,11.5,.7);
+    mazeWall('electric-dungeon-maze-east-first',557.5,548,9.5,.7);
+    mazeWall('electric-dungeon-maze-northwest-turn',548,553,.7,8.5);
+    mazeWall('electric-dungeon-maze-northeast-turn',558,557,.7,8.5);
+    mazeWall('electric-dungeon-maze-center-crossbar',548,562,10,.7);
+    mazeWall('electric-dungeon-maze-southwest-branch',539.5,568,9.5,.7);
+    mazeWall('electric-dungeon-maze-southeast-branch',558.5,572,9.5,.7);
+    mazeWall('electric-dungeon-maze-dead-end-marker',543,575,.7,4.5);
+    // Distinct stone markers make route choices readable in low light.
+    for(const [name,x,z,r] of [
+      ['west-route-crystal',536.5,553,.8],['central-route-stalagmite',551,556,1.05],
+      ['east-route-crystal',560.5,565,.75],['boot-alcove-stalagmite',547,574,.9]
+    ]){
+      const landmark=new THREE.Mesh(new THREE.ConeGeometry(r,2.4,6),rockMat);
+      landmark.name='electric-dungeon-landmark-'+name;
+      landmark.position.set(x,floorY+1.2,z);landmark.castShadow=true;root.add(landmark);
+    }
     for(const [x,z,scale] of [[536,549,2.4],[559,551,2.1],[541,563,1.7],[557,574,2.4],[535,572,1.6]]){
       const rock=new THREE.Mesh(new THREE.DodecahedronGeometry(1,1),rockMat);rock.name='electric-dungeon-obscuring-rock';rock.position.set(x,floorY+scale*.42,z);rock.scale.set(scale,scale*.85,scale*1.15);rock.castShadow=true;rock.receiveShadow=true;root.add(rock);colliders.push({name:'electric-dungeon-rock-collider',x,z,w:scale*1.25,d:scale*1.35});
     }
