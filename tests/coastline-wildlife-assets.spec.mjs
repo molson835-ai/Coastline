@@ -97,7 +97,7 @@ test('wildlife loader uses GLB animation, rider socket, source paths, and CTM-ow
   assert.match(game, /driveStick\.addEventListener\('pointermove',updateDriveStick\)/, 'joystick tracks horizontal touch movement');
   assert.match(game, /document\.addEventListener\('visibilitychange'/, 'touch input clears when the app is backgrounded');
   assert.match(game, /data-steer-button/, 'button steering remains available outside driving mode');
-  assert.match(game, /roadster\|convertible\|open\.?top/i, 'open-top vehicle can show a seated driver');
+  assert.match(game, /roadster|convertible|open\.?top/i, 'open-top vehicle can show a seated driver');
   assert.match(game, /coastlineOpenTopDriver&&avatar\.parent===v\.g/, 'open-top driver is restored to the world when exiting');
   assert.match(game, /exit:\{x:548,z:541\.5,radius:3\.2\},boots:\{x:552,z:568,radius:2\.8\}/, 'cave exit and boot pickup follow relocated cave entrance');
   assert.match(loader, /cave\.position\.x = 520;[\s\S]*?cave\.position\.z = 541\.5;[\s\S]*?cave\.rotation\.y = Math\.PI;/, 'GLB cave mouth is relocated and faces back toward the lemonade stand');
@@ -145,7 +145,6 @@ test('active wildlife replaces legacy procedural deer and bird flock placeholder
   assert.doesNotMatch(game, /const birdMat=M\(0x302b42/);
   assert.match(game, /deer:0/);
 });
-
 
 test('wildlife simulation is gated to the active world while preserving a mount attached to the active root', async () => {
   const { shouldUpdateCoastlineWildlife } = await import('../coastline-wildlife-assets.js');
