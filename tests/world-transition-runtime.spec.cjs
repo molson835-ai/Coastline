@@ -312,11 +312,11 @@ test('garage → house → garage round trip preserves the parked vehicle and on
     const vehicle = window.__coastlineVehicleRegistry.find(item => item.kind === 'car' && item.g?.parent === window.__coastlineActiveWorldRoot);
     if (!vehicle) throw new Error('No local City/Homey car was available for the garage transition test');
     window.__coastlineTest.enterVehicle(vehicle);
-    if (window.__coastlineTest.playerState().mode !== 'vehicle') throw new Error('Vehicle entry failed before garage transition');
+    if (transitions.playerState().mode !== 'vehicle') throw new Error('Vehicle entry failed before garage transition');
     await transitions.transition('island-to-homey-garage');
     if (transitions.status().activeWorldId !== 'homey-garage') throw new Error('Garage transition did not activate');
     window.__coastlineTest.exitVehicle();
-    if (window.__coastlineTest.playerState().mode !== 'walk') throw new Error('Could not safely exit vehicle in garage');
+    if (transitions.playerState().mode !== 'walk') throw new Error('Could not safely exit vehicle in garage');
     await transitions.transition('homey-garage-to-house');
     const houseWorld = transitions.status().activeWorldId;
     const vehiclePreservedInHouse = transitions.garageVehicleRef() === vehicle;
@@ -324,7 +324,7 @@ test('garage → house → garage round trip preserves the parked vehicle and on
     return {
       activeWorldId: transitions.status().activeWorldId,
       houseWorld,
-      mode: window.__coastlineTest.playerState().mode,
+      mode: transitions.playerState().mode,
       vehiclePreservedInHouse,
       sameParkedVehicle: transitions.garageVehicleRef() === vehicle,
       vehicleGeometryChildren: vehicle.g?.children?.length ?? 0,
