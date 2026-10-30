@@ -20,7 +20,7 @@ function makeWorld({ includeRoad = true, includeBuilding = true, includeTerrain 
   if (includeBuilding) root.children.push({ name: 'coastline-building:Harbor Hotel', visible: true, userData: { coastlineBuilding: true }, children: [mesh('building-body')], parent: root, traverse(fn) { fn(this); for (const child of this.children) child.traverse(fn); } });
   if (includeTerrain) root.children.push(mesh('city-terrain', { coastlineTerrainLayer: true }));
   for (const child of root.children) child.parent = root;
-  const scene = { isLight: true, children: [root], traverse(fn) { fn(this); root.traverse(fn); } };
+  const scene = { isLight: true, background: {}, environment: {}, fog: {}, children: [root], traverse(fn) { fn(this); root.traverse(fn); } };
   root.parent = scene;
   const renderer = {
     domElement: { isConnected: true },
@@ -71,4 +71,12 @@ test('includes captured asset request failures in the report', () => {
   const report = health.scan();
   assert.equal(report.checks.find(check => check.id === 'asset-requests').status, 'warning');
   assert.equal(report.assets.failures[0].url, './assets/missing.glb');
+});
+
+test('flags a renderer color-management mismatch as a graphics warning', () => {
+  const world = makeWorld();
+  world.renderer.toneMapping = 0;
+  const report = createCoastlineWorldHealth({ ...world, expectedGraphics: { outputColorSpace: 'srgb', toneMapping: 4 } }).scan();
+  assert.equal(report.checks.find(check => check.id === 'render-pipeline').status, 'warning');
+  assert.equal(report.status, 'degraded');
 });
