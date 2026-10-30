@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - fix/ctm-directional-trigger-traffic-lanes
+      - qa/pr-144-validation-recovery
       - 'perf/**'
   pull_request:
     branches:
@@ -34,6 +35,8 @@ jobs:
           node-version: 20
       - name: Install test dependencies
         run: npm install
+      - name: Validate GLB assets
+        run: npm run assets:validate
       - name: Run engine, culling, and transition manager tests
         run: npm run test:engine
 
