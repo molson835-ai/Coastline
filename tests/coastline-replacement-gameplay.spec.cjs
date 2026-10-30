@@ -71,13 +71,13 @@ test('replacement: reaching the real cave threshold invokes the existing CTM and
   await expect.poll(() => page.evaluate(() => window.__coastlineTransitionTest.status().activeWorldId), { timeout: 8000 }).toBe('electric-lemonade-dungeon');
   const inside = await page.evaluate(() => window.__coastlineTransitionTest.playerState());
   expect(inside.mode).toBe('walk');
-  expect(Number.isFinite(inside.x)).toBe(true);
+  expect(Number.isFinite(inside.position?.x)).toBe(true);
   await page.evaluate(() => window.__coastlineElectricLemonade.interact());
   await expect.poll(() => page.evaluate(() => window.__coastlineTransitionTest.status().activeWorldId), { timeout: 8000 }).toBe('waterfront');
   const outside = await page.evaluate(() => window.__coastlineTransitionTest.playerState());
   expect(outside.mode).toBe('walk');
-  expect(Number.isFinite(outside.x)).toBe(true);
-  expect(Number.isFinite(outside.z)).toBe(true);
+  expect(Number.isFinite(outside.position?.x)).toBe(true);
+  expect(Number.isFinite(outside.position?.z)).toBe(true);
 });
 
 test('replacement: Electric Lemonade pedestrian is an animated active-world actor tied to the stand', async ({ page }) => {
