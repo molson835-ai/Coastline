@@ -4,6 +4,8 @@
  * Keeps purchase accounting and timed rocket-boot effects independent from
  * scene construction so expiry, reload and CTM transitions are deterministic.
  */
+import './coastline-replacement-runtime.js';
+
 export const ELECTRIC_LEMONADE_PRICE_CB = 10;
 export const ROCKET_BOOTS_DURATION_MS = 5 * 60 * 1000;
 export const ROCKET_BOOTS_STORAGE_KEY = 'coastlineRocketBootsExpiresAtV1';

@@ -73,3 +73,12 @@
 - Detailed handoff: `docs/COASTLINE_HOMEY_GARAGE_HANDOFF_2026-10-26.md`.
 - New module `coastline-homey-garage.js` is wired into CTM; package and service-worker manifests were updated to include it. Unit and browser regressions have been authored, but exact-head CI and preview checks are still pending.
 - Keep this PR unmerged and undeployed until browser, engine, package, and preview gates are reviewed; physical Android performance/visual acceptance must be recorded separately and must not be inferred from desktop CI.
+
+
+## User-confirmed control lock and PR #142 cave/hair scope — 2026-10-29
+- **Steering is finally correct.** The user explicitly confirmed that the last PR #141 vehicle-only A/D steering change fixed the driving direction. Preserve that exact `updateVehicle()` steering polarity `(keys.a?1:0)-(keys.d?1:0)` and do not alter vehicle steering, walking controls, camera, or vehicle presentation in follow-up work.
+- PR #142 is intentionally stacked on PR #141 and limited to restoring the previously approved Waterfront cave/CTM behavior plus one hair-coverage adjustment.
+- Cave source of truth is the PR #136 Waterfront layout: cave center `(520,545)`, approach from the `-Z` side, cave threshold `(520,542.5)` radius `2.25`, and the authored procedural mountain/rock/collider orientation already present in `coastline-island-regions.js`. Do not rotate the loaded cave GLB by 180 degrees; that runtime override reverses the entrance and undoes the prior orientation.
+- Restore the prior CTM cave entry spawn `(520,545)` and return spawn `(520,537.5)`. Keep the existing player-facing interaction (`E` / contextual USE) as the trigger into the existing CTM manager; do not add a separate automatic transition loop. The dungeon exit interaction is centered at `(520,542.5)` with radius `3.2`, which is reachable from the restored interior spawn.
+- Hair request: increase the existing authored hair mesh's horizontal circumference by exactly 20% from the current PR #141 correction, taking its x/z multiplier from `1.65` to `1.98`; leave vertical scaling at `1.35`. Do not shrink the head, add a cap/sphere, or change other character geometry.
+- PR #142 must not change steering, walking, camera, vehicle models, NPCs, world scenery outside the cave work, or unrelated gameplay. Keep PR #141 open/unmerged until the user reviews the stacked PR and the fresh CI/browser tests pass.
