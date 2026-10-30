@@ -34,7 +34,10 @@
           await reg.update().catch(()=>{});
           if(!navigator.serviceWorker.controller){
             status.textContent='Installing the Coastline runtime…';
-            await new Promise(resolve=>navigator.serviceWorker.addEventListener('controllerchange',resolve,{once:true}));
+            await Promise.race([
+              new Promise(resolve=>navigator.serviceWorker.addEventListener('controllerchange',resolve,{once:true})),
+              new Promise(resolve=>setTimeout(resolve,1800))
+            ]);
           }
         }
       }catch(error){
