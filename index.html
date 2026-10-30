@@ -20,27 +20,21 @@
 <body>
   <main>
     <h1>COASTLINE</h1>
-    <p id="status">Preparing the full open-world beta and warming the local game cache…</p>
+    <p id="status">Opening the full open-world beta…</p>
     <a class="primary" id="enter" href="./game-v3.html?beta=20261016performance">Enter full beta</a>
-    <p class="small">The beta now keeps its local cache between launches so the world does not have to cold-download every time.</p>
+    <p class="small">The game can start immediately; offline cache preparation happens in the background.</p>
   </main>
   <script>
-    (async()=>{
-      const target='./game-v3.html?beta=20261016performance';
-      const status=document.getElementById('status');
-      try{
-        if('serviceWorker' in navigator){
-          const reg=await navigator.serviceWorker.register('./coastline-sw.js',{scope:'./'});
-          await reg.update().catch(()=>{});
-          if(!navigator.serviceWorker.controller){
-            status.textContent='Installing the Coastline runtime…';
-            await new Promise(resolve=>navigator.serviceWorker.addEventListener('controllerchange',resolve,{once:true}));
-          }
-        }
-      }catch(error){
-        console.warn('Coastline runtime preparation skipped:',error);
+    (() => {
+      const target = './game-v3.html?beta=20261016performance';
+      // Service-worker installation must never gate gameplay startup. In particular,
+      // controllerchange can fire before a listener is attached (or not fire at all
+      // for an already-controlled page), leaving returning players on this launcher.
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./coastline-sw.js', { scope: './' })
+          .then(registration => registration.update().catch(() => {}))
+          .catch(error => console.warn('Coastline offline cache unavailable; continuing online:', error));
       }
-      status.textContent='Opening the full Coastline open-world beta…';
       location.replace(target);
     })();
   </script>
