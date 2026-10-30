@@ -1,0 +1,32 @@
+name: Coastline World Health tests
+
+on:
+  push:
+    branches:
+      - qa/pr-144-validation-recovery
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: coastline-world-health-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  world-health:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install test dependencies
+        run: npm install
+      - name: Run Coastline World Health diagnostics tests
+        run: npm run test:world-health
