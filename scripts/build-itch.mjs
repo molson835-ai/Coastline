@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const output = path.join(root, 'dist', 'itch-html');
 const files = [
-  'game-v3.html', 'coastline-asset-swap.js', 'coastline-vehicle-sizing.js', 'assets/Free Low Poly Vehicles Pack by Rgsdev.zip', 'assets/grab3d-cozy-character.glb', 'assets/cave-entrance.glb', 'assets/animals/ostrich.glb', 'ASSET_CREDITS.md', 'vehicle-visual-enhancer.js', 'cinematic-world-upgrade.js',
+  'game-v3.html', 'coastline-asset-swap.js', 'coastline-vehicle-sizing.js', 'assets/Free Low Poly Vehicles Pack by Rgsdev.zip', 'assets/grab3d-cozy-character.glb', 'assets/cave-entrance.glb', 'assets/3_evil_rock_mountains_with_cave_stylized.glb', 'assets/animals/ostrich.glb', 'ASSET_CREDITS.md', 'vehicle-visual-enhancer.js', 'cinematic-world-upgrade.js',
   'car-customization.js', 'world-model.js', 'world-engine.js', 'living-world.js', 'coastline-wildlife-assets.js',
   'douglassville-layout.js', 'realism-library.js', 'presentation-runtime.js',
   'cinematic-visual-library.js', 'cinematic-animation-library.js',
