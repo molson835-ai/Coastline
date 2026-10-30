@@ -7,10 +7,15 @@
     "test:systems": "node --test tests/replayability-engine.spec.mjs tests/npc-agency-engine.spec.mjs tests/social-rumor-engine.spec.mjs tests/player-reputation-engine.spec.mjs",
     "test:vehicle": "node --test tests/vehicle-dynamics-v1.spec.cjs",
     "test": "npm run test:engine && npm run test:systems && npm run test:vehicle && npm run test:gameplay",
+    "assets:validate": "node scripts/validate-glb-assets.mjs",
+    "assets:inspect": "gltf-transform inspect",
+    "assets:optimize:help": "gltf-transform optimize --help",
     "package:itch": "node scripts/build-itch.mjs"
   },
   "devDependencies": {
-    "@playwright/test": "^1.55.0"
+    "@gltf-transform/cli": "^4.2.1",
+    "@playwright/test": "^1.55.0",
+    "gltf-validator": "^2.0.0-dev.3.10"
   },
   "type": "module"
 }
