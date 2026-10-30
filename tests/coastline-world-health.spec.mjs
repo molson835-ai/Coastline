@@ -20,7 +20,7 @@ function makeWorld({ includeRoad = true, includeBuilding = true, includeTerrain 
   if (includeBuilding) root.children.push({ name: 'coastline-building:Harbor Hotel', visible: true, userData: { coastlineBuilding: true }, children: [mesh('building-body')], parent: root, traverse(fn) { fn(this); for (const child of this.children) child.traverse(fn); } });
   if (includeTerrain) root.children.push(mesh('city-terrain', { coastlineTerrainLayer: true }));
   for (const child of root.children) child.parent = root;
-  const scene = { children: [root], traverse(fn) { fn(this); root.traverse(fn); } };
+  const scene = { isLight: true, children: [root], traverse(fn) { fn(this); root.traverse(fn); } };
   root.parent = scene;
   const renderer = {
     domElement: { isConnected: true },
