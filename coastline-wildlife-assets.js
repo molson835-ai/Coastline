@@ -1,4 +1,4 @@
-import { COASTLINE_CAVE_THRESHOLD } from './coastline-island-regions.js';
+import { COASTLINE_CAVE_ANCHOR, COASTLINE_CAVE_THRESHOLD } from './coastline-island-regions.js';
 
 /**
  * Lazy animal/cave visual assets for Coastline.
@@ -414,8 +414,8 @@ export function createCoastlineWildlifeAssets({ THREE, vehicles, wildlife, world
     cave.updateMatrixWorld(true);
     const fittedBounds = new THREE.Box3().setFromObject(cave);
     const floorY = Number.isFinite(root.userData?.coastlineGroundY) ? root.userData.coastlineGroundY : groundY(500, 500);
-    cave.position.x += 520 - (fittedBounds.min.x + fittedBounds.max.x) / 2;
-    cave.position.z += 545 - (fittedBounds.min.z + fittedBounds.max.z) / 2;
+    cave.position.x += COASTLINE_CAVE_ANCHOR.x - (fittedBounds.min.x + fittedBounds.max.x) / 2;
+    cave.position.z += COASTLINE_CAVE_ANCHOR.z - (fittedBounds.min.z + fittedBounds.max.z) / 2;
     cave.position.y += floorY - fittedBounds.min.y;
     cave.traverse(node => { if (node.isMesh) { node.castShadow = true; node.receiveShadow = true; node.userData.coastlineSharedWildlifeAsset = true; } });
     const proceduralDarkness = mouth.getObjectByName('coastline-electric-lemonade-cave-dark-opening');
