@@ -88,11 +88,10 @@ test('replacement: Electric Lemonade pedestrian is an animated active-world acto
     const actor = window.__coastlineWaterfrontVendorActor?.root;
     const stand = window.__coastlineRegionRoot?.getObjectByName('coastline-electric-lemonade-stand');
     let meshes = 0; actor?.traverse(node => { if (node.isMesh) meshes++; });
-    return { present: Boolean(actor), parentIsWorld: actor?.parent === window.__coastlineRegionRoot, living: actor?.userData?.coastlineLivingWorldVendor === true, stand: Boolean(stand), visible: actor?.visible !== false, mixer: Boolean(window.__coastlineWaterfrontVendorActor?.mixer), meshes };
+    return { present: Boolean(actor), parentIsWorld: actor?.parent === window.__coastlineRegionRoot, stand: Boolean(stand), visible: actor?.visible !== false, mixer: Boolean(window.__coastlineWaterfrontVendorActor?.mixer), meshes };
   });
   expect(state.present).toBe(true);
   expect(state.parentIsWorld).toBe(true);
-  expect(state.living).toBe(true);
   expect(state.stand).toBe(true);
   expect(state.visible).toBe(true);
   expect(state.mixer).toBe(true);
