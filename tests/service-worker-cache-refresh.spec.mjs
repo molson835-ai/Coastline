@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
 const worker = await readFile(new URL('../coastline-sw.js', import.meta.url), 'utf8');
+const launcher = await readFile(new URL('../index.html', import.meta.url), 'utf8');
 
 test('service worker activates a fresh cache generation after deployment', () => {
   const cacheGeneration = worker.match(/const CACHE_NAME='coastline-static-v(\d+)'/);
@@ -21,5 +22,12 @@ test('runtime scripts and styles refresh from network before using cached fallba
 });
 
 test('non-runtime assets retain cache-first behavior for offline resilience', () => {
-  assert.match(worker, /event\.respondWith\(caches\.match\(request\)\.then\(cached=>\{const network=fetch\(request\)/);
+  assert.match(worker, /event\.respondWith\(caches\.match\(request\).then\(cached=>\{const network=fetch\(request\)/);
+});
+
+test('launcher never waits for service-worker controllerchange before opening the game', () => {
+  assert.doesNotMatch(launcher, /addEventListener\(['"]controllerchange['"]/);
+  assert.doesNotMatch(launcher, /await new Promise/);
+  assert.match(launcher, /navigator\.serviceWorker\.register/);
+  assert.match(launcher, /location\.replace\(target\)/);
 });
