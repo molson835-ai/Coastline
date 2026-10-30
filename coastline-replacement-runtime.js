@@ -49,8 +49,12 @@ function installReplacementRuntimeCorrections() {
         caveReplacementPromise = (async () => {
           const { GLTFLoader } = await import('https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/loaders/GLTFLoader.js');
           const loader = new GLTFLoader();
-          const response = await fetch('./assets/3_evil_rock_mountains_with_cave_stylized.glb', { mode: 'same-origin', cache: 'force-cache' });
-          if (!response.ok) throw new Error('HTTP ' + response.status + ' for replacement cave GLB');
+          // The canonical repository/package location is assets/. Resolve from the
+          // document base so the same asset works from game-v3.html, index.html,
+          // Vercel subpaths, and the packaged itch build without moving the GLB.
+          const assetUrl = new URL('assets/3_evil_rock_mountains_with_cave_stylized.glb', document.baseURI).href;
+          const response = await fetch(assetUrl, { mode: 'same-origin', cache: 'force-cache' });
+          if (!response.ok) throw new Error('HTTP ' + response.status + ' for replacement cave GLB at ' + assetUrl);
           const buffer = await response.arrayBuffer();
           if (buffer.byteLength < 20 || new DataView(buffer).getUint32(0, true) !== 0x46546c67) throw new Error('Replacement cave is not a binary glTF');
           return new Promise((resolve, reject) => loader.parse(buffer, '', resolve, reject));
