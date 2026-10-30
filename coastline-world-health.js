@@ -47,6 +47,7 @@ export function createCoastlineWorldHealth({
   renderer,
   camera,
   worldModel = null,
+  expectedGraphics = {},
   eventTarget = null,
   assetFailures: initialAssetFailures = [],
   minimums = {},
@@ -151,6 +152,14 @@ export function createCoastlineWorldHealth({
         camera ? { near: camera.near, far: camera.far, position: camera.position } : null),
       check('lighting', 'Scene lighting',
         lightCount > 0 ? 'healthy' : 'warning', { lights: lightCount }),
+      check('render-pipeline', 'Color management and scene environment',
+        ((!expectedGraphics.outputColorSpace || renderer?.outputColorSpace === expectedGraphics.outputColorSpace) &&
+         (!expectedGraphics.toneMapping || renderer?.toneMapping === expectedGraphics.toneMapping) &&
+         Boolean(scene?.background) && Boolean(scene?.environment) && Boolean(scene?.fog)) ? 'healthy' : 'warning',
+        { outputColorSpace: renderer?.outputColorSpace ?? null, expectedOutputColorSpace: expectedGraphics.outputColorSpace ?? null,
+          toneMapping: renderer?.toneMapping ?? null, expectedToneMapping: expectedGraphics.toneMapping ?? null,
+          toneMappingExposure: renderer?.toneMappingExposure ?? null, backgroundPresent: Boolean(scene?.background),
+          environmentPresent: Boolean(scene?.environment), fogPresent: Boolean(scene?.fog) }),
       check('materials', 'Mesh materials',
         missingMaterialCount === 0 ? 'healthy' : 'warning',
         { meshes: meshes.length, materials: materialCount, meshesWithoutMaterial: missingMaterialCount }),
@@ -191,6 +200,7 @@ export function createCoastlineWorldHealth({
         toneMapping: renderer?.toneMapping ?? null,
         pixelRatio: renderer?.getPixelRatio?.() ?? null,
         shadowMapEnabled: renderer?.shadowMap?.enabled ?? null,
+        toneMappingExposure: renderer?.toneMappingExposure ?? null,
         drawCalls: renderInfo.render?.calls ?? null,
         triangles: renderInfo.render?.triangles ?? null,
         geometries: renderInfo.memory?.geometries ?? null,
@@ -200,6 +210,7 @@ export function createCoastlineWorldHealth({
         valid: cameraValid,
         near: camera?.near ?? null,
         far: camera?.far ?? null,
+        fov: camera?.fov ?? null,
         position: camera?.position ? {
           x: camera.position.x, y: camera.position.y, z: camera.position.z,
         } : null,
