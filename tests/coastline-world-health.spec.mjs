@@ -36,7 +36,7 @@ test('reports a populated visible City world as healthy', () => {
   const world = makeWorld();
   const health = createCoastlineWorldHealth(world);
   const report = health.scan();
-  assert.equal(report.status, 'healthy');
+  assert.equal(report.status, 'healthy', JSON.stringify(report.checks));
   assert.equal(report.world.roads, 1);
   assert.equal(report.world.buildings, 1);
   assert.equal(report.world.terrain, 1);
