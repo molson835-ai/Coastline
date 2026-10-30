@@ -6,28 +6,28 @@ const worker = await readFile(new URL('../coastline-sw.js', import.meta.url), 'u
 const launcher = await readFile(new URL('../index.html', import.meta.url), 'utf8');
 
 test('service worker activates a fresh cache generation after deployment', () => {
-  const cacheGeneration = worker.match(/const CACHE_NAME='coastline-static-v(\\d+)'/);
+  const cacheGeneration = worker.match(/const CACHE_NAME='coastline-static-v(\d+)'/);
   assert.ok(cacheGeneration, 'service worker declares a versioned static cache');
   assert.ok(Number(cacheGeneration[1]) > 66, 'deployment cache generation must advance beyond the pre-wildlife v65 cache');
-  assert.match(worker, /'\\.\\/coastline-homey-garage\\.js'/);
-  assert.match(worker, /'\\.\\/coastline-homey-house-interior\\.js'/);
-  assert.match(worker, /'\\.\\/coastline-vehicle-sizing\\.js'/);
-  assert.match(worker, /keys\\.filter\\(k=>k!==CACHE_NAME\\)/);
+  assert.match(worker, /'\.\/coastline-homey-garage\.js'/);
+  assert.match(worker, /'\.\/coastline-homey-house-interior\.js'/);
+  assert.match(worker, /'\.\/coastline-vehicle-sizing\.js'/);
+  assert.match(worker, /keys\.filter\(k=>k!==CACHE_NAME\)/);
 });
 
 test('runtime scripts and styles refresh from network before using cached fallback', () => {
-  assert.match(worker, /request\\.destination==='script'\\|\\|request\\.destination==='style'/);
-  assert.match(worker, /fetch\\(new Request\\(request,\\{cache:'reload'\\}\\)\\)/);
-  assert.match(worker, /catch\\(\\(\\)=>caches\\.match\\(request\\)\\.then\\(cached=>cached\\|\\|Response\\.error\\(\\)\\)/);
+  assert.match(worker, /request\.destination==='script'\|\|request\.destination==='style'/);
+  assert.match(worker, /fetch\(new Request\(request,\{cache:'reload'\}\)\)/);
+  assert.match(worker, /catch\(\(\)=>caches\.match\(request\)\.then\(cached=>cached\|\|Response\.error\(\)\)/);
 });
 
 test('non-runtime assets retain cache-first behavior for offline resilience', () => {
-  assert.match(worker, /event\\.respondWith\\(caches\\.match\\(request\\).then\\(cached=>\\{const network=fetch\\(request\\)/);
+  assert.match(worker, /event\.respondWith\(caches\.match\(request\).then\(cached=>\{const network=fetch\(request\)/);
 });
 
 test('launcher never waits for service-worker controllerchange before opening the game', () => {
-  assert.doesNotMatch(launcher, /addEventListener\\(['"]controllerchange['"]/);
+  assert.doesNotMatch(launcher, /addEventListener\(['"]controllerchange['"]/);
   assert.doesNotMatch(launcher, /await new Promise/);
-  assert.match(launcher, /navigator\\.serviceWorker\\.register/);
-  assert.match(launcher, /location\\.replace\\(target\\)/);
+  assert.match(launcher, /navigator\.serviceWorker\.register/);
+  assert.match(launcher, /location\.replace\(target\)/);
 });
