@@ -29,7 +29,7 @@ function makeWorld({ includeRoad = true, includeBuilding = true, includeTerrain 
     outputColorSpace: 'srgb', toneMapping: 4, shadowMap: { enabled: true },
   };
   const camera = { near: 0.1, far: 1400, position: { x: 0, y: 10, z: 10 } };
-  return { scene, root, renderer, camera };
+  return { scene, root, worldRoot: root, renderer, camera };
 }
 
 test('reports a populated visible City world as healthy', () => {
