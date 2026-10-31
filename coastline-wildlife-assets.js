@@ -174,11 +174,11 @@ function cloneAsset(THREE, template, skeletonUtils) {
 export function createCoastlineWildlifeAssets({ THREE, vehicles, wildlife, worldModel, groundY, avatar = null, isPlaceBlocked = () => false } = {}) {
   if (!THREE || !Array.isArray(vehicles) || !Array.isArray(wildlife)) throw new TypeError('THREE, vehicles and wildlife are required');
   const attached = new Map();
-  const templates = { horse: null, ostrich: null, cave: null };
+  const templates = { horse: null, ostrich: null };
   const diagnostics = {
     initialized: false,
-    loaded: { horse: false, ostrich: false, cave: false },
-    source: { horse: 'pending', ostrich: 'pending', cave: 'pending' },
+    loaded: { horse: false, ostrich: false },
+    source: { horse: 'pending', ostrich: 'pending' },
     errors: [],
     activeWorldId: null,
     lastUpdated: 0,
@@ -449,7 +449,6 @@ export function createCoastlineWildlifeAssets({ THREE, vehicles, wildlife, world
         }
       }
       diagnostics.initialized = true;
-      for (const [root] of attached) if (root.userData?.coastlineRegionId === 'waterfront') void loadCaveIntoRoot(root);
       return getState();
     }).catch(error => {
       diagnostics.errors.push(String(error?.message || error));
