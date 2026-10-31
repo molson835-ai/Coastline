@@ -60,8 +60,7 @@ function removeLegacyCaveColliders(root) {
   root.userData.coastlineColliders = colliders.filter(collider => {
     const name = String(collider?.name || '');
     return !name.startsWith('coastline-waterfront-cave-') &&
-      !name.startsWith('coastline-electric-lemonade-cave-') &&
-      !name.startsWith('coastline-three-cave-');
+      !name.startsWith('coastline-electric-lemonade-cave-');
   });
   return before - root.userData.coastlineColliders.length;
 }
@@ -322,6 +321,9 @@ function maintain() {
     removeLegacyCaveNodes(root);
     removeLegacyCaveColliders(root);
     addStoneTraceColliders(root);
+    if (window.__coastlineActiveWorldRoot === root) {
+      window.__coastlineActiveWorldColliders = root.userData?.coastlineColliders || [];
+    }
     if (!root.userData?.coastlineReplacementCaveLoaded && !root.userData?.coastlineReplacementCaveLoading) {
       window.__coastlineEnsureReplacementCave?.(root);
     }
@@ -337,6 +339,17 @@ function maintain() {
 
 if (typeof window !== 'undefined') {
   window.__coastlineThreeCaveSystemUpdate = updateThresholdTransitions;
+  window.__coastlineThreeCaveBoundaryState = () => {
+    const root = window.__coastlineRegionRoot;
+    const colliders = root?.userData?.coastlineColliders || [];
+    return {
+      legacyVisuals: ['coastline-waterfront-cave-entrance-glb','coastline-waterfront-cave-mountain','coastline-waterfront-cave-approach-path']
+        .filter(name => Boolean(root?.getObjectByName(name))),
+      legacyColliders: colliders.filter(c => /^(coastline-waterfront-cave-|coastline-electric-lemonade-cave-)/.test(String(c?.name || ''))).map(c => c.name),
+      stoneTraceColliders: colliders.filter(c => String(c?.name || '').startsWith('coastline-three-cave-')).map(c => c.name),
+      replacementLoaded: Boolean(root?.userData?.coastlineReplacementCaveLoaded),
+    };
+  };
   const timer = window.setInterval(maintain, 100);
   window.addEventListener('beforeunload', () => window.clearInterval(timer), { once: true });
 }
