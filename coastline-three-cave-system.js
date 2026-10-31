@@ -100,6 +100,7 @@ function buildSideCaverns(root, THREE) {
   group.name = 'coastline-three-cave-interiors';
   group.userData.coastlineThreeCaveInterior = true;
 
+  const floorY = Number.isFinite(window.__coastlineElectricDungeonFloorY) ? window.__coastlineElectricDungeonFloorY : 0;
   const floorMaterial = new THREE.MeshStandardMaterial({ color: 0x252522, roughness: 1 });
   const rockMaterial = new THREE.MeshStandardMaterial({ color: 0x45463f, roughness: 1 });
   const rockPalette = [0x343632, 0x45463f, 0x292d2b, 0x555248].map(color => new THREE.Color(color));
@@ -112,7 +113,7 @@ function buildSideCaverns(root, THREE) {
 
     const floor = new THREE.Mesh(new THREE.PlaneGeometry(8.2, 38), floorMaterial);
     floor.rotation.x = -Math.PI / 2;
-    floor.position.set(cave.x, 0, 558);
+    floor.position.set(cave.x, floorY, 558);
     floor.receiveShadow = true;
     chamber.add(floor);
 
@@ -127,7 +128,7 @@ function buildSideCaverns(root, THREE) {
     for (let i = 0; i < 11; i++) {
       const z = 542.5 + i * 3.05;
       for (const side of [-1, 1]) {
-        rockDummy.position.set(cave.x + side * (3.55 + Math.sin(i * 1.7) * 0.28), 1.35 + (i % 3) * 0.22, z);
+        rockDummy.position.set(cave.x + side * (3.55 + Math.sin(i * 1.7) * 0.28), floorY + 1.35 + (i % 3) * 0.22, z);
         rockDummy.scale.set(1.0 + (i % 3) * 0.18, 1.65 + (i % 4) * 0.24, 2.05 + (i % 2) * 0.28);
         rockDummy.rotation.set(i * 0.13, i * 0.31, side * (0.08 + (i % 3) * 0.035));
         rockDummy.updateMatrix();
@@ -137,7 +138,7 @@ function buildSideCaverns(root, THREE) {
       }
     }
     for (let i = 0; i < 9; i++) {
-      rockDummy.position.set(cave.x + Math.sin(i * 1.3) * 0.8, 4.25 + Math.cos(i * 1.8) * 0.32, 544 + i * 3.55);
+      rockDummy.position.set(cave.x + Math.sin(i * 1.3) * 0.8, floorY + 4.25 + Math.cos(i * 1.8) * 0.32, 544 + i * 3.55);
       rockDummy.scale.set(1.55 + (i % 3) * 0.24, 0.85 + (i % 2) * 0.22, 2.0 + (i % 4) * 0.28);
       rockDummy.rotation.set(0.12 + i * 0.025, i * 0.27, 0.08 - i * 0.02);
       rockDummy.updateMatrix();
@@ -159,7 +160,7 @@ function buildSideCaverns(root, THREE) {
       const z = 547 + i * 3.55;
       const stalagmiteRadius = 0.32 + (i % 3) * 0.12;
       const stalagmiteHeight = 1.1 + (i % 4) * 0.32;
-      coneDummy.position.set(cave.x + side * (2.65 + (i % 2) * 0.25), 0.55 + (i % 3) * 0.12, z);
+      coneDummy.position.set(cave.x + side * (2.65 + (i % 2) * 0.25), floorY + 0.55 + (i % 3) * 0.12, z);
       coneDummy.scale.set(stalagmiteRadius, stalagmiteHeight, stalagmiteRadius);
       coneDummy.rotation.set(0, 0, side * 0.12);
       coneDummy.updateMatrix();
@@ -168,7 +169,7 @@ function buildSideCaverns(root, THREE) {
 
       const stalactiteRadius = 0.26 + (i % 2) * 0.1;
       const stalactiteHeight = 0.9 + (i % 3) * 0.28;
-      coneDummy.position.set(cave.x - side * (2.5 + (i % 2) * 0.2), 4.05, z + 1.3);
+      coneDummy.position.set(cave.x - side * (2.5 + (i % 2) * 0.2), floorY + 4.05, z + 1.3);
       coneDummy.scale.set(stalactiteRadius, stalactiteHeight, stalactiteRadius);
       coneDummy.rotation.set(0, 0, Math.PI + side * 0.1);
       coneDummy.updateMatrix();
