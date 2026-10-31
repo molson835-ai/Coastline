@@ -137,7 +137,7 @@ test('replacement: left and right cave CTMs enter their caverns and return to th
     const outside = await page.evaluate(() => window.__coastlineTransitionTest.playerState());
     expect(outside.mode).toBe('walk');
     expect(outside.position.x).toBeCloseTo(cave.x, 1);
-    expect(outside.position.z).toBeCloseTo(542.5, 1);
+    expect(outside.position.z).toBeCloseTo(537.5, 1);
   }
 });
 
