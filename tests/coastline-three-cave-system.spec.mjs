@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import {
   COASTLINE_THREE_CAVE_ENTRANCES,
   COASTLINE_THREE_CAVE_TRANSITIONS,
+  COASTLINE_CAVE_EXPLORATION_LENGTH,
+  CAVE_INTERIOR_SPAWNS,
   getCoastlineThreeCaveAt,
 } from '../coastline-three-cave-system.js';
 
@@ -44,4 +46,13 @@ test('cave lookup is distance-based and deterministic', () => {
   assert.equal(getCoastlineThreeCaveAt(510, 542.5)?.id, 'left');
   assert.equal(getCoastlineThreeCaveAt(530, 542.5)?.id, 'right');
   assert.equal(getCoastlineThreeCaveAt(500, 500), null);
+});
+
+
+test('all three cavern routes provide a large interior and safe side-cave landing points', () => {
+  assert.ok(COASTLINE_CAVE_EXPLORATION_LENGTH >= 100);
+  assert.deepEqual(CAVE_INTERIOR_SPAWNS.left, { x: 510, y: 0, z: 560, rotationY: Math.PI });
+  assert.deepEqual(CAVE_INTERIOR_SPAWNS.right, { x: 530, y: 0, z: 560, rotationY: Math.PI });
+  assert.ok(CAVE_INTERIOR_SPAWNS.left.z > COASTLINE_THREE_CAVE_ENTRANCES[0].z);
+  assert.ok(CAVE_INTERIOR_SPAWNS.right.z > COASTLINE_THREE_CAVE_ENTRANCES[2].z);
 });
