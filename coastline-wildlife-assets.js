@@ -49,7 +49,7 @@ export function getCoastlineWildlifePlacementPlan(worldId) {
 
 export function getCoastlineTargetScale(kind, modelHeight) {
   if (!Number.isFinite(modelHeight) || modelHeight <= 0) return 1;
-  const targetHeight = kind === 'cave' ? 5.35 : kind === 'horse' ? 2.05 : 2.25;
+  const targetHeight = kind === 'horse' ? 2.05 : 2.25;
   return targetHeight / modelHeight;
 }
 
