@@ -4,10 +4,13 @@ export const COASTLINE_THREE_CAVE_ENTRANCES = Object.freeze([
   Object.freeze({ id: 'right', world: 'waterfront', x: 530, z: 542.5, radius: 2.0, interior: 'cavern-right', entry: 'waterfront-to-electric-dungeon-right', returnTransition: 'electric-dungeon-right-to-waterfront' }),
 ]);
 
-const CAVE_INTERIOR_SPAWNS = Object.freeze({
-  left: Object.freeze({ x: 510, y: 0, z: 552, rotationY: Math.PI }),
+export const COASTLINE_CAVE_EXPLORATION_LENGTH = 120;
+
+export const CAVE_INTERIOR_SPAWNS = Object.freeze({
+  // Keep both side arrivals in the center of their walkable lane, past the entrance rocks.
+  left: Object.freeze({ x: 510, y: 0, z: 560, rotationY: Math.PI }),
   center: Object.freeze({ x: 520, y: 0, z: 552, rotationY: Math.PI }),
-  right: Object.freeze({ x: 530, y: 0, z: 552, rotationY: Math.PI }),
+  right: Object.freeze({ x: 530, y: 0, z: 560, rotationY: Math.PI }),
 });
 
 const CAVE_EXIT_POINTS = Object.freeze({
@@ -111,23 +114,23 @@ function buildSideCaverns(root, THREE) {
     const chamber = new THREE.Group();
     chamber.name = `coastline-three-cave-interior-${cave.id}`;
 
-    const floor = new THREE.Mesh(new THREE.PlaneGeometry(8.2, 38), floorMaterial);
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(8.2, COASTLINE_CAVE_EXPLORATION_LENGTH), floorMaterial);
     floor.name = 'coastline-three-cave-interior-floor';
     floor.rotation.x = -Math.PI / 2;
-    floor.position.set(cave.x, floorY, 558);
+    floor.position.set(cave.x, floorY, 600);
     floor.receiveShadow = true;
     chamber.add(floor);
 
     // One instanced rock field forms overlapping side walls and a broken ceiling.
     // This keeps the organic silhouette without spawning dozens of draw calls.
-    const rockInstances = new THREE.InstancedMesh(rockGeometry, rockMaterial, 31);
+    const rockInstances = new THREE.InstancedMesh(rockGeometry, rockMaterial, 81);
     rockInstances.name = 'coastline-three-cave-interior-rock-masses';
     rockInstances.castShadow = true;
     rockInstances.receiveShadow = true;
     const rockDummy = new THREE.Object3D();
     let rockIndex = 0;
-    for (let i = 0; i < 11; i++) {
-      const z = 542.5 + i * 3.05;
+    for (let i = 0; i < 29; i++) {
+      const z = 542.5 + i * 4.0;
       for (const side of [-1, 1]) {
         rockDummy.position.set(cave.x + side * (3.55 + Math.sin(i * 1.7) * 0.28), floorY + 1.35 + (i % 3) * 0.22, z);
         rockDummy.scale.set(1.0 + (i % 3) * 0.18, 1.65 + (i % 4) * 0.24, 2.05 + (i % 2) * 0.28);
@@ -138,8 +141,8 @@ function buildSideCaverns(root, THREE) {
         rockIndex++;
       }
     }
-    for (let i = 0; i < 9; i++) {
-      rockDummy.position.set(cave.x + Math.sin(i * 1.3) * 0.8, floorY + 4.25 + Math.cos(i * 1.8) * 0.32, 544 + i * 3.55);
+    for (let i = 0; i < 23; i++) {
+      rockDummy.position.set(cave.x + Math.sin(i * 1.3) * 0.8, floorY + 4.25 + Math.cos(i * 1.8) * 0.32, 544 + i * 5.0);
       rockDummy.scale.set(1.55 + (i % 3) * 0.24, 0.85 + (i % 2) * 0.22, 2.0 + (i % 4) * 0.28);
       rockDummy.rotation.set(0.12 + i * 0.025, i * 0.27, 0.08 - i * 0.02);
       rockDummy.updateMatrix();
@@ -152,13 +155,13 @@ function buildSideCaverns(root, THREE) {
     chamber.add(rockInstances);
 
     // Instanced stalagmites and hanging points add eroded natural detail.
-    const caveCones = new THREE.InstancedMesh(coneGeometry, rockMaterial, 16);
+    const caveCones = new THREE.InstancedMesh(coneGeometry, rockMaterial, 36);
     caveCones.name = 'coastline-three-cave-interior-stalactites-stalagmites';
     caveCones.castShadow = true;
     const coneDummy = new THREE.Object3D();
-    for (let i = 0; i < 8; i++) {
+    for (let i = 0; i < 18; i++) {
       const side = i % 2 ? 1 : -1;
-      const z = 547 + i * 3.55;
+      const z = 547 + i * 6.0;
       const stalagmiteRadius = 0.32 + (i % 3) * 0.12;
       const stalagmiteHeight = 1.1 + (i % 4) * 0.32;
       coneDummy.position.set(cave.x + side * (2.65 + (i % 2) * 0.25), floorY + 0.55 + (i % 3) * 0.12, z);
@@ -192,11 +195,12 @@ function buildSideCaverns(root, THREE) {
     if (!colliders.some(collider => collider?.name === name)) colliders.push({ name, x, z, w, d });
   };
   for (const cave of COASTLINE_THREE_CAVE_ENTRANCES.filter(entry => entry.id !== 'center')) {
-    addInteriorBoundary(`electric-dungeon-${cave.id}-left-rock-wall`, cave.x - 3.55, 558, 1.8, 30);
-    addInteriorBoundary(`electric-dungeon-${cave.id}-right-rock-wall`, cave.x + 3.55, 558, 1.8, 30);
+    addInteriorBoundary(`electric-dungeon-${cave.id}-left-rock-wall`, cave.x - 3.55, 600, 1.8, 116);
+    addInteriorBoundary(`electric-dungeon-${cave.id}-right-rock-wall`, cave.x + 3.55, 600, 1.8, 116);
+    addInteriorBoundary(`electric-dungeon-${cave.id}-rear-rock-wall`, cave.x, 658, 8.2, 1.8);
   }
-  addInteriorBoundary('electric-dungeon-left-cavern-divider', 515, 558, 1.8, 30);
-  addInteriorBoundary('electric-dungeon-right-cavern-divider', 525, 558, 1.8, 30);
+  addInteriorBoundary('electric-dungeon-left-cavern-divider', 515, 600, 1.8, 116);
+  addInteriorBoundary('electric-dungeon-right-cavern-divider', 525, 600, 1.8, 116);
   if (window.__coastlineActiveWorldRoot === root) window.__coastlineActiveWorldColliders = colliders;
 }
 
@@ -291,6 +295,7 @@ function wrapInteraction() {
       const cave = getCoastlineThreeCaveAt(player.x, player.z);
       if (cave?.id === 'left' || cave?.id === 'right') {
         await window.__coastlineTransitionRequest(cave.entry);
+        api.enterDungeon?.();
         setPlayerSpawn(cave.id);
         buildSideCaverns(window.__coastlineActiveWorldRoot || window.__coastlineRegionRoot, window.__coastlineThree);
         return true;
@@ -302,6 +307,7 @@ function wrapInteraction() {
       const caveId = getCaveAtPoint(CAVE_EXIT_POINTS, player.x, player.z);
       if (caveId === 'left' || caveId === 'right') {
         await window.__coastlineTransitionRequest(`electric-dungeon-${caveId}-to-waterfront`);
+        api.exitDungeon?.();
         setWaterfrontSpawn(caveId);
         return true;
       }
