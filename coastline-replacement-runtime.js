@@ -39,11 +39,11 @@ function installReplacementRuntimeCorrections() {
     try {
       const mouth = root.getObjectByName('coastline-electric-lemonade-cave-mouth');
       if (!mouth) return;
-      const mountain = root.getObjectByName('coastline-waterfront-cave-mountain');
-      // The supplied three-mountain formation replaces the old procedural mountain
-      // and boulder mouth. Keep the anchor group for the existing CTM contract.
-      if (mountain) mountain.visible = false;
-      for (const child of [...mouth.children]) child.visible = false;
+      // The shared anchor is intentionally empty until the approved three-cave
+      // GLB is attached. Legacy mountain/cave visuals are no longer fallbacks.
+      for (const child of [...mouth.children]) {
+        if (child.name !== 'coastline-waterfront-cave-replacement-glb') child.visible = false;
+      }
 
       if (!caveReplacementPromise) {
         caveReplacementPromise = (async () => {
@@ -94,12 +94,8 @@ function installReplacementRuntimeCorrections() {
       root.userData.coastlineReplacementCave = cave;
     } catch (error) {
       root.userData.coastlineReplacementCaveError = String(error?.message || error);
-      console.warn('[Coastline] Replacement cave GLB unavailable; leaving existing cave visuals in place.', error);
-      // Do not leave the old cave hidden if the requested replacement asset is absent.
-      const mountain = root.getObjectByName('coastline-waterfront-cave-mountain');
-      if (mountain) mountain.visible = true;
-      const mouth = root.getObjectByName('coastline-electric-lemonade-cave-mouth');
-      for (const child of mouth?.children || []) child.visible = true;
+      console.warn('[Coastline] Approved three-cave GLB unavailable; no legacy cave fallback will be shown.', error);
+      caveReplacementPromise = null;
     } finally {
       delete root.userData.coastlineReplacementCaveLoading;
     }
@@ -124,6 +120,8 @@ function installReplacementRuntimeCorrections() {
       window.__coastlineWaterfrontVendorActor = actor;
     }
   };
+
+  window.__coastlineEnsureReplacementCave = root => loadReplacementCave(root || window.__coastlineRegionRoot);
 
   window.__coastlineReplacementVisualPatch = () => {
     patchVehicleVisuals();
