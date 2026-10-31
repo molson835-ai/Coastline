@@ -58,6 +58,7 @@ test('replacement: approved three-cave GLB stays mounted while only the legacy s
     const entrances = window.__coastlineThreeCaveContract?.entrances || [];
     return {
       replacementVisible: Boolean(replacement?.visible && replacement.parent),
+      replacementBounds: root?.userData?.coastlineReplacementCaveBounds || null,
       anchorPreserved: Boolean(anchor?.parent),
       legacySingleCave: Boolean(root?.getObjectByName('coastline-waterfront-cave-entrance-glb')),
       legacyProceduralMountain: Boolean(root?.getObjectByName('coastline-waterfront-cave-mountain')),
@@ -67,6 +68,9 @@ test('replacement: approved three-cave GLB stays mounted while only the legacy s
     };
   });
   expect(result.replacementVisible).toBe(true);
+  expect(result.replacementBounds?.visibleMeshCount).toBeGreaterThan(0);
+  expect(result.replacementBounds?.width).toBeGreaterThanOrEqual(29.9);
+  expect(result.replacementBounds?.height).toBeGreaterThanOrEqual(11.9);
   expect(result.anchorPreserved).toBe(true);
   expect(result.legacySingleCave).toBe(false);
   expect(result.legacyProceduralMountain).toBe(false);
