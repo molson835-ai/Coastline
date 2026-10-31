@@ -770,7 +770,7 @@ function setElectricDungeonLighting(active){
 }
 function refreshElectricLemonadeEffects(){
   const state=electricLemonadeState.snapshot();
-  coastlineLemonadeAura.visible=state.glowActive;
+  coastlineLemonadeAura.visible=state.dungeonActive&&state.glowActive;
   coastlineLemonadePointLight.visible=state.dungeonActive&&state.glowActive;
   coastlineLemonadePointLight.intensity=state.dungeonActive&&state.glowActive?38:0;
   const pickup=window.__coastlineElectricDungeonPickup;
