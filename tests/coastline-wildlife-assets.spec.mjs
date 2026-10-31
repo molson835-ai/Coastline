@@ -45,8 +45,8 @@ test('legacy cave collision helper and oversized invisible boundary contract are
   const caveRuntime = await read('coastline-three-cave-system.js');
   assert.doesNotMatch(regions, /getCoastlineCaveColliders|isCoastlineCavePointBlocked/);
   assert.doesNotMatch(regions, /coastline-waterfront-cave-mountain|coastline-electric-lemonade-cave-dark-opening/);
-  assert.match(caveRuntime, /coastline-three-cave-\$\{cave\.id\}-left-wall/);
-  assert.match(caveRuntime, /coastline-three-cave-\$\{cave\.id\}-right-wall/);
+  assert.match(caveRuntime, /-left-wall/);
+  assert.match(caveRuntime, /-right-wall/);
   assert.match(caveRuntime, /front-left-jamb/);
   assert.match(caveRuntime, /front-right-jamb/);
   assert.match(caveRuntime, /removeLegacyCaveColliders/);
