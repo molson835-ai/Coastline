@@ -94,6 +94,8 @@ test('replacement: approved three-cave GLB stays mounted while only the legacy s
         return {
           openingsClear: entrances.every(cave => !blocked(cave.x, cave.z)),
           stoneSegmentsBlock: trace.length > 0 && trace.every(c => blocked(c.x, c.z, 0)),
+          actualEntrancesClear: entrances.every(cave => !window.__coastlineTest.buildingBlocked(cave.x, cave.z, 0.45)),
+          actualStoneWallsBlock: trace.length > 0 && trace.every(c => window.__coastlineTest.buildingBlocked(c.x, c.z, 0)),
           traceCount: trace.length,
         };
       })(),
@@ -107,6 +109,8 @@ test('replacement: approved three-cave GLB stays mounted while only the legacy s
   expect(beforeReload.boundary?.activeCollisionArrayMatchesRoot).toBe(true);
   expect(beforeReload.collisionCheck.openingsClear).toBe(true);
   expect(beforeReload.collisionCheck.stoneSegmentsBlock).toBe(true);
+  expect(beforeReload.collisionCheck.actualEntrancesClear).toBe(true);
+  expect(beforeReload.collisionCheck.actualStoneWallsBlock).toBe(true);
 });
 
 test('replacement: reaching the real cave threshold invokes the existing CTM and returns coherently', async ({ page }) => {
