@@ -111,12 +111,38 @@ test('replacement: approved three-cave GLB stays mounted while only the legacy s
 
 test('replacement: reaching the real cave threshold invokes the existing CTM and returns coherently', async ({ page }) => {
   await openGame(page, 'replacement-ctm');
-  await page.evaluate(async () => { await window.__coastlineTransitionTest.transition('city-to-island'); await window.__coastlineTransitionTest.transition('island-to-waterfront'); window.__coastlineTest.setWalkPosition(520, 542.5, Math.PI); });
+  const entryUseAvailable = await page.evaluate(async () => {
+    await window.__coastlineTransitionTest.transition('city-to-island');
+    await window.__coastlineTransitionTest.transition('island-to-waterfront');
+    window.__coastlineTest.setWalkPosition(520, 542.5, Math.PI);
+    return window.__coastlineElectricLemonade.canUse();
+  });
+  expect(entryUseAvailable).toBe(false);
   await expect.poll(() => page.evaluate(() => window.__coastlineTransitionTest.status().activeWorldId), { timeout: 8000 }).toBe('electric-lemonade-dungeon');
   const inside = await page.evaluate(() => window.__coastlineTransitionTest.playerState());
   expect(inside.mode).toBe('walk');
   expect(Number.isFinite(inside.position?.x)).toBe(true);
-  await page.evaluate(() => window.__coastlineTest.setWalkPosition(520, 542.5, 0));
+  const cavern = await page.evaluate(() => {
+    const root = window.__coastlineActiveWorldRoot;
+    const colliders = root?.userData?.coastlineColliders || [];
+    return {
+      ceiling: Boolean(root?.getObjectByName('electric-dungeon-natural-ceiling')),
+      stalactites: Boolean(root?.getObjectByName('electric-dungeon-natural-stalactites-stalagmites')),
+      mazeWallIsInstanced: Boolean(root?.getObjectByName('electric-dungeon-maze-west-first')?.isInstancedMesh),
+      leftWingSolid: colliders.some(c => c.name === 'electric-dungeon-left-cavern-divider'),
+      rightWingSolid: colliders.some(c => c.name === 'electric-dungeon-right-cavern-divider'),
+    };
+  });
+  expect(cavern.ceiling).toBe(true);
+  expect(cavern.stalactites).toBe(true);
+  expect(cavern.mazeWallIsInstanced).toBe(true);
+  expect(cavern.leftWingSolid).toBe(true);
+  expect(cavern.rightWingSolid).toBe(true);
+  const exitUseAvailable = await page.evaluate(() => {
+    window.__coastlineTest.setWalkPosition(520, 542.5, 0);
+    return window.__coastlineElectricLemonade.canUse();
+  });
+  expect(exitUseAvailable).toBe(false);
   await expect.poll(() => page.evaluate(() => window.__coastlineTransitionTest.status().activeWorldId), { timeout: 8000 }).toBe('waterfront');
   const outside = await page.evaluate(() => window.__coastlineTransitionTest.playerState());
   expect(outside.mode).toBe('walk');
@@ -139,10 +165,21 @@ test('replacement: left and right cave CTMs enter their caverns and return to th
     }, cave);
     expect(caveUseAvailable).toBe(false);
     await expect.poll(() => page.evaluate(() => window.__coastlineTransitionTest.status().activeWorldId), { timeout: 8000 }).toBe('electric-lemonade-dungeon');
-    const inside = await page.evaluate(() => window.__coastlineTransitionTest.playerState());
-    expect(inside.mode).toBe('walk');
-    expect(inside.position.x).toBeCloseTo(cave.x, 1);
-    expect(inside.position.z).toBeCloseTo(552, 1);
+    const inside = await page.evaluate(() => {
+      const state = window.__coastlineTransitionTest.playerState();
+      const root = window.__coastlineActiveWorldRoot;
+      const interior = root?.getObjectByName('coastline-three-cave-interior-' + (state.position.x < 520 ? 'left' : 'right'));
+      return {
+        state,
+        interiorMeshes: (() => { let count = 0; interior?.traverse(node => { if (node.isMesh) count++; }); return count; })(),
+        wallColliders: (root?.userData?.coastlineColliders || []).filter(c => String(c.name || '').includes('electric-dungeon-') && String(c.name || '').includes('rock-wall')).length,
+      };
+    });
+    expect(inside.state.mode).toBe('walk');
+    expect(inside.interiorMeshes).toBeGreaterThan(25);
+    expect(inside.wallColliders).toBeGreaterThanOrEqual(4);
+    expect(inside.state.position.x).toBeCloseTo(cave.x, 1);
+    expect(inside.state.position.z).toBeCloseTo(552, 1);
 
     await page.evaluate(({ x }) => {
       window.__coastlineTest.setWalkPosition(x, 577, 0);
