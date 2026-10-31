@@ -191,6 +191,7 @@ test('replacement: left and right cave CTMs enter their caverns and return to th
         coneInstances: interior?.getObjectByName('coastline-three-cave-interior-stalactites-stalagmites')?.count || 0,
         floorY: interior?.getObjectByName('coastline-three-cave-interior-floor')?.position.y,
         floorLength: interior?.getObjectByName('coastline-three-cave-interior-floor')?.geometry?.parameters?.height,
+        centerLength: root?.getObjectByName('electric-dungeon-floor')?.geometry?.parameters?.depth,
         expectedFloorY: window.__coastlineElectricDungeonFloorY,
         blockedAtSpawn: window.__coastlineTest.buildingBlocked(state.position.x, state.position.z, .45),
         lightVisible: window.__coastlineAvatar?.getObjectByName('coastline-electric-lemonade-player-light')?.visible,
@@ -203,6 +204,7 @@ test('replacement: left and right cave CTMs enter their caverns and return to th
     expect(inside.rockInstances).toBeGreaterThan(30);
     expect(inside.coneInstances).toBe(36);
     expect(inside.floorLength).toBe(120);
+    expect(inside.centerLength).toBe(120);
     expect(inside.blockedAtSpawn).toBe(false);
     expect(inside.lightVisible).toBe(true);
     expect(inside.lightIntensity).toBeGreaterThan(0);
