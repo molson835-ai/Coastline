@@ -476,18 +476,18 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
       });
       return stones;
     };
-    const floor=add('electric-dungeon-floor',520,floorY-.2,558,32,.4,44,floorMat);
+    const floor=add('electric-dungeon-floor',520,floorY-.2,600,32,.4,120,floorMat);
     floor.receiveShadow=true;
     // The cavern is enclosed by irregular stone masses, not black rectangular room walls.
-    addNaturalBarrier('electric-dungeon-left-wall',504.3,558,.7,44,true);
-    addNaturalBarrier('electric-dungeon-right-wall',535.7,558,.7,44,true);
-    addNaturalBarrier('electric-dungeon-back-wall',520,579.5,32,.8,true);
+    addNaturalBarrier('electric-dungeon-left-wall',504.3,600,.7,120,true);
+    addNaturalBarrier('electric-dungeon-right-wall',535.7,600,.7,120,true);
+    addNaturalBarrier('electric-dungeon-back-wall',520,659.5,32,.8,true);
     // A broken overhead rock canopy leaves uneven gaps and natural silhouettes.
     const ceilingGroup=new THREE.Group();ceilingGroup.name='electric-dungeon-ceiling-rocks';
-    const ceilingRocks=new THREE.InstancedMesh(naturalRockGeometry,rockMat,30);
+    const ceilingRocks=new THREE.InstancedMesh(naturalRockGeometry,rockMat,84);
     ceilingRocks.name='electric-dungeon-natural-ceiling';
     const ceilingDummy=new THREE.Object3D();
-    for(let i=0;i<30;i++){
+    for(let i=0;i<84;i++){
       const col=i%6,row=Math.floor(i/6);
       ceilingDummy.position.set(506+col*5.5+Math.sin(i*1.4)*.6,floorY+7.15+(i%3)*.18,541+row*8.4+Math.cos(i*1.2)*.55);
       ceilingDummy.rotation.set(i*.13,i*.27,i*.09);
@@ -509,6 +509,13 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
     mazeWall('electric-dungeon-maze-southwest-branch',517.3,568,4.0,.8);
     mazeWall('electric-dungeon-maze-southeast-branch',522.7,572,4.0,.8);
     mazeWall('electric-dungeon-maze-dead-end-marker',520,575,.8,4.5);
+    // Additional irregular ridges and pillars make the extended center cavern worth exploring.
+    mazeWall('electric-dungeon-maze-southwest-expansion',517.5,586,3.2,.8);
+    mazeWall('electric-dungeon-maze-northeast-expansion',522.5,594,.8,4.2);
+    mazeWall('electric-dungeon-maze-center-expansion',519.5,606,5.2,.8);
+    mazeWall('electric-dungeon-maze-west-expansion',517,618,.8,5.0);
+    mazeWall('electric-dungeon-maze-east-expansion',523,630,.8,5.0);
+    mazeWall('electric-dungeon-maze-final-ridge',520,642,6.0,.8);
     // Broken stalactites and stalagmites add natural structure without blocking the boot route.
     const caveConeGeometry=new THREE.ConeGeometry(.32,1.55,6);
     const caveCones=new THREE.InstancedMesh(caveConeGeometry,rockMat,24);
