@@ -446,7 +446,7 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
     };
     const addNaturalBarrier=(name,x,z,w,d,collider=true)=>{
       const alongX=w>=d,span=Math.max(w,d),thickness=alongX?d:w;
-      const count=Math.max(2,Math.ceil(span/2.1)),rows=2;
+      const count=Math.max(2,Math.ceil(span/1.35)),rows=2;
       const stones=new THREE.InstancedMesh(naturalRockGeometry,rockMat,count*rows);
       stones.name=name;stones.castShadow=true;stones.receiveShadow=true;
       const dummy=new THREE.Object3D();
@@ -462,9 +462,9 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
         );
         dummy.rotation.set((i%4-1.5)*.11,i*.37+row*.19,(row?-.12:.1)+(i%3)*.035);
         dummy.scale.set(
-          alongX?1.0+(i%3)*.18:Math.max(.85,thickness*1.35),
+          alongX?1.35+(i%3)*.15:Math.max(.85,thickness*1.35),
           1.15+row*.42+(i%3)*.16,
-          alongX?Math.max(.82,thickness*1.45):1.0+(i%3)*.18
+          alongX?Math.max(.82,thickness*1.45):1.35+(i%3)*.15
         );
         dummy.updateMatrix();stones.setMatrixAt(index++,dummy.matrix);
       }
