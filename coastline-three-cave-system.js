@@ -112,6 +112,7 @@ function buildSideCaverns(root, THREE) {
     chamber.name = `coastline-three-cave-interior-${cave.id}`;
 
     const floor = new THREE.Mesh(new THREE.PlaneGeometry(8.2, 38), floorMaterial);
+    floor.name = 'coastline-three-cave-interior-floor';
     floor.rotation.x = -Math.PI / 2;
     floor.position.set(cave.x, floorY, 558);
     floor.receiveShadow = true;
