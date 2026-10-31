@@ -441,7 +441,11 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
     const add=(name,x,y,z,w,h,d,material,collider=false)=>{
       const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material);
       mesh.name=name;mesh.position.set(x,y,z);mesh.receiveShadow=true;root.add(mesh);
-      if(collider)colliders.push({name,x,z,w,d});
+      if(collider)colliders.push({
+        name,x,z,
+        w:alongX?w+1.0:Math.max(w,1.8),
+        d:alongX?Math.max(d,1.8):d+1.0
+      });
       return mesh;
     };
     const addNaturalBarrier=(name,x,z,w,d,collider=true)=>{
@@ -452,7 +456,7 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
       const dummy=new THREE.Object3D();
       let index=0;
       for(let row=0;row<rows;row++)for(let i=0;i<count;i++){
-        const t=count===1?.5:i/(count-1);
+        const t=count === 1 ? 0.5 : i/(count-1);
         const offset=(t-.5)*span;
         const jitter=Math.sin((i+1)*1.71+row*.8)*.2;
         dummy.position.set(
