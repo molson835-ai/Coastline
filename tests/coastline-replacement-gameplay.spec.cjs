@@ -47,22 +47,32 @@ test('replacement: authored Cozy hair receives the coverage correction without a
   expect(result.unrelatedCap).toBe(false);
 });
 
-test('replacement: cave doorway is clear while mountain side/rear remains blocked', async ({ page }) => {
-  await openGame(page, 'replacement-cave');
+test('replacement: approved three-cave GLB stays mounted while only the legacy single cave is removed', async ({ page }) => {
+  await openGame(page, 'replacement-three-caves');
   await page.evaluate(async () => { await window.__coastlineTransitionTest.transition('city-to-island'); await window.__coastlineTransitionTest.transition('island-to-waterfront'); });
-  await page.waitForFunction(() => Boolean(window.__coastlineRegionRoot), null, { timeout: 30000 });
-  const result = await page.evaluate(() => ({
-    entrance: window.__coastlineTest.buildingBlocked(520, 542.5, .45),
-    left: window.__coastlineTest.buildingBlocked(514, 542.5, .45),
-    right: window.__coastlineTest.buildingBlocked(526, 542.5, .45),
-    rear: window.__coastlineTest.buildingBlocked(520, 558, .45),
-    caveYaw: window.__coastlineRegionRoot.userData.coastlineCaveGLB?.rotation?.y ?? null,
-  }));
-  expect(result.entrance).toBe(false);
-  expect(result.left).toBe(true);
-  expect(result.right).toBe(true);
-  expect(result.rear).toBe(true);
-  expect(result.caveYaw === null || Math.abs(result.caveYaw) < 0.001 || Math.abs(Math.abs(result.caveYaw) - Math.PI * 2) < 0.001).toBe(true);
+  await page.waitForFunction(() => Boolean(window.__coastlineRegionRoot?.userData?.coastlineReplacementCaveLoaded), null, { timeout: 30000 });
+  const result = await page.evaluate(() => {
+    const root = window.__coastlineRegionRoot;
+    const replacement = root?.getObjectByName('coastline-waterfront-cave-replacement-glb');
+    const anchor = root?.getObjectByName('coastline-electric-lemonade-cave-mouth');
+    const entrances = window.__coastlineThreeCaveContract?.entrances || [];
+    return {
+      replacementVisible: Boolean(replacement?.visible && replacement.parent),
+      anchorPreserved: Boolean(anchor?.parent),
+      legacySingleCave: Boolean(root?.getObjectByName('coastline-waterfront-cave-entrance-glb')),
+      legacyProceduralMountain: Boolean(root?.getObjectByName('coastline-waterfront-cave-mountain')),
+      legacyApproachPath: Boolean(root?.getObjectByName('coastline-waterfront-cave-approach-path')),
+      entranceIds: entrances.map(cave => cave.id),
+      boundaryIds: (root?.userData?.coastlineThreeCaveBoundaryContract || []).map(cave => cave.id),
+    };
+  });
+  expect(result.replacementVisible).toBe(true);
+  expect(result.anchorPreserved).toBe(true);
+  expect(result.legacySingleCave).toBe(false);
+  expect(result.legacyProceduralMountain).toBe(false);
+  expect(result.legacyApproachPath).toBe(false);
+  expect(result.entranceIds).toEqual(['left', 'center', 'right']);
+  expect(result.boundaryIds).toEqual(['left', 'center', 'right']);
 });
 
 test('replacement: reaching the real cave threshold invokes the existing CTM and returns coherently', async ({ page }) => {
