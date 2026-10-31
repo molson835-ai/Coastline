@@ -187,10 +187,11 @@ test('replacement: left and right cave CTMs enter their caverns and return to th
     expect(inside.state.position.x).toBeCloseTo(cave.x, 1);
     expect(inside.state.position.z).toBeCloseTo(552, 1);
 
-    await page.evaluate(({ x }) => {
+    const exitUseAvailable = await page.evaluate(({ x }) => {
       window.__coastlineTest.setWalkPosition(x, 577, 0);
-      return true;
+      return window.__coastlineElectricLemonade.canUse();
     }, cave);
+    expect(exitUseAvailable).toBe(false);
     await expect.poll(() => page.evaluate(() => window.__coastlineTransitionTest.status().activeWorldId), { timeout: 8000 }).toBe('waterfront');
     const outside = await page.evaluate(() => window.__coastlineTransitionTest.playerState());
     expect(outside.mode).toBe('walk');
