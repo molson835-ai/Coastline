@@ -171,7 +171,7 @@ test('replacement: left and right cave CTMs enter their caverns and return to th
   });
   await page.waitForFunction(() => window.__coastlineElectricLemonade?.__threeCaveWrapped === true, null, { timeout: 10000 });
 
-  for (const cave of [{ id: 'left', x: 510 }, { id: 'right', x: 530 }]) {
+  for (const cave of [{ id: 'left', x: 510, interiorX: 460 }, { id: 'right', x: 530, interiorX: 580 }]) {
     await page.evaluate(async () => {
       window.__coastlineTest.setWalkPosition(520, 531.5, Math.PI);
       await window.__coastlineTest.interact();
@@ -195,6 +195,7 @@ test('replacement: left and right cave CTMs enter their caverns and return to th
         coneInstances: interior?.getObjectByName('coastline-three-cave-interior-stalactites-stalagmites')?.count || 0,
         floorY: interior?.getObjectByName('coastline-three-cave-interior-floor')?.position.y,
         floorLength: interior?.getObjectByName('coastline-three-cave-interior-floor')?.geometry?.parameters?.height,
+        floorWidth: interior?.getObjectByName('coastline-three-cave-interior-floor')?.geometry?.parameters?.width,
         centerLength: root?.getObjectByName('electric-dungeon-floor')?.geometry?.parameters?.depth,
         expectedFloorY: window.__coastlineElectricDungeonFloorY,
         blockedAtSpawn: window.__coastlineTest.buildingBlocked(state.position.x, state.position.z, .45),
@@ -208,6 +209,7 @@ test('replacement: left and right cave CTMs enter their caverns and return to th
     expect(inside.rockInstances).toBeGreaterThan(30);
     expect(inside.coneInstances).toBe(36);
     expect(inside.floorLength).toBe(120);
+    expect(inside.floorWidth).toBe(30);
     expect(inside.centerLength).toBe(120);
     expect(inside.blockedAtSpawn).toBe(false);
     expect(inside.lightVisible).toBe(true);
@@ -215,11 +217,11 @@ test('replacement: left and right cave CTMs enter their caverns and return to th
     expect(inside.glowActive).toBe(true);
     expect(inside.floorY).toBeCloseTo(inside.expectedFloorY, 3);
     expect(inside.wallColliders).toBeGreaterThanOrEqual(4);
-    expect(inside.state.position.x).toBeCloseTo(cave.x, 1);
+    expect(inside.state.position.x).toBeCloseTo(cave.interiorX, 1);
     expect(inside.state.position.z).toBeCloseTo(560, 1);
 
     const exitUseAvailable = await page.evaluate(({ x }) => {
-      window.__coastlineTest.setWalkPosition(x, 542.5, 0);
+      window.__coastlineTest.setWalkPosition(cave.interiorX, 542.5, 0);
       return window.__coastlineElectricLemonade.canUse();
     }, cave);
     expect(exitUseAvailable).toBe(false);
