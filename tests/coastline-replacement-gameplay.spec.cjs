@@ -168,6 +168,12 @@ test('replacement: left and right cave CTMs enter their caverns and return to th
   await page.waitForFunction(() => window.__coastlineElectricLemonade?.__threeCaveWrapped === true, null, { timeout: 10000 });
 
   for (const cave of [{ id: 'left', x: 510 }, { id: 'right', x: 530 }]) {
+    await page.evaluate(async () => {
+      window.__coastlineTest.setWalkPosition(520, 531.5, Math.PI);
+      await window.__coastlineTest.interact();
+      document.getElementById('coastlineLemonadeBuy')?.click();
+    });
+    await expect.poll(() => page.evaluate(() => window.__coastlineElectricLemonade.state().glowActive), { timeout: 3000 }).toBe(true);
     const caveUseAvailable = await page.evaluate(({ x }) => {
       window.__coastlineTest.setWalkPosition(x, 542.5, Math.PI);
       return window.__coastlineElectricLemonade.canUse();
@@ -184,17 +190,27 @@ test('replacement: left and right cave CTMs enter their caverns and return to th
         rockInstances: interior?.getObjectByName('coastline-three-cave-interior-rock-masses')?.count || 0,
         coneInstances: interior?.getObjectByName('coastline-three-cave-interior-stalactites-stalagmites')?.count || 0,
         floorY: interior?.getObjectByName('coastline-three-cave-interior-floor')?.position.y,
+        floorLength: interior?.getObjectByName('coastline-three-cave-interior-floor')?.geometry?.parameters?.height,
         expectedFloorY: window.__coastlineElectricDungeonFloorY,
+        blockedAtSpawn: window.__coastlineTest.buildingBlocked(state.position.x, state.position.z, .45),
+        lightVisible: window.__coastlineAvatar?.getObjectByName('coastline-electric-lemonade-player-light')?.visible,
+        lightIntensity: window.__coastlineTest.electricLemonadeVisualState().playerLightIntensity,
+        glowActive: window.__coastlineElectricLemonade.state().glowActive,
         wallColliders: (root?.userData?.coastlineColliders || []).filter(c => String(c.name || '').includes('electric-dungeon-') && String(c.name || '').includes('rock-wall')).length,
       };
     });
     expect(inside.state.mode).toBe('walk');
     expect(inside.rockInstances).toBeGreaterThan(30);
-    expect(inside.coneInstances).toBe(16);
+    expect(inside.coneInstances).toBe(36);
+    expect(inside.floorLength).toBe(120);
+    expect(inside.blockedAtSpawn).toBe(false);
+    expect(inside.lightVisible).toBe(true);
+    expect(inside.lightIntensity).toBeGreaterThan(0);
+    expect(inside.glowActive).toBe(true);
     expect(inside.floorY).toBeCloseTo(inside.expectedFloorY, 3);
     expect(inside.wallColliders).toBeGreaterThanOrEqual(4);
     expect(inside.state.position.x).toBeCloseTo(cave.x, 1);
-    expect(inside.state.position.z).toBeCloseTo(552, 1);
+    expect(inside.state.position.z).toBeCloseTo(560, 1);
 
     const exitUseAvailable = await page.evaluate(({ x }) => {
       window.__coastlineTest.setWalkPosition(x, 542.5, 0);
@@ -206,6 +222,9 @@ test('replacement: left and right cave CTMs enter their caverns and return to th
     expect(outside.mode).toBe('walk');
     expect(outside.position.x).toBeCloseTo(cave.x, 1);
     expect(outside.position.z).toBeCloseTo(537.5, 1);
+    const darkState = await page.evaluate(() => ({ glow: window.__coastlineElectricLemonade.state().glowActive, light: window.__coastlineTest.electricLemonadeVisualState().playerLightIntensity }));
+    expect(darkState.glow).toBe(false);
+    expect(darkState.light).toBe(0);
   }
 });
 
