@@ -116,7 +116,7 @@ test('replacement: reaching the real cave threshold invokes the existing CTM and
   const inside = await page.evaluate(() => window.__coastlineTransitionTest.playerState());
   expect(inside.mode).toBe('walk');
   expect(Number.isFinite(inside.position?.x)).toBe(true);
-  await page.evaluate(() => window.__coastlineTest.setWalkPosition(520, 577, 0));
+  await page.evaluate(() => window.__coastlineTest.setWalkPosition(520, 542.5, 0));
   await expect.poll(() => page.evaluate(() => window.__coastlineTransitionTest.status().activeWorldId), { timeout: 8000 }).toBe('waterfront');
   const outside = await page.evaluate(() => window.__coastlineTransitionTest.playerState());
   expect(outside.mode).toBe('walk');
