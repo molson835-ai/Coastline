@@ -5,9 +5,7 @@ import {
   COASTLINE_WILDLIFE_ASSETS,
   getCoastlineTargetScale,
   getCoastlineWildlifePlacementPlan,
-  isCoastlineCaveThreshold,
 } from '../coastline-wildlife-assets.js';
-import { COASTLINE_CAVE_THRESHOLD } from '../coastline-island-regions.js';
 
 const read = path => readFile(new URL('../' + path, import.meta.url), 'utf8');
 
@@ -29,15 +27,6 @@ test('animal scales normalize to plausible world-unit heights', () => {
   assert.ok(Math.abs(getCoastlineTargetScale('horse', 2.12) * 2.12 - 2.05) < 1e-9);
   assert.ok(Math.abs(getCoastlineTargetScale('ostrich', 2.4) * 2.4 - 2.25) < 1e-9);
   assert.equal(getCoastlineTargetScale('horse', 0), 1);
-});
-
-test('cave threshold triggers only on foot inside Waterfront portal radius', () => {
-  const onThreshold = { worldId: 'waterfront', mode: 'walk', ...COASTLINE_CAVE_THRESHOLD };
-  assert.equal(isCoastlineCaveThreshold(onThreshold), true);
-  assert.equal(isCoastlineCaveThreshold({ ...onThreshold, x: onThreshold.x + 2.5 }), false);
-  assert.equal(isCoastlineCaveThreshold({ ...onThreshold, worldId: 'city' }), false);
-  assert.equal(isCoastlineCaveThreshold({ ...onThreshold, mode: 'vehicle' }), false);
-  assert.equal(isCoastlineCaveThreshold({ ...onThreshold, mode: 'interior' }), false);
 });
 
 test('legacy cave collision helper and oversized invisible boundary contract are retired', async () => {
@@ -95,7 +84,7 @@ test('wildlife loader uses GLB animation, rider socket, source paths, and CTM-ow
   assert.match(transitions, /destinationSpawn:\{x:520,y:islandGroundY\(\),z:537\.5,rotationY:Math\.PI\}/, 'dungeon return points outside facing away from the portal at island height');
   assert.match(transitions, /id:'homey-garage-to-island'[\s\S]*?z:484,rotationY:Math\.PI/, 'Homey vehicle arrival points out of the garage');
   assert.match(transitions, /id:'homey-garage-to-house'[\s\S]*?z:508\.5,rotationY:Math\.PI/, 'house interior arrival faces into the room, away from its door');
-  assert.match(game, /isCoastlineCaveThreshold/);
+  assert.doesNotMatch(game, /isCoastlineCaveThreshold|electricLemonadePoints\.cave|electricLemonadePoints\.exit/);
   assert.match(game, /steer=THREE\.MathUtils\.clamp\(\(keys\.a\?1:0\)-\(keys\.d\?1:0\),-1,1\)/, 'D-pad controls follow the behind-car screen-space convention');
   assert.doesNotMatch(game, /driveStick|touchSteer|driveControls/, 'joystick is removed in favor of the D-pad');
   assert.match(game, /document\.addEventListener\('visibilitychange'/, 'touch input clears when the app is backgrounded');
@@ -104,7 +93,7 @@ test('wildlife loader uses GLB animation, rider socket, source paths, and CTM-ow
   assert.match(game, /roadster|convertible|open\.?top/i, 'open-top vehicle can show a seated driver');
   assert.match(game, /coastlineOpenTopDriver&&avatar\.parent===v\.g/, 'open-top driver is restored to the world when exiting');
   assert.match(game, /exit:\{x:520,z:542\.5,radius:3\.2\},boots:\{x:524,z:568,radius:2\.8\}/, 'exit and pickup align with the cave portal');
-  assert.doesNotMatch(loader, /cave-entrance\.glb|loadCaveIntoRoot/, 'wildlife runtime no longer loads the retired single cave');
+  assert.doesNotMatch(loader, /cave-entrance\.glb|loadCaveIntoRoot|isCoastlineCaveThreshold/, 'wildlife runtime no longer contains the retired single-cave system');
   assert.match(game, /wildlifeAssetState/);
   assert.match(packageBuilder, /coastline-wildlife-assets\.js/);
   assert.doesNotMatch(packageBuilder, /assets\/cave-entrance\.glb/);
@@ -170,4 +159,15 @@ test('wildlife simulation is gated to the active world while preserving a mount 
   assert.match(source, /diagnostics\.lastUpdated\s*=\s*updated/);
   assert.match(source, /diagnostics\.skippedInactive\s*=\s*skippedInactive/);
   assert.match(source, /lastUpdated:\s*diagnostics\.lastUpdated/);
+});
+
+test('retired procedural car visuals and neutral fallback cannot flash before the RGSDev fleet loads', async () => {
+  const [gameSource, assetSwap] = await Promise.all([read('game-v3.html'), read('coastline-asset-swap.js')]);
+  const makeVehicleBody = gameSource.slice(gameSource.indexOf('function makeVehicle('), gameSource.indexOf('let vi=0;'));
+  assert.match(makeVehicleBody, /g\.visible=false/);
+  assert.match(makeVehicleBody, /coastlineAssetPending=true/);
+  assert.doesNotMatch(makeVehicleBody, /new THREE\.Mesh|BoxGeometry|SphereGeometry|MeshPhysicalMaterial/);
+  assert.doesNotMatch(assetSwap, /makeNeutralVehiclePlaceholder|neutral-fallback/);
+  assert.match(assetSwap, /vehicle\.g\.visible=false/);
+  assert.match(assetSwap, /vehicle\.rgsdevModelName='unavailable'/);
 });
