@@ -434,7 +434,6 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
     const floorY=finiteOr(islandGroundY());
     pendingDungeonRoot=new THREE.Group();pendingDungeonRoot.name='coastline-electric-lemonade-dungeon-root';
     const root=pendingDungeonRoot,colliders=[];
-    const wallMat=new THREE.MeshStandardMaterial({color:0x3c4039,roughness:1,metalness:0});
     const floorMat=new THREE.MeshStandardMaterial({color:0x171a17,roughness:1,metalness:0});
     const rockMat=new THREE.MeshStandardMaterial({color:0x45483f,roughness:1,metalness:0});
     const naturalRockGeometry=new THREE.DodecahedronGeometry(1,1);
