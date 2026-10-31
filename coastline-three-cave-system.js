@@ -184,7 +184,7 @@ function setWaterfrontSpawn(caveId) {
   player.mode = 'walk';
   player.sitting = false;
   player.x = cave.x;
-  player.z = cave.z;
+  player.z = cave.z - 5;
   player.heading = Math.PI;
 }
 
@@ -218,7 +218,7 @@ function registerCaveTransitions(manager) {
     fromWorld: 'electric-lemonade-dungeon',
     toWorld: 'waterfront',
     trigger: 'cave',
-    destinationSpawn: { x: 510, y: 0, z: 542.5, rotationY: Math.PI },
+    destinationSpawn: { x: 510, y: 0, z: 537.5, rotationY: Math.PI },
     vehiclePolicy: 'forbidden',
   });
   register({
@@ -226,7 +226,7 @@ function registerCaveTransitions(manager) {
     fromWorld: 'electric-lemonade-dungeon',
     toWorld: 'waterfront',
     trigger: 'cave',
-    destinationSpawn: { x: 530, y: 0, z: 542.5, rotationY: Math.PI },
+    destinationSpawn: { x: 530, y: 0, z: 537.5, rotationY: Math.PI },
     vehiclePolicy: 'forbidden',
   });
   return true;
