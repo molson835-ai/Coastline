@@ -47,15 +47,6 @@ function fitVehicle(THREE, source, target = null) {
   model.position.x -= (bounds.min.x + bounds.max.x) / 2; model.position.z -= (bounds.min.z + bounds.max.z) / 2; model.position.y -= bounds.min.y;
   return model;
 }
-function makeNeutralVehiclePlaceholder(THREE) {
-  const root = new THREE.Group();
-  const bodyMaterial = new THREE.MeshStandardMaterial({ color:0x777f86, roughness:.82, metalness:.08 });
-  const tireMaterial = new THREE.MeshStandardMaterial({ color:0x24282b, roughness:.95 });
-  const body = new THREE.Mesh(new THREE.BoxGeometry(1.95,.62,4.05), bodyMaterial); body.position.y=.72; root.add(body);
-  const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.45,.62,1.8), new THREE.MeshStandardMaterial({color:0x9da6ab,roughness:.72})); cabin.position.set(0,1.31,-.2); root.add(cabin);
-  for (const x of [-.98,.98]) for (const z of [-1.32,1.32]) { const wheel = new THREE.Mesh(new THREE.CylinderGeometry(.34,.34,.18,12),tireMaterial); wheel.rotation.z=Math.PI/2; wheel.position.set(x,.38,z); wheel.userData.coastlineOwnedMaterial=true; root.add(wheel); }
-  body.userData.coastlineOwnedMaterial=true; cabin.userData.coastlineOwnedMaterial=true; root.userData.coastlineNeutralFallback = true; return root;
-}
 function setMaterialColor(material, color) { if (material?.color?.isColor) material.color.set(color); }
 function forMaterials(mesh, callback) { for (const material of (Array.isArray(mesh.material) ? mesh.material : [mesh.material])) if (material) callback(material); }
 function applyVehicleMaterialRoles(THREE, vehicle, visual) {
@@ -241,10 +232,19 @@ export async function applyRgsdevFleet(THREE, vehicles, onStatus = () => {}) {
     return {ok:true,replaced,disabled,models:[...pack.models.keys()],ready:true};
   } catch (error) {
     console.error('[Coastline] Replacement vehicle pack failed; legacy vehicle models remain disabled.',error);
-    let placeholders=0,disabled=0;
-    for (const vehicle of vehicles) { if (!vehicle?.g) continue; if (vehicle.isMount || ['horse','ostrich'].includes(vehicle.kind)) continue; removeVisualChildren(vehicle.g); if (vehicle.kind==='car') { vehicle.g.add(makeNeutralVehiclePlaceholder(THREE)); vehicle.g.visible=true; vehicle.g.userData.coastlineAssetPending=false; vehicle.rgsdevModelName='neutral-fallback'; placeholders++; } else { vehicle.g.visible=false; vehicle.drivable=false; vehicle.occupied=false; disabled++; } }
-    onStatus({ok:false,reason:'replacement-pack-load-failed',error:String(error),placeholders,disabled,ready:false});
-    return {ok:false,reason:'replacement-pack-load-failed',placeholders,disabled,error,ready:false};
+    let disabled=0;
+    for (const vehicle of vehicles) {
+      if (!vehicle?.g || vehicle.isMount || ['horse','ostrich'].includes(vehicle.kind)) continue;
+      removeVisualChildren(vehicle.g);
+      vehicle.g.visible=false;
+      vehicle.g.userData.coastlineAssetPending=false;
+      vehicle.rgsdevModelName='unavailable';
+      vehicle.drivable=false;
+      vehicle.occupied=false;
+      disabled++;
+    }
+    onStatus({ok:false,reason:'replacement-pack-load-failed',error:String(error),disabled,ready:false});
+    return {ok:false,reason:'replacement-pack-load-failed',disabled,error,ready:false};
   }
 }
 
