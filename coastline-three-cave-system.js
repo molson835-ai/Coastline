@@ -101,13 +101,10 @@ function buildSideCaverns(root, THREE) {
   group.userData.coastlineThreeCaveInterior = true;
 
   const floorMaterial = new THREE.MeshStandardMaterial({ color: 0x252522, roughness: 1 });
-  const rockMaterials = [
-    new THREE.MeshStandardMaterial({ color: 0x343632, roughness: 1 }),
-    new THREE.MeshStandardMaterial({ color: 0x45463f, roughness: 1 }),
-    new THREE.MeshStandardMaterial({ color: 0x292d2b, roughness: 1 }),
-    new THREE.MeshStandardMaterial({ color: 0x555248, roughness: 1 }),
-  ];
+  const rockMaterial = new THREE.MeshStandardMaterial({ color: 0x45463f, roughness: 1 });
+  const rockPalette = [0x343632, 0x45463f, 0x292d2b, 0x555248].map(color => new THREE.Color(color));
   const rockGeometry = new THREE.DodecahedronGeometry(1, 1);
+  const coneGeometry = new THREE.ConeGeometry(1, 1, 6);
 
   for (const cave of COASTLINE_THREE_CAVE_ENTRANCES.filter(entry => entry.id !== 'center')) {
     const chamber = new THREE.Group();
@@ -119,53 +116,68 @@ function buildSideCaverns(root, THREE) {
     floor.receiveShadow = true;
     chamber.add(floor);
 
-    // Irregular overlapping stone masses form the side walls rather than box walls.
+    // One instanced rock field forms overlapping side walls and a broken ceiling.
+    // This keeps the organic silhouette without spawning dozens of draw calls.
+    const rockInstances = new THREE.InstancedMesh(rockGeometry, rockMaterial, 31);
+    rockInstances.name = 'coastline-three-cave-interior-rock-masses';
+    rockInstances.castShadow = true;
+    rockInstances.receiveShadow = true;
+    const rockDummy = new THREE.Object3D();
+    let rockIndex = 0;
     for (let i = 0; i < 11; i++) {
       const z = 542.5 + i * 3.05;
       for (const side of [-1, 1]) {
-        const rock = new THREE.Mesh(rockGeometry, rockMaterials[(i + (side > 0 ? 1 : 0)) % rockMaterials.length]);
-        rock.position.set(cave.x + side * (3.55 + Math.sin(i * 1.7) * 0.28), 1.35 + (i % 3) * 0.22, z);
-        rock.scale.set(1.0 + (i % 3) * 0.18, 1.65 + (i % 4) * 0.24, 2.05 + (i % 2) * 0.28);
-        rock.rotation.set(i * 0.13, i * 0.31, side * (0.08 + (i % 3) * 0.035));
-        rock.castShadow = true;
-        rock.receiveShadow = true;
-        chamber.add(rock);
+        rockDummy.position.set(cave.x + side * (3.55 + Math.sin(i * 1.7) * 0.28), 1.35 + (i % 3) * 0.22, z);
+        rockDummy.scale.set(1.0 + (i % 3) * 0.18, 1.65 + (i % 4) * 0.24, 2.05 + (i % 2) * 0.28);
+        rockDummy.rotation.set(i * 0.13, i * 0.31, side * (0.08 + (i % 3) * 0.035));
+        rockDummy.updateMatrix();
+        rockInstances.setMatrixAt(rockIndex, rockDummy.matrix);
+        rockInstances.setColorAt(rockIndex, rockPalette[(i + (side > 0 ? 1 : 0)) % rockPalette.length]);
+        rockIndex++;
       }
     }
-
-    // A broken, uneven ceiling leaves a walkable central tunnel.
     for (let i = 0; i < 9; i++) {
-      const roof = new THREE.Mesh(rockGeometry, rockMaterials[(i + 2) % rockMaterials.length]);
-      roof.position.set(cave.x + Math.sin(i * 1.3) * 0.8, 4.25 + Math.cos(i * 1.8) * 0.32, 544 + i * 3.55);
-      roof.scale.set(1.55 + (i % 3) * 0.24, 0.85 + (i % 2) * 0.22, 2.0 + (i % 4) * 0.28);
-      roof.rotation.set(0.12 + i * 0.025, i * 0.27, 0.08 - i * 0.02);
-      roof.castShadow = true;
-      roof.receiveShadow = true;
-      chamber.add(roof);
+      rockDummy.position.set(cave.x + Math.sin(i * 1.3) * 0.8, 4.25 + Math.cos(i * 1.8) * 0.32, 544 + i * 3.55);
+      rockDummy.scale.set(1.55 + (i % 3) * 0.24, 0.85 + (i % 2) * 0.22, 2.0 + (i % 4) * 0.28);
+      rockDummy.rotation.set(0.12 + i * 0.025, i * 0.27, 0.08 - i * 0.02);
+      rockDummy.updateMatrix();
+      rockInstances.setMatrixAt(rockIndex, rockDummy.matrix);
+      rockInstances.setColorAt(rockIndex, rockPalette[(i + 2) % rockPalette.length]);
+      rockIndex++;
     }
+    rockInstances.instanceMatrix.needsUpdate = true;
+    if (rockInstances.instanceColor) rockInstances.instanceColor.needsUpdate = true;
+    chamber.add(rockInstances);
 
-    // Stalagmites and hanging points make the chamber read as eroded natural rock.
+    // Instanced stalagmites and hanging points add eroded natural detail.
+    const caveCones = new THREE.InstancedMesh(coneGeometry, rockMaterial, 16);
+    caveCones.name = 'coastline-three-cave-interior-stalactites-stalagmites';
+    caveCones.castShadow = true;
+    const coneDummy = new THREE.Object3D();
     for (let i = 0; i < 8; i++) {
       const side = i % 2 ? 1 : -1;
       const z = 547 + i * 3.55;
-      const stalagmite = new THREE.Mesh(
-        new THREE.ConeGeometry(0.32 + (i % 3) * 0.12, 1.1 + (i % 4) * 0.32, 6),
-        rockMaterials[(i + 1) % rockMaterials.length],
-      );
-      stalagmite.position.set(cave.x + side * (2.65 + (i % 2) * 0.25), 0.55 + (i % 3) * 0.12, z);
-      stalagmite.rotation.z = side * 0.12;
-      stalagmite.castShadow = true;
-      chamber.add(stalagmite);
+      const stalagmiteRadius = 0.32 + (i % 3) * 0.12;
+      const stalagmiteHeight = 1.1 + (i % 4) * 0.32;
+      coneDummy.position.set(cave.x + side * (2.65 + (i % 2) * 0.25), 0.55 + (i % 3) * 0.12, z);
+      coneDummy.scale.set(stalagmiteRadius, stalagmiteHeight, stalagmiteRadius);
+      coneDummy.rotation.set(0, 0, side * 0.12);
+      coneDummy.updateMatrix();
+      caveCones.setMatrixAt(i * 2, coneDummy.matrix);
+      caveCones.setColorAt(i * 2, rockPalette[(i + 1) % rockPalette.length]);
 
-      const stalactite = new THREE.Mesh(
-        new THREE.ConeGeometry(0.26 + (i % 2) * 0.1, 0.9 + (i % 3) * 0.28, 6),
-        rockMaterials[(i + 2) % rockMaterials.length],
-      );
-      stalactite.position.set(cave.x - side * (2.5 + (i % 2) * 0.2), 4.05, z + 1.3);
-      stalactite.rotation.z = Math.PI + side * 0.1;
-      stalactite.castShadow = true;
-      chamber.add(stalactite);
+      const stalactiteRadius = 0.26 + (i % 2) * 0.1;
+      const stalactiteHeight = 0.9 + (i % 3) * 0.28;
+      coneDummy.position.set(cave.x - side * (2.5 + (i % 2) * 0.2), 4.05, z + 1.3);
+      coneDummy.scale.set(stalactiteRadius, stalactiteHeight, stalactiteRadius);
+      coneDummy.rotation.set(0, 0, Math.PI + side * 0.1);
+      coneDummy.updateMatrix();
+      caveCones.setMatrixAt(i * 2 + 1, coneDummy.matrix);
+      caveCones.setColorAt(i * 2 + 1, rockPalette[(i + 2) % rockPalette.length]);
     }
+    caveCones.instanceMatrix.needsUpdate = true;
+    if (caveCones.instanceColor) caveCones.instanceColor.needsUpdate = true;
+    chamber.add(caveCones);
     group.add(chamber);
   }
   root.add(group);
