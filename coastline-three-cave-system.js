@@ -11,9 +11,9 @@ const CAVE_INTERIOR_SPAWNS = Object.freeze({
 });
 
 const CAVE_EXIT_POINTS = Object.freeze({
-  left: Object.freeze({ x: 510, z: 577, radius: 2.25 }),
+  left: Object.freeze({ x: 510, z: 542.5, radius: 2.25 }),
   center: Object.freeze({ x: 520, z: 542.5, radius: 3.2 }),
-  right: Object.freeze({ x: 530, z: 577, radius: 2.25 }),
+  right: Object.freeze({ x: 530, z: 542.5, radius: 2.25 }),
 });
 
 export const COASTLINE_THREE_CAVE_TRANSITIONS = Object.freeze(
