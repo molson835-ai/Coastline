@@ -197,7 +197,7 @@ test('replacement: left and right cave CTMs enter their caverns and return to th
     expect(inside.state.position.z).toBeCloseTo(552, 1);
 
     const exitUseAvailable = await page.evaluate(({ x }) => {
-      window.__coastlineTest.setWalkPosition(x, 577, 0);
+      window.__coastlineTest.setWalkPosition(x, 542.5, 0);
       return window.__coastlineElectricLemonade.canUse();
     }, cave);
     expect(exitUseAvailable).toBe(false);
