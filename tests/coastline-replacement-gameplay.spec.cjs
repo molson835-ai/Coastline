@@ -177,12 +177,14 @@ test('replacement: left and right cave CTMs enter their caverns and return to th
       const interior = root?.getObjectByName('coastline-three-cave-interior-' + (state.position.x < 520 ? 'left' : 'right'));
       return {
         state,
-        interiorMeshes: (() => { let count = 0; interior?.traverse(node => { if (node.isMesh) count++; }); return count; })(),
+        rockInstances: interior?.getObjectByName('coastline-three-cave-interior-rock-masses')?.count || 0,
+        coneInstances: interior?.getObjectByName('coastline-three-cave-interior-stalactites-stalagmites')?.count || 0,
         wallColliders: (root?.userData?.coastlineColliders || []).filter(c => String(c.name || '').includes('electric-dungeon-') && String(c.name || '').includes('rock-wall')).length,
       };
     });
     expect(inside.state.mode).toBe('walk');
-    expect(inside.interiorMeshes).toBeGreaterThan(25);
+    expect(inside.rockInstances).toBeGreaterThan(30);
+    expect(inside.coneInstances).toBe(16);
     expect(inside.wallColliders).toBeGreaterThanOrEqual(4);
     expect(inside.state.position.x).toBeCloseTo(cave.x, 1);
     expect(inside.state.position.z).toBeCloseTo(552, 1);
