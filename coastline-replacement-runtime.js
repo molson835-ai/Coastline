@@ -67,13 +67,19 @@ function installReplacementRuntimeCorrections() {
       // glTF is Y-up. Point the authored cave mouth toward the lemonade stand side
       // (-Z), matching the existing CTM threshold at x=520,z=542.5.
       cave.rotation.y = Math.PI;
+      cave.visible = true;
       const THREE = window.__coastlineThree;
       if (!THREE) throw new Error('Three.js runtime unavailable for cave replacement');
+      // The asset contains three separate cave mountains in one GLB scene. Fit the
+      // complete authored formation as one unit, then explicitly keep every mesh
+      // renderable; the world/detail culler must not silently hide this landmark.
       cave.updateMatrixWorld(true);
       const sourceBounds = new THREE.Box3().setFromObject(cave);
       const sourceHeight = Math.max(0.001, sourceBounds.max.y - sourceBounds.min.y);
+      const sourceWidth = Math.max(0.001, sourceBounds.max.x - sourceBounds.min.x);
       const targetHeight = 12;
-      const scale = targetHeight / sourceHeight;
+      const targetWidth = 30;
+      const scale = Math.max(targetHeight / sourceHeight, targetWidth / sourceWidth);
       cave.scale.multiplyScalar(scale);
       cave.updateMatrixWorld(true);
       const scaledBounds = new THREE.Box3().setFromObject(cave);
@@ -83,13 +89,33 @@ function installReplacementRuntimeCorrections() {
       cave.position.x += 520 - centerX;
       cave.position.z += 545 - centerZ;
       cave.position.y += floorY - scaledBounds.min.y;
+      let visibleMeshCount = 0;
       cave.traverse(node => {
+        node.visible = true;
+        node.frustumCulled = false;
+        node.layers.enableAll();
+        if (node.material) {
+          const materials = Array.isArray(node.material) ? node.material : [node.material];
+          for (const material of materials) if (material) material.visible = true;
+        }
         if (!node.isMesh) return;
+        visibleMeshCount++;
         node.castShadow = true;
         node.receiveShadow = true;
         node.userData.coastlineReplacementCave = true;
       });
+      if (!visibleMeshCount) throw new Error('Replacement cave GLB contains no renderable meshes');
+      mouth.visible = true;
       mouth.add(cave);
+      root.updateMatrixWorld(true);
+      const finalBounds = new THREE.Box3().setFromObject(cave);
+      root.userData.coastlineReplacementCaveBounds = {
+        min: finalBounds.min.toArray(), max: finalBounds.max.toArray(),
+        width: finalBounds.max.x - finalBounds.min.x,
+        height: finalBounds.max.y - finalBounds.min.y,
+        depth: finalBounds.max.z - finalBounds.min.z,
+        visibleMeshCount,
+      };
       root.userData.coastlineReplacementCaveLoaded = true;
       root.userData.coastlineReplacementCave = cave;
     } catch (error) {
