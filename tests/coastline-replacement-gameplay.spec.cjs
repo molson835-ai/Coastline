@@ -111,9 +111,12 @@ test('replacement: approved three-cave GLB stays mounted while only the legacy s
 
 test('replacement: reaching the real cave threshold invokes the existing CTM and returns coherently', async ({ page }) => {
   await openGame(page, 'replacement-ctm');
-  const entryUseAvailable = await page.evaluate(async () => {
+  await page.evaluate(async () => {
     await window.__coastlineTransitionTest.transition('city-to-island');
     await window.__coastlineTransitionTest.transition('island-to-waterfront');
+  });
+  await page.waitForFunction(() => window.__coastlineElectricLemonade?.__threeCaveWrapped === true, null, { timeout: 10000 });
+  const entryUseAvailable = await page.evaluate(() => {
     window.__coastlineTest.setWalkPosition(520, 542.5, Math.PI);
     return window.__coastlineElectricLemonade.canUse();
   });
@@ -122,6 +125,7 @@ test('replacement: reaching the real cave threshold invokes the existing CTM and
   const inside = await page.evaluate(() => window.__coastlineTransitionTest.playerState());
   expect(inside.mode).toBe('walk');
   expect(Number.isFinite(inside.position?.x)).toBe(true);
+  await page.waitForFunction(() => Boolean(window.__coastlineActiveWorldRoot?.getObjectByName('coastline-three-cave-interiors')), null, { timeout: 10000 });
   const cavern = await page.evaluate(() => {
     const root = window.__coastlineActiveWorldRoot;
     const colliders = root?.userData?.coastlineColliders || [];
@@ -157,6 +161,7 @@ test('replacement: left and right cave CTMs enter their caverns and return to th
     await window.__coastlineTransitionTest.transition('city-to-island');
     await window.__coastlineTransitionTest.transition('island-to-waterfront');
   });
+  await page.waitForFunction(() => window.__coastlineElectricLemonade?.__threeCaveWrapped === true, null, { timeout: 10000 });
 
   for (const cave of [{ id: 'left', x: 510 }, { id: 'right', x: 530 }]) {
     const caveUseAvailable = await page.evaluate(({ x }) => {
@@ -165,6 +170,7 @@ test('replacement: left and right cave CTMs enter their caverns and return to th
     }, cave);
     expect(caveUseAvailable).toBe(false);
     await expect.poll(() => page.evaluate(() => window.__coastlineTransitionTest.status().activeWorldId), { timeout: 8000 }).toBe('electric-lemonade-dungeon');
+    await page.waitForFunction(() => Boolean(window.__coastlineActiveWorldRoot?.getObjectByName('coastline-three-cave-interiors')), null, { timeout: 10000 });
     const inside = await page.evaluate(() => {
       const state = window.__coastlineTransitionTest.playerState();
       const root = window.__coastlineActiveWorldRoot;
