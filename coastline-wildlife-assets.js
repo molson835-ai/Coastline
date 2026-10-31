@@ -1,4 +1,3 @@
-import { COASTLINE_CAVE_THRESHOLD } from './coastline-island-regions.js';
 
 /**
  * Lazy animal visual assets for Coastline.
@@ -51,11 +50,6 @@ export function getCoastlineTargetScale(kind, modelHeight) {
   if (!Number.isFinite(modelHeight) || modelHeight <= 0) return 1;
   const targetHeight = kind === 'horse' ? 2.05 : 2.25;
   return targetHeight / modelHeight;
-}
-
-export function isCoastlineCaveThreshold({ worldId, mode, x, z, threshold = COASTLINE_CAVE_THRESHOLD }) {
-  if (worldId !== 'waterfront' || mode !== 'walk' || !Number.isFinite(x) || !Number.isFinite(z)) return false;
-  return Math.hypot(x - threshold.x, z - threshold.z) <= threshold.radius;
 }
 
 const LOADER_URL = 'https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/loaders/GLTFLoader.js';
