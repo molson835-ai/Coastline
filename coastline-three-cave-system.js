@@ -125,7 +125,7 @@ function buildSideCaverns(root, THREE) {
       for (const side of [-1, 1]) {
         const rock = new THREE.Mesh(rockGeometry, rockMaterials[(i + (side > 0 ? 1 : 0)) % rockMaterials.length]);
         rock.position.set(cave.x + side * (3.55 + Math.sin(i * 1.7) * 0.28), 1.35 + (i % 3) * 0.22, z);
-        rock.scale.set(1.0 + (i % 3) * 0.18, 1.65 + (i % 4) * 0.24, 1.55 + (i % 2) * 0.35);
+        rock.scale.set(1.0 + (i % 3) * 0.18, 1.65 + (i % 4) * 0.24, 2.05 + (i % 2) * 0.28);
         rock.rotation.set(i * 0.13, i * 0.31, side * (0.08 + (i % 3) * 0.035));
         rock.castShadow = true;
         rock.receiveShadow = true;
