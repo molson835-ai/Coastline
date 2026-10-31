@@ -358,8 +358,7 @@ if (typeof window !== 'undefined') {
         Math.abs(cave.x - c.x) <= (c.w || 0) / 2 + 0.45 &&
         Math.abs(cave.z - c.z) <= (c.d || 0) / 2 + 0.45
       )),
-      stoneTraceBlocks: colliders.some(c => String(c?.name || '').startsWith('coastline-three-cave-') &&
-        Math.abs(c.x - c.x) <= (c.w || 0) / 2 + 0.45 && Math.abs(c.z - c.z) <= (c.d || 0) / 2 + 0.45),
+      activeCollisionArrayMatchesRoot: window.__coastlineActiveWorldColliders === colliders,
       replacementLoaded: Boolean(root?.userData?.coastlineReplacementCaveLoaded),
     };
   };
