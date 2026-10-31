@@ -293,20 +293,22 @@ function wrapInteraction() {
 
     if (world === 'waterfront') {
       const cave = getCoastlineThreeCaveAt(player.x, player.z);
-      if (cave?.id === 'left' || cave?.id === 'right') {
+      if (cave) {
+        // Every visible cave arch owns an entrance CTM. The center route is
+        // the rocket-boots cavern; the side routes land in their own wings.
         await window.__coastlineTransitionRequest(cave.entry);
         api.enterDungeon?.();
         setPlayerSpawn(cave.id);
         buildSideCaverns(window.__coastlineActiveWorldRoot || window.__coastlineRegionRoot, window.__coastlineThree);
         return true;
       }
-      if (cave?.id === 'center') return originalInteract();
     }
 
     if (world === 'electric-lemonade-dungeon') {
       const caveId = getCaveAtPoint(CAVE_EXIT_POINTS, player.x, player.z);
-      if (caveId === 'left' || caveId === 'right') {
-        await window.__coastlineTransitionRequest(`electric-dungeon-${caveId}-to-waterfront`);
+      if (caveId) {
+        const cave = COASTLINE_THREE_CAVE_ENTRANCES.find(entry => entry.id === caveId);
+        await window.__coastlineTransitionRequest(cave.returnTransition);
         api.exitDungeon?.();
         setWaterfrontSpawn(caveId);
         return true;
