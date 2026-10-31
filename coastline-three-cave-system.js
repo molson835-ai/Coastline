@@ -39,11 +39,16 @@ function removeLegacyCaveNodes(root) {
   const doomed = [];
   root.traverse(object => {
     const name = String(object.name || '');
+    // Remove only the old single-cave asset and old procedural rock dressing.
+    // The cave-mouth group is a shared anchor: the approved three-cave GLB is
+    // parented beneath it, so the anchor must remain in the scene.
     if (
       name === 'coastline-waterfront-cave-entrance-glb' ||
       name === 'coastline-waterfront-cave-mountain' ||
       name === 'coastline-waterfront-cave-approach-path' ||
-      name === 'coastline-electric-lemonade-cave-mouth'
+      name === 'coastline-waterfront-cave-rubble' ||
+      name === 'coastline-waterfront-cave-coastal-plants' ||
+      name === 'coastline-electric-lemonade-cave-dark-opening'
     ) doomed.push(object);
   });
   for (const object of doomed) {
@@ -55,8 +60,18 @@ function removeLegacyCaveNodes(root) {
 function removeLegacyCaveColliders(root) {
   const colliders = root?.userData?.coastlineColliders;
   if (!Array.isArray(colliders)) return 0;
+  const legacyNames = new Set([
+    'coastline-waterfront-cave-rear-wall',
+    'coastline-waterfront-cave-left-portal-jamb',
+    'coastline-waterfront-cave-right-portal-jamb',
+    'coastline-electric-lemonade-cave-left-rock',
+    'coastline-electric-lemonade-cave-right-rock',
+  ]);
   const before = colliders.length;
-  root.userData.coastlineColliders = colliders.filter(collider => !String(collider?.name || '').includes('waterfront-cave-') && !String(collider?.name || '').includes('electric-lemonade-cave-'));
+  root.userData.coastlineColliders = colliders.filter(collider => {
+    const name = String(collider?.name || '');
+    return !legacyNames.has(name) && !name.startsWith('coastline-waterfront-cave-mountain-');
+  });
   return before - root.userData.coastlineColliders.length;
 }
 
