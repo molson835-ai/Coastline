@@ -79,9 +79,15 @@ function addStoneTraceColliders(root) {
       { name: `${prefix}-right-wall`, x: cave.x + 3.15, z: cave.z + 2.65, w: 0.72, d: 7.1 },
       { name: `${prefix}-rear-left`, x: cave.x - 1.85, z: cave.z + 6.15, w: 3.0, d: 0.72 },
       { name: `${prefix}-rear-right`, x: cave.x + 1.85, z: cave.z + 6.15, w: 3.0, d: 0.72 },
-      { name: `${prefix}-front-left-jamb`, x: cave.x - 2.65, z: cave.z - 0.55, w: 0.9, d: 1.15 },
-      { name: `${prefix}-front-right-jamb`, x: cave.x + 2.65, z: cave.z - 0.55, w: 0.9, d: 1.15 },
+      { name: `${prefix}-front-left-jamb`, x: cave.x - 3.55, z: cave.z - 0.55, w: 1.0, d: 1.15 },
+      { name: `${prefix}-front-right-jamb`, x: cave.x + 3.55, z: cave.z - 0.55, w: 1.0, d: 1.15 },
     );
+  }
+  // The two narrow divider traces follow the solid stone pillars between adjacent arches.
+  for (const x of [515, 525]) {
+    if (!colliders.some(collider => collider?.name === `coastline-three-cave-divider-${x}`)) {
+      colliders.push({ name: `coastline-three-cave-divider-${x}`, x, z: 546.0, w: 2.98, d: 7.1 });
+    }
   }
   root.userData.coastlineThreeCaveBoundaryContract = COASTLINE_THREE_CAVE_ENTRANCES.map(cave => ({
     id: cave.id, x: cave.x, z: cave.z, radius: cave.radius,
@@ -348,6 +354,12 @@ if (typeof window !== 'undefined') {
         .filter(name => Boolean(root?.getObjectByName(name))),
       legacyColliders: colliders.filter(c => /^(coastline-waterfront-cave-|coastline-electric-lemonade-cave-)/.test(String(c?.name || ''))).map(c => c.name),
       stoneTraceColliders: colliders.filter(c => String(c?.name || '').startsWith('coastline-three-cave-')).map(c => ({ name: c.name, x: c.x, z: c.z, w: c.w, d: c.d })),
+      openingsClear: COASTLINE_THREE_CAVE_ENTRANCES.every(cave => !colliders.some(c =>
+        Math.abs(cave.x - c.x) <= (c.w || 0) / 2 + 0.45 &&
+        Math.abs(cave.z - c.z) <= (c.d || 0) / 2 + 0.45
+      )),
+      stoneTraceBlocks: colliders.some(c => String(c?.name || '').startsWith('coastline-three-cave-') &&
+        Math.abs(c.x - c.x) <= (c.w || 0) / 2 + 0.45 && Math.abs(c.z - c.z) <= (c.d || 0) / 2 + 0.45),
       replacementLoaded: Boolean(root?.userData?.coastlineReplacementCaveLoaded),
     };
   };
