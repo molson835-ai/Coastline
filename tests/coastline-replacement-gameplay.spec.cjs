@@ -90,6 +90,36 @@ test('replacement: reaching the real cave threshold invokes the existing CTM and
   expect(Number.isFinite(outside.position?.z)).toBe(true);
 });
 
+test('replacement: left and right cave CTMs enter their caverns and return to the matching cave', async ({ page }) => {
+  await openGame(page, 'replacement-three-cave-ctms');
+  await page.evaluate(async () => {
+    await window.__coastlineTransitionTest.transition('city-to-island');
+    await window.__coastlineTransitionTest.transition('island-to-waterfront');
+  });
+
+  for (const cave of [{ id: 'left', x: 510 }, { id: 'right', x: 530 }]) {
+    await page.evaluate(({ x }) => {
+      window.__coastlineTest.setWalkPosition(x, 542.5, Math.PI);
+      return window.__coastlineElectricLemonade.interact();
+    }, cave);
+    await expect.poll(() => page.evaluate(() => window.__coastlineTransitionTest.status().activeWorldId), { timeout: 8000 }).toBe('electric-lemonade-dungeon');
+    const inside = await page.evaluate(() => window.__coastlineTransitionTest.playerState());
+    expect(inside.mode).toBe('walk');
+    expect(inside.position.x).toBeCloseTo(cave.x, 1);
+    expect(inside.position.z).toBeCloseTo(552, 1);
+
+    await page.evaluate(({ x }) => {
+      window.__coastlineTest.setWalkPosition(x, 577, 0);
+      return window.__coastlineElectricLemonade.interact();
+    }, cave);
+    await expect.poll(() => page.evaluate(() => window.__coastlineTransitionTest.status().activeWorldId), { timeout: 8000 }).toBe('waterfront');
+    const outside = await page.evaluate(() => window.__coastlineTransitionTest.playerState());
+    expect(outside.mode).toBe('walk');
+    expect(outside.position.x).toBeCloseTo(cave.x, 1);
+    expect(outside.position.z).toBeCloseTo(542.5, 1);
+  }
+});
+
 test('replacement: Electric Lemonade pedestrian is an animated active-world actor tied to the stand', async ({ page }) => {
   await openGame(page, 'replacement-lemonade');
   await page.evaluate(async () => { await window.__coastlineTransitionTest.transition('city-to-island'); await window.__coastlineTransitionTest.transition('island-to-waterfront'); });
