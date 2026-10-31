@@ -290,7 +290,7 @@ function wrapInteraction() {
     if (world === 'waterfront') {
       const cave = getCoastlineThreeCaveAt(player.x, player.z);
       if (cave?.id === 'left' || cave?.id === 'right') {
-        await window.__coastlineTransitionTest.transition(cave.entry);
+        await window.__coastlineTransitionRequest(cave.entry);
         setPlayerSpawn(cave.id);
         buildSideCaverns(window.__coastlineActiveWorldRoot || window.__coastlineRegionRoot, window.__coastlineThree);
         return true;
@@ -301,7 +301,7 @@ function wrapInteraction() {
     if (world === 'electric-lemonade-dungeon') {
       const caveId = getCaveAtPoint(CAVE_EXIT_POINTS, player.x, player.z);
       if (caveId === 'left' || caveId === 'right') {
-        await window.__coastlineTransitionTest.transition(`electric-dungeon-${caveId}-to-waterfront`);
+        await window.__coastlineTransitionRequest(`electric-dungeon-${caveId}-to-waterfront`);
         setWaterfrontSpawn(caveId);
         return true;
       }
