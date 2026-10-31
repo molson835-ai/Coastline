@@ -1,1 +1,1 @@
-Vehicle model assets for Coastline Drive. Please preserve applicable attribution and license notices for third-party models.
+Homey House interior geometry fragments are stored in this directory. Legacy Range Rover vehicle models and their loader have been retired; the active road-car fleet is loaded from the RGSDev pack in `assets/Free Low Poly Vehicles Pack by Rgsdev.zip`.
