@@ -375,6 +375,7 @@ test('Waterfront uses the approved GLB vendor, natural cave props, and automatic
     await window.__coastlineTransitionTest.transition('island-to-waterfront');
   });
   await page.waitForFunction(() => Boolean(window.__coastlineWaterfrontVendorActor?.root), null, { timeout: 20000 });
+  await page.waitForFunction(() => Boolean(window.__coastlineRegionRoot?.getObjectByName('coastline-waterfront-cave-replacement-glb')?.visible), null, { timeout: 30000 });
   const state = await page.evaluate(() => {
     const root = window.__coastlineRegionRoot;
     return {
