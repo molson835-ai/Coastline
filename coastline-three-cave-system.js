@@ -169,6 +169,21 @@ function buildSideCaverns(root, THREE) {
     group.add(chamber);
   }
   root.add(group);
+
+  // The side chambers are separate walkable wings. Their rock walls and the
+  // divider pillars are solid in the dungeon collision contract, while both
+  // entrance/exit openings remain unblocked.
+  const colliders = root.userData.coastlineColliders || (root.userData.coastlineColliders = []);
+  const addInteriorBoundary = (name, x, z, w, d) => {
+    if (!colliders.some(collider => collider?.name === name)) colliders.push({ name, x, z, w, d });
+  };
+  for (const cave of COASTLINE_THREE_CAVE_ENTRANCES.filter(entry => entry.id !== 'center')) {
+    addInteriorBoundary(`electric-dungeon-${cave.id}-left-rock-wall`, cave.x - 3.55, 558, 1.8, 30);
+    addInteriorBoundary(`electric-dungeon-${cave.id}-right-rock-wall`, cave.x + 3.55, 558, 1.8, 30);
+  }
+  addInteriorBoundary('electric-dungeon-left-cavern-divider', 515, 558, 1.8, 30);
+  addInteriorBoundary('electric-dungeon-right-cavern-divider', 525, 558, 1.8, 30);
+  if (window.__coastlineActiveWorldRoot === root) window.__coastlineActiveWorldColliders = colliders;
 }
 
 function setPlayerSpawn(caveId) {
