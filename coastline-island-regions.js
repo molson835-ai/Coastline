@@ -829,92 +829,13 @@ export function createCoastlineIslandRoot({ THREE, region, groundY = () => 0, ad
     for (const dx of [-.42, .42]) { const arm = new THREE.Mesh(new THREE.CylinderGeometry(.09, .1, .62, 7), shirt); arm.position.set(standX + dx, edgeY + 1.62, standZ - 1.12); arm.rotation.z = dx < 0 ? -.28 : .28; vendor.add(arm); }
     stand.add(vendor); root.add(stand);
     colliders.push({ name: 'coastline-electric-lemonade-counter', x: standX, z: standZ, w: 4.7, d: 1.5 });
-    // A low, broad mountain silhouette surrounds the cave; the cave mouth remains an open corridor.
-    const mountain = new THREE.Group(); mountain.name = 'coastline-waterfront-cave-mountain';
-    const mountainMat = material(0x4d5147, .99), mountainLight = material(0x696b5d, .99);
-    const mountainChunks = [
-      [-15,3.0,-7.0,13,7,11],[-10,6.0,-9.0,16,12,15],[-2,8.2,-12.0,19,15,17],
-      [8,6.0,-10.0,16,12,15],[15,3.5,-7.0,12,7.2,11],[-8,4.5,-15.0,14,9,13],[7,5.0,-16.0,15,10,14]
-    ];
-    mountainChunks.forEach(([dx,y,dz,sx,sy,sz],i)=>{
-      const chunk=new THREE.Mesh(new THREE.DodecahedronGeometry(1,1),i%3?mountainMat:mountainLight);
-      chunk.name='coastline-waterfront-cave-mountain-ridge-'+(i+1);
-      chunk.position.set(caveX+dx,edgeY+y,caveZ-dz);chunk.scale.set(sx/2,sy/2,sz/2);
-      chunk.rotation.set(i*.17,i*.39,i*.09);chunk.castShadow=true;chunk.receiveShadow=true;mountain.add(chunk);
-    });
-    const mountainPeakSpecs=[{dx:-9,y:7.2,dz:-12,radius:9.5,height:15.5},{dx:0,y:9,dz:-15,radius:11.5,height:19},{dx:9,y:7,dz:-12,radius:8.8,height:14.5}];
-    mountainPeakSpecs.forEach((peak,i)=>{
-      const mesh=new THREE.Mesh(new THREE.ConeGeometry(peak.radius,peak.height,7,2),i===1?mountainMat:mountainLight);
-      mesh.name='coastline-waterfront-cave-mountain-peak-'+(i+1);
-      mesh.position.set(caveX+peak.dx,edgeY+peak.y,caveZ-peak.dz);
-      mesh.rotation.z=(i-1)*.08;mesh.castShadow=true;mesh.receiveShadow=true;mountain.add(mesh);
-    });
-    root.add(mountain);
-    // An irregular stone path blends into the landscape. The old flat rectangular
-    // plane looked like the bottom of a missing building, so vary the edges to
-    // follow a natural footpath that widens toward shore and narrows at the cave.
-    const caveApproachShape = new THREE.Shape();
-    caveApproachShape.moveTo(-3.9, -5.8);
-    caveApproachShape.quadraticCurveTo(-5.6, -4.2, -4.8, -2.3);
-    caveApproachShape.quadraticCurveTo(-5.1, -.8, -4.2, .9);
-    caveApproachShape.quadraticCurveTo(-3.6, 2.6, -4.6, 4.3);
-    caveApproachShape.lineTo(-3.2, 5.7);
-    caveApproachShape.quadraticCurveTo(-1.1, 6.2, .5, 5.6);
-    caveApproachShape.quadraticCurveTo(2.2, 6.0, 4.1, 4.7);
-    caveApproachShape.lineTo(3.5, 3.0);
-    caveApproachShape.quadraticCurveTo(4.6, 1.0, 4.1, -.9);
-    caveApproachShape.quadraticCurveTo(5.2, -2.8, 4.1, -4.3);
-    caveApproachShape.lineTo(3.2, -5.9);
-    caveApproachShape.quadraticCurveTo(.7, -6.4, -1.4, -5.7);
-    caveApproachShape.closePath();
-    const caveApproach = new THREE.Mesh(
-      new THREE.ShapeGeometry(caveApproachShape, 2),
-      material(0x817b69, .98)
-    );
-    caveApproach.name = 'coastline-waterfront-cave-approach-path';
-    caveApproach.rotation.x = -Math.PI / 2;
-    caveApproach.position.set(caveX, edgeY + .025, caveZ - 8.5);
-    caveApproach.receiveShadow = true;
-    root.add(caveApproach);
-    // Smaller loose stones and hardy coastal plants frame the route, never the doorway.
-    const caveRubble = new THREE.InstancedMesh(new THREE.DodecahedronGeometry(1,0), material(0x77766a,.99), 22);
-    caveRubble.name = 'coastline-waterfront-cave-rubble';
-    const cavePlants = new THREE.InstancedMesh(new THREE.SphereGeometry(1,6,4), material(0x496b43,.99), 14);
-    cavePlants.name = 'coastline-waterfront-cave-coastal-plants';
-    const caveDummy = new THREE.Object3D();
-    for(let i=0;i<22;i++){
-      const side=i%2?-1:1, x=caveX+side*(7.2+(i%4)*1.25), z=caveZ-2+(Math.floor(i/2)%5)*2.6;
-      caveDummy.position.set(x,edgeY+.22+(i%3)*.06,z); caveDummy.scale.set(.45+(i%3)*.18,.32+(i%2)*.14,.38+(i%4)*.1);
-      caveDummy.rotation.set(i*.1,i*.37,i*.08); caveDummy.updateMatrix(); caveRubble.setMatrixAt(i,caveDummy.matrix);
-    }
-    for(let i=0;i<14;i++){
-      const side=i%2?-1:1;
-      caveDummy.position.set(caveX+side*(10+(i%3)*1.8),edgeY+.42,caveZ+1+Math.floor(i/2)*3.4);
-      caveDummy.scale.set(.85+(i%3)*.25,.5+(i%2)*.16,.72+(i%4)*.12);
-      caveDummy.rotation.set(0,i*.61,0); caveDummy.updateMatrix(); cavePlants.setMatrixAt(i,caveDummy.matrix);
-    }
-    caveRubble.instanceMatrix.needsUpdate=true; cavePlants.instanceMatrix.needsUpdate=true;
-    caveRubble.castShadow=false; cavePlants.castShadow=false; root.add(caveRubble,cavePlants);
-    // Rough boulder shoulders form a cave opening with enough clear width to walk through.
-    const cave = new THREE.Group(); cave.name = 'coastline-electric-lemonade-cave-mouth';
-    const rockMat = material(0x292c2b, .99), rockLight = material(0x41413a, .99), caveBlack = new THREE.MeshBasicMaterial({ color: 0x010203 });
-    const boulders = [
-      [-7, 1.4, -1.4, 5.6, 4.2, 4.2], [-5.5, 4.4, -1.8, 4.7, 3.5, 4.0],
-      [7, 1.4, -1.4, 5.6, 4.2, 4.2], [5.5, 4.4, -1.8, 4.7, 3.5, 4.0],
-      [0, 6.3, -1.6, 9.4, 3.2, 4.5], [-9.2, 3.0, -3.2, 3.4, 5.6, 4.2],
-      [9.2, 3.0, -3.2, 3.4, 5.6, 4.2]
-    ];
-    for (let i = 0; i < boulders.length; i++) {
-      const [dx, y, dz, sx, sy, sz] = boulders[i];
-      const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(1, 1), i % 3 ? rockMat : rockLight);
-      rock.position.set(caveX + dx, edgeY + y, caveZ - dz); rock.scale.set(sx / 2, sy / 2, sz / 2); rock.rotation.set(i * .11, i * .37, i * .08); rock.castShadow = true; rock.receiveShadow = true; cave.add(rock);
-    }
-    const darkness = new THREE.Mesh(new THREE.PlaneGeometry(7.8, 5.8), caveBlack);
-    darkness.name = 'coastline-electric-lemonade-cave-dark-opening'; darkness.position.set(caveX, edgeY + 2.7, caveZ - 1.1); cave.add(darkness);
+    // Empty shared anchor for the approved three-cave GLB. No legacy mountain,
+    // single-cave GLB, procedural boulders, approach plane, or invisible cave
+    // collision is generated by the Waterfront builder.
+    const cave = new THREE.Group();
+    cave.name = 'coastline-electric-lemonade-cave-mouth';
     root.add(cave);
-    // The same explicit cave collider contract is used by foot and vehicle collision.
-    // Only the doorway corridor remains traversable; mountain sides and rear are solid.
-    colliders.push(...getCoastlineCaveColliders(caveX, caveZ));
+    // Cave rock collision is installed by the three-cave runtime against the replacement formation only.
     root.userData.coastlineElectricLemonade = {
       stand: { x: standX, z: standZ + 2.4, radius: 3.2 },
       cave: { x: caveX, z: caveZ - 2.5, radius: 3.0 },
