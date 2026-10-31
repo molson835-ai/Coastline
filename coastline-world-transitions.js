@@ -441,11 +441,7 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
     const add=(name,x,y,z,w,h,d,material,collider=false)=>{
       const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material);
       mesh.name=name;mesh.position.set(x,y,z);mesh.receiveShadow=true;root.add(mesh);
-      if(collider)colliders.push({
-        name,x,z,
-        w:alongX?w+1.0:Math.max(w,1.8),
-        d:alongX?Math.max(d,1.8):d+1.0
-      });
+      if(collider)colliders.push({name,x,z,w,d});
       return mesh;
     };
     const addNaturalBarrier=(name,x,z,w,d,collider=true)=>{
@@ -474,7 +470,11 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
       }
       stones.instanceMatrix.needsUpdate=true;
       root.add(stones);
-      if(collider)colliders.push({name,x,z,w,d});
+      if(collider)colliders.push({
+        name,x,z,
+        w:alongX?w+1.0:Math.max(w,1.8),
+        d:alongX?Math.max(d,1.8):d+1.0
+      });
       return stones;
     };
     const floor=add('electric-dungeon-floor',520,floorY-.2,558,32,.4,44,floorMat);
