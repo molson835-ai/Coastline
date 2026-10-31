@@ -46,6 +46,10 @@ test('legacy cave collision helper and oversized invisible boundary contract are
   assert.doesNotMatch(regions, /getCoastlineCaveColliders|isCoastlineCavePointBlocked/);
   assert.doesNotMatch(regions, /coastline-waterfront-cave-mountain|coastline-electric-lemonade-cave-dark-opening/);
   assert.match(caveRuntime, /-left-wall/);
+  assert.match(caveRuntime, /left-rock-wall/);
+  assert.match(caveRuntime, /right-rock-wall/);
+  assert.match(caveRuntime, /electric-dungeon-left-cavern-divider/);
+  assert.match(caveRuntime, /electric-dungeon-right-cavern-divider/);
   assert.match(caveRuntime, /-right-wall/);
   assert.match(caveRuntime, /front-left-jamb/);
   assert.match(caveRuntime, /front-right-jamb/);
@@ -82,6 +86,10 @@ test('wildlife loader uses GLB animation, rider socket, source paths, and CTM-ow
   assert.match(transitions, /electric-dungeon-maze-west-first/);
   assert.match(transitions, /electric-dungeon-maze-east-first/);
   assert.match(transitions, /electric-dungeon-maze-dead-end-marker/);
+  assert.match(transitions, /const addNaturalBarrier=/);
+  assert.match(transitions, /electric-dungeon-ceiling-rocks/);
+  assert.match(transitions, /electric-dungeon-natural-stalactites-stalagmites/);
+  assert.match(transitions, /new THREE\.DodecahedronGeometry\(1,1\)/);
   assert.match(transitions, /electric-dungeon-landmark-/);
   assert.match(transitions, /destinationSpawn:\{x:520,y:islandGroundY\(\),z:537\.5,rotationY:Math\.PI\}/, 'dungeon return points outside facing away from the portal at island height');
   assert.match(transitions, /id:'homey-garage-to-island'[\s\S]*?z:484,rotationY:Math\.PI/, 'Homey vehicle arrival points out of the garage');
