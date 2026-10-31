@@ -85,13 +85,28 @@ test('replacement: approved three-cave GLB stays mounted while only the legacy s
       oldMountain: Boolean(root?.getObjectByName('coastline-waterfront-cave-mountain')),
       oldCave: Boolean(root?.getObjectByName('coastline-waterfront-cave-entrance-glb')),
       boundary: window.__coastlineThreeCaveBoundaryState?.(),
+      collisionCheck: (() => {
+        const trace = window.__coastlineThreeCaveBoundaryState?.().stoneTraceColliders || [];
+        const entrances = window.__coastlineThreeCaveContract?.entrances || [];
+        const blocked = (x, z, radius = 0.45) => trace.some(c =>
+          Math.abs(x - c.x) <= c.w / 2 + radius && Math.abs(z - c.z) <= c.d / 2 + radius
+        );
+        return {
+          openingsClear: entrances.every(cave => !blocked(cave.x, cave.z)),
+          stoneSegmentsBlock: trace.length > 0 && trace.every(c => blocked(c.x, c.z, 0)),
+          traceCount: trace.length,
+        };
+      })(),
     };
   });
   expect(beforeReload.replacement).toBe(true);
   expect(beforeReload.oldMountain).toBe(false);
   expect(beforeReload.oldCave).toBe(false);
   expect(beforeReload.boundary?.legacyColliders).toEqual([]);
-  expect(beforeReload.boundary?.stoneTraceColliders.length).toBeGreaterThanOrEqual(18);
+  expect(beforeReload.boundary?.stoneTraceColliders.length).toBeGreaterThanOrEqual(20);
+  expect(beforeReload.boundary?.activeCollisionArrayMatchesRoot).toBe(true);
+  expect(beforeReload.collisionCheck.openingsClear).toBe(true);
+  expect(beforeReload.collisionCheck.stoneSegmentsBlock).toBe(true);
 });
 
 test('replacement: reaching the real cave threshold invokes the existing CTM and returns coherently', async ({ page }) => {
