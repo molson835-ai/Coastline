@@ -81,6 +81,7 @@ test('wildlife loader uses GLB animation, rider socket, source paths, and CTM-ow
   assert.match(loader, /__COASTLINE_WARHORSE_ASSET_AVAILABLE__ === true/);
   assert.match(packageBuilder, /window\.__COASTLINE_PACKAGED_ASSETS__=true/);
   assert.equal(COASTLINE_WILDLIFE_ASSETS.ostrich.license, 'CC0');
+  assert.equal(COASTLINE_WILDLIFE_ASSETS.cave, undefined, 'retired cave is not part of the wildlife asset catalog');
   assert.match(transitions, /coastlineWildlifeAssets\?\.attachWorld/);
   assert.match(transitions, /coastlineWildlifeAssets\?\.detachWorld/);
   assert.match(transitions, /electric-dungeon-maze-west-first/);
@@ -132,8 +133,13 @@ test('repository GLBs are valid binary glTF; licensed Warhorse Lite is optional 
     assert.equal(buffer.toString('ascii', 16, 20), 'JSON');
     return JSON.parse(buffer.toString('utf8', 20, 20 + chunkLength).trim());
   };
-  assert.ok(readGlbJson(cave).meshes?.length, 'cave asset has mesh geometry');
+  assert.ok(readGlbJson(cave).meshes?.length, 'approved three-cave asset has mesh geometry');
   assert.ok(readGlbJson(ostrich).meshes?.length, 'ostrich asset has mesh geometry');
+  await assert.rejects(
+    readFile(new URL('../assets/cave-entrance.glb', import.meta.url)),
+    error => error?.code === 'ENOENT',
+    'retired single-cave asset is absent from the repository',
+  );
   assert.match(ignore, /assets\/animals\/warhorse-lite\.glb/);
   assert.doesNotMatch(loader, /Warhorse_Lite_v1\.0\.0\.zip|loadWarhorseFromArchive/);
   assert.doesNotMatch(builder, /Warhorse_Lite_v1\.0\.0\.zip|extractZipEntry/);
