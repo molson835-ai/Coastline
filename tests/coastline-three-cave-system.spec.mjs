@@ -27,13 +27,13 @@ test('three cave entrance zones do not overlap and use the shared waterfront cav
 
 test('left and right caves get dedicated CTM entry/return pairs while center preserves the existing transition', () => {
   assert.deepEqual(COASTLINE_THREE_CAVE_TRANSITIONS.map(t => t.entry), [
-    'waterfront-to-electric-dungeon',
     'waterfront-to-electric-dungeon-left',
+    'waterfront-to-electric-dungeon',
     'waterfront-to-electric-dungeon-right',
   ]);
   assert.deepEqual(COASTLINE_THREE_CAVE_TRANSITIONS.map(t => t.returnTransition), [
-    'electric-dungeon-to-waterfront',
     'electric-dungeon-left-to-waterfront',
+    'electric-dungeon-to-waterfront',
     'electric-dungeon-right-to-waterfront',
   ]);
   assert.ok(COASTLINE_THREE_CAVE_TRANSITIONS.every(t => t.toWorld === 'electric-lemonade-dungeon'));
