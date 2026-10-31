@@ -56,13 +56,14 @@ function removeLegacyCaveNodes(root) {
 function removeLegacyCaveColliders(root) {
   const colliders = root?.userData?.coastlineColliders;
   if (!Array.isArray(colliders)) return 0;
-  const before = colliders.length;
-  root.userData.coastlineColliders = colliders.filter(collider => {
+  const filtered = colliders.filter(collider => {
     const name = String(collider?.name || '');
     return !name.startsWith('coastline-waterfront-cave-') &&
       !name.startsWith('coastline-electric-lemonade-cave-');
   });
-  return before - root.userData.coastlineColliders.length;
+  const removed = colliders.length - filtered.length;
+  if (removed) root.userData.coastlineColliders = filtered;
+  return removed;
 }
 
 // These short segments trace the stone shoulders and rear edge of each arch.
@@ -346,7 +347,7 @@ if (typeof window !== 'undefined') {
       legacyVisuals: ['coastline-waterfront-cave-entrance-glb','coastline-waterfront-cave-mountain','coastline-waterfront-cave-approach-path']
         .filter(name => Boolean(root?.getObjectByName(name))),
       legacyColliders: colliders.filter(c => /^(coastline-waterfront-cave-|coastline-electric-lemonade-cave-)/.test(String(c?.name || ''))).map(c => c.name),
-      stoneTraceColliders: colliders.filter(c => String(c?.name || '').startsWith('coastline-three-cave-')).map(c => c.name),
+      stoneTraceColliders: colliders.filter(c => String(c?.name || '').startsWith('coastline-three-cave-')).map(c => ({ name: c.name, x: c.x, z: c.z, w: c.w, d: c.d })),
       replacementLoaded: Boolean(root?.userData?.coastlineReplacementCaveLoaded),
     };
   };
