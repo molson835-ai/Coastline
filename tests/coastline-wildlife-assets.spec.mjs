@@ -92,7 +92,8 @@ test('wildlife loader uses GLB animation, rider socket, source paths, and CTM-ow
   assert.match(game, /data-steer-button/, 'button steering remains available outside driving mode');
   assert.match(game, /roadster|convertible|open\.?top/i, 'open-top vehicle can show a seated driver');
   assert.match(game, /coastlineOpenTopDriver&&avatar\.parent===v\.g/, 'open-top driver is restored to the world when exiting');
-  assert.match(game, /exit:\{x:520,z:542\.5,radius:3\.2\},boots:\{x:524,z:568,radius:2\.8\}/, 'exit and pickup align with the cave portal');
+  assert.match(game, /boots:\{x:524,z:568,radius:2\.8\}/, 'rocket-boot pickup remains inside the center cavern');
+  assert.doesNotMatch(game, /electricLemonadePoints\.exit|electricLemonadePoints\.cave/, 'all cave entrances and exits are owned by automatic three-cave CTMs');
   assert.doesNotMatch(loader, /cave-entrance\.glb|loadCaveIntoRoot|isCoastlineCaveThreshold/, 'wildlife runtime no longer contains the retired single-cave system');
   assert.match(game, /wildlifeAssetState/);
   assert.match(packageBuilder, /coastline-wildlife-assets\.js/);
