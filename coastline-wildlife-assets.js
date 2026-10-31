@@ -1,7 +1,6 @@
-import { COASTLINE_CAVE_THRESHOLD } from './coastline-island-regions.js';
 
 /**
- * Lazy animal/cave visual assets for Coastline.
+ * Lazy animal visual assets for Coastline.
  *
  * The movement/collision system remains authoritative. Animal roots are registered
  * as rideable vehicles so the existing proximity Use action, steering, safe-exit,
@@ -14,11 +13,6 @@ export const COASTLINE_WILDLIFE_COUNTS = Object.freeze({
 });
 
 export const COASTLINE_WILDLIFE_ASSETS = Object.freeze({
-  cave: Object.freeze({
-    local: './assets/cave-entrance.glb',
-    source: 'https://grab3d.com/dl/cave-entrance/cave-entrance.glb',
-    license: 'CC0',
-  }),
   horse: Object.freeze({
     local: './assets/animals/warhorse-lite.glb',
     license: 'Warhorse Lite Free Licence — embedded in the game product, not redistributed as a standalone model',
@@ -54,13 +48,8 @@ export function getCoastlineWildlifePlacementPlan(worldId) {
 
 export function getCoastlineTargetScale(kind, modelHeight) {
   if (!Number.isFinite(modelHeight) || modelHeight <= 0) return 1;
-  const targetHeight = kind === 'cave' ? 5.35 : kind === 'horse' ? 2.05 : 2.25;
+  const targetHeight = kind === 'horse' ? 2.05 : 2.25;
   return targetHeight / modelHeight;
-}
-
-export function isCoastlineCaveThreshold({ worldId, mode, x, z, threshold = COASTLINE_CAVE_THRESHOLD }) {
-  if (worldId !== 'waterfront' || mode !== 'walk' || !Number.isFinite(x) || !Number.isFinite(z)) return false;
-  return Math.hypot(x - threshold.x, z - threshold.z) <= threshold.radius;
 }
 
 const LOADER_URL = 'https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/loaders/GLTFLoader.js';
@@ -179,11 +168,11 @@ function cloneAsset(THREE, template, skeletonUtils) {
 export function createCoastlineWildlifeAssets({ THREE, vehicles, wildlife, worldModel, groundY, avatar = null, isPlaceBlocked = () => false } = {}) {
   if (!THREE || !Array.isArray(vehicles) || !Array.isArray(wildlife)) throw new TypeError('THREE, vehicles and wildlife are required');
   const attached = new Map();
-  const templates = { horse: null, ostrich: null, cave: null };
+  const templates = { horse: null, ostrich: null };
   const diagnostics = {
     initialized: false,
-    loaded: { horse: false, ostrich: false, cave: false },
-    source: { horse: 'pending', ostrich: 'pending', cave: 'pending' },
+    loaded: { horse: false, ostrich: false },
+    source: { horse: 'pending', ostrich: 'pending' },
     errors: [],
     activeWorldId: null,
     lastUpdated: 0,
@@ -277,15 +266,6 @@ export function createCoastlineWildlifeAssets({ THREE, vehicles, wildlife, world
       templates[kind] = { ...fallback, skeletonUtils: result.skeletonUtils };
       diagnostics.source[kind] = fallback.source;
       return templates[kind];
-    }
-    if (kind === 'cave') {
-      const result = await loadGLTF(THREE, 'cave');
-      diagnostics.source.cave = result.source;
-      if (result.gltf?.scene) {
-        templates.cave = { scene: result.gltf.scene, animations: [], skeletonUtils: result.skeletonUtils, source: result.source };
-        diagnostics.loaded.cave = true;
-      } else templates.cave = null;
-      return templates.cave;
     }
     return null;
   };
@@ -398,32 +378,6 @@ export function createCoastlineWildlifeAssets({ THREE, vehicles, wildlife, world
     return true;
   };
 
-  const loadCaveIntoRoot = async root => {
-    if (!root || root.userData?.coastlineCaveGLBAttempted) return false;
-    root.userData.coastlineCaveGLBAttempted = true;
-    const mouth = root.getObjectByName('coastline-electric-lemonade-cave-mouth');
-    if (!mouth) return false;
-    const template = await getTemplate('cave');
-    if (!template?.scene) return false;
-    const cave = cloneAsset(THREE, template.scene, template.skeletonUtils);
-    if (!cave) return false;
-    cave.name = 'coastline-waterfront-cave-entrance-glb';
-    // Grab3D's cave is Z-up; rotate into Y-up and point its doorway toward the -Z approach.
-    cave.rotation.set(-Math.PI / 2, Math.PI, 0);
-    boundsScale(cave, 'cave');
-    cave.updateMatrixWorld(true);
-    const fittedBounds = new THREE.Box3().setFromObject(cave);
-    const floorY = Number.isFinite(root.userData?.coastlineGroundY) ? root.userData.coastlineGroundY : groundY(500, 500);
-    cave.position.x += 520 - (fittedBounds.min.x + fittedBounds.max.x) / 2;
-    cave.position.z += 545 - (fittedBounds.min.z + fittedBounds.max.z) / 2;
-    cave.position.y += floorY - fittedBounds.min.y;
-    cave.traverse(node => { if (node.isMesh) { node.castShadow = true; node.receiveShadow = true; node.userData.coastlineSharedWildlifeAsset = true; } });
-    const proceduralDarkness = mouth.getObjectByName('coastline-electric-lemonade-cave-dark-opening');
-    if (proceduralDarkness) proceduralDarkness.visible = false;
-    mouth.add(cave);
-    root.userData.coastlineCaveGLB = cave;
-    return true;
-  };
 
   const attachWorld = (root, worldId) => {
     if (!root || !['city', 'island', 'waterfront', 'port'].includes(worldId)) return [];
@@ -445,7 +399,6 @@ export function createCoastlineWildlifeAssets({ THREE, vehicles, wildlife, world
         });
     const records = placed.map((spec, index) => makeAnimal(root, worldId, spec, index));
     attached.set(root, records);
-    if (worldId === 'waterfront') void loadCaveIntoRoot(root);
     return records;
   };
 
@@ -490,7 +443,6 @@ export function createCoastlineWildlifeAssets({ THREE, vehicles, wildlife, world
         }
       }
       diagnostics.initialized = true;
-      for (const [root] of attached) if (root.userData?.coastlineRegionId === 'waterfront') void loadCaveIntoRoot(root);
       return getState();
     }).catch(error => {
       diagnostics.errors.push(String(error?.message || error));

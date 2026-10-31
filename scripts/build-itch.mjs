@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const output = path.join(root, 'dist', 'itch-html');
 const files = [
-  'game-v3.html', 'coastline-asset-swap.js', 'coastline-vehicle-sizing.js', 'assets/Free Low Poly Vehicles Pack by Rgsdev.zip', 'assets/grab3d-cozy-character.glb', 'assets/cave-entrance.glb', 'assets/3_evil_rock_mountains_with_cave_stylized.glb', 'assets/animals/ostrich.glb', 'ASSET_CREDITS.md', 'vehicle-visual-enhancer.js', 'cinematic-world-upgrade.js',
+  'game-v3.html', 'coastline-asset-swap.js', 'coastline-vehicle-sizing.js', 'assets/Free Low Poly Vehicles Pack by Rgsdev.zip', 'assets/grab3d-cozy-character.glb', 'assets/3_evil_rock_mountains_with_cave_stylized.glb', 'assets/animals/ostrich.glb', 'ASSET_CREDITS.md', 'vehicle-visual-enhancer.js', 'cinematic-world-upgrade.js',
   'car-customization.js', 'world-model.js', 'world-engine.js', 'living-world.js', 'coastline-wildlife-assets.js',
   'douglassville-layout.js', 'realism-library.js', 'presentation-runtime.js',
   'cinematic-visual-library.js', 'cinematic-animation-library.js',
@@ -14,7 +14,7 @@ const files = [
   'npc-agency-engine.js', 'npc-world-slice.js', 'social-rumor-engine.js',
   'player-reputation-engine.js', 'coastline-runtime-fix.js',
   'coastline-stability-v8.js', 'transition-manager.js', 'transition-manager-browser.js',
-  'coastline-sw.js', 'coastline-electric-lemonade-adventure.js', 'coastline-replacement-runtime.js', 'coastline-world-transitions.js', 'coastline-island-regions.js', 'coastline-homey-garage.js', 'coastline-homey-house-interior.js', 'render-culling.js'
+  'coastline-sw.js', 'coastline-electric-lemonade-adventure.js', 'coastline-three-cave-system.js', 'coastline-replacement-runtime.js', 'coastline-world-transitions.js', 'coastline-island-regions.js', 'coastline-homey-garage.js', 'coastline-homey-house-interior.js', 'render-culling.js'
 ];
 
 for (const file of files) {

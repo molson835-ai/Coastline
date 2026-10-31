@@ -15,14 +15,6 @@
 - **License:** CC0 1.0 (public domain; attribution not required), as documented by Grab3D.
 - **Use in Coastline Drive:** Player and pedestrian character replacement, including the public-works character. The skinned GLB includes `idle`, `walk`, `run`, `wave`, and `jump` clips. Coastline selects the available clips for movement and state.
 
-## Retired Range Rover vehicle model (repository archive only)
-
-- **Creator:** IvOfficial
-- **Source:** https://poly.pizza/m/8zk4o6nALW
-- **License:** [Creative Commons Attribution 3.0 (CC BY 3.0)](https://creativecommons.org/licenses/by/3.0/)
-- **Status:** Kept in the repository as a legacy/rollback asset only; it is no longer included in the itch package or used by the active fleet replacement path.
-- **Attribution note:** This entry is retained because the source asset remains in repository history and the assets directory. It must be credited if the legacy model is reintroduced in a release.
-
 ## Visthétique — Modern Apartment (candidate Homey House interior)
 
 - **Creator:** Visthétique
@@ -39,13 +31,6 @@
 - **Asset:** `assets/3_evil_rock_mountains_with_cave_stylized.glb`
 - **License:** Creative Commons Attribution (CC BY); retain this attribution with the distributed game asset.
 - **Use in Coastline Drive:** Replacement Waterfront/Cave Island mountain formation. The runtime centers the formation on the existing cave threshold, points the cave mouth toward the Electric Lemonade side, and keeps movement governed by Coastline's explicit cave collider and CTM contracts rather than visual-mesh collision.
-
-## Grab3D — Cave Entrance (CC0)
-
-- **Source:** [Grab3D Cave Entrance](https://grab3d.com/models/nature/cave-entrance/)
-- **Asset path:** `assets/cave-entrance.glb`; retained for legacy/fallback compatibility but no longer used as the requested Waterfront cave replacement when the Jungle Jim formation is present.
-- **License:** CC0 1.0; free to modify and use commercially, no attribution required.
-- **Use in Coastline Drive:** Legacy visual rocky threshold only. Movement is governed by Coastline's explicit cave collider contract and the CTM trigger.
 
 ## Literock Studios — Warhorse Lite
 
