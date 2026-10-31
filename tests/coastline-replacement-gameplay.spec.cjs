@@ -179,12 +179,15 @@ test('replacement: left and right cave CTMs enter their caverns and return to th
         state,
         rockInstances: interior?.getObjectByName('coastline-three-cave-interior-rock-masses')?.count || 0,
         coneInstances: interior?.getObjectByName('coastline-three-cave-interior-stalactites-stalagmites')?.count || 0,
+        floorY: interior?.getObjectByName('coastline-three-cave-interior-floor')?.position.y,
+        expectedFloorY: window.__coastlineElectricDungeonFloorY,
         wallColliders: (root?.userData?.coastlineColliders || []).filter(c => String(c.name || '').includes('electric-dungeon-') && String(c.name || '').includes('rock-wall')).length,
       };
     });
     expect(inside.state.mode).toBe('walk');
     expect(inside.rockInstances).toBeGreaterThan(30);
     expect(inside.coneInstances).toBe(16);
+    expect(inside.floorY).toBeCloseTo(inside.expectedFloorY, 3);
     expect(inside.wallColliders).toBeGreaterThanOrEqual(4);
     expect(inside.state.position.x).toBeCloseTo(cave.x, 1);
     expect(inside.state.position.z).toBeCloseTo(552, 1);
