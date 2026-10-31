@@ -73,16 +73,33 @@ test('replacement: approved three-cave GLB stays mounted while only the legacy s
   expect(result.legacyApproachPath).toBe(false);
   expect(result.entranceIds).toEqual(['left', 'center', 'right']);
   expect(result.boundaryIds).toEqual(['left', 'center', 'right']);
+  const beforeReload = await page.evaluate(async () => {
+    await window.__coastlineTransitionTest.transition('waterfront-to-island');
+    await window.__coastlineTransitionTest.transition('island-to-waterfront');
+    await page.waitForTimeout(1200);
+    const root = window.__coastlineRegionRoot;
+    return {
+      replacement: Boolean(root?.getObjectByName('coastline-waterfront-cave-replacement-glb')?.visible),
+      oldMountain: Boolean(root?.getObjectByName('coastline-waterfront-cave-mountain')),
+      oldCave: Boolean(root?.getObjectByName('coastline-waterfront-cave-entrance-glb')),
+      boundary: window.__coastlineThreeCaveBoundaryState?.(),
+    };
+  });
+  expect(beforeReload.replacement).toBe(true);
+  expect(beforeReload.oldMountain).toBe(false);
+  expect(beforeReload.oldCave).toBe(false);
+  expect(beforeReload.boundary?.legacyColliders).toEqual([]);
+  expect(beforeReload.boundary?.stoneTraceColliders.length).toBeGreaterThanOrEqual(18);
 });
 
 test('replacement: reaching the real cave threshold invokes the existing CTM and returns coherently', async ({ page }) => {
   await openGame(page, 'replacement-ctm');
-  await page.evaluate(async () => { await window.__coastlineTransitionTest.transition('city-to-island'); await window.__coastlineTransitionTest.transition('island-to-waterfront'); window.__coastlineTest.setWalkPosition(520, 542.5, Math.PI); await window.__coastlineElectricLemonade.interact(); });
+  await page.evaluate(async () => { await window.__coastlineTransitionTest.transition('city-to-island'); await window.__coastlineTransitionTest.transition('island-to-waterfront'); window.__coastlineTest.setWalkPosition(520, 542.5, Math.PI); });
   await expect.poll(() => page.evaluate(() => window.__coastlineTransitionTest.status().activeWorldId), { timeout: 8000 }).toBe('electric-lemonade-dungeon');
   const inside = await page.evaluate(() => window.__coastlineTransitionTest.playerState());
   expect(inside.mode).toBe('walk');
   expect(Number.isFinite(inside.position?.x)).toBe(true);
-  await page.evaluate(() => window.__coastlineElectricLemonade.interact());
+  await page.evaluate(() => window.__coastlineTest.setWalkPosition(520, 577, 0));
   await expect.poll(() => page.evaluate(() => window.__coastlineTransitionTest.status().activeWorldId), { timeout: 8000 }).toBe('waterfront');
   const outside = await page.evaluate(() => window.__coastlineTransitionTest.playerState());
   expect(outside.mode).toBe('walk');
@@ -100,8 +117,10 @@ test('replacement: left and right cave CTMs enter their caverns and return to th
   for (const cave of [{ id: 'left', x: 510 }, { id: 'right', x: 530 }]) {
     await page.evaluate(({ x }) => {
       window.__coastlineTest.setWalkPosition(x, 542.5, Math.PI);
-      return window.__coastlineElectricLemonade.interact();
+      return window.__coastlineElectricLemonade.canUse();
     }, cave);
+    const caveUseAvailable = await page.evaluate(() => window.__coastlineElectricLemonade.canUse());
+    expect(caveUseAvailable).toBe(false);
     await expect.poll(() => page.evaluate(() => window.__coastlineTransitionTest.status().activeWorldId), { timeout: 8000 }).toBe('electric-lemonade-dungeon');
     const inside = await page.evaluate(() => window.__coastlineTransitionTest.playerState());
     expect(inside.mode).toBe('walk');
@@ -110,7 +129,7 @@ test('replacement: left and right cave CTMs enter their caverns and return to th
 
     await page.evaluate(({ x }) => {
       window.__coastlineTest.setWalkPosition(x, 577, 0);
-      return window.__coastlineElectricLemonade.interact();
+      return true;
     }, cave);
     await expect.poll(() => page.evaluate(() => window.__coastlineTransitionTest.status().activeWorldId), { timeout: 8000 }).toBe('waterfront');
     const outside = await page.evaluate(() => window.__coastlineTransitionTest.playerState());
