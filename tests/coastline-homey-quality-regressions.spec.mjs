@@ -60,15 +60,15 @@ test('Waterfront boardwalk remains clear and the approved three-cave GLB is the 
   const source = await read('coastline-island-regions.js');
   const replacementRuntime = await read('coastline-replacement-runtime.js');
   const caveRuntime = await read('coastline-three-cave-system.js');
-  assert.match(source, /coastline-waterfront-boardwalk',center\\.x\\+5,edgeY\\+\\.04,center\\.z\\+92/);
-  assert.match(source, /coastline-waterfront-dock-\\$\\{i \\+ 1\\}.*center\\.z \\+ 92/);
+  assert.match(source, /coastline-waterfront-boardwalk',center\.x\+5,edgeY\+\.04,center\.z\+92/);
+  assert.match(source, /coastline-waterfront-dock-\$\{i \+ 1\}.*center\.z \+ 92/);
   assert.match(source, /coastline-electric-lemonade-cave-mouth/);
   assert.doesNotMatch(source, /coastline-waterfront-cave-mountain|coastline-waterfront-cave-approach-path|coastline-electric-lemonade-cave-dark-opening/);
-  assert.match(replacementRuntime, /assets\\/3_evil_rock_mountains_with_cave_stylized\\.glb/);
+  assert.match(replacementRuntime, /assets\/3_evil_rock_mountains_with_cave_stylized\.glb/);
   assert.match(caveRuntime, /addStoneTraceColliders/);
   assert.match(caveRuntime, /front-left-jamb/);
   assert.match(caveRuntime, /front-right-jamb/);
-  assert.doesNotMatch(replacementRuntime, /mountain\\) mountain\\.visible = true/);
+  assert.doesNotMatch(replacementRuntime, /mountain\) mountain\.visible = true/);
 });
 test('City map-edge collision has a continuous visible rock course with a deck-width north bridge gap', async () => {
   const world = await read('coastline-world-transitions.js');
