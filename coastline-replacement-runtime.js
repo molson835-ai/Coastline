@@ -64,9 +64,7 @@ function installReplacementRuntimeCorrections() {
       const cave = gltf?.scene?.clone?.(true);
       if (!cave) throw new Error('Replacement cave GLB has no scene');
       cave.name = 'coastline-waterfront-cave-replacement-glb';
-      // glTF is Y-up. Point the authored cave mouth toward the lemonade stand side
-      // (-Z), matching the existing CTM threshold at x=520,z=542.5.
-      cave.rotation.y = Math.PI;
+      // Preserve the approved GLB's authored front-facing orientation; do not rotate it.
       cave.visible = true;
       const THREE = window.__coastlineThree;
       if (!THREE) throw new Error('Three.js runtime unavailable for cave replacement');
