@@ -253,3 +253,68 @@ test('replacement: Electric Lemonade pedestrian is an animated active-world acto
   expect(state.mixer).toBe(true);
   expect(state.meshes).toBeGreaterThan(0);
 });
+
+
+test('replacement cave stone traces are the live movement colliders and leave the three thresholds open', async ({ page }) => {
+  await openGame(page, 'three-cave-live-collision-contract');
+  await page.evaluate(async () => {
+    await window.__coastlineTransitionTest.transition('city-to-island');
+    await window.__coastlineTransitionTest.transition('island-to-waterfront');
+  });
+  await page.waitForFunction(() => Boolean(window.__coastlineRegionRoot?.userData?.coastlineReplacementCaveLoaded), null, { timeout: 30000 });
+  await page.waitForTimeout(250);
+  const result = await page.evaluate(() => {
+    const root = window.__coastlineRegionRoot;
+    const traces = window.__coastlineThreeCaveBoundaryState?.().stoneTraceColliders || [];
+    const leftStone = traces.find(item => item.name === 'coastline-three-cave-left-left-stone');
+    return {
+      liveColliderArray: window.__coastlineActiveWorldColliders === root?.userData?.coastlineColliders,
+      stoneBlocked: Boolean(leftStone && window.__coastlineTest.buildingBlocked(leftStone.x, leftStone.z, 0)),
+      entranceClear: [510, 520, 530].every(x => !window.__coastlineTest.buildingBlocked(x, 542.5, .45)),
+    };
+  });
+  expect(result.liveColliderArray).toBe(true);
+  expect(result.stoneBlocked).toBe(true);
+  expect(result.entranceClear).toBe(true);
+});
+
+test('replacement cave exits are restricted to the entrance used to enter', async ({ page }) => {
+  await openGame(page, 'three-cave-matched-exits');
+  await page.evaluate(async () => {
+    await window.__coastlineTransitionTest.transition('city-to-island');
+    await window.__coastlineTransitionTest.transition('island-to-waterfront');
+    window.__coastlineTest.setWalkPosition(510, 542.5, Math.PI);
+  });
+  await expect.poll(() => page.evaluate(() => window.__coastlineTransitionTest.status().activeWorldId), { timeout: 8000 }).toBe('electric-lemonade-dungeon');
+  await page.evaluate(() => window.__coastlineTest.setWalkPosition(520, 542.5, Math.PI));
+  await page.waitForTimeout(900);
+  expect(await page.evaluate(() => window.__coastlineTransitionTest.status().activeWorldId)).toBe('electric-lemonade-dungeon');
+  await page.evaluate(() => window.__coastlineTest.setWalkPosition(510, 542.5, Math.PI));
+  await expect.poll(() => page.evaluate(() => window.__coastlineTransitionTest.status().activeWorldId), { timeout: 8000 }).toBe('waterfront');
+});
+
+test('replacement dungeon clears loose blocking boulders and builds side-cave tunnel mazes', async ({ page }) => {
+  await openGame(page, 'three-cave-tunnel-layout');
+  await page.evaluate(async () => {
+    await window.__coastlineTransitionTest.transition('city-to-island');
+    await window.__coastlineTransitionTest.transition('island-to-waterfront');
+    window.__coastlineTest.setWalkPosition(510, 542.5, Math.PI);
+  });
+  await expect.poll(() => page.evaluate(() => window.__coastlineTransitionTest.status().activeWorldId), { timeout: 8000 }).toBe('electric-lemonade-dungeon');
+  await page.waitForFunction(() => Boolean(window.__coastlineActiveWorldRoot?.getObjectByName('coastline-three-cave-interiors')), null, { timeout: 10000 });
+  const result = await page.evaluate(() => {
+    const root = window.__coastlineActiveWorldRoot;
+    const looseBoulders = [];
+    root?.traverse(node => { if (node.name === 'electric-dungeon-obscuring-rock') looseBoulders.push(node); });
+    const sideMazeWalls = ['left', 'right'].map(id => root?.getObjectByName('coastline-three-cave-' + id + '-labyrinth-walls'));
+    const openings = ['left', 'center', 'right'].map(id => root?.getObjectByName('coastline-three-cave-' + id + '-entrance-arch'));
+    return {
+      looseBoulders: looseBoulders.length,
+      sideMazes: sideMazeWalls.every(node => node?.isInstancedMesh && node.count >= 10),
+      caveOpenings: openings.every(node => Boolean(node)),
+    };
+  });
+  expect(result.looseBoulders).toBe(0);
+  expect(result.sideMazes).toBe(true);
+  expect(result.caveOpenings).toBe(true);
+});
