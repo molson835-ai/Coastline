@@ -51,8 +51,9 @@ test('cave lookup is distance-based and deterministic', () => {
 
 test('all three cavern routes provide a large interior and safe side-cave landing points', () => {
   assert.ok(COASTLINE_CAVE_EXPLORATION_LENGTH >= 100);
-  assert.deepEqual(CAVE_INTERIOR_SPAWNS.left, { x: 510, y: 0, z: 560, rotationY: Math.PI });
-  assert.deepEqual(CAVE_INTERIOR_SPAWNS.right, { x: 530, y: 0, z: 560, rotationY: Math.PI });
+  assert.deepEqual(CAVE_INTERIOR_SPAWNS.left, { x: 510, y: 0, z: 546.5, rotationY: 0 });
+  assert.deepEqual(CAVE_INTERIOR_SPAWNS.center, { x: 520, y: 0, z: 546.5, rotationY: 0 });
+  assert.deepEqual(CAVE_INTERIOR_SPAWNS.right, { x: 530, y: 0, z: 546.5, rotationY: 0 });
   assert.ok(CAVE_INTERIOR_SPAWNS.left.z > COASTLINE_THREE_CAVE_ENTRANCES[0].z);
   assert.ok(CAVE_INTERIOR_SPAWNS.right.z > COASTLINE_THREE_CAVE_ENTRANCES[2].z);
 });
