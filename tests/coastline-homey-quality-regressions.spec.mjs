@@ -65,6 +65,7 @@ test('Waterfront boardwalk remains clear and the approved three-cave GLB is the 
   assert.match(source, /coastline-electric-lemonade-cave-mouth/);
   assert.doesNotMatch(source, /coastline-waterfront-cave-mountain|coastline-waterfront-cave-approach-path|coastline-electric-lemonade-cave-dark-opening/);
   assert.match(replacementRuntime, /assets\/3_evil_rock_mountains_with_cave_stylized\.glb/);
+  assert.doesNotMatch(replacementRuntime, /cave\.rotation\.y\s*=\s*Math\.PI/);
   assert.match(caveRuntime, /addStoneTraceColliders/);
   assert.match(caveRuntime, /front-left-jamb/);
   assert.match(caveRuntime, /front-right-jamb/);
