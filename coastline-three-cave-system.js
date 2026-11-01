@@ -121,12 +121,12 @@ function buildCaveEntranceArches(root, THREE, floorY, colliders) {
 
 function buildSideCaverns(root, THREE) {
   if (!root?.getObjectByName || !THREE) return;
-  removeDungeonObstructions(root);
   const colliders = root.userData.coastlineColliders || (root.userData.coastlineColliders = []);
   if (root.getObjectByName('coastline-three-cave-interiors')) {
     window.__coastlineActiveWorldColliders = colliders;
     return;
   }
+  removeDungeonObstructions(root);
   const group = new THREE.Group(); group.name = 'coastline-three-cave-interiors';
   const floorY = Number.isFinite(window.__coastlineElectricDungeonFloorY) ? window.__coastlineElectricDungeonFloorY : 0;
   const floorMat = new THREE.MeshStandardMaterial({ color: 0x20221f, roughness: 1 });
