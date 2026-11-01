@@ -338,29 +338,34 @@ function applyWardrobeHair(THREE,actorRoot,appearance) {
   if(old)disposeWardrobeOverlay(old);
   if(appearance.accessories.hat)return;
   const head=actorRoot.getObjectByName('head');if(!head?.add)return;
-  // This character export can be bald when its original hair group is absent. If the
-  // player removes headwear while leaving the default 'original' style selected,
-  // give them a short procedural hairstyle instead of an empty scalp.
-  const hairStyle=appearance.hairStyle==='original'?'short':appearance.hairStyle;
+  // The Cozy export is a single skinned character with its original hair in the GLB.
+  // Keep that authored hair when "original" is selected. Procedural styles are only overlays.
+  const hairStyle=appearance.hairStyle;
   const group=new THREE.Group();group.name='coastline-wardrobe-hair-overlay';
   const material=new THREE.MeshStandardMaterial({color:appearance.hairColor,roughness:.87,metalness:0});
   const sphere=(name,x,y,z,sx,sy,sz)=>{const mesh=new THREE.Mesh(new THREE.SphereGeometry(1,12,8),material);mesh.name='coastline-wardrobe-hair-'+name;mesh.position.set(x,y,z);mesh.scale.set(sx,sy,sz);mesh.castShadow=true;mesh.receiveShadow=true;group.add(mesh);return mesh};
-  const cap=()=>sphere('cap',0,.235,0,.18,.13,.18);
-  if(hairStyle==='short'){
-    cap();sphere('side-left',-.145,.125,0,.055,.145,.14);sphere('side-right',.145,.125,0,.055,.145,.14);
+  // Cozy head-weighted bounds are approximately X .235 / Z .212 in head space.
+  // Widen the scalp cap by another 10% and add it as a subtle crown fill for the
+  // authored "original" hairstyle, whose scalp currently shows through near the top.
+  // Keep the head/bones unchanged so facial proportions and skinning remain stable.
+  const cap=()=>sphere('cap',0,.235,0,.27,.14,.244);
+  if(hairStyle==='original'){
+    cap();
+  }else if(hairStyle==='short'){
+    cap();sphere('side-left',-.225,.115,0,.055,.15,.13);sphere('side-right',.225,.115,0,.055,.15,.13);
   }else if(hairStyle==='spiky'){
     cap();
-    for(const [x,y,z,sx,sy,sz] of [[-.08,.32,0,.043,.12,.043],[-.025,.34,.02,.045,.14,.045],[.04,.32,0,.04,.12,.04],[.085,.30,-.015,.038,.1,.04],[0,.31,-.075,.04,.11,.04]]){
+    for(const [x,y,z,sx,sy,sz] of [[-.11,.34,0,.05,.12,.05],[-.035,.36,.02,.052,.14,.052],[.04,.34,0,.047,.12,.047],[.11,.32,-.015,.045,.1,.045],[0,.33,-.075,.048,.11,.048]]){
       const spike=new THREE.Mesh(new THREE.ConeGeometry(1,1.35,6),material);spike.name='coastline-wardrobe-hair-spike';spike.position.set(x,y,z);spike.scale.set(sx,sy,sz);spike.castShadow=true;group.add(spike);
     }
   }else if(hairStyle==='curly'){
-    cap();for(let i=0;i<12;i++){const angle=i*Math.PI*2/12,radius=.135;sphere('curl',Math.cos(angle)*radius,.23+(i%3)*.012,Math.sin(angle)*radius,.055,.054,.055);}
+    cap();for(let i=0;i<12;i++){const angle=i*Math.PI*2/12,radius=.205;sphere('curl',Math.cos(angle)*radius,.23+(i%3)*.012,Math.sin(angle)*radius,.055,.054,.055);}
   }else if(hairStyle==='bob'){
-    cap();sphere('bob-left',-.15,.07,0,.055,.22,.135);sphere('bob-right',.15,.07,0,.055,.22,.135);sphere('bob-back',0,.04,-.105,.17,.15,.11);
+    cap();sphere('bob-left',-.225,.07,0,.055,.22,.135);sphere('bob-right',.225,.07,0,.055,.22,.135);sphere('bob-back',0,.04,-.195,.17,.15,.055);
   }else if(hairStyle==='long'){
-    cap();sphere('long-left',-.145,.075,-.015,.065,.27,.12);sphere('long-right',.145,.075,-.015,.065,.27,.12);sphere('long-back',0,.075,-.11,.16,.28,.11);
+    cap();sphere('long-left',-.225,.075,-.015,.06,.28,.12);sphere('long-right',.225,.075,-.015,.06,.28,.12);sphere('long-back',0,.075,-.205,.16,.28,.065);
   }else if(hairStyle==='ponytail'){
-    cap();sphere('ponytail-tie',0,.24,-.14,.065,.065,.065);sphere('ponytail',0,.02,-.17,.065,.22,.075);sphere('ponytail-tip',0,-.15,-.18,.06,.075,.07);
+    cap();sphere('ponytail-tie',0,.24,-.22,.065,.065,.065);sphere('ponytail',0,.02,-.25,.065,.22,.075);sphere('ponytail-tip',0,-.15,-.26,.06,.075,.07);
   }else if(hairStyle==='bun'){
     cap();sphere('bun',0,.35,-.055,.095,.09,.095);sphere('bun-base',0,.28,-.04,.07,.05,.07);
   }
