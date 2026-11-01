@@ -41,19 +41,23 @@ test('mobile D-pad controls steer in the perceived direction and remain usable',
   const driven=await page.evaluate(()=>window.__coastlineTest.state());
   expect(Math.hypot(driven.x-before.x,driven.z-before.z),'accelerator should move the car').toBeGreaterThan(.5);
 
-  const leftBox=await left.boundingBox(),beforeLeft=(await page.evaluate(()=>window.__coastlineTest.state())).heading;
+  const leftBox=await left.boundingBox(),beforeLeft=(await page.evaluate(()=>window.__coastlineTest.state())).x;
   await page.mouse.move(leftBox.x+leftBox.width/2,leftBox.y+leftBox.height/2);
   await page.mouse.down();
   try{await page.evaluate(()=>window.__coastlineTest.advanceTestFrame(1/60,30));}finally{await page.mouse.up();}
-  const afterLeft=(await page.evaluate(()=>window.__coastlineTest.state())).heading;
-  expect(afterLeft-beforeLeft,'screen-left D-pad must turn left in the behind-car view').toBeGreaterThan(.01);
+  const afterLeft=(await page.evaluate(()=>window.__coastlineTest.state())).x;
+  expect(afterLeft-beforeLeft,'screen-left D-pad must move the vehicle toward screen-left in the behind-car view').toBeLessThan(-.01);
 
-  const rightBox=await right.boundingBox(),beforeRight=afterLeft;
+  await page.evaluate(({x,z})=>window.__coastlineTest.setVehiclePosition(x,z,0),spawn);
+  await page.mouse.move(gas.x+gas.width/2,gas.y+gas.height/2);
+  await page.mouse.down();
+  try{await page.evaluate(()=>window.__coastlineTest.advanceTestFrame(1/60,60));}finally{await page.mouse.up();}
+  const rightBox=await right.boundingBox(),beforeRight=(await page.evaluate(()=>window.__coastlineTest.state())).x;
   await page.mouse.move(rightBox.x+rightBox.width/2,rightBox.y+rightBox.height/2);
   await page.mouse.down();
   try{await page.evaluate(()=>window.__coastlineTest.advanceTestFrame(1/60,30));}finally{await page.mouse.up();}
-  const afterRight=(await page.evaluate(()=>window.__coastlineTest.state())).heading;
-  expect(afterRight-beforeRight,'screen-right D-pad must turn right in the behind-car view').toBeLessThan(-.01);
+  const afterRight=(await page.evaluate(()=>window.__coastlineTest.state())).x;
+  expect(afterRight-beforeRight,'screen-right D-pad must move the vehicle toward screen-right in the behind-car view').toBeGreaterThan(.01);
 
   await action.click({force:true});
   await expect(page.locator('#mode')).toHaveText('ON FOOT');
