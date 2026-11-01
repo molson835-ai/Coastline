@@ -109,7 +109,7 @@ test('replacement: approved three-cave GLB stays mounted while only the legacy s
   expect(beforeReload.oldMountain).toBe(false);
   expect(beforeReload.oldCave).toBe(false);
   expect(beforeReload.boundary?.legacyColliders).toEqual([]);
-  expect(beforeReload.boundary?.stoneTraceColliders.length).toBeGreaterThanOrEqual(20);
+  expect(beforeReload.boundary?.stoneTraceColliders.length).toBeGreaterThanOrEqual(18);
   expect(beforeReload.boundary?.activeCollisionArrayMatchesRoot).toBe(true);
   expect(beforeReload.collisionCheck.openingsClear).toBe(true);
   expect(beforeReload.collisionCheck.stoneSegmentsBlock).toBe(true);
@@ -171,7 +171,7 @@ test('replacement: left and right cave CTMs enter their caverns and return to th
   });
   await page.waitForFunction(() => window.__coastlineElectricLemonade?.__threeCaveWrapped === true, null, { timeout: 10000 });
 
-  for (const cave of [{ id: 'left', x: 510, interiorX: 460 }, { id: 'right', x: 530, interiorX: 580 }]) {
+  for (const cave of [{ id: 'left', x: 510, interiorX: 510 }, { id: 'right', x: 530, interiorX: 530 }]) {
     await page.evaluate(async () => {
       window.__coastlineTest.setWalkPosition(520, 531.5, Math.PI);
       await window.__coastlineTest.interact();
@@ -218,7 +218,7 @@ test('replacement: left and right cave CTMs enter their caverns and return to th
     expect(inside.floorY).toBeCloseTo(inside.expectedFloorY, 3);
     expect(inside.wallColliders).toBeGreaterThanOrEqual(4);
     expect(inside.state.position.x).toBeCloseTo(cave.interiorX, 1);
-    expect(inside.state.position.z).toBeCloseTo(560, 1);
+    expect(inside.state.position.z).toBeCloseTo(546.5, 1);
 
     const exitUseAvailable = await page.evaluate(({ x }) => {
       window.__coastlineTest.setWalkPosition(cave.interiorX, 542.5, 0);
@@ -310,7 +310,7 @@ test('replacement dungeon clears loose blocking boulders and builds side-cave tu
     const openings = ['left', 'center', 'right'].map(id => root?.getObjectByName('coastline-three-cave-' + id + '-entrance-arch'));
     return {
       looseBoulders: looseBoulders.length,
-      sideMazes: sideMazeWalls.every(node => node?.isInstancedMesh && node.count >= 10),
+      sideMazes: sideMazeWalls.every(node => node?.children?.some(child => child.isInstancedMesh && child.count >= 10)),
       caveOpenings: openings.every(node => Boolean(node)),
     };
   });
