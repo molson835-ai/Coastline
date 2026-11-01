@@ -57,10 +57,12 @@ export const COASTLINE_ISLAND_REGIONS = Object.freeze([
   }),
 ]);
 
-export const COASTLINE_CAVE_THRESHOLD = Object.freeze({ x: 520, z: 542.5, radius: 2.25 });
+export const COASTLINE_CAVE_ANCHOR = Object.freeze({ x: 520, z: 525 });
+export const COASTLINE_LEMONADE_STAND_ANCHOR = Object.freeze({ x: 520, z: 510 });
+export const COASTLINE_CAVE_THRESHOLD = Object.freeze({ x: COASTLINE_CAVE_ANCHOR.x, z: COASTLINE_CAVE_ANCHOR.z - 2.5, radius: 2.25 });
 export const COASTLINE_CAVE_PORTAL_CLEAR_WIDTH = 3.0;
 
-export function getCoastlineCaveColliders(caveX = 520, caveZ = 545) {
+export function getCoastlineCaveColliders(caveX = COASTLINE_CAVE_ANCHOR.x, caveZ = COASTLINE_CAVE_ANCHOR.z) {
   return [
     {name:'coastline-waterfront-cave-mountain-left-slope',x:caveX-12,z:caveZ+2,w:16,d:18},
     {name:'coastline-waterfront-cave-mountain-right-slope',x:caveX+12,z:caveZ+2,w:16,d:18},
@@ -763,8 +765,8 @@ export function createCoastlineIslandRoot({ THREE, region, groundY = () => 0, ad
   if (region.id === 'waterfront') {
     // Electric Lemonade stand and cave sit on the already-connected Waterfront Island.
     // The cave mouth stays open; side colliders protect the rock face without sealing the entrance.
-    const standX = center.x + 20, standZ = center.z + 30;
-    const caveX = center.x + 20, caveZ = center.z + 45;
+    const standX = COASTLINE_LEMONADE_STAND_ANCHOR.x, standZ = COASTLINE_LEMONADE_STAND_ANCHOR.z;
+    const caveX = COASTLINE_CAVE_ANCHOR.x, caveZ = COASTLINE_CAVE_ANCHOR.z;
     const standWood = material(0x76503a, .92), canopyMat = material(0x247c84, .76);
     const signMat = material(0x163a3d, .65);
     const stand = new THREE.Group(); stand.name = 'coastline-electric-lemonade-stand';

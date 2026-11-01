@@ -8,6 +8,8 @@ import {
   isCoastlineCaveThreshold,
 } from '../coastline-wildlife-assets.js';
 import {
+  COASTLINE_CAVE_ANCHOR,
+  COASTLINE_LEMONADE_STAND_ANCHOR,
   COASTLINE_CAVE_PORTAL_CLEAR_WIDTH,
   COASTLINE_CAVE_THRESHOLD,
   getCoastlineCaveColliders,
@@ -37,6 +39,24 @@ test('animal and cave scales normalize to plausible world-unit heights', () => {
   assert.equal(getCoastlineTargetScale('horse', 0), 1);
 });
 
+test('cave and lemonade stand move inland together while preserving their 15-unit spacing', async () => {
+  assert.deepEqual(COASTLINE_CAVE_ANCHOR, { x: 520, z: 525 });
+  assert.deepEqual(COASTLINE_LEMONADE_STAND_ANCHOR, { x: 520, z: 510 });
+  assert.equal(COASTLINE_CAVE_ANCHOR.z - COASTLINE_LEMONADE_STAND_ANCHOR.z, 15);
+  assert.deepEqual(COASTLINE_CAVE_THRESHOLD, { x: 520, z: 522.5, radius: 2.25 });
+
+  const [regions, loader, game] = await Promise.all([
+    read('coastline-island-regions.js'),
+    read('coastline-wildlife-assets.js'),
+    read('game-v3.html'),
+  ]);
+  assert.match(regions, /const standX = COASTLINE_LEMONADE_STAND_ANCHOR\.x, standZ = COASTLINE_LEMONADE_STAND_ANCHOR\.z/);
+  assert.match(regions, /const caveX = COASTLINE_CAVE_ANCHOR\.x, caveZ = COASTLINE_CAVE_ANCHOR\.z/);
+  assert.match(loader, /COASTLINE_CAVE_ANCHOR/);
+  assert.match(game, /stand:\{x:520,z:511\.5,radius:3\.2\}/);
+  assert.match(game, /vendor:\{x:520,z:508\.8,maxDistance:3\.2\}/);
+});
+
 test('cave threshold triggers only on foot inside Waterfront portal radius', () => {
   const onThreshold = { worldId: 'waterfront', mode: 'walk', ...COASTLINE_CAVE_THRESHOLD };
   assert.equal(isCoastlineCaveThreshold(onThreshold), true);
@@ -54,8 +74,8 @@ test('cave rock collision leaves a walkable doorway and blocks the mountain side
   assert.equal(isCoastlineCavePointBlocked(COASTLINE_CAVE_THRESHOLD.x, COASTLINE_CAVE_THRESHOLD.z, 0.45), false, 'character fits through the centered portal');
   assert.equal(isCoastlineCavePointBlocked(514, COASTLINE_CAVE_THRESHOLD.z, 0.45), true, 'left stone shoulder blocks foot movement');
   assert.equal(isCoastlineCavePointBlocked(526, COASTLINE_CAVE_THRESHOLD.z, 0.45), true, 'right stone shoulder blocks foot movement');
-  assert.equal(isCoastlineCavePointBlocked(520, 558, 0.45), true, 'rear of mountain is solid behind the north-facing cave body');
-  assert.equal(isCoastlineCavePointBlocked(508, 558, 0.45), true, 'side/rear mountain is solid');
+  assert.equal(isCoastlineCavePointBlocked(COASTLINE_CAVE_ANCHOR.x, COASTLINE_CAVE_ANCHOR.z + 13, 0.45), true, 'rear of mountain is solid behind the north-facing cave body');
+  assert.equal(isCoastlineCavePointBlocked(508, COASTLINE_CAVE_ANCHOR.z + 13, 0.45), true, 'side/rear mountain is solid');
 });
 
 test('wildlife loader uses GLB animation, rider socket, source paths, and CTM-owned root lifecycle', async () => {
