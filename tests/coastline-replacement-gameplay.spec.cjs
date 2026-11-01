@@ -267,15 +267,22 @@ test('replacement cave stone traces are the live movement colliders and leave th
     const root = window.__coastlineRegionRoot;
     const traces = window.__coastlineThreeCaveBoundaryState?.().stoneTraceColliders || [];
     const leftStone = traces.find(item => item.name === 'coastline-three-cave-left-left-stone');
+    const anchor = root?.userData?.coastlineElectricLemonade?.cave;
+    const thresholds = root?.userData?.coastlineThreeCaveThresholds || [];
     return {
       liveColliderArray: window.__coastlineActiveWorldColliders === root?.userData?.coastlineColliders,
       stoneBlocked: Boolean(leftStone && window.__coastlineTest.buildingBlocked(leftStone.x, leftStone.z, 0)),
       entranceClear: [510, 520, 530].every(x => !window.__coastlineTest.buildingBlocked(x, 542.5, .45)),
+      thresholdsMatchAnchor: thresholds.length === 3 && thresholds.find(point => point.id === 'center')?.x === anchor?.x &&
+        thresholds.find(point => point.id === 'center')?.z === anchor?.z &&
+        thresholds.find(point => point.id === 'left')?.x === anchor?.x - 10 &&
+        thresholds.find(point => point.id === 'right')?.x === anchor?.x + 10,
     };
   });
   expect(result.liveColliderArray).toBe(true);
   expect(result.stoneBlocked).toBe(true);
   expect(result.entranceClear).toBe(true);
+  expect(result.thresholdsMatchAnchor).toBe(true);
 });
 
 test('replacement cave exits are restricted to the entrance used to enter', async ({ page }) => {
