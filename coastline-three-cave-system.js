@@ -57,8 +57,8 @@ function addStoneTraceColliders(root) {
       { name: `${prefix}-right-stone`, x: cave.x + 3.15, z: cave.z + 2.65, w: .72, d: 7.1 },
       { name: `${prefix}-rear-left-stone`, x: cave.x - 1.85, z: cave.z + 6.15, w: 3, d: .72 },
       { name: `${prefix}-rear-right-stone`, x: cave.x + 1.85, z: cave.z + 6.15, w: 3, d: .72 },
-      { name: `${prefix}-left-jamb`, x: cave.x - 3.55, z: cave.z - .55, w: 1, d: 1.15 },
-      { name: `${prefix}-right-jamb`, x: cave.x + 3.55, z: cave.z - .55, w: 1, d: 1.15 },
+      { name: `${prefix}-front-left-jamb`, x: cave.x - 3.55, z: cave.z - .55, w: 1, d: 1.15 },
+      { name: `${prefix}-front-right-jamb`, x: cave.x + 3.55, z: cave.z - .55, w: 1, d: 1.15 },
     );
   }
   root.userData.coastlineThreeCaveBoundaryContract = COASTLINE_THREE_CAVE_ENTRANCES.map(cave => ({ id: cave.id, x: cave.x, z: cave.z, radius: cave.radius }));
@@ -147,8 +147,10 @@ function buildSideCaverns(root, THREE) {
   for (const cave of COASTLINE_THREE_CAVE_ENTRANCES.filter(c => c.id !== 'center')) {
     const cx = CAVE_INTERIOR_SPAWNS[cave.id].x;
     const floor = new THREE.Mesh(new THREE.PlaneGeometry(10, COASTLINE_CAVE_EXPLORATION_LENGTH), floorMat); floor.name = `coastline-three-cave-${cave.id}-floor`; floor.rotation.x = -Math.PI / 2; floor.position.set(cx, floorY, 600); floor.receiveShadow = true; group.add(floor);
-    addRockWall(`coastline-three-cave-${cave.id}-outer-wall`, cx < 520 ? 503.5 : 536.5, 600, .9, 120);
-    addRockWall(`coastline-three-cave-${cave.id}-divider-wall`, cx < 520 ? 515 : 525, 600, .9, 120);
+    const leftWall = new THREE.Group(); leftWall.name = `coastline-three-cave-${cave.id}-left-wall`; group.add(leftWall);
+    const rightWall = new THREE.Group(); rightWall.name = `coastline-three-cave-${cave.id}-right-wall`; group.add(rightWall);
+    addRockWall(`coastline-three-cave-${cave.id}-left-rock-wall`, cx < 520 ? 503.5 : 525, 600, .9, 120, leftWall);
+    addRockWall(`coastline-three-cave-${cave.id}-right-rock-wall`, cx < 520 ? 515 : 536.5, 600, .9, 120, rightWall);
     addRockWall(`coastline-three-cave-${cave.id}-rear-rock`, cx, 659, 10, 1);
 
     const labyrinth = new THREE.Group();
