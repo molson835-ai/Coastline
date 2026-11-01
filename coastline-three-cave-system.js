@@ -15,9 +15,22 @@ const CAVE_EXIT_POINTS = Object.freeze({
   right: Object.freeze({ x: 530, z: 542.5, radius: 2.0 }),
 });
 export const COASTLINE_THREE_CAVE_TRANSITIONS = Object.freeze(COASTLINE_THREE_CAVE_ENTRANCES.map(cave => Object.freeze({ cave: cave.id, entry: cave.entry, returnTransition: cave.returnTransition, toWorld: 'electric-lemonade-dungeon' })));
+function getCaveThresholds(root) {
+  const anchor = root?.userData?.coastlineElectricLemonade?.cave;
+  const centerX = Number.isFinite(anchor?.x) ? anchor.x : 520;
+  const centerZ = Number.isFinite(anchor?.z) ? anchor.z : 542.5;
+  const radius = Number.isFinite(anchor?.radius) ? Math.min(2, anchor.radius) : 2;
+  return [
+    Object.freeze({ id: 'left', world: 'waterfront', x: centerX - 10, z: centerZ, radius, interior: 'cavern-left', entry: 'waterfront-to-electric-dungeon-left', returnTransition: 'electric-dungeon-left-to-waterfront' }),
+    Object.freeze({ id: 'center', world: 'waterfront', x: centerX, z: centerZ, radius, interior: 'rocket-boots', entry: 'waterfront-to-electric-dungeon', returnTransition: 'electric-dungeon-to-waterfront' }),
+    Object.freeze({ id: 'right', world: 'waterfront', x: centerX + 10, z: centerZ, radius, interior: 'cavern-right', entry: 'waterfront-to-electric-dungeon-right', returnTransition: 'electric-dungeon-right-to-waterfront' }),
+  ];
+}
 export function getCoastlineThreeCaveAt(x, z) {
   if (![x, z].every(Number.isFinite)) return null;
-  return COASTLINE_THREE_CAVE_ENTRANCES.find(cave => Math.hypot(x - cave.x, z - cave.z) <= cave.radius) ?? null;
+  const root = typeof window !== 'undefined' ? window.__coastlineRegionRoot : null;
+  const thresholds = root?.userData?.coastlineThreeCaveThresholds || COASTLINE_THREE_CAVE_ENTRANCES;
+  return thresholds.find(cave => Math.hypot(x - cave.x, z - cave.z) <= cave.radius) ?? null;
 }
 function getCaveAtPoint(points, x, z) { return Object.entries(points).find(([, point]) => Math.hypot(x - point.x, z - point.z) <= point.radius)?.[0] ?? null; }
 function removeLegacyCaveNodes(root) {
@@ -61,7 +74,8 @@ function addStoneTraceColliders(root) {
       { name: `${prefix}-front-right-jamb`, x: cave.x + 3.55, z: cave.z - .55, w: 1, d: 1.15 },
     );
   }
-  root.userData.coastlineThreeCaveBoundaryContract = COASTLINE_THREE_CAVE_ENTRANCES.map(cave => ({ id: cave.id, x: cave.x, z: cave.z, radius: cave.radius }));
+  root.userData.coastlineThreeCaveThresholds = getCaveThresholds(root);
+  root.userData.coastlineThreeCaveBoundaryContract = root.userData.coastlineThreeCaveThresholds.map(cave => ({ id: cave.id, x: cave.x, z: cave.z, radius: cave.radius }));
   window.__coastlineActiveWorldColliders = colliders;
 }
 function removeDungeonObstructions(root) {
@@ -101,7 +115,7 @@ function buildCaveEntranceArches(root, THREE, floorY, colliders) {
       }
       colliders.push({
         name: `coastline-three-cave-${cave.id}-entrance-pillar-${side}`,
-        x: cave.x + side * 2.85, z: 544.1, w: 1.25, d: 1.25,
+        x: cave.x + side * 2.85, z: 544.1, w: 1.9, d: 1.9,
       });
     }
     for (let segment = 0; segment <= 6; segment++) {
@@ -161,8 +175,8 @@ function buildSideCaverns(root, THREE) {
       colliders.push({
         name: name + '-collision',
         x, z,
-        w: w >= d ? w + 1.1 : Math.max(w + 0.5, 1.7),
-        d: w >= d ? Math.max(d + 1.0, 1.8) : d + 1.1,
+        w: w >= d ? w + 2.7 : 2.3,
+        d: w >= d ? 3.3 : d + 2.7,
       });
     };
     // Alternating stone ridges leave a winding, navigable tunnel passage.
@@ -211,6 +225,8 @@ async function triggerCaveTransition(cave, exiting = false) {
   transitionPending = true;
   try {
     await request(exiting ? cave.returnTransition : cave.entry);
+    const expectedWorld = exiting ? 'waterfront' : 'electric-lemonade-dungeon';
+    if (window.__coastlineActiveWorldId !== expectedWorld) throw new Error(`Cave CTM did not reach ${expectedWorld}`);
     window.__coastlineActiveCaveId = exiting ? null : cave.id;
     const api = window.__coastlineElectricLemonade;
     if (exiting) api?.exitDungeon?.(); else api?.enterDungeon?.();
@@ -230,7 +246,10 @@ function maintain() {
     const root = window.__coastlineActiveWorldRoot || window.__coastlineRegionRoot; buildSideCaverns(root, window.__coastlineThree);
     const player = window.__coastlinePlayer;
     const activeCave = COASTLINE_THREE_CAVE_ENTRANCES.find(c => c.id === window.__coastlineActiveCaveId);
-    if (player?.mode === 'walk' && activeCave && getCaveAtPoint({ [activeCave.id]: CAVE_EXIT_POINTS[activeCave.id] }, player.x, player.z)) {
+    const threshold = window.__coastlineRegionRoot?.userData?.coastlineThreeCaveThresholds?.find(point => point.id === activeCave?.id)
+      || (activeCave ? CAVE_EXIT_POINTS[activeCave.id] : null);
+    if (player?.mode === 'walk' && activeCave && threshold &&
+        Math.hypot(player.x - threshold.x, player.z - threshold.z) <= threshold.radius) {
       void triggerCaveTransition(activeCave, true);
     }
   }
@@ -247,6 +266,7 @@ if (typeof window !== 'undefined') {
       openingsClear: COASTLINE_THREE_CAVE_ENTRANCES.every(cave => !colliders.some(c => Math.abs(cave.x - c.x) <= (c.w || 0) / 2 + .35 && Math.abs(cave.z - c.z) <= (c.d || 0) / 2 + .35)),
       activeCollisionArrayMatchesRoot: window.__coastlineActiveWorldColliders === colliders,
       replacementLoaded: Boolean(root?.userData?.coastlineReplacementCaveLoaded),
+      thresholds: root?.userData?.coastlineThreeCaveThresholds || [],
       activeCaveId: window.__coastlineActiveCaveId || null,
     };
   };
