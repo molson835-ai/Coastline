@@ -398,7 +398,7 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
     // Match the real source names rather than the obsolete descriptive label.
     let mountainMeshCount=0;
     formation.traverse(node=>{
-      if(node.isMesh&&/^RockMountain(?:\.\\d+)?$/i.test(String(node.name||'')))mountainMeshCount++;
+      if(node.isMesh&&/^RockMountain(?:\.\d+)?$/i.test(String(node.name||'')))mountainMeshCount++;
     });
     if(mountainMeshCount!==3)throw new Error('Approved cave formation must contain exactly three authored RockMountain meshes; found '+mountainMeshCount);
     formation.rotation.y=Math.PI; // All three authored doorways face the front approach.
