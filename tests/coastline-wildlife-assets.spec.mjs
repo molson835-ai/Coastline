@@ -43,7 +43,7 @@ test('cave threshold triggers only on foot inside Waterfront portal radius', () 
   assert.equal(isCoastlineCaveThreshold(onThreshold), true);
   assert.deepEqual(COASTLINE_CAVE_ENTRANCES.map(entrance => entrance.id), ['left', 'center', 'right']);
   for (const entrance of COASTLINE_CAVE_ENTRANCES) {
-    assert.equal(isCoastlineCaveThreshold({ worldId: 'waterfront', mode: 'walk', ...entrance }), true, entrance.id + ' front doorway is reachable');
+    assert.equal(isCoastlineCaveThreshold({ worldId: 'waterfront', mode: 'walk', x: entrance.x, z: entrance.z, threshold: entrance }), true, entrance.id + ' front doorway is reachable');
   }
   assert.equal(isCoastlineCaveThreshold({ ...onThreshold, x: onThreshold.x + 2.5 }), false);
   assert.equal(isCoastlineCaveThreshold({ ...onThreshold, worldId: 'city' }), false);
