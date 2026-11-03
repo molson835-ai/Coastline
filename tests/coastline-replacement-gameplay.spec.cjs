@@ -65,6 +65,23 @@ test('replacement: cave doorway is clear while mountain side/rear remains blocke
   expect(result.caveYaw !== null && Math.abs(Math.abs(result.caveYaw) - Math.PI) < 0.001).toBe(true);
 });
 
+test('replacement: cave asset failure never leaves invisible cave collision blockers', async ({ page }) => {
+  await page.route('**/assets/3_evil_rock_mountains_with_cave_stylized.glb', route => route.abort());
+  await openGame(page, 'replacement-cave-asset-failure');
+  await page.evaluate(async () => { await window.__coastlineTransitionTest.transition('city-to-island'); await window.__coastlineTransitionTest.transition('island-to-waterfront'); });
+  await page.waitForFunction(() => Boolean(window.__coastlineRegionRoot?.userData?.coastlineCaveFormationError), null, { timeout: 30000 });
+  const state = await page.evaluate(() => ({
+    error: window.__coastlineRegionRoot.userData.coastlineCaveFormationError,
+    collisionReady: Boolean(window.__coastlineRegionRoot.userData.coastlineCaveCollisionReady),
+    caveBlockers: (window.__coastlineActiveWorldColliders || []).filter(c => String(c.name || '').startsWith('coastline-waterfront-cave-')).length,
+    entranceUse: window.__coastlineElectricLemonade.canUse(),
+  }));
+  expect(state.error).toBeTruthy();
+  expect(state.collisionReady).toBe(false);
+  expect(state.caveBlockers).toBe(0);
+  expect(state.entranceUse).toBe(true);
+});
+
 test('replacement: all three front-facing cave doorways have independent matching CTM return routes', async ({ page }) => {
   await openGame(page, 'replacement-three-caves');
   await page.evaluate(async () => { await window.__coastlineTransitionTest.transition('city-to-island'); await window.__coastlineTransitionTest.transition('island-to-waterfront'); });
@@ -74,12 +91,16 @@ test('replacement: all three front-facing cave doorways have independent matchin
     entranceCount: window.__coastlineRegionRoot?.userData?.coastlineCaveEntranceCount,
     mountainMeshCount: window.__coastlineRegionRoot?.userData?.coastlineCaveMountainMeshCount,
     formation: Boolean(window.__coastlineRegionRoot?.userData?.coastlineCaveGLB),
+    collisionReady: Boolean(window.__coastlineRegionRoot?.userData?.coastlineCaveCollisionReady),
+    caveBlockerCount: (window.__coastlineActiveWorldColliders || []).filter(c => String(c.name || '').startsWith('coastline-waterfront-cave-')).length,
     yaw: window.__coastlineRegionRoot?.userData?.coastlineCaveGLB?.rotation?.y ?? null,
   }));
   expect(exterior.prepared).toBe(true);
   expect(exterior.entranceCount).toBe(3);
   expect(exterior.mountainMeshCount).toBe(3);
   expect(exterior.formation).toBe(true);
+  expect(exterior.collisionReady).toBe(true);
+  expect(exterior.caveBlockerCount).toBeGreaterThan(0);
   expect(Math.abs(Math.abs(exterior.yaw) - Math.PI)).toBeLessThan(0.001);
   for (const entrance of [{ id: 'left', x: 508.1 }, { id: 'right', x: 530.7 }]) {
     await page.evaluate(async ({ x }) => {
