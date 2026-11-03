@@ -88,7 +88,7 @@ test('wildlife loader uses GLB animation, rider socket, source paths, and CTM-ow
   assert.match(transitions, /electric-dungeon-maze-east-first/);
   assert.match(transitions, /electric-dungeon-maze-dead-end-marker/);
   assert.match(transitions, /electric-dungeon-landmark-/);
-  assert.match(transitions, /destinationSpawn:\{x:520,y:islandGroundY\(\),z:537\.5,rotationY:Math\.PI\}/, 'dungeon return points outside facing away from the portal at island height');
+  assert.match(transitions, /destinationSpawn:\{x:518\.4,y:islandGroundY\(\),z:537\.5,rotationY:Math\.PI\}/, 'center dungeon return points outside facing away from the portal at island height');
   assert.match(transitions, /id:'homey-garage-to-island'[\s\S]*?z:484,rotationY:Math\.PI/, 'Homey vehicle arrival points out of the garage');
   assert.match(transitions, /id:'homey-garage-to-house'[\s\S]*?z:508\.5,rotationY:Math\.PI/, 'house interior arrival faces into the room, away from its door');
   assert.match(game, /isCoastlineCaveThreshold/);
@@ -99,7 +99,7 @@ test('wildlife loader uses GLB animation, rider socket, source paths, and CTM-ow
   assert.match(game, /data-steer-button/, 'button steering remains available outside driving mode');
   assert.match(game, /roadster|convertible|open\.?top/i, 'open-top vehicle can show a seated driver');
   assert.match(game, /coastlineOpenTopDriver&&avatar\.parent===v\.g/, 'open-top driver is restored to the world when exiting');
-  assert.match(game, /exit:\{x:520,z:542\.5,radius:3\.2\},boots:\{x:524,z:568,radius:2\.8\}/, 'exit and pickup align with the cave portal');
+  assert.match(game, /exit:\{\.\.\.COASTLINE_CAVE_THRESHOLD\},boots:\{x:524,z:568,radius:2\.8\}/, 'center exit and pickup align with the cave portal');
   assert.match(loader, /cave\.rotation\.set\(-Math\.PI \/ 2, Math\.PI, 0\);[\s\S]*?boundsScale\(cave, 'cave'\);[\s\S]*?cave\.position\.z \+= 545 -/, 'GLB cave is axis-corrected and centered at portal');
   assert.match(loader, /proceduralDarkness\.visible = false/, 'procedural stone shoulders remain visible around the GLB');
   assert.doesNotMatch(loader, /for \(const child of mouth\.children\) child\.visible = false/, 'stone shoulders are not hidden');
