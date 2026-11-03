@@ -32,7 +32,7 @@ function installReplacementRuntimeCorrections() {
     });
   };
 
-  const patchCaveAndVendor = () => {
+  const patchWaterfrontVendor = () => {
     const root = window.__coastlineRegionRoot;
     if (!root || window.__coastlineActiveWorldId !== 'waterfront') return;
 
