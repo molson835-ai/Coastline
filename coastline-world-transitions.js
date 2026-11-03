@@ -369,18 +369,27 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
   const cityWorld={id:'city',name:'Coastline City',load:async({context,destinationSpawn})=>{setIslandCollisionScope(false);window.__coastlineActiveWorldId='city';window.__coastlineActiveWorldRoot=roots.world1Root;window.__coastlineActiveWorldColliders=[];roots.world1Root.visible=true;moveActiveActor(roots.world1Root);if(destinationSpawn)applySnapshot({player:context.player,vehicle:context.vehicle,vehicleIndex:context.vehicleIndex},roots.world1Root,destinationSpawn);window.__coastlineWildlifeAssets?.attachWorld(roots.world1Root,'city');return{id:'city',root:roots.world1Root};},unload:async handle=>{handle.root.visible=false;},captureState:async({context})=>({player:context.player,vehicle:context.vehicle,vehicleIndex:context.vehicleIndex}),restoreState:async(worldState,{handle,destinationSpawn})=>{setIslandCollisionScope(false);handle.root.visible=true;moveActiveActor(handle.root);applySnapshot(worldState,handle.root,destinationSpawn);}};
   const islandWorld={id:'island',name:'Coastline Island Start',load:async({context,destinationSpawn})=>{setIslandCollisionScope(true);window.__coastlineActiveWorldId='island';window.__coastlineActiveWorldColliders=[];pendingIslandRoot=createNakedIslandRoot();roots.addWorldRoot(pendingIslandRoot);pendingIslandRoot.visible=true;window.__coastlineWildlifeAssets?.attachWorld(pendingIslandRoot,'island');moveActiveActor(pendingIslandRoot);applySnapshot({player:context.player,vehicle:context.vehicle,vehicleIndex:context.vehicleIndex},pendingIslandRoot,destinationSpawn||ISLAND_START);if(failNextIslandLoad){failNextIslandLoad=false;throw new Error('injected island load failure');}return{id:'island',root:pendingIslandRoot};},unload:async handle=>{setIslandCollisionScope(false);window.__coastlineWildlifeAssets?.detachWorld(handle.root);disposeOutdoorFleet(handle.root);if(handle.root?.parent)roots.removeWorldRoot(handle.root);disposeRoot(handle.root);if(pendingIslandRoot===handle.root)pendingIslandRoot=null;},cleanupFailedLoad:async({context})=>{setIslandCollisionScope(false);window.__coastlineActiveWorldId='city';window.__coastlineActiveWorldRoot=roots.world1Root;window.__coastlineActiveWorldColliders=[];if(!pendingIslandRoot)return;roots.world1Root.visible=true;moveActiveActor(roots.world1Root);applySnapshot({player:context.player,vehicle:context.vehicle,vehicleIndex:context.vehicleIndex},roots.world1Root);window.__coastlineWildlifeAssets?.detachWorld(pendingIslandRoot);disposeOutdoorFleet(pendingIslandRoot);roots.removeWorldRoot(pendingIslandRoot);disposeRoot(pendingIslandRoot);pendingIslandRoot=null;},captureState:async({context})=>({player:context.player,vehicle:context.vehicle,vehicleIndex:context.vehicleIndex}),restoreState:async(worldState,{handle,destinationSpawn})=>{setIslandCollisionScope(true);handle.root.visible=true;moveActiveActor(handle.root);applySnapshot(worldState,handle.root,destinationSpawn);}};
 
-  // Load the approved three-mountain cave formation before Waterfront becomes
-  // resident/visible. This deliberately keeps cave geometry out of the later
-  // replacement-runtime polling path.
+  // Cache the parsed source asset once; each Waterfront residency receives
+  // an owned scene clone prepared before the region becomes visible.
+  let approvedWaterfrontCaveGltfPromise=null;
+  const loadApprovedWaterfrontCaveGltf=()=>{
+    if(!approvedWaterfrontCaveGltfPromise){
+      approvedWaterfrontCaveGltfPromise=(async()=>{
+        const {GLTFLoader}=await import('https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/loaders/GLTFLoader.js');
+        const url=new URL('assets/3_evil_rock_mountains_with_cave_stylized.glb',document.baseURI).href;
+        const response=await fetch(url,{mode:'same-origin',cache:'force-cache'});
+        if(!response.ok)throw new Error('Waterfront cave GLB request failed: HTTP '+response.status);
+        const buffer=await response.arrayBuffer();
+        if(buffer.byteLength<20||new DataView(buffer).getUint32(0,true)!==0x46546c67)throw new Error('Waterfront cave asset is not a binary glTF');
+        return new Promise((resolve,reject)=>new GLTFLoader().parse(buffer,'',resolve,reject));
+      })().catch(error=>{approvedWaterfrontCaveGltfPromise=null;throw error;});
+    }
+    return approvedWaterfrontCaveGltfPromise;
+  };
+  // Prepare the complete approved formation before Waterfront becomes resident/visible.
   const prepareWaterfrontCaveFormation=async root=>{
     if(!root||root.userData.coastlineCaveFormationPrepared)return;
-    const {GLTFLoader}=await import('https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/loaders/GLTFLoader.js');
-    const url=new URL('assets/3_evil_rock_mountains_with_cave_stylized.glb',document.baseURI).href;
-    const response=await fetch(url,{mode:'same-origin',cache:'force-cache'});
-    if(!response.ok)throw new Error('Waterfront cave GLB request failed: HTTP '+response.status);
-    const buffer=await response.arrayBuffer();
-    if(buffer.byteLength<20||new DataView(buffer).getUint32(0,true)!==0x46546c67)throw new Error('Waterfront cave asset is not a binary glTF');
-    const gltf=await new Promise((resolve,reject)=>new GLTFLoader().parse(buffer,'',resolve,reject));
+    const gltf=await loadApprovedWaterfrontCaveGltf();
     const formation=gltf?.scene?.clone?.(true);
     if(!formation)throw new Error('Waterfront cave GLB has no scene');
     formation.name='coastline-waterfront-three-cave-formation';
@@ -395,11 +404,18 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
     formation.position.x+=520-(bounds.min.x+bounds.max.x)/2;
     formation.position.z+=545-(bounds.min.z+bounds.max.z)/2;
     formation.position.y+=floorY-bounds.min.y;
-    formation.traverse(node=>{if(node.isMesh){node.castShadow=true;node.receiveShadow=true;node.userData.coastlineApprovedCaveExterior=true;}});
-    // Retire only the old cave/mountain visuals; the stand, vendor, path and plants remain.
-    const disposeLegacy=object=>{object?.traverse?.(node=>{if(node.geometry?.dispose)node.geometry.dispose();const materials=Array.isArray(node.material)?node.material:[node.material];for(const material of materials)material?.dispose?.();});};
+    formation.traverse(node=>{
+      if(!node.isMesh)return;
+      node.geometry=node.geometry?.clone?.()||node.geometry;
+      node.material=Array.isArray(node.material)?node.material.map(material=>material?.clone?.()||material):node.material?.clone?.()||node.material;
+      node.castShadow=true;node.receiveShadow=true;node.userData.coastlineApprovedCaveExterior=true;
+    });
+    // The obsolete procedural exterior and mouth no longer coexist with the GLB.
+    const disposeLegacy=object=>{object?.traverse?.(node=>{node.geometry?.dispose?.();const materials=Array.isArray(node.material)?node.material:[node.material];for(const material of materials)material?.dispose?.();});};
     const oldMountain=root.getObjectByName('coastline-waterfront-cave-mountain');
     if(oldMountain){root.remove(oldMountain);disposeLegacy(oldMountain);}
+    const oldMouth=root.getObjectByName('coastline-electric-lemonade-cave-mouth');
+    if(oldMouth){root.remove(oldMouth);disposeLegacy(oldMouth);}
     root.add(formation);
     root.userData.coastlineCaveFormation=formation;
     root.userData.coastlineCaveGLB=formation;
