@@ -442,7 +442,16 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
       window.__coastlineWildlifeAssets?.attachWorld(root,worldId);
       window.__coastlineRegionRoot=root;
       if(regionId==='waterfront'){
-        await prepareWaterfrontCaveFormation(root);
+        // Cave-asset preparation must never take down the entire Waterfront
+        // world: the residential-island bridge CTM remains usable if an asset
+        // request or validation fails. The cave-specific error stays visible
+        // in diagnostics so it cannot be mistaken for a successful cave load.
+        try{
+          await prepareWaterfrontCaveFormation(root);
+        }catch(error){
+          root.userData.coastlineCaveFormationError=String(error?.message||error);
+          console.error('[Coastline] Waterfront cave formation unavailable; keeping the Waterfront world and bridge CTM active.',error);
+        }
         const proceduralVendor=root.getObjectByName('coastline-electric-lemonade-vendor');
         try{
           const {loadCozyCharacterAsset,createCozyCharacterInstance,setCozyCharacterAnimation}=await import('./coastline-asset-swap.js');
