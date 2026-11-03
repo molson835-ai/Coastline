@@ -57,7 +57,14 @@ export const COASTLINE_ISLAND_REGIONS = Object.freeze([
   }),
 ]);
 
-export const COASTLINE_CAVE_THRESHOLD = Object.freeze({ x: 520, z: 542.5, radius: 2.25 });
+// Thresholds are mapped left-to-right from the three authored GLB mesh centers
+// after the formation's 12-unit height normalization and front-facing rotation.
+export const COASTLINE_CAVE_ENTRANCES = Object.freeze([
+  Object.freeze({ id: 'left', label: 'Left Cave', x: 508.1, z: 542.5, radius: 2.25 }),
+  Object.freeze({ id: 'center', label: 'Center Cave', x: 518.4, z: 542.5, radius: 2.25 }),
+  Object.freeze({ id: 'right', label: 'Right Cave', x: 530.7, z: 542.5, radius: 2.25 }),
+]);
+export const COASTLINE_CAVE_THRESHOLD = COASTLINE_CAVE_ENTRANCES[1];
 export const COASTLINE_CAVE_PORTAL_CLEAR_WIDTH = 3.0;
 
 export function getCoastlineCaveColliders(caveX = 520, caveZ = 545) {
