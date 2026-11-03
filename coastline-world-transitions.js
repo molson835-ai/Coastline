@@ -393,6 +393,8 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
     const formation=gltf?.scene?.clone?.(true);
     if(!formation)throw new Error('Waterfront cave GLB has no scene');
     formation.name='coastline-waterfront-three-cave-formation';
+    let mountainMeshCount=0;formation.traverse(node=>{if(node.isMesh&&String(node.name||'').includes('Cave Rock Mountain'))mountainMeshCount++;});
+    if(mountainMeshCount!==3)throw new Error('Approved cave formation must contain exactly three authored mountain meshes; found '+mountainMeshCount);
     formation.rotation.y=Math.PI; // All three authored doorways face the front approach.
     formation.updateMatrixWorld(true);
     const sourceBounds=new THREE.Box3().setFromObject(formation);
@@ -421,6 +423,7 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
     root.userData.coastlineCaveGLB=formation;
     root.userData.coastlineCaveFormationPrepared=true;
     root.userData.coastlineCaveEntranceCount=3;
+    root.userData.coastlineCaveMountainMeshCount=mountainMeshCount;
   };
   const pendingRegionRoots=new Map();
   const createAdditionalIslandWorld=(regionId,worldId)=>({
