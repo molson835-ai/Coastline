@@ -87,9 +87,9 @@ test('wildlife loader uses GLB animation, rider socket, source paths, and CTM-ow
   assert.equal(COASTLINE_WILDLIFE_ASSETS.ostrich.license, 'CC0');
   assert.match(transitions, /coastlineWildlifeAssets\?\.attachWorld/);
   assert.match(transitions, /coastlineWildlifeAssets\?\.detachWorld/);
-  assert.match(transitions, /electric-dungeon-center-electric-cavern-natural-tunnel-shell/);
-  assert.match(transitions, /electric-dungeon-left-labyrinth-natural-tunnel-shell/);
-  assert.match(transitions, /electric-dungeon-right-labyrinth-natural-tunnel-shell/);
+  assert.match(transitions, /addCaveRoute\('center-electric-cavern'/);
+  assert.match(transitions, /addCaveRoute\('left-labyrinth'/);
+  assert.match(transitions, /addCaveRoute\('right-labyrinth'/);
   assert.match(transitions, /electric-dungeon-left-west-alcove-branch/);
   assert.match(transitions, /electric-dungeon-right-west-dead-end-branch/);
   assert.match(transitions, /destinationSpawn:\{x:518\.4,y:islandGroundY\(\),z:537\.5,rotationY:Math\.PI\}/, 'center dungeon return points outside facing away from the portal at island height');
