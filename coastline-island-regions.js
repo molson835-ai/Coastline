@@ -883,9 +883,8 @@ export function createCoastlineIslandRoot({ THREE, region, groundY = () => 0, ad
     }
     caveRubble.instanceMatrix.needsUpdate=true; cavePlants.instanceMatrix.needsUpdate=true;
     caveRubble.castShadow=false; cavePlants.castShadow=false; root.add(caveRubble,cavePlants);
-    // The same explicit cave collider contract is used by foot and vehicle collision.
-    // Only the doorway corridor remains traversable; mountain sides and rear are solid.
-    colliders.push(...getCoastlineCaveColliders(caveX, caveZ));
+    // Cave colliders are installed by the transition manager only after the
+    // approved visible three-mountain GLB has loaded and passed validation.
     root.userData.coastlineElectricLemonade = {
       stand: { x: standX, z: standZ + 2.4, radius: 3.2 },
       cave: { x: caveX - 1.6, z: caveZ - 2.5, radius: 3.0 },
