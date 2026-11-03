@@ -54,7 +54,7 @@ function installReplacementRuntimeCorrections() {
   window.__coastlineReplacementVisualPatch = () => {
     patchVehicleVisuals();
     patchAuthoredHair();
-    patchCaveAndVendor();
+    patchWaterfrontVendor();
     let authoredHairCorrected = false;
     window.__coastlineAvatar?.userData?.cozyActor?.root?.traverse?.(node => { if (node.userData?.coastlineAuthoredHairCorrected) authoredHairCorrected = true; });
     const root = window.__coastlineRegionRoot;
@@ -72,7 +72,7 @@ function installReplacementRuntimeCorrections() {
   const timer = setInterval(() => {
     patchVehicleVisuals();
     patchAuthoredHair();
-    patchCaveAndVendor();
+    patchWaterfrontVendor();
     if (++attempts >= 240) clearInterval(timer);
   }, 250);
 
