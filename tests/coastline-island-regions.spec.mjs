@@ -79,13 +79,13 @@ test('water depth classification is stable and only shallow water is traversable
   assert.equal(canTraverseCoastlineWater(8, 'vehicle'), false);
 });
 
-test('Homey and cave island scenery expose named natural-detail contracts', async () => {
+test('Homey scenery remains detailed while legacy Waterfront cave geometry is absent', async () => {
   const fs = await import('node:fs/promises');
   const source = await fs.readFile(new URL('../coastline-island-regions.js', import.meta.url), 'utf8');
   assert.match(source, /coastline-residential-garden-groundcover/);
   assert.match(source, /coastline-residential-neighborhood-shrubs/);
-  assert.match(source, /coastline-waterfront-cave-mountain/);
-  assert.match(source, /coastline-waterfront-cave-approach-path/);
+  assert.match(source, /coastline-electric-lemonade-cave-mouth/);
+  assert.doesNotMatch(source, /coastline-waterfront-cave-mountain|coastline-waterfront-cave-approach-path|coastline-electric-lemonade-cave-dark-opening/);
   assert.match(source, /coastline-waterfront-lemonade-counter/);
   assert.match(source, /coastline-waterfront-lemonade-price-sign/);
   assert.doesNotMatch(source, /coastline-waterfront-resort-main-building/);

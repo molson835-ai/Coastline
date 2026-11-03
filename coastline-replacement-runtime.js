@@ -39,11 +39,11 @@ function installReplacementRuntimeCorrections() {
     try {
       const mouth = root.getObjectByName('coastline-electric-lemonade-cave-mouth');
       if (!mouth) return;
-      const mountain = root.getObjectByName('coastline-waterfront-cave-mountain');
-      // The supplied three-mountain formation replaces the old procedural mountain
-      // and boulder mouth. Keep the anchor group for the existing CTM contract.
-      if (mountain) mountain.visible = false;
-      for (const child of [...mouth.children]) child.visible = false;
+      // The shared anchor is intentionally empty until the approved three-cave
+      // GLB is attached. Legacy mountain/cave visuals are no longer fallbacks.
+      for (const child of [...mouth.children]) {
+        if (child.name !== 'coastline-waterfront-cave-replacement-glb') child.visible = false;
+      }
 
       if (!caveReplacementPromise) {
         caveReplacementPromise = (async () => {
@@ -64,16 +64,20 @@ function installReplacementRuntimeCorrections() {
       const cave = gltf?.scene?.clone?.(true);
       if (!cave) throw new Error('Replacement cave GLB has no scene');
       cave.name = 'coastline-waterfront-cave-replacement-glb';
-      // glTF is Y-up. Point the authored cave mouth toward the lemonade stand side
-      // (-Z), matching the existing CTM threshold at x=520,z=542.5.
-      cave.rotation.y = Math.PI;
+      // Preserve the approved GLB's authored front-facing orientation; do not rotate it.
+      cave.visible = true;
       const THREE = window.__coastlineThree;
       if (!THREE) throw new Error('Three.js runtime unavailable for cave replacement');
+      // The asset contains three separate cave mountains in one GLB scene. Fit the
+      // complete authored formation as one unit, then explicitly keep every mesh
+      // renderable; the world/detail culler must not silently hide this landmark.
       cave.updateMatrixWorld(true);
       const sourceBounds = new THREE.Box3().setFromObject(cave);
       const sourceHeight = Math.max(0.001, sourceBounds.max.y - sourceBounds.min.y);
+      const sourceWidth = Math.max(0.001, sourceBounds.max.x - sourceBounds.min.x);
       const targetHeight = 12;
-      const scale = targetHeight / sourceHeight;
+      const targetWidth = 30;
+      const scale = Math.max(targetHeight / sourceHeight, targetWidth / sourceWidth);
       cave.scale.multiplyScalar(scale);
       cave.updateMatrixWorld(true);
       const scaledBounds = new THREE.Box3().setFromObject(cave);
@@ -83,23 +87,39 @@ function installReplacementRuntimeCorrections() {
       cave.position.x += 520 - centerX;
       cave.position.z += 545 - centerZ;
       cave.position.y += floorY - scaledBounds.min.y;
+      let visibleMeshCount = 0;
       cave.traverse(node => {
+        node.visible = true;
+        node.frustumCulled = false;
+        node.layers.enableAll();
+        if (node.material) {
+          const materials = Array.isArray(node.material) ? node.material : [node.material];
+          for (const material of materials) if (material) material.visible = true;
+        }
         if (!node.isMesh) return;
+        visibleMeshCount++;
         node.castShadow = true;
         node.receiveShadow = true;
         node.userData.coastlineReplacementCave = true;
       });
+      if (!visibleMeshCount) throw new Error('Replacement cave GLB contains no renderable meshes');
+      mouth.visible = true;
       mouth.add(cave);
+      root.updateMatrixWorld(true);
+      const finalBounds = new THREE.Box3().setFromObject(cave);
+      root.userData.coastlineReplacementCaveBounds = {
+        min: finalBounds.min.toArray(), max: finalBounds.max.toArray(),
+        width: finalBounds.max.x - finalBounds.min.x,
+        height: finalBounds.max.y - finalBounds.min.y,
+        depth: finalBounds.max.z - finalBounds.min.z,
+        visibleMeshCount,
+      };
       root.userData.coastlineReplacementCaveLoaded = true;
       root.userData.coastlineReplacementCave = cave;
     } catch (error) {
       root.userData.coastlineReplacementCaveError = String(error?.message || error);
-      console.warn('[Coastline] Replacement cave GLB unavailable; leaving existing cave visuals in place.', error);
-      // Do not leave the old cave hidden if the requested replacement asset is absent.
-      const mountain = root.getObjectByName('coastline-waterfront-cave-mountain');
-      if (mountain) mountain.visible = true;
-      const mouth = root.getObjectByName('coastline-electric-lemonade-cave-mouth');
-      for (const child of mouth?.children || []) child.visible = true;
+      console.warn('[Coastline] Approved three-cave GLB unavailable; no legacy cave fallback will be shown.', error);
+      caveReplacementPromise = null;
     } finally {
       delete root.userData.coastlineReplacementCaveLoading;
     }
@@ -124,6 +144,8 @@ function installReplacementRuntimeCorrections() {
       window.__coastlineWaterfrontVendorActor = actor;
     }
   };
+
+  window.__coastlineEnsureReplacementCave = root => loadReplacementCave(root || window.__coastlineRegionRoot);
 
   window.__coastlineReplacementVisualPatch = () => {
     patchVehicleVisuals();

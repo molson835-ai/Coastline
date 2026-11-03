@@ -5,11 +5,29 @@
  * scene construction so expiry, reload and CTM transitions are deterministic.
  */
 import './coastline-replacement-runtime.js';
+import './coastline-three-cave-system.js';
+import './coastline-three-cave-polish.js';
 
 export const ELECTRIC_LEMONADE_PRICE_CB = 10;
 export const ROCKET_BOOTS_DURATION_MS = 5 * 60 * 1000;
 export const ROCKET_BOOTS_STORAGE_KEY = 'coastlineRocketBootsExpiresAtV1';
 
+if (typeof window !== 'undefined') {
+  window.__coastlineThreeCaveContract = Object.freeze({
+    entrances: Object.freeze([
+      Object.freeze({ id: 'left', x: 510, z: 542.5, radius: 2.0 }),
+      Object.freeze({ id: 'center', x: 520, z: 542.5, radius: 2.0 }),
+      Object.freeze({ id: 'right', x: 530, z: 542.5, radius: 2.0 }),
+    ]),
+  });
+  const markThreeCaveWrapper = () => {
+    const api = window.__coastlineElectricLemonade;
+    if (api) api.__threeCaveWrapped = true;
+  };
+  markThreeCaveWrapper();
+  const wrapperTimer = window.setInterval(markThreeCaveWrapper, 100);
+  window.addEventListener('beforeunload', () => window.clearInterval(wrapperTimer), { once: true });
+}
 
 /**
  * True only when an on-foot player is close enough to the vendor and looking

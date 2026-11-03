@@ -375,13 +375,17 @@ test('Waterfront uses the approved GLB vendor, natural cave props, and automatic
     await window.__coastlineTransitionTest.transition('island-to-waterfront');
   });
   await page.waitForFunction(() => Boolean(window.__coastlineWaterfrontVendorActor?.root), null, { timeout: 20000 });
+  await page.waitForFunction(() => Boolean(window.__coastlineRegionRoot?.getObjectByName('coastline-waterfront-cave-replacement-glb')?.visible), null, { timeout: 30000 });
   const state = await page.evaluate(() => {
     const root = window.__coastlineRegionRoot;
     return {
       activeWorld: window.__coastlineTransitionTest.status().activeWorldId,
       glbVendor: Boolean(root?.getObjectByName('coastline-waterfront-lemonade-vendor-glb')),
-      caveMountain: Boolean(root?.getObjectByName('coastline-waterfront-cave-mountain')),
-      approachPath: Boolean(root?.getObjectByName('coastline-waterfront-cave-approach-path')),
+      replacementCave: Boolean(root?.getObjectByName('coastline-waterfront-cave-replacement-glb')?.visible),
+      caveAnchor: Boolean(root?.getObjectByName('coastline-electric-lemonade-cave-mouth')?.parent),
+      legacyCave: Boolean(root?.getObjectByName('coastline-waterfront-cave-entrance-glb')),
+      legacyMountain: Boolean(root?.getObjectByName('coastline-waterfront-cave-mountain')),
+      legacyApproachPath: Boolean(root?.getObjectByName('coastline-waterfront-cave-approach-path')),
       lemonadeCounter: Boolean(root?.getObjectByName('coastline-waterfront-lemonade-counter')),
       priceSign: Boolean(root?.getObjectByName('coastline-waterfront-lemonade-price-sign')),
       groundY: root?.userData?.coastlineGroundY,
@@ -390,8 +394,11 @@ test('Waterfront uses the approved GLB vendor, natural cave props, and automatic
   });
   expect(state.activeWorld).toBe('waterfront');
   expect(state.glbVendor).toBe(true);
-  expect(state.caveMountain).toBe(true);
-  expect(state.approachPath).toBe(true);
+  expect(state.replacementCave).toBe(true);
+  expect(state.caveAnchor).toBe(true);
+  expect(state.legacyCave).toBe(false);
+  expect(state.legacyMountain).toBe(false);
+  expect(state.legacyApproachPath).toBe(false);
   expect(state.lemonadeCounter).toBe(true);
   expect(state.priceSign).toBe(true);
   expect(Number.isFinite(state.groundY)).toBe(true);
