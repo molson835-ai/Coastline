@@ -35,6 +35,7 @@ test('hero vehicle uses the replacement RGSDev model and keeps damage/material h
       bodyStillAttached: Boolean(parts.body && visualMeshes.includes(parts.body)),
       vehicleStillDrivable: vehicle.drivable === true && vehicle.kind === 'car',
       replacementFleetLoaded: window.__coastlineVehicleAssetSwapStatus.replaced > 0,
+      packagedModels: window.__coastlineVehicleAssetSwapStatus.models || [],
       oldHeroShellPresent: root.children.some(child => child.name === 'coastline-hero-white-single-shell')
     };
   });
@@ -69,6 +70,9 @@ test('hero vehicle uses the replacement RGSDev model and keeps damage/material h
   expect(snapshot.bodyStillAttached).toBe(true);
   expect(snapshot.vehicleStillDrivable).toBe(true);
   expect(snapshot.replacementFleetLoaded).toBe(true);
+  for (const model of ['Hatchback', 'Limousine', 'Roadster', 'Sedan', 'SUV', 'Van']) {
+    expect(snapshot.packagedModels, `full RGSDev fleet should include ${model}`).toContain(model);
+  }
   expect(snapshot.oldHeroShellPresent).toBe(false);
   expect(pageErrors).toEqual([]);
 });
