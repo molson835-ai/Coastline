@@ -1,5 +1,5 @@
 import { createTransitionManager } from './transition-manager.js';
-import { COASTLINE_ISLAND_ELEVATION, COASTLINE_ISLAND_WATER_DROP, createCoastlineIslandRoot, getCoastlineIslandRegion } from './coastline-island-regions.js';
+import { COASTLINE_ISLAND_ELEVATION, COASTLINE_ISLAND_WATER_DROP, createCoastlineIslandRoot, getCoastlineIslandRegion, getCoastlineCaveColliders } from './coastline-island-regions.js';
 import { buildHomeyGarageInterior, openGarageVehicleChooser, didCrossGarageThreshold, didCrossHouseDoorThreshold, canUseGarageKeyBoard } from './coastline-homey-garage.js';
 import { buildHomeyHouseInterior } from './coastline-homey-house-interior.js';
 
@@ -425,6 +425,14 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
     const oldMouth=root.getObjectByName('coastline-electric-lemonade-cave-mouth');
     if(oldMouth){root.remove(oldMouth);disposeLegacy(oldMouth);}
     root.add(formation);
+    // Cave collision is installed only after the approved visible formation
+    // has loaded and passed validation. Never leave phantom cave walls when
+    // the GLB request or validation fails.
+    const caveColliders=getCoastlineCaveColliders(520,545);
+    root.userData.coastlineColliders=root.userData.coastlineColliders||[];
+    root.userData.coastlineColliders=root.userData.coastlineColliders.filter(collider=>!String(collider?.name||'').startsWith('coastline-waterfront-cave-'));
+    root.userData.coastlineColliders.push(...caveColliders);
+    root.userData.coastlineCaveCollisionReady=true;
     root.userData.coastlineCaveFormation=formation;
     root.userData.coastlineCaveGLB=formation;
     root.userData.coastlineCaveFormationPrepared=true;
