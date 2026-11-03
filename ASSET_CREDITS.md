@@ -38,7 +38,7 @@
 - **Source:** https://sketchfab.com/3d-models/3-evil-rock-mountains-with-cave-stylized-c41cba36d5dd48b1a07241c353689709
 - **Asset:** `assets/3_evil_rock_mountains_with_cave_stylized.glb`
 - **License:** Creative Commons Attribution (CC BY); retain this attribution with the distributed game asset.
-- **Use in Coastline Drive:** Replacement Waterfront/Cave Island mountain formation. The runtime centers the formation on the existing cave threshold, points the cave mouth toward the Electric Lemonade side, and keeps movement governed by Coastline's explicit cave collider and CTM contracts rather than visual-mesh collision.
+- **Use in Coastline Drive:** Approved Waterfront formation containing three left-to-right mountain meshes with three authored front-facing cave doorways. The runtime centers the formation on Waterfront, keeps all entrances facing the front approach, and maps each doorway to its own CTM threshold; movement is governed by Coastline's explicit collider and transition contracts rather than visual-mesh collision.
 
 ## Literock Studios — Warhorse Lite
 
