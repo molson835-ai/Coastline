@@ -374,8 +374,6 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
   // replacement-runtime polling path.
   const prepareWaterfrontCaveFormation=async root=>{
     if(!root||root.userData.coastlineCaveFormationPrepared)return;
-    const anchor=root.getObjectByName('coastline-electric-lemonade-cave-mouth');
-    if(!anchor)throw new Error('Waterfront cave anchor is missing');
     const {GLTFLoader}=await import('https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/loaders/GLTFLoader.js');
     const url=new URL('assets/3_evil_rock_mountains_with_cave_stylized.glb',document.baseURI).href;
     const response=await fetch(url,{mode:'same-origin',cache:'force-cache'});
@@ -402,7 +400,6 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
     const disposeLegacy=object=>{object?.traverse?.(node=>{if(node.geometry?.dispose)node.geometry.dispose();const materials=Array.isArray(node.material)?node.material:[node.material];for(const material of materials)material?.dispose?.();});};
     const oldMountain=root.getObjectByName('coastline-waterfront-cave-mountain');
     if(oldMountain){root.remove(oldMountain);disposeLegacy(oldMountain);}
-    root.remove(anchor);disposeLegacy(anchor);
     root.add(formation);
     root.userData.coastlineCaveFormation=formation;
     root.userData.coastlineCaveGLB=formation;
