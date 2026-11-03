@@ -368,6 +368,45 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
   const addCityBridgeAffordance=()=>addBridge(THREE,roots.world1Root,{x:0,startZ:CITY_BRIDGE_START_Z,y:finiteOr(groundY(0,CITY_BRIDGE_START_Z)),length:BRIDGE_LENGTH});
   const cityWorld={id:'city',name:'Coastline City',load:async({context,destinationSpawn})=>{setIslandCollisionScope(false);window.__coastlineActiveWorldId='city';window.__coastlineActiveWorldRoot=roots.world1Root;window.__coastlineActiveWorldColliders=[];roots.world1Root.visible=true;moveActiveActor(roots.world1Root);if(destinationSpawn)applySnapshot({player:context.player,vehicle:context.vehicle,vehicleIndex:context.vehicleIndex},roots.world1Root,destinationSpawn);window.__coastlineWildlifeAssets?.attachWorld(roots.world1Root,'city');return{id:'city',root:roots.world1Root};},unload:async handle=>{handle.root.visible=false;},captureState:async({context})=>({player:context.player,vehicle:context.vehicle,vehicleIndex:context.vehicleIndex}),restoreState:async(worldState,{handle,destinationSpawn})=>{setIslandCollisionScope(false);handle.root.visible=true;moveActiveActor(handle.root);applySnapshot(worldState,handle.root,destinationSpawn);}};
   const islandWorld={id:'island',name:'Coastline Island Start',load:async({context,destinationSpawn})=>{setIslandCollisionScope(true);window.__coastlineActiveWorldId='island';window.__coastlineActiveWorldColliders=[];pendingIslandRoot=createNakedIslandRoot();roots.addWorldRoot(pendingIslandRoot);pendingIslandRoot.visible=true;window.__coastlineWildlifeAssets?.attachWorld(pendingIslandRoot,'island');moveActiveActor(pendingIslandRoot);applySnapshot({player:context.player,vehicle:context.vehicle,vehicleIndex:context.vehicleIndex},pendingIslandRoot,destinationSpawn||ISLAND_START);if(failNextIslandLoad){failNextIslandLoad=false;throw new Error('injected island load failure');}return{id:'island',root:pendingIslandRoot};},unload:async handle=>{setIslandCollisionScope(false);window.__coastlineWildlifeAssets?.detachWorld(handle.root);disposeOutdoorFleet(handle.root);if(handle.root?.parent)roots.removeWorldRoot(handle.root);disposeRoot(handle.root);if(pendingIslandRoot===handle.root)pendingIslandRoot=null;},cleanupFailedLoad:async({context})=>{setIslandCollisionScope(false);window.__coastlineActiveWorldId='city';window.__coastlineActiveWorldRoot=roots.world1Root;window.__coastlineActiveWorldColliders=[];if(!pendingIslandRoot)return;roots.world1Root.visible=true;moveActiveActor(roots.world1Root);applySnapshot({player:context.player,vehicle:context.vehicle,vehicleIndex:context.vehicleIndex},roots.world1Root);window.__coastlineWildlifeAssets?.detachWorld(pendingIslandRoot);disposeOutdoorFleet(pendingIslandRoot);roots.removeWorldRoot(pendingIslandRoot);disposeRoot(pendingIslandRoot);pendingIslandRoot=null;},captureState:async({context})=>({player:context.player,vehicle:context.vehicle,vehicleIndex:context.vehicleIndex}),restoreState:async(worldState,{handle,destinationSpawn})=>{setIslandCollisionScope(true);handle.root.visible=true;moveActiveActor(handle.root);applySnapshot(worldState,handle.root,destinationSpawn);}};
+
+  // Load the approved three-mountain cave formation before Waterfront becomes
+  // resident/visible. This deliberately keeps cave geometry out of the later
+  // replacement-runtime polling path.
+  const prepareWaterfrontCaveFormation=async root=>{
+    if(!root||root.userData.coastlineCaveFormationPrepared)return;
+    const anchor=root.getObjectByName('coastline-electric-lemonade-cave-mouth');
+    if(!anchor)throw new Error('Waterfront cave anchor is missing');
+    const {GLTFLoader}=await import('https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/loaders/GLTFLoader.js');
+    const url=new URL('assets/3_evil_rock_mountains_with_cave_stylized.glb',document.baseURI).href;
+    const response=await fetch(url,{mode:'same-origin',cache:'force-cache'});
+    if(!response.ok)throw new Error('Waterfront cave GLB request failed: HTTP '+response.status);
+    const buffer=await response.arrayBuffer();
+    if(buffer.byteLength<20||new DataView(buffer).getUint32(0,true)!==0x46546c67)throw new Error('Waterfront cave asset is not a binary glTF');
+    const gltf=await new Promise((resolve,reject)=>new GLTFLoader().parse(buffer,'',resolve,reject));
+    const formation=gltf?.scene?.clone?.(true);
+    if(!formation)throw new Error('Waterfront cave GLB has no scene');
+    formation.name='coastline-waterfront-three-cave-formation';
+    formation.rotation.y=Math.PI; // All three authored doorways face the front approach.
+    formation.updateMatrixWorld(true);
+    const sourceBounds=new THREE.Box3().setFromObject(formation);
+    const height=Math.max(.001,sourceBounds.max.y-sourceBounds.min.y);
+    formation.scale.multiplyScalar(12/height);
+    formation.updateMatrixWorld(true);
+    const bounds=new THREE.Box3().setFromObject(formation);
+    const floorY=Number.isFinite(root.userData?.coastlineGroundY)?root.userData.coastlineGroundY:finiteOr(islandGroundY());
+    formation.position.x+=520-(bounds.min.x+bounds.max.x)/2;
+    formation.position.z+=545-(bounds.min.z+bounds.max.z)/2;
+    formation.position.y+=floorY-bounds.min.y;
+    formation.traverse(node=>{if(node.isMesh){node.castShadow=true;node.receiveShadow=true;node.userData.coastlineApprovedCaveExterior=true;}});
+    // Retire only the old cave/mountain visuals; the stand, vendor, path and plants remain.
+    const oldMountain=root.getObjectByName('coastline-waterfront-cave-mountain');
+    if(oldMountain)oldMountain.visible=false;
+    for(const child of [...anchor.children])child.visible=false;
+    root.add(formation);
+    root.userData.coastlineCaveFormation=formation;
+    root.userData.coastlineCaveFormationPrepared=true;
+    root.userData.coastlineCaveEntranceCount=3;
+  };
   const pendingRegionRoots=new Map();
   const createAdditionalIslandWorld=(regionId,worldId)=>({
     id:worldId,
@@ -379,6 +418,7 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
       window.__coastlineWildlifeAssets?.attachWorld(root,worldId);
       window.__coastlineRegionRoot=root;
       if(regionId==='waterfront'){
+        await prepareWaterfrontCaveFormation(root);
         const proceduralVendor=root.getObjectByName('coastline-electric-lemonade-vendor');
         try{
           const {loadCozyCharacterAsset,createCozyCharacterInstance,setCozyCharacterAnimation}=await import('./coastline-asset-swap.js');
