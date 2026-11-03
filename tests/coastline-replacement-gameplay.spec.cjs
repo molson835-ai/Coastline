@@ -68,6 +68,7 @@ test('replacement: cave doorway is clear while mountain side/rear remains blocke
 test('replacement: all three front-facing cave doorways have independent matching CTM return routes', async ({ page }) => {
   await openGame(page, 'replacement-three-caves');
   await page.evaluate(async () => { await window.__coastlineTransitionTest.transition('city-to-island'); await window.__coastlineTransitionTest.transition('island-to-waterfront'); });
+  await page.waitForFunction(() => window.__coastlineRegionRoot?.userData?.coastlineCaveFormationPrepared === true || Boolean(window.__coastlineRegionRoot?.userData?.coastlineCaveFormationError), null, { timeout: 30000 });
   const exterior = await page.evaluate(() => ({
     prepared: window.__coastlineRegionRoot?.userData?.coastlineCaveFormationPrepared,
     entranceCount: window.__coastlineRegionRoot?.userData?.coastlineCaveEntranceCount,
