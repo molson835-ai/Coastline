@@ -216,17 +216,24 @@ export async function createRgsdevVehicleVisual(THREE, name='Sedan', target) { c
 export async function applyRgsdevFleet(THREE, vehicles, onStatus = () => {}) {
   for (const vehicle of vehicles) { if (!vehicle?.g) continue; if (vehicle.isMount || ['horse','ostrich'].includes(vehicle.kind)) continue; removeVisualChildren(vehicle.g); if (vehicle.kind === 'car') { vehicle.g.visible = false; vehicle.g.userData.coastlineAssetPending = true; } else { vehicle.g.visible = false; vehicle.drivable = false; vehicle.occupied = false; } }
   try {
-    const pack = await loadRgsdevVehiclePack(THREE), variants = [...pack.models.keys()].filter(name => !/ambulance|bus|firetruck|police|truck|van/i.test(name)), available = variants.length ? variants : [...pack.models.keys()];
+    const pack = await loadRgsdevVehiclePack(THREE), available = [...pack.models.keys()];
+    if (!available.length) throw new Error('The RGSDev vehicle archive loaded but contained no supported road vehicles.');
     let replaced=0, disabled=0, carIndex=0;
-    for (const vehicle of vehicles) {
-      if (!vehicle?.g) continue;
-      // Wildlife mounts are registered in the shared vehicle list, but are not legacy road vehicles.
-      if (vehicle.isMount || ['horse','ostrich'].includes(vehicle.kind)) continue;
-      if (vehicle.kind !== 'car') { removeVisualChildren(vehicle.g); vehicle.g.visible = false; vehicle.drivable = false; vehicle.occupied = false; disabled++; continue; }
+    const roadCars = vehicles.filter(vehicle => vehicle?.g && !vehicle.isMount && !['horse','ostrich'].includes(vehicle.kind) && vehicle.kind === 'car');
+    const replacements = await Promise.all(roadCars.map(async vehicle => {
       const hero = !!vehicle.g.userData?.coastlineHeroVehicle?.singleShell;
       const name = hero && pack.models.has('SUV') ? 'SUV' : available[carIndex++ % available.length];
-      const visual = await createRgsdevVehicleVisual(THREE,name); removeVisualChildren(vehicle.g); vehicle.g.add(visual); vehicle.g.visible = true; vehicle.g.userData.coastlineAssetPending = false; vehicle.rgsdevModelName = name;
-      bindDamageParts(THREE,vehicle,visual); replaced++;
+      return { vehicle, name, visual: await createRgsdevVehicleVisual(THREE, name) };
+    }));
+    // Only install the new fleet after every selected model has parsed and fitted successfully.
+    const replacementByVehicle = new Map(replacements.map(item => [item.vehicle, item]));
+    for (const vehicle of vehicles) {
+      if (!vehicle?.g || vehicle.isMount || ['horse','ostrich'].includes(vehicle.kind)) continue;
+      if (vehicle.kind !== 'car') { removeVisualChildren(vehicle.g); vehicle.g.visible = false; vehicle.drivable = false; vehicle.occupied = false; disabled++; continue; }
+      const replacement = replacementByVehicle.get(vehicle);
+      if (!replacement) throw new Error('A road vehicle was not assigned a replacement model.');
+      removeVisualChildren(vehicle.g); vehicle.g.add(replacement.visual); vehicle.g.visible = true; vehicle.g.userData.coastlineAssetPending = false; vehicle.rgsdevModelName = replacement.name;
+      bindDamageParts(THREE, vehicle, replacement.visual); replaced++;
     }
     onStatus({ok:true,replaced,disabled,models:[...pack.models.keys()],ready:true});
     return {ok:true,replaced,disabled,models:[...pack.models.keys()],ready:true};
