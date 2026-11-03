@@ -80,6 +80,7 @@ export function getCoastlineCaveColliders(caveX = 520, caveZ = 545) {
     { name: 'coastline-waterfront-cave-mountain-right-slope', x: caveX + 19, z: caveZ + 3, w: 12, d: 22 },
     { name: 'coastline-waterfront-cave-mountain-rear-ridge', x: caveX, z: caveZ + 15, w: 40, d: 10 },
     { name: 'coastline-waterfront-cave-rear-wall', x: caveX, z: caveZ + 11, w: 38, d: 7 },
+    { name: 'coastline-waterfront-cave-upper-ridge', x: caveX, z: caveZ + 20, w: 40, d: 4 },
     ...jambs,
   ];
 }
