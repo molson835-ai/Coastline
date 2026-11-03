@@ -480,26 +480,26 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
     const floorMat=new THREE.MeshStandardMaterial({color:0x080a0b,roughness:1,metalness:0});
     const rockMat=new THREE.MeshStandardMaterial({color:0x050607,roughness:1,metalness:0});
     const add=(name,x,y,z,w,h,d,material,collider=false)=>{const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material);mesh.name=name;mesh.position.set(x,y,z);mesh.receiveShadow=true;root.add(mesh);if(collider)colliders.push({name,x,z,w,d});return mesh};
-    add('electric-dungeon-floor',520,floorY-.2,558,32,.4,44,floorMat);
+    add('electric-dungeon-floor',520,floorY-.2,558,44,.4,44,floorMat);
     // Side and back walls enclose a single winding chamber; front remains open to the cave mouth.
-    add('electric-dungeon-left-wall',504,floorY+4,558,.5,8,44,wallMat,true);
-    add('electric-dungeon-right-wall',536,floorY+4,558,.5,8,44,wallMat,true);
-    add('electric-dungeon-back-wall',520,floorY+4,580,32,8,.5,wallMat,true);
-    add('electric-dungeon-ceiling',520,floorY+8.2,558,32,.4,44,wallMat);
+    add('electric-dungeon-left-wall',498,floorY+4,558,.5,8,44,wallMat,true);
+    add('electric-dungeon-right-wall',542,floorY+4,558,.5,8,44,wallMat,true);
+    add('electric-dungeon-back-wall',520,floorY+4,580,44,8,.5,wallMat,true);
+    add('electric-dungeon-ceiling',520,floorY+8.2,558,44,.4,44,wallMat);
     add('electric-dungeon-entry-left',511,floorY+2.2,538,.5,4.4,.5,wallMat,true);
     add('electric-dungeon-entry-right',529,floorY+2.2,538,.5,4.4,.5,wallMat,true);
     // Walkable branching labyrinth: offset wall runs create bends, side routes and
     // dead ends with enough clearance for the player capsule. The entry and boot alcove
     // remain connected; all wall segments are collidable rather than visual-only.
     const mazeWall=(name,x,z,w,d)=>add(name,x,floorY+2.1,z,w,4.2,d,rockMat,true);
-    mazeWall('electric-dungeon-maze-west-first',513.5,548,11.5,.7);
-    mazeWall('electric-dungeon-maze-east-first',529.5,548,9.5,.7);
-    mazeWall('electric-dungeon-maze-northwest-turn',520,553,.7,8.5);
-    mazeWall('electric-dungeon-maze-northeast-turn',530,557,.7,8.5);
-    mazeWall('electric-dungeon-maze-center-crossbar',520,562,10,.7);
-    mazeWall('electric-dungeon-maze-southwest-branch',511.5,568,9.5,.7);
-    mazeWall('electric-dungeon-maze-southeast-branch',530.5,572,9.5,.7);
-    mazeWall('electric-dungeon-maze-dead-end-marker',515,575,.7,4.5);
+    mazeWall('electric-dungeon-maze-west-first',516,548,5.5,.7);
+    mazeWall('electric-dungeon-maze-east-first',524,548,5.5,.7);
+    mazeWall('electric-dungeon-maze-northwest-turn',516,553,.7,8.5);
+    mazeWall('electric-dungeon-maze-northeast-turn',524,557,.7,8.5);
+    mazeWall('electric-dungeon-maze-center-crossbar',520,562,7,.7);
+    mazeWall('electric-dungeon-maze-southwest-branch',516,568,5,.7);
+    mazeWall('electric-dungeon-maze-southeast-branch',524,572,5,.7);
+    mazeWall('electric-dungeon-maze-dead-end-marker',520,575,.7,4.5);
     // Distinct stone markers make route choices readable in low light.
     for(const [name,x,z,r] of [
       ['west-route-crystal',508.5,553,.8],['central-route-stalagmite',523,556,1.05],
@@ -509,8 +509,58 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
       landmark.name='electric-dungeon-landmark-'+name;
       landmark.position.set(x,floorY+1.2,z);landmark.castShadow=true;root.add(landmark);
     }
-    for(const [x,z,scale] of [[508,549,2.4],[531,551,2.1],[513,563,1.7],[529,574,2.4],[507,572,1.6]]){
+    for(const [x,z,scale] of [[515,549,1.5],[525,551,1.5],[518,563,1.4],[523,574,1.6],[516,572,1.3]]){
       const rock=new THREE.Mesh(new THREE.DodecahedronGeometry(1,1),rockMat);rock.name='electric-dungeon-obscuring-rock';rock.position.set(x,floorY+scale*.42,z);rock.scale.set(scale,scale*.85,scale*1.15);rock.castShadow=true;rock.receiveShadow=true;root.add(rock);colliders.push({name:'electric-dungeon-rock-collider',x,z,w:scale*1.25,d:scale*1.35});
+    }
+    // Left and right authored labyrinths branch away from the center chamber.
+    // Their tunnel shells are natural curved tubes with walkable stone floors;
+    // collision rails follow the same centerlines so visuals and traversal agree.
+    const caveShellMat=new THREE.MeshStandardMaterial({color:0x303332,roughness:1,side:THREE.BackSide});
+    const caveFloorMat=new THREE.MeshStandardMaterial({color:0x35332e,roughness:1});
+    const caveRockMat=new THREE.MeshStandardMaterial({color:0x55534b,roughness:1});
+    const addCaveRoute=(id,points)=>{
+      const vectors=points.map(([x,z])=>new THREE.Vector3(x,floorY+4.8,z));
+      const curve=new THREE.CatmullRomCurve3(vectors);
+      const shell=new THREE.Mesh(new THREE.TubeGeometry(curve,120,5.1,10,false),caveShellMat);
+      shell.name='electric-dungeon-'+id+'-natural-tunnel-shell';shell.castShadow=true;shell.receiveShadow=true;root.add(shell);
+      for(let i=0;i<points.length-1;i++){
+        const [x1,z1]=points[i],[x2,z2]=points[i+1],dx=x2-x1,dz=z2-z1;
+        const length=Math.hypot(dx,dz),midX=(x1+x2)/2,midZ=(z1+z2)/2;
+        const floor=new THREE.Mesh(new THREE.BoxGeometry(8.4,.32,length+1.2),caveFloorMat);
+        floor.name='electric-dungeon-'+id+'-walkable-stone-floor-'+i;
+        floor.position.set(midX,floorY-.02,midZ);floor.rotation.y=Math.atan2(dx,dz);floor.receiveShadow=true;root.add(floor);
+        const nx=dz/Math.max(.001,length),nz=-dx/Math.max(.001,length);
+        for(const side of [-1,1]){
+          colliders.push({name:'electric-dungeon-'+id+'-tunnel-wall-'+i+'-'+side,x:midX+nx*side*4.65,z:midZ+nz*side*4.65,w:1.25,d:length+1});
+        }
+      }
+      for(const [index,[x,z]] of points.entries()){
+        if(index===0||index===points.length-1)continue;
+        const chamber=new THREE.Mesh(new THREE.SphereGeometry(1,14,10),caveShellMat);
+        chamber.name='electric-dungeon-'+id+'-chamber-'+index;
+        chamber.position.set(x,floorY+4.8,z);chamber.scale.set(7.4,4.8,8.2);root.add(chamber);
+        const crystal=new THREE.Mesh(new THREE.DodecahedronGeometry(1,1),caveRockMat);
+        crystal.name='electric-dungeon-'+id+'-chamber-landmark-'+index;
+        crystal.position.set(x+(index%2?2.2:-2.2),floorY+1.3,z+2.5);crystal.scale.set(.9,1.6,.8);crystal.castShadow=true;root.add(crystal);
+      }
+    };
+    addCaveRoute('left-labyrinth',[[508.1,545],[508.1,570],[502,590],[496,615],[500,640],[507,665]]);
+    addCaveRoute('right-labyrinth',[[530.7,545],[530.7,570],[537,590],[544,615],[540,640],[531,665]]);
+    // Side branches form exploratory alcoves and deliberate dead ends off both routes.
+    for(const [id,x,z,dx,dz] of [
+      ['left-west-alcove',502,590,-17,8],['left-east-dead-end',496,615,13,10],
+      ['right-east-alcove',537,590,17,8],['right-west-dead-end',544,615,-13,10]
+    ]){
+      const branchCurve=new THREE.CatmullRomCurve3([
+        new THREE.Vector3(x,floorY+4.8,z),
+        new THREE.Vector3(x+dx*.55,floorY+4.8,z+dz*.55),
+        new THREE.Vector3(x+dx,floorY+4.8,z+dz)
+      ]);
+      const branch=new THREE.Mesh(new THREE.TubeGeometry(branchCurve,32,3.4,8,false),caveShellMat);
+      branch.name='electric-dungeon-'+id+'-branch';root.add(branch);
+      const branchFloor=new THREE.Mesh(new THREE.BoxGeometry(5.8,.3,Math.hypot(dx,dz)+1),caveFloorMat);
+      branchFloor.position.set(x+dx/2,floorY-.03,z+dz/2);branchFloor.rotation.y=Math.atan2(dx,dz);root.add(branchFloor);
+      colliders.push({name:'electric-dungeon-'+id+'-branch-end',x:x+dx,z:z+dz,w:3.5,d:3.5});
     }
     // A small neon boot pair is partially screened by a dark boulder.
     const bootMat=new THREE.MeshStandardMaterial({color:0x62f5ff,emissive:0x18bcd1,emissiveIntensity:1.8,roughness:.38,metalness:.22});
