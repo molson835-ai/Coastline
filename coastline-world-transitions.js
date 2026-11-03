@@ -441,17 +441,21 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
       const root=createCoastlineIslandRoot({THREE,region:getCoastlineIslandRegion(regionId),groundY:islandGroundY,addBridge,addSideBridge});
       window.__coastlineWildlifeAssets?.attachWorld(root,worldId);
       window.__coastlineRegionRoot=root;
+      // Make the destination world resident and move the actor before any
+      // optional GLB request. Network-bound cave/vendor assets must not leave
+      // the player staring at the previous world while initialization waits.
+      roots.addWorldRoot(root);root.visible=true;pendingRegionRoots.set(worldId,root);
+      moveActiveActor(root);
+      const fallbackSpawn={x:420,y:islandGroundY(420,500),z:500,rotationY:Math.PI/2};
+      applySnapshot({player:context.player,vehicle:context.vehicle,vehicleIndex:context.vehicleIndex},root,destinationSpawn||fallbackSpawn);
       if(regionId==='waterfront'){
-        // Cave-asset preparation must never take down the entire Waterfront
-        // world: the residential-island bridge CTM remains usable if an asset
-        // request or validation fails. The cave-specific error stays visible
-        // in diagnostics so it cannot be mistaken for a successful cave load.
-        try{
-          await prepareWaterfrontCaveFormation(root);
-        }catch(error){
+        // Cave preparation is independent of world activation. Start it as soon
+        // as the destination is resident, but never block world loading on the
+        // external GLB request. The player starts well before the cave entrance.
+        void prepareWaterfrontCaveFormation(root).catch(error=>{
           root.userData.coastlineCaveFormationError=String(error?.message||error);
-          console.error('[Coastline] Waterfront cave formation unavailable; keeping the Waterfront world and bridge CTM active.',error);
-        }
+          console.error('[Coastline] Waterfront cave formation unavailable; keeping the Waterfront world active.',error);
+        });
         const proceduralVendor=root.getObjectByName('coastline-electric-lemonade-vendor');
         try{
           const {loadCozyCharacterAsset,createCozyCharacterInstance,setCozyCharacterAnimation}=await import('./coastline-asset-swap.js');
@@ -475,10 +479,6 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
           console.warn('[Coastline] GLB lemonade vendor unavailable; procedural fallback remains visible.',error);
         }
       }
-      roots.addWorldRoot(root);root.visible=true;pendingRegionRoots.set(worldId,root);
-      moveActiveActor(root);
-      const fallbackSpawn={x:420,y:islandGroundY(420,500),z:500,rotationY:Math.PI/2};
-      applySnapshot({player:context.player,vehicle:context.vehicle,vehicleIndex:context.vehicleIndex},root,destinationSpawn||fallbackSpawn);
       return{id:worldId,root};
     },
     unload:async handle=>{
