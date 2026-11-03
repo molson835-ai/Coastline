@@ -71,11 +71,13 @@ test('replacement: all three front-facing cave doorways have independent matchin
   const exterior = await page.evaluate(() => ({
     prepared: window.__coastlineRegionRoot?.userData?.coastlineCaveFormationPrepared,
     entranceCount: window.__coastlineRegionRoot?.userData?.coastlineCaveEntranceCount,
+    mountainMeshCount: window.__coastlineRegionRoot?.userData?.coastlineCaveMountainMeshCount,
     formation: Boolean(window.__coastlineRegionRoot?.userData?.coastlineCaveGLB),
     yaw: window.__coastlineRegionRoot?.userData?.coastlineCaveGLB?.rotation?.y ?? null,
   }));
   expect(exterior.prepared).toBe(true);
   expect(exterior.entranceCount).toBe(3);
+  expect(exterior.mountainMeshCount).toBe(3);
   expect(exterior.formation).toBe(true);
   expect(Math.abs(Math.abs(exterior.yaw) - Math.PI)).toBeLessThan(0.001);
   for (const entrance of [{ id: 'left', x: 508.1 }, { id: 'right', x: 530.7 }]) {
