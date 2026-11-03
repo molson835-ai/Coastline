@@ -543,9 +543,11 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
       branch.name='electric-dungeon-'+id+'-branch';root.add(branch);
       const branchFloor=new THREE.Mesh(new THREE.BoxGeometry(5.8,.3,Math.hypot(dx,dz)+1),caveFloorMat);
       branchFloor.position.set(x+dx/2,floorY-.03,z+dz/2);branchFloor.rotation.y=Math.atan2(dx,dz);root.add(branchFloor);
+      const branchLength=Math.max(.001,Math.hypot(dx,dz)),branchNX=dz/branchLength,branchNZ=-dx/branchLength;
+      for(const side of [-1,1])colliders.push({name:'electric-dungeon-'+id+'-branch-wall-'+side,x:x+dx/2+branchNX*side*3.05,z:z+dz/2+branchNZ*side*3.05,w:1.0,d:branchLength+1});
       colliders.push({name:'electric-dungeon-'+id+'-branch-end',x:x+dx,z:z+dz,w:3.5,d:3.5});
     }
-    // A small neon boot pair is partially screened by a dark boulder.
+    // A small neon boot pair marks the Electric Lemonade reward alcove.
     const bootMat=new THREE.MeshStandardMaterial({color:0x62f5ff,emissive:0x18bcd1,emissiveIntensity:1.8,roughness:.38,metalness:.22});
     const boots=new THREE.Group();boots.name='electric-dungeon-rocket-boots-pickup';boots.position.set(524,floorY+.45,568);
     for(const dx of [-.34,.34]){const boot=new THREE.Mesh(new THREE.BoxGeometry(.38,.38,.78),bootMat);boot.position.set(dx,0,0);boot.rotation.y=dx<0?-.12:.12;boots.add(boot);const sole=new THREE.Mesh(new THREE.BoxGeometry(.4,.09,.8),new THREE.MeshStandardMaterial({color:0xe8fbff,emissive:0x4bd5e6,emissiveIntensity:1.1}));sole.position.set(dx,-.2,0);boots.add(sole);}
