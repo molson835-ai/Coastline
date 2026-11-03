@@ -393,8 +393,14 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
     const formation=gltf?.scene?.clone?.(true);
     if(!formation)throw new Error('Waterfront cave GLB has no scene');
     formation.name='coastline-waterfront-three-cave-formation';
-    let mountainMeshCount=0;formation.traverse(node=>{if(node.isMesh&&String(node.name||'').includes('Cave Rock Mountain'))mountainMeshCount++;});
-    if(mountainMeshCount!==3)throw new Error('Approved cave formation must contain exactly three authored mountain meshes; found '+mountainMeshCount);
+    // The approved GLB's authored mesh nodes are RockMountain,
+    // RockMountain.001, and RockMountain.002 (the ladder is a separate mesh).
+    // Match the real source names rather than the obsolete descriptive label.
+    let mountainMeshCount=0;
+    formation.traverse(node=>{
+      if(node.isMesh&&/^RockMountain(?:\\.\\d+)?$/i.test(String(node.name||'')))mountainMeshCount++;
+    });
+    if(mountainMeshCount!==3)throw new Error('Approved cave formation must contain exactly three authored RockMountain meshes; found '+mountainMeshCount);
     formation.rotation.y=Math.PI; // All three authored doorways face the front approach.
     formation.updateMatrixWorld(true);
     const sourceBounds=new THREE.Box3().setFromObject(formation);
