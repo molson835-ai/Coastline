@@ -515,9 +515,12 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
     const caveShellMat=new THREE.MeshStandardMaterial({color:0x303332,roughness:1,side:THREE.BackSide});
     const caveFloorMat=new THREE.MeshStandardMaterial({color:0x35332e,roughness:1});
     const caveRockMat=new THREE.MeshStandardMaterial({color:0x55534b,roughness:1});
+    const caveLabyrinths={};
     const addCaveRoute=(id,points)=>{
       const vectors=points.map(([x,z])=>new THREE.Vector3(x,floorY+4.8,z));
       const curve=new THREE.CatmullRomCurve3(vectors);
+      const routeLength=points.slice(1).reduce((total,point,index)=>total+Math.hypot(point[0]-points[index][0],point[1]-points[index][1]),0);
+      caveLabyrinths[id]={routeLength,branchCount:2,points:points.length};
       const shell=new THREE.Mesh(new THREE.TubeGeometry(curve,120,5.1,10,false),caveShellMat);
       shell.name='electric-dungeon-'+id+'-natural-tunnel-shell';shell.castShadow=true;shell.receiveShadow=true;root.add(shell);
       for(let i=0;i<points.length-1;i++){
@@ -563,7 +566,7 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
     const bootMat=new THREE.MeshStandardMaterial({color:0x62f5ff,emissive:0x18bcd1,emissiveIntensity:1.8,roughness:.38,metalness:.22});
     const boots=new THREE.Group();boots.name='electric-dungeon-rocket-boots-pickup';boots.position.set(524,floorY+.45,568);
     for(const dx of [-.34,.34]){const boot=new THREE.Mesh(new THREE.BoxGeometry(.38,.38,.78),bootMat);boot.position.set(dx,0,0);boot.rotation.y=dx<0?-.12:.12;boots.add(boot);const sole=new THREE.Mesh(new THREE.BoxGeometry(.4,.09,.8),new THREE.MeshStandardMaterial({color:0xe8fbff,emissive:0x4bd5e6,emissiveIntensity:1.1}));sole.position.set(dx,-.2,0);boots.add(sole);}
-    root.add(boots);root.userData.coastlineColliders=colliders;root.userData.coastlineDungeonFloorY=floorY;root.userData.coastlineRocketBootsPickup=boots;
+    root.add(boots);root.userData.coastlineColliders=colliders;root.userData.coastlineDungeonFloorY=floorY;root.userData.coastlineRocketBootsPickup=boots;root.userData.coastlineCaveLabyrinths=caveLabyrinths;
     roots.addWorldRoot(root);root.visible=true;window.__coastlineElectricDungeonFloorY=floorY;window.__coastlineElectricDungeonPickup=boots;
     if(avatar&&avatar.parent!==root)root.add(avatar);moveActiveActor(root);
     applySnapshot({player:context.player,vehicle:context.vehicle,vehicleIndex:context.vehicleIndex},root,destinationSpawn||{x:548,y:floorY,z:542,rotationY:0});
