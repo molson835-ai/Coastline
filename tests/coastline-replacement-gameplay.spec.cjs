@@ -62,7 +62,40 @@ test('replacement: cave doorway is clear while mountain side/rear remains blocke
   expect(result.left).toBe(true);
   expect(result.right).toBe(true);
   expect(result.rear).toBe(true);
-  expect(result.caveYaw === null || Math.abs(result.caveYaw) < 0.001 || Math.abs(Math.abs(result.caveYaw) - Math.PI * 2) < 0.001).toBe(true);
+  expect(result.caveYaw !== null && Math.abs(Math.abs(result.caveYaw) - Math.PI) < 0.001).toBe(true);
+});
+
+test('replacement: all three front-facing cave doorways have independent matching CTM return routes', async ({ page }) => {
+  await openGame(page, 'replacement-three-caves');
+  await page.evaluate(async () => { await window.__coastlineTransitionTest.transition('city-to-island'); await window.__coastlineTransitionTest.transition('island-to-waterfront'); });
+  const exterior = await page.evaluate(() => ({
+    prepared: window.__coastlineRegionRoot?.userData?.coastlineCaveFormationPrepared,
+    entranceCount: window.__coastlineRegionRoot?.userData?.coastlineCaveEntranceCount,
+    formation: Boolean(window.__coastlineRegionRoot?.userData?.coastlineCaveGLB),
+    yaw: window.__coastlineRegionRoot?.userData?.coastlineCaveGLB?.rotation?.y ?? null,
+  }));
+  expect(exterior.prepared).toBe(true);
+  expect(exterior.entranceCount).toBe(3);
+  expect(exterior.formation).toBe(true);
+  expect(Math.abs(Math.abs(exterior.yaw) - Math.PI)).toBeLessThan(0.001);
+  for (const entrance of [{ id: 'left', x: 508.1 }, { id: 'right', x: 530.7 }]) {
+    await page.evaluate(async ({ x }) => {
+      window.__coastlineTest.setWalkPosition(x, 542.5, Math.PI);
+      await window.__coastlineElectricLemonade.interact();
+    }, entrance);
+    await expect.poll(() => page.evaluate(() => window.__coastlineTransitionTest.status().activeWorldId), { timeout: 8000 }).toBe('electric-lemonade-dungeon');
+    const inside = await page.evaluate(() => window.__coastlineTransitionTest.playerState());
+    expect(inside.mode).toBe('walk');
+    expect(Math.abs(inside.position.x - entrance.x)).toBeLessThan(0.1);
+    await page.evaluate(async ({ x }) => {
+      window.__coastlineTest.setWalkPosition(x, 542.5, 0);
+      await window.__coastlineElectricLemonade.interact();
+    }, entrance);
+    await expect.poll(() => page.evaluate(() => window.__coastlineTransitionTest.status().activeWorldId), { timeout: 8000 }).toBe('waterfront');
+    const outside = await page.evaluate(() => window.__coastlineTransitionTest.playerState());
+    expect(Math.abs(outside.position.x - entrance.x)).toBeLessThan(0.1);
+    expect(Math.abs(outside.position.z - 537.5)).toBeLessThan(0.1);
+  }
 });
 
 test('replacement: reaching the real cave threshold invokes the existing CTM and returns coherently', async ({ page }) => {
