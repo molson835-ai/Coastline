@@ -45,7 +45,7 @@ import { createNpcWorldSlice } from './npc-world-slice.js';
 import { createWorldRootRegistry, createCoastlineWorldTransitions } from './coastline-world-transitions.js';
 import { createElectricLemonadeState, isFacingElectricLemonadeVendor } from './coastline-electric-lemonade-adventure.js';
 import { createRenderCuller } from './render-culling.js';
-import { COASTLINE_CAVE_THRESHOLD } from './coastline-island-regions.js';
+import { COASTLINE_CAVE_ENTRANCES, COASTLINE_CAVE_THRESHOLD } from './coastline-island-regions.js';
 import { createCoastlineWildlifeAssets, isCoastlineCaveThreshold } from './coastline-wildlife-assets.js';
 import { EffectComposer } from 'https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/postprocessing/RenderPass.js';
@@ -754,8 +754,12 @@ function refreshElectricLemonadeEffects(){
   const pickup=window.__coastlineElectricDungeonPickup;
   if(pickup)pickup.visible=state.pickupAvailable;
 }
-const electricLemonadePoints={stand:{x:520,z:531.5,radius:3.2},vendor:{x:520,z:528.8,maxDistance:3.2},cave:{...COASTLINE_CAVE_THRESHOLD},exit:{x:520,z:542.5,radius:3.2},boots:{x:524,z:568,radius:2.8}};
-const electricLemonadeNear=point=>point===electricLemonadePoints.cave?isCoastlineCaveThreshold({worldId:window.__coastlineActiveWorldId,mode:player.mode,x:player.x,z:player.z,threshold:point}):player.mode==='walk'&&Math.hypot(player.x-point.x,player.z-point.z)<=point.radius;
+const activeCaveEntrance={id:'center'};
+const electricLemonadePoints={stand:{x:520,z:531.5,radius:3.2},vendor:{x:520,z:528.8,maxDistance:3.2},cave:{...COASTLINE_CAVE_THRESHOLD},exit:{...COASTLINE_CAVE_THRESHOLD},boots:{x:524,z:568,radius:2.8}};
+const caveEntranceNear=entrance=>isCoastlineCaveThreshold({worldId:window.__coastlineActiveWorldId,mode:player.mode,x:player.x,z:player.z,threshold:entrance});
+const nearbyCaveEntrance=()=>COASTLINE_CAVE_ENTRANCES.find(caveEntranceNear)||null;
+const electricLemonadeExitPoint=()=>{const entrance=COASTLINE_CAVE_ENTRANCES.find(item=>item.id===activeCaveEntrance.id)||COASTLINE_CAVE_ENTRANCES[1];return {...entrance};};
+const electricLemonadeNear=point=>point===electricLemonadePoints.cave?caveEntranceNear(COASTLINE_CAVE_ENTRANCES[1]):point===electricLemonadePoints.exit?player.mode==='walk'&&Math.hypot(player.x-electricLemonadeExitPoint().x,player.z-electricLemonadeExitPoint().z)<=electricLemonadeExitPoint().radius:player.mode==='walk'&&Math.hypot(player.x-point.x,player.z-point.z)<=point.radius;
 const electricLemonadeFacingVendor=()=>player.mode==='walk'&&isFacingElectricLemonadeVendor({x:player.x,z:player.z,heading:player.heading},electricLemonadePoints.vendor,{maxDistance:electricLemonadePoints.vendor.maxDistance});
 function openElectricLemonadeTransaction(){
   let panel=document.getElementById('coastlineLemonadeTransaction');
@@ -784,14 +788,16 @@ function openElectricLemonadeTransaction(){
   });
 }
 window.__coastlineElectricLemonade={
-  canUse:()=>{const world=window.__coastlineActiveWorldId;if(player.mode!=='walk')return false;if(world==='waterfront')return (electricLemonadeNear(electricLemonadePoints.stand)&&electricLemonadeFacingVendor())||electricLemonadeNear(electricLemonadePoints.cave);if(world==='electric-lemonade-dungeon')return (electricLemonadeState.snapshot().pickupAvailable&&electricLemonadeNear(electricLemonadePoints.boots))||electricLemonadeNear(electricLemonadePoints.exit);return false},
+  canUse:()=>{const world=window.__coastlineActiveWorldId;if(player.mode!=='walk')return false;if(world==='waterfront')return (electricLemonadeNear(electricLemonadePoints.stand)&&electricLemonadeFacingVendor())||Boolean(nearbyCaveEntrance());if(world==='electric-lemonade-dungeon')return (electricLemonadeState.snapshot().pickupAvailable&&electricLemonadeNear(electricLemonadePoints.boots))||electricLemonadeNear(electricLemonadePoints.exit);return false},
   interact:async()=>{
     const world=window.__coastlineActiveWorldId;
     if(world==='waterfront'&&electricLemonadeNear(electricLemonadePoints.stand)&&electricLemonadeFacingVendor()){
       openElectricLemonadeTransaction();return true;
     }
-    if(world==='waterfront'&&electricLemonadeNear(electricLemonadePoints.cave)){
-      try{await coastlineTransitions.transition('waterfront-to-electric-dungeon');if(window.__coastlineActiveWorldId==='electric-lemonade-dungeon'){electricLemonadeState.enterDungeon();setElectricDungeonLighting(true);refreshElectricLemonadeEffects();toast(electricLemonadeState.snapshot().glowActive?'The glow reveals the cave. Look for the hidden rocket boots.':'The cave is almost completely dark. A glow from Electric Lemonade will help you see.');diagEvent('entered Electric Lemonade dungeon')}}catch(error){toast('The cave entrance is unavailable right now.');diagEvent('cave transition failed: '+String(error?.message||error))}updateTouchControls();return true;
+    if(world==='waterfront'&&nearbyCaveEntrance()){
+      const entrance=nearbyCaveEntrance();activeCaveEntrance.id=entrance.id;
+      const transitionId=entrance.id==='center'?'waterfront-to-electric-dungeon':`waterfront-to-${entrance.id}-cave`;
+      try{await coastlineTransitions.transition(transitionId);if(window.__coastlineActiveWorldId==='electric-lemonade-dungeon'){if(entrance.id==='center'){electricLemonadeState.enterDungeon();setElectricDungeonLighting(true);refreshElectricLemonadeEffects();toast(electricLemonadeState.snapshot().glowActive?'The glow reveals the cave. Look for the hidden rocket boots.':'The cave is almost completely dark. A glow from Electric Lemonade will help you see.');diagEvent('entered Electric Lemonade dungeon')}else{toast(`You enter the ${entrance.label.toLowerCase()} labyrinth.`);diagEvent('entered '+entrance.id+' cave')}}}catch(error){toast('The cave entrance is unavailable right now.');diagEvent('cave transition failed: '+String(error?.message||error))}updateTouchControls();return true;
     }
     if(world==='electric-lemonade-dungeon'&&electricLemonadeNear(electricLemonadePoints.boots)&&electricLemonadeState.snapshot().pickupAvailable){
       const pickup=electricLemonadeState.collectRocketBoots();
@@ -799,7 +805,8 @@ window.__coastlineElectricLemonade={
       updateTouchControls();return true;
     }
     if(world==='electric-lemonade-dungeon'&&electricLemonadeNear(electricLemonadePoints.exit)){
-      try{await coastlineTransitions.transition('electric-dungeon-to-waterfront');if(window.__coastlineActiveWorldId==='waterfront'){electricLemonadeState.exitDungeon();setElectricDungeonLighting(false);refreshElectricLemonadeEffects();toast('You emerge from the cave. The glow fades, but your rocket boots keep their remaining time.');diagEvent('exited Electric Lemonade dungeon')}}catch(error){toast('The cave exit is unavailable right now.');diagEvent('cave exit failed: '+String(error?.message||error))}updateTouchControls();return true;
+      const exitId=activeCaveEntrance.id==='center'?'electric-dungeon-to-waterfront':`${activeCaveEntrance.id}-cave-to-waterfront`;
+      try{await coastlineTransitions.transition(exitId);if(window.__coastlineActiveWorldId==='waterfront'){if(activeCaveEntrance.id==='center'){electricLemonadeState.exitDungeon();setElectricDungeonLighting(false);refreshElectricLemonadeEffects();toast('You emerge from the cave. The glow fades, but your rocket boots keep their remaining time.');diagEvent('exited Electric Lemonade dungeon')}else{toast('You emerge from the cave.');diagEvent('exited '+activeCaveEntrance.id+' cave')}}}catch(error){toast('The cave exit is unavailable right now.');diagEvent('cave exit failed: '+String(error?.message||error))}updateTouchControls();return true;
     }
     return false;
   },
