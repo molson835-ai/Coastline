@@ -68,7 +68,7 @@ test('replacement: cave doorway is clear while mountain side/rear remains blocke
 test('replacement: cave asset failure never leaves invisible cave collision blockers', async ({ page }) => {
   await page.route('**/assets/3_evil_rock_mountains_with_cave_stylized.glb', route => route.abort());
   await openGame(page, 'replacement-cave-asset-failure');
-  await page.evaluate(async () => { await window.__coastlineTransitionTest.transition('city-to-island'); await window.__coastlineTransitionTest.transition('island-to-waterfront'); });
+  await page.evaluate(async () => { await window.__coastlineTransitionTest.transition('city-to-island'); await window.__coastlineTransitionTest.transition('island-to-waterfront'); window.__coastlineTest.setWalkPosition(518.4, 542.5, Math.PI); });
   await page.waitForFunction(() => Boolean(window.__coastlineRegionRoot?.userData?.coastlineCaveFormationError), null, { timeout: 30000 });
   const state = await page.evaluate(() => ({
     error: window.__coastlineRegionRoot.userData.coastlineCaveFormationError,
