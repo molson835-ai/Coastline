@@ -8,6 +8,7 @@ import {
   isCoastlineCaveThreshold,
 } from '../coastline-wildlife-assets.js';
 import {
+  COASTLINE_CAVE_ENTRANCES,
   COASTLINE_CAVE_PORTAL_CLEAR_WIDTH,
   COASTLINE_CAVE_THRESHOLD,
   getCoastlineCaveColliders,
@@ -40,6 +41,10 @@ test('animal and cave scales normalize to plausible world-unit heights', () => {
 test('cave threshold triggers only on foot inside Waterfront portal radius', () => {
   const onThreshold = { worldId: 'waterfront', mode: 'walk', ...COASTLINE_CAVE_THRESHOLD };
   assert.equal(isCoastlineCaveThreshold(onThreshold), true);
+  assert.deepEqual(COASTLINE_CAVE_ENTRANCES.map(entrance => entrance.id), ['left', 'center', 'right']);
+  for (const entrance of COASTLINE_CAVE_ENTRANCES) {
+    assert.equal(isCoastlineCaveThreshold({ worldId: 'waterfront', mode: 'walk', ...entrance }), true, entrance.id + ' front doorway is reachable');
+  }
   assert.equal(isCoastlineCaveThreshold({ ...onThreshold, x: onThreshold.x + 2.5 }), false);
   assert.equal(isCoastlineCaveThreshold({ ...onThreshold, worldId: 'city' }), false);
   assert.equal(isCoastlineCaveThreshold({ ...onThreshold, mode: 'vehicle' }), false);
