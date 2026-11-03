@@ -1,3 +1,5 @@
+import { COASTLINE_CAVE_THRESHOLD } from './coastline-island-regions.js';
+
 
 /**
  * Lazy animal/cave visual assets for Coastline.
