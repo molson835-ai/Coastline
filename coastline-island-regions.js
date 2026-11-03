@@ -73,7 +73,7 @@ export function getCoastlineCaveColliders(caveX = 520, caveZ = 545) {
   // Three front-facing doorways are kept clear; stone piers separate the portals.
   const boundaries = [entrances[0].x - 2.6, (entrances[0].x + entrances[1].x) / 2, (entrances[1].x + entrances[2].x) / 2, entrances[2].x + 2.6];
   for (let i = 0; i < boundaries.length; i++) {
-    jambs.push({ name: 'coastline-waterfront-cave-portal-jamb-' + i, x: boundaries[i], z: caveZ - 1.6, w: 1.1, d: 5.8 });
+    jambs.push({ name: 'coastline-waterfront-cave-portal-jamb-' + i, x: boundaries[i], z: caveZ - 1.6, w: 2.0, d: 5.8 });
   }
   return [
     { name: 'coastline-waterfront-cave-mountain-left-slope', x: caveX - 19, z: caveZ + 3, w: 12, d: 22 },
