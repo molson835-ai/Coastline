@@ -49,11 +49,11 @@ await writeFile(path.join(output, 'index.html'), html);
 let sw = await readFile(path.join(output, 'coastline-sw.js'), 'utf8');
 // The website cache may have advanced independently. Give the standalone package
 // its own version and cache only files that are actually shipped in this package.
-sw = sw.replace(/const CACHE_NAME='[^']+';/, "const CACHE_NAME='coastline-itch-static-v3';");
+sw = sw.replace(/const CACHE_NAME='[^']+';/, "const CACHE_NAME='coastline-itch-static-v4';");
 // Large GLB payload modules are imported only when the world instance needs them; keep them out of the eager offline precache.
 const packagedCore = ['./', './index.html', ...files.filter(file => !file.endsWith('-payload.js') && !file.includes('assets/wildlife-payload/') && !file.endsWith('.glb') && !file.endsWith('.zip')).map(file => './' + file)];
 sw = sw.replace(/const CORE=\[[^\]]*\];/, "const CORE=[" + packagedCore.map(file => "'" + file + "'").join(',') + "]");
-if (!sw.includes("'./index.html'") || !sw.includes('coastline-itch-static-v3')) {
+if (!sw.includes("'./index.html'") || !sw.includes('coastline-itch-static-v4')) {
   throw new Error('Unable to configure service-worker cache for the packaged entry point.');
 }
 await writeFile(path.join(output, 'coastline-sw.js'), sw);
