@@ -32,83 +32,9 @@ function installReplacementRuntimeCorrections() {
     });
   };
 
-  let caveReplacementPromise = null;
-  const loadReplacementCave = async root => {
-    if (!root || root.userData?.coastlineReplacementCaveLoaded || root.userData?.coastlineReplacementCaveLoading) return;
-    root.userData.coastlineReplacementCaveLoading = true;
-    try {
-      const mouth = root.getObjectByName('coastline-electric-lemonade-cave-mouth');
-      if (!mouth) return;
-      const mountain = root.getObjectByName('coastline-waterfront-cave-mountain');
-      // The supplied three-mountain formation replaces the old procedural mountain
-      // and boulder mouth. Keep the anchor group for the existing CTM contract.
-      if (mountain) mountain.visible = false;
-      for (const child of [...mouth.children]) child.visible = false;
-
-      if (!caveReplacementPromise) {
-        caveReplacementPromise = (async () => {
-          const { GLTFLoader } = await import('https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/loaders/GLTFLoader.js');
-          const loader = new GLTFLoader();
-          // The canonical repository/package location is assets/. Resolve from the
-          // document base so the same asset works from game-v3.html, index.html,
-          // Vercel subpaths, and the packaged itch build without moving the GLB.
-          const assetUrl = new URL('assets/3_evil_rock_mountains_with_cave_stylized.glb', document.baseURI).href;
-          const response = await fetch(assetUrl, { mode: 'same-origin', cache: 'force-cache' });
-          if (!response.ok) throw new Error('HTTP ' + response.status + ' for replacement cave GLB at ' + assetUrl);
-          const buffer = await response.arrayBuffer();
-          if (buffer.byteLength < 20 || new DataView(buffer).getUint32(0, true) !== 0x46546c67) throw new Error('Replacement cave is not a binary glTF');
-          return new Promise((resolve, reject) => loader.parse(buffer, '', resolve, reject));
-        })();
-      }
-      const gltf = await caveReplacementPromise;
-      const cave = gltf?.scene?.clone?.(true);
-      if (!cave) throw new Error('Replacement cave GLB has no scene');
-      cave.name = 'coastline-waterfront-cave-replacement-glb';
-      // glTF is Y-up. Point the authored cave mouth toward the lemonade stand side
-      // (-Z), matching the existing CTM threshold at x=520,z=542.5.
-      cave.rotation.y = Math.PI;
-      const THREE = window.__coastlineThree;
-      if (!THREE) throw new Error('Three.js runtime unavailable for cave replacement');
-      cave.updateMatrixWorld(true);
-      const sourceBounds = new THREE.Box3().setFromObject(cave);
-      const sourceHeight = Math.max(0.001, sourceBounds.max.y - sourceBounds.min.y);
-      const targetHeight = 12;
-      const scale = targetHeight / sourceHeight;
-      cave.scale.multiplyScalar(scale);
-      cave.updateMatrixWorld(true);
-      const scaledBounds = new THREE.Box3().setFromObject(cave);
-      const centerX = (scaledBounds.min.x + scaledBounds.max.x) / 2;
-      const centerZ = (scaledBounds.min.z + scaledBounds.max.z) / 2;
-      const floorY = Number.isFinite(root.userData?.coastlineGroundY) ? root.userData.coastlineGroundY : 6;
-      cave.position.x += 520 - centerX;
-      cave.position.z += 545 - centerZ;
-      cave.position.y += floorY - scaledBounds.min.y;
-      cave.traverse(node => {
-        if (!node.isMesh) return;
-        node.castShadow = true;
-        node.receiveShadow = true;
-        node.userData.coastlineReplacementCave = true;
-      });
-      mouth.add(cave);
-      root.userData.coastlineReplacementCaveLoaded = true;
-      root.userData.coastlineReplacementCave = cave;
-    } catch (error) {
-      root.userData.coastlineReplacementCaveError = String(error?.message || error);
-      console.warn('[Coastline] Replacement cave GLB unavailable; leaving existing cave visuals in place.', error);
-      // Do not leave the old cave hidden if the requested replacement asset is absent.
-      const mountain = root.getObjectByName('coastline-waterfront-cave-mountain');
-      if (mountain) mountain.visible = true;
-      const mouth = root.getObjectByName('coastline-electric-lemonade-cave-mouth');
-      for (const child of mouth?.children || []) child.visible = true;
-    } finally {
-      delete root.userData.coastlineReplacementCaveLoading;
-    }
-  };
-
   const patchCaveAndVendor = () => {
     const root = window.__coastlineRegionRoot;
     if (!root || window.__coastlineActiveWorldId !== 'waterfront') return;
-    void loadReplacementCave(root);
 
     const actor = root.userData?.coastlineLemonadeVendorActor || window.__coastlineWaterfrontVendorActor;
     if (actor?.root) {
@@ -136,8 +62,8 @@ function installReplacementRuntimeCorrections() {
       vehicles: Array.isArray(window.__coastlineVehicleRegistry) ? window.__coastlineVehicleRegistry.filter(v => v?.g?.userData?.coastlineRgsdevForwardCorrection).length : 0,
       authoredHairCorrected,
       lemonadeVendorLivingWorld: Boolean(window.__coastlineWaterfrontVendorActor?.root?.userData?.coastlineLivingWorldVendor),
-      replacementCaveLoaded: Boolean(root?.userData?.coastlineReplacementCaveLoaded),
-      replacementCaveError: root?.userData?.coastlineReplacementCaveError || null,
+      replacementCaveLoaded: Boolean(root?.userData?.coastlineCaveFormationPrepared),
+      replacementCaveError: root?.userData?.coastlineCaveFormationError || null,
     };
   };
 
