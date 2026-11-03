@@ -68,20 +68,21 @@ export const COASTLINE_CAVE_THRESHOLD = COASTLINE_CAVE_ENTRANCES[1];
 export const COASTLINE_CAVE_PORTAL_CLEAR_WIDTH = 3.0;
 
 export function getCoastlineCaveColliders(caveX = 520, caveZ = 545) {
+  const entrances = COASTLINE_CAVE_ENTRANCES.map(entry => ({ ...entry, x: caveX + (entry.x - 520), z: caveZ - 2.5 }));
+  const jambs = [];
+  // Three front-facing doorways are kept clear; stone piers separate the portals.
+  const boundaries = [entrances[0].x - 2.6, (entrances[0].x + entrances[1].x) / 2, (entrances[1].x + entrances[2].x) / 2, entrances[2].x + 2.6];
+  for (let i = 0; i < boundaries.length; i++) {
+    jambs.push({ name: 'coastline-waterfront-cave-portal-jamb-' + i, x: boundaries[i], z: caveZ - 1.6, w: 1.1, d: 5.8 });
+  }
   return [
-    {name:'coastline-waterfront-cave-mountain-left-slope',x:caveX-12,z:caveZ+2,w:16,d:18},
-    {name:'coastline-waterfront-cave-mountain-right-slope',x:caveX+12,z:caveZ+2,w:16,d:18},
-    {name:'coastline-waterfront-cave-mountain-rear-ridge',x:caveX,z:caveZ+13,w:34,d:10},
-    {name:'coastline-waterfront-cave-mountain-left-wing',x:caveX-9,z:caveZ+4,w:10,d:18},
-    {name:'coastline-waterfront-cave-mountain-right-wing',x:caveX+9,z:caveZ+4,w:10,d:18},
-    {name:'coastline-waterfront-cave-rear-wall',x:caveX,z:caveZ+10.5,w:32,d:8},
-    {name:'coastline-waterfront-cave-left-portal-jamb',x:caveX-2.2,z:caveZ-1.6,w:1.4,d:5.8},
-    {name:'coastline-waterfront-cave-right-portal-jamb',x:caveX+2.2,z:caveZ-1.6,w:1.4,d:5.8},
-    {name:'coastline-electric-lemonade-cave-left-rock',x:caveX-7,z:caveZ+1,w:6,d:7},
-    {name:'coastline-electric-lemonade-cave-right-rock',x:caveX+7,z:caveZ+1,w:6,d:7},
+    { name: 'coastline-waterfront-cave-mountain-left-slope', x: caveX - 19, z: caveZ + 3, w: 12, d: 22 },
+    { name: 'coastline-waterfront-cave-mountain-right-slope', x: caveX + 19, z: caveZ + 3, w: 12, d: 22 },
+    { name: 'coastline-waterfront-cave-mountain-rear-ridge', x: caveX, z: caveZ + 15, w: 40, d: 10 },
+    { name: 'coastline-waterfront-cave-rear-wall', x: caveX, z: caveZ + 11, w: 38, d: 7 },
+    ...jambs,
   ];
 }
-
 export function isCoastlineCavePointBlocked(x, z, radius = 0) {
   if (![x,z,radius].every(Number.isFinite) || radius < 0) return true;
   return getCoastlineCaveColliders().some(collider =>
