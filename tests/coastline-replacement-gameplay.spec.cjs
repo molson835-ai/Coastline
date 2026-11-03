@@ -84,9 +84,11 @@ test('replacement: all three front-facing cave doorways have independent matchin
       await window.__coastlineElectricLemonade.interact();
     }, entrance);
     await expect.poll(() => page.evaluate(() => window.__coastlineTransitionTest.status().activeWorldId), { timeout: 8000 }).toBe('electric-lemonade-dungeon');
-    const inside = await page.evaluate(() => window.__coastlineTransitionTest.playerState());
-    expect(inside.mode).toBe('walk');
-    expect(Math.abs(inside.position.x - entrance.x)).toBeLessThan(0.1);
+    const inside = await page.evaluate(() => ({ player: window.__coastlineTransitionTest.playerState(), labyrinths: window.__coastlineActiveWorldRoot?.userData?.coastlineCaveLabyrinths || null }));
+    expect(inside.player.mode).toBe('walk');
+    expect(Math.abs(inside.player.position.x - entrance.x)).toBeLessThan(0.1);
+    expect(inside.labyrinths?.['left-labyrinth']?.routeLength).toBeGreaterThanOrEqual(120);
+    expect(inside.labyrinths?.['right-labyrinth']?.routeLength).toBeGreaterThanOrEqual(120);
     await page.evaluate(async ({ x }) => {
       window.__coastlineTest.setWalkPosition(x, 542.5, 0);
       await window.__coastlineElectricLemonade.interact();
