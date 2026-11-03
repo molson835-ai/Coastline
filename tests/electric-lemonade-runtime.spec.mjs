@@ -49,7 +49,7 @@ test('dungeon remains dark without a purchased glow and blocks an on-foot route 
     window.__coastlineTest.setWalkPosition(520, 542.5, 0);
     await window.__coastlineElectricLemonade.interact();
     const visual = window.__coastlineTest.electricLemonadeVisualState();
-    const blocked = window.__coastlineTest.buildingBlocked(504.5, 558, .45);
+    const blocked = window.__coastlineTest.buildingBlocked(503.5, 557.5, .45);
     return { world: visual.world, glow: visual.auraVisible, light: visual.playerLightIntensity, sky: visual.skyVisible, blocked };
   });
   expect(result).toEqual({ world: 'electric-lemonade-dungeon', glow: false, light: 0, sky: false, blocked: true });
