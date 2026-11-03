@@ -60,8 +60,10 @@ test('cave has a mountain silhouette and the dock boardwalk clears its approach'
   const source = await read('coastline-island-regions.js');
   assert.match(source, /coastline-waterfront-boardwalk',center\.x\+5,edgeY\+\.04,center\.z\+92/);
   assert.match(source, /coastline-waterfront-dock-\$\{i \+ 1\}.*center\.z \+ 92/);
-  assert.match(source, /coastline-waterfront-cave-mountain-peak-/);
-  assert.match(source, /new THREE\.ConeGeometry\(peak\.radius,peak\.height,7,2\)/);
+  const transitions = await read('coastline-world-transitions.js');
+  assert.doesNotMatch(source, /coastline-waterfront-cave-mountain-peak-/);
+  assert.match(transitions, /assets\/3_evil_rock_mountains_with_cave_stylized\.glb/);
+  assert.match(transitions, /coastlineCaveEntranceCount=3/);
   assert.match(source, /coastline-waterfront-cave-mountain-left-slope/);
   assert.match(source, /coastline-waterfront-cave-mountain-right-slope/);
   assert.match(source, /coastline-waterfront-cave-mountain-rear-ridge/);
