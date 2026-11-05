@@ -568,6 +568,10 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
         // Resolve cave visuals, collision and CTM readiness before exposing Waterfront.
         try { await prepareWaterfrontCaveFormation(root); }
         catch(error) {
+          const incompleteFormation=root.getObjectByName('coastline-waterfront-three-cave-formation');
+          if(incompleteFormation){root.remove(incompleteFormation);disposeRoot(incompleteFormation);}
+          root.userData.coastlineCaveCollisionReady=false;
+          root.userData.coastlineCaveSurfaceCollision=null;
           root.userData.coastlineCaveFormationError=String(error?.message||error);
           console.error('[Coastline] Waterfront cave formation unavailable; cave entry remains disabled.',error);
         }
