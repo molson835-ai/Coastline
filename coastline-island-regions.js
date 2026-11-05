@@ -67,29 +67,15 @@ export const COASTLINE_CAVE_ENTRANCES = Object.freeze([
 export const COASTLINE_CAVE_THRESHOLD = COASTLINE_CAVE_ENTRANCES[1];
 export const COASTLINE_CAVE_PORTAL_CLEAR_WIDTH = 3.0;
 
+/** @deprecated Cave collision is built from the approved GLB triangles at runtime. */
 export function getCoastlineCaveColliders(caveX = 520, caveZ = 545) {
-  const entrances = COASTLINE_CAVE_ENTRANCES.map(entry => ({ ...entry, x: caveX + (entry.x - 520), z: caveZ - 2.5 }));
-  const jambs = [];
-  // Three front-facing doorways are kept clear; stone piers separate the portals.
-  const boundaries = [entrances[0].x - 2.6, (entrances[0].x + entrances[1].x) / 2, (entrances[1].x + entrances[2].x) / 2, entrances[2].x + 2.6];
-  for (let i = 0; i < boundaries.length; i++) {
-    jambs.push({ name: 'coastline-waterfront-cave-portal-jamb-' + i, x: boundaries[i], z: caveZ - 1.6, w: 2.1, d: 5.8 });
-  }
-  return [
-    { name: 'coastline-waterfront-cave-mountain-left-slope', x: caveX - 19, z: caveZ + 3, w: 12, d: 22 },
-    { name: 'coastline-waterfront-cave-mountain-right-slope', x: caveX + 19, z: caveZ + 3, w: 12, d: 22 },
-    { name: 'coastline-waterfront-cave-mountain-rear-ridge', x: caveX, z: caveZ + 15, w: 40, d: 10 },
-    { name: 'coastline-waterfront-cave-rear-wall', x: caveX, z: caveZ + 11, w: 38, d: 7 },
-    { name: 'coastline-waterfront-cave-upper-ridge', x: caveX, z: caveZ + 20, w: 40, d: 4 },
-    ...jambs,
-  ];
+  // Retired coastline-waterfront-cave-mountain AABBs are intentionally not emitted.
+  void caveX; void caveZ;
+  return [];
 }
 export function isCoastlineCavePointBlocked(x, z, radius = 0) {
   if (![x,z,radius].every(Number.isFinite) || radius < 0) return true;
-  return getCoastlineCaveColliders().some(collider =>
-    Math.abs(x - collider.x) <= collider.w / 2 + radius &&
-    Math.abs(z - collider.z) <= collider.d / 2 + radius
-  );
+  return false;
 }
 
 export const COASTLINE_ISLAND_ELEVATION = 6;
