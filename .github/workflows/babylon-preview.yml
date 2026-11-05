@@ -37,4 +37,4 @@ jobs:
       - name: Run Babylon browser checks
         env:
           PLAYWRIGHT_BASE_URL: http://127.0.0.1:4173
-        run: npx playwright test tests/babylon-foundation.spec.cjs
+        run: npm run test:gameplay

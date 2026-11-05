@@ -20,6 +20,99 @@ const disposeRoot = root => root?.traverse(object => {
   for (const material of materials) material.dispose?.();
 });
 
+/** Build player collision from the actual triangles of visible cave wall meshes. */
+function buildMeshSurfaceCollisionIndex(THREE, root, includeMesh, baseY) {
+  const cellSize = 2.5, buckets = new Map(), segments = [];
+  let triangleCount = 0;
+  const levels = [0.2, 0.65, 1.1, 1.55, 2.0];
+  const key = (x, z) => String(x) + ',' + z;
+  const addSegment = (ax, az, bx, bz) => {
+    if (Math.hypot(bx - ax, bz - az) < 0.015) return;
+    const id = segments.length;
+    segments.push({ id, ax, az, bx, bz });
+    const minX = Math.floor(Math.min(ax, bx) / cellSize), maxX = Math.floor(Math.max(ax, bx) / cellSize);
+    const minZ = Math.floor(Math.min(az, bz) / cellSize), maxZ = Math.floor(Math.max(az, bz) / cellSize);
+    for (let gx = minX; gx <= maxX; gx++) for (let gz = minZ; gz <= maxZ; gz++) {
+      const bucketKey = key(gx, gz);
+      let bucket = buckets.get(bucketKey);
+      if (!bucket) buckets.set(bucketKey, bucket = []);
+      bucket.push(id);
+    }
+  };
+  root.updateMatrixWorld(true);
+  const a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3();
+  const ab = new THREE.Vector3(), ac = new THREE.Vector3(), normal = new THREE.Vector3();
+  root.traverse(mesh => {
+    if (!mesh.isMesh || mesh.visible === false || !includeMesh(mesh) || !mesh.geometry?.attributes?.position) return;
+    const geometry = mesh.geometry, position = geometry.attributes.position, index = geometry.index;
+    const count = index ? index.count : position.count;
+    const drawStart = geometry.drawRange?.start || 0;
+    const drawCount = Number.isFinite(geometry.drawRange?.count) ? Math.min(count - drawStart, geometry.drawRange.count) : count - drawStart;
+    const end = drawStart + drawCount;
+    for (let i = drawStart; i + 2 < end; i += 3) {
+      const ia = index ? index.getX(i) : i;
+      const ib = index ? index.getX(i + 1) : i + 1;
+      const ic = index ? index.getX(i + 2) : i + 2;
+      a.fromBufferAttribute(position, ia).applyMatrix4(mesh.matrixWorld);
+      b.fromBufferAttribute(position, ib).applyMatrix4(mesh.matrixWorld);
+      c.fromBufferAttribute(position, ic).applyMatrix4(mesh.matrixWorld);
+      ab.subVectors(b, a); ac.subVectors(c, a); normal.crossVectors(ab, ac);
+      const normalLength = normal.length();
+      if (normalLength < 1e-7 || Math.abs(normal.y / normalLength) > 0.965) continue;
+      triangleCount++;
+      const vertices = [a, b, c];
+      for (const offset of levels) {
+        const planeY = baseY + offset;
+        const distances = [a.y - planeY, b.y - planeY, c.y - planeY];
+        if (Math.min(...distances) > 0 || Math.max(...distances) < 0) continue;
+        const points = [];
+        const addPoint = (x, z) => {
+          if (!points.some(point => Math.hypot(point.x - x, point.z - z) < 0.01)) points.push({ x, z });
+        };
+        for (let edge = 0; edge < 3; edge++) {
+          const next = (edge + 1) % 3, da = distances[edge], db = distances[next];
+          if (Math.abs(da) < 1e-5) addPoint(vertices[edge].x, vertices[edge].z);
+          if ((da < -1e-5 && db > 1e-5) || (da > 1e-5 && db < -1e-5)) {
+            const t = da / (da - db), p = vertices[edge], q = vertices[next];
+            addPoint(p.x + (q.x - p.x) * t, p.z + (q.z - p.z) * t);
+          }
+        }
+        if (points.length < 2) continue;
+        let first = points[0], second = points[1], farthest = 0;
+        for (let p = 0; p < points.length; p++) for (let q = p + 1; q < points.length; q++) {
+          const distance = (points[p].x - points[q].x) ** 2 + (points[p].z - points[q].z) ** 2;
+          if (distance > farthest) { farthest = distance; first = points[p]; second = points[q]; }
+        }
+        if (farthest > 1e-5) addSegment(first.x, first.z, second.x, second.z);
+      }
+    }
+  });
+  return {
+    triangleCount, segmentCount: segments.length,
+    blocks(x, z, radius = 0.45) {
+      if (![x, z, radius].every(Number.isFinite) || radius < 0) return true;
+      const minX = Math.floor((x - radius) / cellSize), maxX = Math.floor((x + radius) / cellSize);
+      const minZ = Math.floor((z - radius) / cellSize), maxZ = Math.floor((z + radius) / cellSize);
+      const tested = new Set(), thresholdSquared = (radius + 0.1) ** 2;
+      for (let gx = minX; gx <= maxX; gx++) for (let gz = minZ; gz <= maxZ; gz++) {
+        const bucket = buckets.get(key(gx, gz));
+        if (!bucket) continue;
+        for (const id of bucket) {
+          if (tested.has(id)) continue;
+          tested.add(id);
+          const segment = segments[id], dx = segment.bx - segment.ax, dz = segment.bz - segment.az;
+          const lengthSquared = dx * dx + dz * dz;
+          const t = lengthSquared > 1e-8 ? Math.max(0, Math.min(1, ((x - segment.ax) * dx + (z - segment.az) * dz) / lengthSquared)) : 0;
+          const px = segment.ax + t * dx, pz = segment.az + t * dz;
+          if ((x - px) ** 2 + (z - pz) ** 2 <= thresholdSquared) return true;
+        }
+      }
+      return false;
+    },
+  };
+}
+
+
 export const COASTLINE_ROPE_BRIDGE_CONFIG = Object.freeze({
   deckWidth: 5.2,
   plankCountPer100Units: 40,
@@ -368,6 +461,92 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
   const addCityBridgeAffordance=()=>addBridge(THREE,roots.world1Root,{x:0,startZ:CITY_BRIDGE_START_Z,y:finiteOr(groundY(0,CITY_BRIDGE_START_Z)),length:BRIDGE_LENGTH});
   const cityWorld={id:'city',name:'Coastline City',load:async({context,destinationSpawn})=>{setIslandCollisionScope(false);window.__coastlineActiveWorldId='city';window.__coastlineActiveWorldRoot=roots.world1Root;window.__coastlineActiveWorldColliders=[];roots.world1Root.visible=true;moveActiveActor(roots.world1Root);if(destinationSpawn)applySnapshot({player:context.player,vehicle:context.vehicle,vehicleIndex:context.vehicleIndex},roots.world1Root,destinationSpawn);window.__coastlineWildlifeAssets?.attachWorld(roots.world1Root,'city');return{id:'city',root:roots.world1Root};},unload:async handle=>{handle.root.visible=false;},captureState:async({context})=>({player:context.player,vehicle:context.vehicle,vehicleIndex:context.vehicleIndex}),restoreState:async(worldState,{handle,destinationSpawn})=>{setIslandCollisionScope(false);handle.root.visible=true;moveActiveActor(handle.root);applySnapshot(worldState,handle.root,destinationSpawn);}};
   const islandWorld={id:'island',name:'Coastline Island Start',load:async({context,destinationSpawn})=>{setIslandCollisionScope(true);window.__coastlineActiveWorldId='island';window.__coastlineActiveWorldColliders=[];pendingIslandRoot=createNakedIslandRoot();roots.addWorldRoot(pendingIslandRoot);pendingIslandRoot.visible=true;window.__coastlineWildlifeAssets?.attachWorld(pendingIslandRoot,'island');moveActiveActor(pendingIslandRoot);applySnapshot({player:context.player,vehicle:context.vehicle,vehicleIndex:context.vehicleIndex},pendingIslandRoot,destinationSpawn||ISLAND_START);if(failNextIslandLoad){failNextIslandLoad=false;throw new Error('injected island load failure');}return{id:'island',root:pendingIslandRoot};},unload:async handle=>{setIslandCollisionScope(false);window.__coastlineWildlifeAssets?.detachWorld(handle.root);disposeOutdoorFleet(handle.root);if(handle.root?.parent)roots.removeWorldRoot(handle.root);disposeRoot(handle.root);if(pendingIslandRoot===handle.root)pendingIslandRoot=null;},cleanupFailedLoad:async({context})=>{setIslandCollisionScope(false);window.__coastlineActiveWorldId='city';window.__coastlineActiveWorldRoot=roots.world1Root;window.__coastlineActiveWorldColliders=[];if(!pendingIslandRoot)return;roots.world1Root.visible=true;moveActiveActor(roots.world1Root);applySnapshot({player:context.player,vehicle:context.vehicle,vehicleIndex:context.vehicleIndex},roots.world1Root);window.__coastlineWildlifeAssets?.detachWorld(pendingIslandRoot);disposeOutdoorFleet(pendingIslandRoot);roots.removeWorldRoot(pendingIslandRoot);disposeRoot(pendingIslandRoot);pendingIslandRoot=null;},captureState:async({context})=>({player:context.player,vehicle:context.vehicle,vehicleIndex:context.vehicleIndex}),restoreState:async(worldState,{handle,destinationSpawn})=>{setIslandCollisionScope(true);handle.root.visible=true;moveActiveActor(handle.root);applySnapshot(worldState,handle.root,destinationSpawn);}};
+
+  // Cache the parsed source asset once; each Waterfront residency receives
+  // an owned scene clone prepared before the region becomes visible.
+  let approvedWaterfrontCaveGltfPromise=null;
+  const loadApprovedWaterfrontCaveGltf=()=>{
+    if(!approvedWaterfrontCaveGltfPromise){
+      approvedWaterfrontCaveGltfPromise=(async()=>{
+        const {GLTFLoader}=await import('https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/loaders/GLTFLoader.js');
+        const url=new URL('assets/3_evil_rock_mountains_with_cave_stylized.glb',document.baseURI).href;
+        const response=await fetch(url,{mode:'same-origin',cache:'force-cache'});
+        if(!response.ok)throw new Error('Waterfront cave GLB request failed: HTTP '+response.status);
+        const buffer=await response.arrayBuffer();
+        if(buffer.byteLength<20||new DataView(buffer).getUint32(0,true)!==0x46546c67)throw new Error('Waterfront cave asset is not a binary glTF');
+        return new Promise((resolve,reject)=>new GLTFLoader().parse(buffer,'',resolve,reject));
+      })().catch(error=>{approvedWaterfrontCaveGltfPromise=null;throw error;});
+    }
+    return approvedWaterfrontCaveGltfPromise;
+  };
+  // Prepare the complete approved formation before Waterfront becomes resident/visible.
+  const prepareWaterfrontCaveFormation=async root=>{
+    if(!root||root.userData.coastlineCaveFormationPrepared)return;
+    const gltf=await loadApprovedWaterfrontCaveGltf();
+    const formation=gltf?.scene?.clone?.(true);
+    if(!formation)throw new Error('Waterfront cave GLB has no scene');
+    formation.name='coastline-waterfront-three-cave-formation';
+    // The approved GLB contains three authored mountain meshes plus a separate
+    // ladder mesh. Match the actual exported Sketchfab mesh names and count
+    // each authored mountain exactly once; do not count the ladder as a mountain.
+    const mountainMeshIds=new Set();
+    formation.traverse(node=>{
+      const match=node.isMesh&&String(node.name||'').match(/^Cave Rock Mountain\s*([123])(?:\b|_|$)/i);
+      if(match)mountainMeshIds.add(Number(match[1]));
+    });
+    const mountainMeshCount=mountainMeshIds.size;
+    if(mountainMeshCount!==3||![1,2,3].every(id=>mountainMeshIds.has(id))){
+      throw new Error('Approved cave formation must contain authored Cave Rock Mountain 1, 2, and 3 meshes; found '+[...mountainMeshIds].sort().join(','));
+    }
+    formation.rotation.y=Math.PI; // All three authored doorways face the front approach.
+    formation.updateMatrixWorld(true);
+    const sourceBounds=new THREE.Box3().setFromObject(formation);
+    const height=Math.max(.001,sourceBounds.max.y-sourceBounds.min.y);
+    formation.scale.multiplyScalar(12/height);
+    formation.updateMatrixWorld(true);
+    const bounds=new THREE.Box3().setFromObject(formation);
+    const floorY=Number.isFinite(root.userData?.coastlineGroundY)?root.userData.coastlineGroundY:finiteOr(islandGroundY());
+    formation.position.x+=520-(bounds.min.x+bounds.max.x)/2;
+    formation.position.z+=545-(bounds.min.z+bounds.max.z)/2;
+    formation.position.y+=floorY-bounds.min.y;
+    formation.traverse(node=>{
+      if(!node.isMesh)return;
+      node.geometry=node.geometry?.clone?.()||node.geometry;
+      node.material=Array.isArray(node.material)?node.material.map(material=>material?.clone?.()||material):node.material?.clone?.()||node.material;
+      node.castShadow=true;node.receiveShadow=true;node.userData.coastlineApprovedCaveExterior=true;
+      const mountainMatch=String(node.name||'').match(/^Cave Rock Mountain\s*([123])(?:\b|_|$)/i);
+      if(mountainMatch)node.userData.coastlineApprovedCaveMountainId=Number(mountainMatch[1]);
+    });
+    // The obsolete procedural exterior and mouth no longer coexist with the GLB.
+    const disposeLegacy=object=>{object?.traverse?.(node=>{node.geometry?.dispose?.();const materials=Array.isArray(node.material)?node.material:[node.material];for(const material of materials)material?.dispose?.();});};
+    const oldMountain=root.getObjectByName('coastline-waterfront-cave-mountain');
+    if(oldMountain){root.remove(oldMountain);disposeLegacy(oldMountain);}
+    const oldMouth=root.getObjectByName('coastline-electric-lemonade-cave-mouth');
+    if(oldMouth){root.remove(oldMouth);disposeLegacy(oldMouth);}
+    root.add(formation);
+    root.updateMatrixWorld(true);
+    // The transformed GLB stone triangles are the sole exterior cave barrier.
+    // Their real openings remain open; no rectangular portal or ridge blockers.
+    const surfaceCollision=buildMeshSurfaceCollisionIndex(
+      THREE,formation,
+      node=>Number.isInteger(node.userData?.coastlineApprovedCaveMountainId),
+      floorY
+    );
+    if(surfaceCollision.triangleCount<100||surfaceCollision.segmentCount<20){
+      throw new Error('Approved cave formation did not produce sufficient stone-surface collision geometry');
+    }
+    const activeColliders=root.userData.coastlineColliders||(root.userData.coastlineColliders=[]);
+    for(let index=activeColliders.length-1;index>=0;index--){
+      if(String(activeColliders[index]?.name||'').startsWith('coastline-waterfront-cave-'))activeColliders.splice(index,1);
+    }
+    root.userData.coastlineCaveSurfaceCollision=surfaceCollision;
+    root.userData.coastlineCaveCollisionReady=true;
+    root.userData.coastlineCaveFormation=formation;
+    root.userData.coastlineCaveGLB=formation;
+    root.userData.coastlineCaveFormationPrepared=true;
+    root.userData.coastlineCaveEntranceCount=3;
+    root.userData.coastlineCaveMountainMeshCount=mountainMeshCount;
+  };
   const pendingRegionRoots=new Map();
   const createAdditionalIslandWorld=(regionId,worldId)=>({
     id:worldId,
@@ -378,7 +557,24 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
       const root=createCoastlineIslandRoot({THREE,region:getCoastlineIslandRegion(regionId),groundY:islandGroundY,addBridge,addSideBridge});
       window.__coastlineWildlifeAssets?.attachWorld(root,worldId);
       window.__coastlineRegionRoot=root;
+      // Make the destination world resident and move the actor before any
+      // optional GLB request. Network-bound cave/vendor assets must not leave
+      // the player staring at the previous world while initialization waits.
+      roots.addWorldRoot(root);root.visible=false;pendingRegionRoots.set(worldId,root);
+      moveActiveActor(root);
+      const fallbackSpawn={x:420,y:islandGroundY(420,500),z:500,rotationY:Math.PI/2};
+      applySnapshot({player:context.player,vehicle:context.vehicle,vehicleIndex:context.vehicleIndex},root,destinationSpawn||fallbackSpawn);
       if(regionId==='waterfront'){
+        // Resolve cave visuals, collision and CTM readiness before exposing Waterfront.
+        try { await prepareWaterfrontCaveFormation(root); }
+        catch(error) {
+          const incompleteFormation=root.getObjectByName('coastline-waterfront-three-cave-formation');
+          if(incompleteFormation){root.remove(incompleteFormation);disposeRoot(incompleteFormation);}
+          root.userData.coastlineCaveCollisionReady=false;
+          root.userData.coastlineCaveSurfaceCollision=null;
+          root.userData.coastlineCaveFormationError=String(error?.message||error);
+          console.error('[Coastline] Waterfront cave formation unavailable; cave entry remains disabled.',error);
+        }
         const proceduralVendor=root.getObjectByName('coastline-electric-lemonade-vendor');
         try{
           const {loadCozyCharacterAsset,createCozyCharacterInstance,setCozyCharacterAnimation}=await import('./coastline-asset-swap.js');
@@ -402,10 +598,7 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
           console.warn('[Coastline] GLB lemonade vendor unavailable; procedural fallback remains visible.',error);
         }
       }
-      roots.addWorldRoot(root);root.visible=true;pendingRegionRoots.set(worldId,root);
-      moveActiveActor(root);
-      const fallbackSpawn={x:420,y:islandGroundY(420,500),z:500,rotationY:Math.PI/2};
-      applySnapshot({player:context.player,vehicle:context.vehicle,vehicleIndex:context.vehicleIndex},root,destinationSpawn||fallbackSpawn);
+      root.visible=true;
       return{id:worldId,root};
     },
     unload:async handle=>{
@@ -433,52 +626,83 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
     setIslandCollisionScope(true);window.__coastlineActiveWorldId='electric-lemonade-dungeon';
     const floorY=finiteOr(islandGroundY());
     pendingDungeonRoot=new THREE.Group();pendingDungeonRoot.name='coastline-electric-lemonade-dungeon-root';
-    const root=pendingDungeonRoot,colliders=[];
-    const wallMat=new THREE.MeshStandardMaterial({color:0x030405,roughness:1,metalness:0});
-    const floorMat=new THREE.MeshStandardMaterial({color:0x080a0b,roughness:1,metalness:0});
-    const rockMat=new THREE.MeshStandardMaterial({color:0x050607,roughness:1,metalness:0});
-    const add=(name,x,y,z,w,h,d,material,collider=false)=>{const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material);mesh.name=name;mesh.position.set(x,y,z);mesh.receiveShadow=true;root.add(mesh);if(collider)colliders.push({name,x,z,w,d});return mesh};
-    add('electric-dungeon-floor',520,floorY-.2,558,32,.4,44,floorMat);
-    // Side and back walls enclose a single winding chamber; front remains open to the cave mouth.
-    add('electric-dungeon-left-wall',504,floorY+4,558,.5,8,44,wallMat,true);
-    add('electric-dungeon-right-wall',536,floorY+4,558,.5,8,44,wallMat,true);
-    add('electric-dungeon-back-wall',520,floorY+4,580,32,8,.5,wallMat,true);
-    add('electric-dungeon-ceiling',520,floorY+8.2,558,32,.4,44,wallMat);
-    add('electric-dungeon-entry-left',511,floorY+2.2,538,.5,4.4,.5,wallMat,true);
-    add('electric-dungeon-entry-right',529,floorY+2.2,538,.5,4.4,.5,wallMat,true);
-    // Walkable branching labyrinth: offset wall runs create bends, side routes and
-    // dead ends with enough clearance for the player capsule. The entry and boot alcove
-    // remain connected; all wall segments are collidable rather than visual-only.
-    const mazeWall=(name,x,z,w,d)=>add(name,x,floorY+2.1,z,w,4.2,d,rockMat,true);
-    mazeWall('electric-dungeon-maze-west-first',513.5,548,11.5,.7);
-    mazeWall('electric-dungeon-maze-east-first',529.5,548,9.5,.7);
-    mazeWall('electric-dungeon-maze-northwest-turn',520,553,.7,8.5);
-    mazeWall('electric-dungeon-maze-northeast-turn',530,557,.7,8.5);
-    mazeWall('electric-dungeon-maze-center-crossbar',520,562,10,.7);
-    mazeWall('electric-dungeon-maze-southwest-branch',511.5,568,9.5,.7);
-    mazeWall('electric-dungeon-maze-southeast-branch',530.5,572,9.5,.7);
-    mazeWall('electric-dungeon-maze-dead-end-marker',515,575,.7,4.5);
-    // Distinct stone markers make route choices readable in low light.
-    for(const [name,x,z,r] of [
-      ['west-route-crystal',508.5,553,.8],['central-route-stalagmite',523,556,1.05],
-      ['east-route-crystal',532.5,565,.75],['boot-alcove-stalagmite',519,574,.9]
+    const root=pendingDungeonRoot,walkableAreas=[];
+    // The interior is built as three organic cave branches rather than a box room.
+    const caveShellMat=new THREE.MeshStandardMaterial({color:0x303332,roughness:1,side:THREE.BackSide});
+    const caveFloorMat=new THREE.MeshStandardMaterial({color:0x35332e,roughness:1});
+    const caveRockMat=new THREE.MeshStandardMaterial({color:0x55534b,roughness:1});
+    const caveLabyrinths={};
+    const addCaveRoute=(id,points)=>{
+      const vectors=points.map(([x,z])=>new THREE.Vector3(x,floorY+4.8,z));
+      const curve=new THREE.CatmullRomCurve3(vectors);
+      const routeLength=points.slice(1).reduce((total,point,index)=>total+Math.hypot(point[0]-points[index][0],point[1]-points[index][1]),0);
+      caveLabyrinths[id]={routeLength,branchCount:2,points:points.length};
+      const shell=new THREE.Mesh(new THREE.TubeGeometry(curve,120,5.1,10,false),caveShellMat);
+      shell.name='electric-dungeon-'+id+'-natural-tunnel-shell';shell.castShadow=true;shell.receiveShadow=true;root.add(shell);
+      for(let i=0;i<points.length-1;i++){
+        const [x1,z1]=points[i],[x2,z2]=points[i+1],dx=x2-x1,dz=z2-z1;
+        const length=Math.hypot(dx,dz),midX=(x1+x2)/2,midZ=(z1+z2)/2;
+        const floor=new THREE.Mesh(new THREE.BoxGeometry(8.4,.32,length+1.2),caveFloorMat);
+        floor.name='electric-dungeon-'+id+'-walkable-stone-floor-'+i;
+        const routeYaw=Math.atan2(dx,dz);
+        floor.position.set(midX,floorY-.02,midZ);floor.rotation.y=routeYaw;floor.receiveShadow=true;root.add(floor);
+        walkableAreas.push({x:midX,z:midZ,width:8.4,depth:length+1.2,yaw:routeYaw});
+      }
+      for(const [index,[x,z]] of points.entries()){
+        if(index===0||index===points.length-1)continue;
+        const chamber=new THREE.Mesh(new THREE.SphereGeometry(1,14,10),caveShellMat);
+        chamber.name='electric-dungeon-'+id+'-chamber-'+index;
+        chamber.position.set(x,floorY+4.8,z);chamber.scale.set(7.4,4.8,8.2);root.add(chamber);
+        const crystal=new THREE.Mesh(new THREE.DodecahedronGeometry(1,1),caveRockMat);
+        crystal.name='electric-dungeon-'+id+'-chamber-landmark-'+index;
+        crystal.position.set(x+(index%2?2.2:-2.2),floorY+1.3,z+2.5);crystal.scale.set(.9,1.6,.8);crystal.castShadow=true;root.add(crystal);
+      }
+    };
+    addCaveRoute('center-electric-cavern',[[518.4,545],[520,560],[522,578],[518,595],[520,615]]);
+    addCaveRoute('left-labyrinth',[[508.1,545],[508.1,570],[502,590],[496,615],[500,640],[507,665]]);
+    addCaveRoute('right-labyrinth',[[530.7,545],[530.7,570],[537,590],[544,615],[540,640],[531,665]]);
+    // Side branches form exploratory alcoves and deliberate dead ends.
+    for(const [id,x,z,dx,dz] of [
+      ['center-west-alcove',520,560,-16,9],['center-east-dead-end',522,578,15,10],
+      ['left-west-alcove',502,590,-17,8],['left-east-dead-end',496,615,13,10],
+      ['right-east-alcove',537,590,17,8],['right-west-dead-end',544,615,-13,10]
     ]){
-      const landmark=new THREE.Mesh(new THREE.ConeGeometry(r,2.4,6),rockMat);
-      landmark.name='electric-dungeon-landmark-'+name;
-      landmark.position.set(x,floorY+1.2,z);landmark.castShadow=true;root.add(landmark);
+      const branchCurve=new THREE.CatmullRomCurve3([
+        new THREE.Vector3(x,floorY+4.8,z),
+        new THREE.Vector3(x+dx*.55,floorY+4.8,z+dz*.55),
+        new THREE.Vector3(x+dx,floorY+4.8,z+dz)
+      ]);
+      const branch=new THREE.Mesh(new THREE.TubeGeometry(branchCurve,32,3.4,8,false),caveShellMat);
+      branch.name='electric-dungeon-'+id+'-branch';root.add(branch);
+      const branchFloor=new THREE.Mesh(new THREE.BoxGeometry(5.8,.3,Math.hypot(dx,dz)+1),caveFloorMat);
+      const branchLength=Math.max(.001,Math.hypot(dx,dz)),branchYaw=Math.atan2(dx,dz);
+      branchFloor.position.set(x+dx/2,floorY-.03,z+dz/2);branchFloor.rotation.y=branchYaw;root.add(branchFloor);
+      walkableAreas.push({x:x+dx/2,z:z+dz/2,width:5.8,depth:branchLength+1,yaw:branchYaw});
     }
-    for(const [x,z,scale] of [[508,549,2.4],[531,551,2.1],[513,563,1.7],[529,574,2.4],[507,572,1.6]]){
-      const rock=new THREE.Mesh(new THREE.DodecahedronGeometry(1,1),rockMat);rock.name='electric-dungeon-obscuring-rock';rock.position.set(x,floorY+scale*.42,z);rock.scale.set(scale,scale*.85,scale*1.15);rock.castShadow=true;rock.receiveShadow=true;root.add(rock);colliders.push({name:'electric-dungeon-rock-collider',x,z,w:scale*1.25,d:scale*1.35});
-    }
-    // A small neon boot pair is partially screened by a dark boulder.
+    // A small neon boot pair marks the Electric Lemonade reward alcove.
     const bootMat=new THREE.MeshStandardMaterial({color:0x62f5ff,emissive:0x18bcd1,emissiveIntensity:1.8,roughness:.38,metalness:.22});
     const boots=new THREE.Group();boots.name='electric-dungeon-rocket-boots-pickup';boots.position.set(524,floorY+.45,568);
     for(const dx of [-.34,.34]){const boot=new THREE.Mesh(new THREE.BoxGeometry(.38,.38,.78),bootMat);boot.position.set(dx,0,0);boot.rotation.y=dx<0?-.12:.12;boots.add(boot);const sole=new THREE.Mesh(new THREE.BoxGeometry(.4,.09,.8),new THREE.MeshStandardMaterial({color:0xe8fbff,emissive:0x4bd5e6,emissiveIntensity:1.1}));sole.position.set(dx,-.2,0);boots.add(sole);}
-    root.add(boots);root.userData.coastlineColliders=colliders;root.userData.coastlineDungeonFloorY=floorY;root.userData.coastlineRocketBootsPickup=boots;
+    root.add(boots);
+    root.userData.coastlineColliders=[];
+    root.userData.coastlineDungeonFloorY=floorY;
+    root.userData.coastlineDungeonWalkableAreas=walkableAreas;
+    root.userData.coastlineRocketBootsPickup=boots;
+    root.userData.coastlineCaveLabyrinths=caveLabyrinths;
+    root.updateMatrixWorld(true);
+    const dungeonSurfaceCollision=buildMeshSurfaceCollisionIndex(
+      THREE,root,
+      node=>node.isMesh&&node.name.startsWith('electric-dungeon-')&&(
+        node.name.includes('-natural-tunnel-shell')||node.name.endsWith('-branch')||node.name.includes('-chamber-')
+      ),
+      floorY
+    );
+    if(dungeonSurfaceCollision.segmentCount<100)throw new Error('Dungeon cave walls did not produce collision surfaces');
+    root.userData.coastlineDungeonSurfaceCollision=dungeonSurfaceCollision;
     roots.addWorldRoot(root);root.visible=true;window.__coastlineElectricDungeonFloorY=floorY;window.__coastlineElectricDungeonPickup=boots;
     if(avatar&&avatar.parent!==root)root.add(avatar);moveActiveActor(root);
     applySnapshot({player:context.player,vehicle:context.vehicle,vehicleIndex:context.vehicleIndex},root,destinationSpawn||{x:548,y:floorY,z:542,rotationY:0});
-    window.__coastlineActiveWorldColliders=colliders;return{id:'electric-lemonade-dungeon',root};
+    window.__coastlineActiveWorldColliders=[];return{id:'electric-lemonade-dungeon',root};
   },unload:async handle=>{if(handle.root?.parent)roots.removeWorldRoot(handle.root);disposeRoot(handle.root);if(pendingDungeonRoot===handle.root)pendingDungeonRoot=null;if(window.__coastlineElectricDungeonFloorY!==undefined)delete window.__coastlineElectricDungeonFloorY;window.__coastlineElectricDungeonPickup=null;},cleanupFailedLoad:async({context})=>{
     const activeId=manager.getActiveWorldId(),sourceRoot=activeId==='city'?roots.world1Root:activeId==='island'?pendingIslandRoot:activeId==='homey-garage'?pendingGarageRoot:activeId==='home-interior'?pendingHouseRoot:activeId==='electric-lemonade-dungeon'?pendingDungeonRoot:pendingRegionRoots.get(activeId);
     window.__coastlineActiveWorldId=activeId||'waterfront';setIslandCollisionScope(activeId!=='city');window.__coastlineActiveWorldColliders=sourceRoot?.userData?.coastlineColliders||[];
@@ -486,7 +710,7 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
     if(pendingDungeonRoot?.parent)roots.removeWorldRoot(pendingDungeonRoot);if(pendingDungeonRoot)disposeRoot(pendingDungeonRoot);pendingDungeonRoot=null;delete window.__coastlineElectricDungeonFloorY;window.__coastlineElectricDungeonPickup=null;
   },captureState:async({context})=>({player:context.player,vehicle:context.vehicle,vehicleIndex:context.vehicleIndex}),restoreState:async(worldState,{handle,destinationSpawn})=>{setIslandCollisionScope(true);window.__coastlineActiveWorldId='electric-lemonade-dungeon';pendingDungeonRoot=handle.root;window.__coastlineElectricDungeonFloorY=handle.root.userData.coastlineDungeonFloorY;window.__coastlineElectricDungeonPickup=handle.root.userData.coastlineRocketBootsPickup;handle.root.visible=true;moveActiveActor(handle.root);applySnapshot(worldState,handle.root,destinationSpawn);window.__coastlineActiveWorldColliders=handle.root.userData.coastlineColliders||[];}};
   const houseWorld={id:'home-interior',name:'Homey Island House Interior',content:{density:'developed',actorAssets:'shared',renderReadiness:'required'},load:async({context,destinationSpawn})=>{setIslandCollisionScope(true);window.__coastlineActiveWorldId='home-interior';pendingHouseRoot=createHouseRoot();roots.addWorldRoot(pendingHouseRoot);pendingHouseRoot.visible=true;const parkedVehicle=garageVehicle||player.vehicle;if(parkedVehicle?.g){parkedVehicle.g.visible=false;if(parkedVehicle.g.parent!==roots.world1Root)roots.world1Root.add(parkedVehicle.g);}if(avatar&&avatar.parent!==pendingHouseRoot)pendingHouseRoot.add(avatar);const spawn=destinationSpawn||{x:483,y:islandGroundY(483,500),z:508.5,rotationY:Math.PI};applySnapshot({player:context.player,vehicle:context.vehicle,vehicleIndex:context.vehicleIndex},pendingHouseRoot,spawn);window.__coastlineActiveWorldColliders=pendingHouseRoot.userData.coastlineColliders||[];return{id:'home-interior',root:pendingHouseRoot};},unload:async handle=>{if(handle.root?.parent)roots.removeWorldRoot(handle.root);disposeRoot(handle.root);if(pendingHouseRoot===handle.root)pendingHouseRoot=null;},cleanupFailedLoad:async({context})=>{const activeId=manager.getActiveWorldId(),sourceRoot=activeId==='city'?roots.world1Root:activeId==='island'?pendingIslandRoot:activeId==='homey-garage'?pendingGarageRoot:pendingRegionRoots.get(activeId);window.__coastlineActiveWorldId=activeId||'homey-garage';window.__coastlineActiveWorldColliders=sourceRoot?.userData?.coastlineColliders||[];if(sourceRoot){moveActiveActor(sourceRoot);applySnapshot({player:context.player,vehicle:context.vehicle,vehicleIndex:context.vehicleIndex},sourceRoot);}if(pendingHouseRoot?.parent)roots.removeWorldRoot(pendingHouseRoot);if(pendingHouseRoot)disposeRoot(pendingHouseRoot);pendingHouseRoot=null;},captureState:async({context})=>({player:context.player,vehicle:context.vehicle,vehicleIndex:context.vehicleIndex}),restoreState:async(worldState,{handle,destinationSpawn})=>{setIslandCollisionScope(true);window.__coastlineActiveWorldId='home-interior';pendingHouseRoot=handle.root;handle.root.visible=true;const parkedVehicle=garageVehicle||player.vehicle;if(parkedVehicle?.g){parkedVehicle.g.visible=false;if(parkedVehicle.g.parent!==roots.world1Root)roots.world1Root.add(parkedVehicle.g);}if(avatar&&avatar.parent!==handle.root)handle.root.add(avatar);applySnapshot(worldState,handle.root,destinationSpawn);}};
-  manager.registerWorld(cityWorld);manager.registerWorld(islandWorld);manager.registerWorld(waterfrontWorld);manager.registerWorld(portWorld);manager.registerWorld(garageWorld);manager.registerWorld(houseWorld);manager.registerWorld(dungeonWorld);manager.registerTransition({id:'city-to-island',fromWorld:'city',toWorld:'island',trigger:'bridge',spawn:'fixed',destinationSpawn:ISLAND_BRIDGE_DESTINATION,vehiclePolicy:'allowed'});manager.registerTransition({id:'island-to-city',fromWorld:'island',toWorld:'city',trigger:'bridge',spawn:'fixed',destinationSpawn:CITY_BRIDGE_DESTINATION,vehiclePolicy:'allowed'});manager.registerTransition({id:'island-to-waterfront',fromWorld:'island',toWorld:'waterfront',trigger:'bridge',spawn:'fixed',destinationSpawn:{x:420,y:islandGroundY(420,500),z:500,rotationY:Math.PI/2},vehiclePolicy:'allowed'});manager.registerTransition({id:'waterfront-to-island',fromWorld:'waterfront',toWorld:'island',trigger:'bridge',spawn:'fixed',destinationSpawn:{x:580,y:islandGroundY(580,500),z:500,rotationY:-Math.PI/2},vehiclePolicy:'allowed'});manager.registerTransition({id:'waterfront-to-port',fromWorld:'waterfront',toWorld:'port',trigger:'bridge',spawn:'fixed',destinationSpawn:{x:420,y:islandGroundY(420,500),z:500,rotationY:Math.PI/2},vehiclePolicy:'allowed'});manager.registerTransition({id:'port-to-waterfront',fromWorld:'port',toWorld:'waterfront',trigger:'bridge',spawn:'fixed',destinationSpawn:{x:580,y:islandGroundY(580,500),z:500,rotationY:-Math.PI/2},vehiclePolicy:'allowed'});manager.registerTransition({id:'island-to-homey-garage',fromWorld:'island',toWorld:'homey-garage',trigger:'garage',spawn:'fixed',destinationSpawn:{x:483,y:islandGroundY(483,500),z:500,rotationY:0},vehiclePolicy:'required'});manager.registerTransition({id:'homey-garage-to-island',fromWorld:'homey-garage',toWorld:'island',trigger:'garage',spawn:'fixed',destinationSpawn:{x:483,y:islandGroundY(483,484),z:484,rotationY:Math.PI},vehiclePolicy:'required'});manager.registerTransition({id:'homey-garage-to-house',fromWorld:'homey-garage',toWorld:'home-interior',trigger:'door',spawn:'fixed',destinationSpawn:{x:483,y:islandGroundY(483,500),z:508.5,rotationY:Math.PI},vehiclePolicy:'forbidden'});manager.registerTransition({id:'home-to-homey-garage',fromWorld:'home-interior',toWorld:'homey-garage',trigger:'door',spawn:'fixed',destinationSpawn:{x:483,y:islandGroundY(483,500),z:512.5,rotationY:0},vehiclePolicy:'forbidden'});manager.registerTransition({id:'waterfront-to-electric-dungeon',fromWorld:'waterfront',toWorld:'electric-lemonade-dungeon',trigger:'cave',spawn:'fixed',destinationSpawn:{x:520,y:islandGroundY(),z:545,rotationY:0},vehiclePolicy:'forbidden'});manager.registerTransition({id:'electric-dungeon-to-waterfront',fromWorld:'electric-lemonade-dungeon',toWorld:'waterfront',trigger:'cave',spawn:'fixed',destinationSpawn:{x:520,y:islandGroundY(),z:537.5,rotationY:Math.PI},vehiclePolicy:'forbidden'});
+  manager.registerWorld(cityWorld);manager.registerWorld(islandWorld);manager.registerWorld(waterfrontWorld);manager.registerWorld(portWorld);manager.registerWorld(garageWorld);manager.registerWorld(houseWorld);manager.registerWorld(dungeonWorld);manager.registerTransition({id:'city-to-island',fromWorld:'city',toWorld:'island',trigger:'bridge',spawn:'fixed',destinationSpawn:ISLAND_BRIDGE_DESTINATION,vehiclePolicy:'allowed'});manager.registerTransition({id:'island-to-city',fromWorld:'island',toWorld:'city',trigger:'bridge',spawn:'fixed',destinationSpawn:CITY_BRIDGE_DESTINATION,vehiclePolicy:'allowed'});manager.registerTransition({id:'island-to-waterfront',fromWorld:'island',toWorld:'waterfront',trigger:'bridge',spawn:'fixed',destinationSpawn:{x:420,y:islandGroundY(420,500),z:500,rotationY:Math.PI/2},vehiclePolicy:'allowed'});manager.registerTransition({id:'waterfront-to-island',fromWorld:'waterfront',toWorld:'island',trigger:'bridge',spawn:'fixed',destinationSpawn:{x:580,y:islandGroundY(580,500),z:500,rotationY:-Math.PI/2},vehiclePolicy:'allowed'});manager.registerTransition({id:'waterfront-to-port',fromWorld:'waterfront',toWorld:'port',trigger:'bridge',spawn:'fixed',destinationSpawn:{x:420,y:islandGroundY(420,500),z:500,rotationY:Math.PI/2},vehiclePolicy:'allowed'});manager.registerTransition({id:'port-to-waterfront',fromWorld:'port',toWorld:'waterfront',trigger:'bridge',spawn:'fixed',destinationSpawn:{x:580,y:islandGroundY(580,500),z:500,rotationY:-Math.PI/2},vehiclePolicy:'allowed'});manager.registerTransition({id:'island-to-homey-garage',fromWorld:'island',toWorld:'homey-garage',trigger:'garage',spawn:'fixed',destinationSpawn:{x:483,y:islandGroundY(483,500),z:500,rotationY:0},vehiclePolicy:'required'});manager.registerTransition({id:'homey-garage-to-island',fromWorld:'homey-garage',toWorld:'island',trigger:'garage',spawn:'fixed',destinationSpawn:{x:483,y:islandGroundY(483,484),z:484,rotationY:Math.PI},vehiclePolicy:'required'});manager.registerTransition({id:'homey-garage-to-house',fromWorld:'homey-garage',toWorld:'home-interior',trigger:'door',spawn:'fixed',destinationSpawn:{x:483,y:islandGroundY(483,500),z:508.5,rotationY:Math.PI},vehiclePolicy:'forbidden'});manager.registerTransition({id:'home-to-homey-garage',fromWorld:'home-interior',toWorld:'homey-garage',trigger:'door',spawn:'fixed',destinationSpawn:{x:483,y:islandGroundY(483,500),z:512.5,rotationY:0},vehiclePolicy:'forbidden'});manager.registerTransition({id:'waterfront-to-electric-dungeon',fromWorld:'waterfront',toWorld:'electric-lemonade-dungeon',trigger:'cave',spawn:'fixed',destinationSpawn:{x:518.4,y:islandGroundY(),z:544,rotationY:0},vehiclePolicy:'forbidden'});manager.registerTransition({id:'electric-dungeon-to-waterfront',fromWorld:'electric-lemonade-dungeon',toWorld:'waterfront',trigger:'cave',spawn:'fixed',destinationSpawn:{x:518.4,y:islandGroundY(),z:537.5,rotationY:Math.PI},vehiclePolicy:'forbidden'});manager.registerTransition({id:'waterfront-to-left-cave',fromWorld:'waterfront',toWorld:'electric-lemonade-dungeon',trigger:'cave',spawn:'fixed',destinationSpawn:{x:508.1,y:islandGroundY(),z:544,rotationY:0},vehiclePolicy:'forbidden'});manager.registerTransition({id:'left-cave-to-waterfront',fromWorld:'electric-lemonade-dungeon',toWorld:'waterfront',trigger:'cave',spawn:'fixed',destinationSpawn:{x:508.1,y:islandGroundY(),z:537.5,rotationY:Math.PI},vehiclePolicy:'forbidden'});manager.registerTransition({id:'waterfront-to-right-cave',fromWorld:'waterfront',toWorld:'electric-lemonade-dungeon',trigger:'cave',spawn:'fixed',destinationSpawn:{x:530.7,y:islandGroundY(),z:544,rotationY:0},vehiclePolicy:'forbidden'});manager.registerTransition({id:'right-cave-to-waterfront',fromWorld:'electric-lemonade-dungeon',toWorld:'waterfront',trigger:'cave',spawn:'fixed',destinationSpawn:{x:530.7,y:islandGroundY(),z:537.5,rotationY:Math.PI},vehiclePolicy:'forbidden'});
   const transition=async transitionId=>{if(autoTransitionPromise)return autoTransitionPromise;autoTransitionPromise=manager.transition(transitionId,makeContext()).then(()=>{const activeId=manager.getActiveWorldId(),activeRoot=activeId==='city'?roots.world1Root:activeId==='island'?pendingIslandRoot:activeId==='homey-garage'?pendingGarageRoot:activeId==='home-interior'?pendingHouseRoot:activeId==='electric-lemonade-dungeon'?pendingDungeonRoot:pendingRegionRoots.get(activeId);if(activeId!=='homey-garage'){for(const prop of window.__coastlineGarageProps||[])prop.reset?.();}if(activeId!=='island'){for(const lamp of window.__coastlineHomeyDrivewayLights||[])lamp.reset?.();}window.__coastlineBridgeBufferActive=activeId==='city';setIslandCollisionScope(activeId!=='city');window.__coastlineActiveWorldId=activeId;window.__coastlineActiveWorldRoot=activeRoot||null;window.__coastlineActiveWorldColliders=activeRoot?.userData?.coastlineColliders||[];installOutdoorFleet(activeRoot,activeId);previousVehiclePosition=null;previousFootPosition=null;return manager.getStatus();}).finally(()=>{autoTransitionPromise=null;});return autoTransitionPromise;};
   const initialize=async()=>{addCityBoundaryScenery();addCityBridgeAffordance();setIslandCollisionScope(false);window.__coastlineBridgeBufferActive=true;roots.world1Root.visible=true;await manager.activate('city',makeContext());window.__coastlineActiveWorldId='city';window.__coastlineActiveWorldRoot=roots.world1Root;window.__coastlineActiveWorldColliders=[];const garageUseButton=document.createElement('button');garageUseButton.id='coastlineGarageUseBoard';garageUseButton.type='button';garageUseButton.textContent='USE KEY BOARD';garageUseButton.setAttribute('aria-label','Use garage vehicle key board');garageUseButton.style.cssText='display:none;position:fixed;left:50%;bottom:118px;transform:translateX(-50%);z-index:1001;pointer-events:auto;border:1px solid #8be8ff88;border-radius:13px;padding:11px 15px;background:#0b2732f5;color:#effcff;font:900 13px system-ui,sans-serif;letter-spacing:.07em;box-shadow:0 8px 24px #0008';document.body.appendChild(garageUseButton);garageBoardButton=garageUseButton;garageEntryButton=document.createElement('button');garageEntryButton.id='coastlineGarageEnter';garageEntryButton.type='button';garageEntryButton.textContent='ENTER HOMEY GARAGE';garageEntryButton.setAttribute('aria-label','Enter Homey garage with selected vehicle');garageEntryButton.style.cssText='display:none;position:fixed;left:50%;bottom:118px;transform:translateX(-50%);z-index:1001;pointer-events:auto;border:1px solid #caff7788;border-radius:13px;padding:12px 17px;background:#12271df5;color:#eaffce;font:900 13px system-ui,sans-serif;letter-spacing:.07em;box-shadow:0 8px 24px #0008';garageEntryButton.addEventListener('click',()=>{if(manager.getActiveWorldId()!=='island'||player.mode!=='vehicle')return;transition('island-to-homey-garage').catch(error=>{lastAutoTrigger={...lastAutoTrigger,eligible:false,reason:'garage-entry-failed',error:String(error?.message||error)};});});document.body.appendChild(garageEntryButton);const swapGarageVehicle=choice=>{const current=garageVehicle||vehicles.find(v=>v?.kind==='car'&&Math.hypot(v.x-483,v.z-500)<5);const donor=vehicles.find(v=>v?.kind==='car'&&v!==current&&v.rgsdevModelName===choice.model&&v.g?.children?.length)||(current?.rgsdevModelName===choice.model&&current.g?.children?.length?current:null);if(!current||!donor){garageUseButton.textContent='VEHICLE NOT READY — TRY AGAIN';return;}const sourceVisual=donor.g.children.find(child=>child.visible!==false)||donor.g.children[0];if(!sourceVisual){garageUseButton.textContent='VEHICLE NOT READY — TRY AGAIN';return;}const sourceMeshes=[];sourceVisual.traverse(node=>{if(node.isMesh)sourceMeshes.push(node)});const clone=sourceVisual.clone(true),cloneMeshes=[];clone.traverse(node=>{if(node.isMesh){cloneMeshes.push(node);node.userData.coastlineSharedGeometry=true;node.userData.coastlineOwnedMaterial=true;node.material=Array.isArray(node.material)?node.material.map(material=>material?.clone?.()||material):node.material?.clone?.()||node.material;}});const roleIndices={body:(donor.materialRoles?.body||[]).map(mesh=>sourceMeshes.indexOf(mesh)).filter(i=>i>=0),glass:(donor.materialRoles?.glass||[]).map(mesh=>sourceMeshes.indexOf(mesh)).filter(i=>i>=0),wheels:(donor.materialRoles?.wheels||[]).map(mesh=>sourceMeshes.indexOf(mesh)).filter(i=>i>=0),lights:(donor.materialRoles?.lights||[]).map(mesh=>sourceMeshes.indexOf(mesh)).filter(i=>i>=0)};const bodyMaterialPattern=/(body|paint|panel|exterior|hood|bonnet|door|fender|shell|chassis)/i;const protectedMaterialPattern=/(glass|window|windshield|windscreen|wheel|tire|tyre|rim|light|lamp|chrome|trim|interior|seat|dash|mirror|grill|grille|bumper|plastic|hardware)/i;let paintedMaterialCount=0;for(const index of roleIndices.body){const mesh=cloneMeshes[index];if(!mesh)continue;const isMultiMaterial=Array.isArray(mesh.material);for(const material of (isMultiMaterial?mesh.material:[mesh.material])){if(!material?.color)continue;const materialName=String(material.name||''),meshName=String(mesh.name||'');if(protectedMaterialPattern.test(materialName))continue;if(bodyMaterialPattern.test(materialName)||(!isMultiMaterial&&bodyMaterialPattern.test(meshName))){material.color.set(choice.color.hex);paintedMaterialCount++;}}}for(const child of [...current.g.children]){current.g.remove(child);child.traverse?.(node=>{if(node.userData?.coastlineOwnedMaterial)for(const material of (Array.isArray(node.material)?node.material:[node.material]))material?.dispose?.();});}current.g.add(clone);const mapRole=key=>roleIndices[key].map(i=>cloneMeshes[i]).filter(Boolean);current.materialRoles={body:mapRole('body'),glass:mapRole('glass'),wheels:mapRole('wheels'),lights:mapRole('lights')};current.damageParts={body:null,cab:null,hood:null,trunk:null,roof:null,frontBumper:null,rearBumper:null,wheels:[],visualRoot:clone};current.basePaint=new THREE.Color(choice.color.hex);current.coastlinePaintDiagnostics={requestedColor:choice.color.hex,paintedMaterialCount,bodyMaterialNames:roleIndices.body.flatMap(i=>{const m=cloneMeshes[i]?.material;return(Array.isArray(m)?m:[m]).map(v=>v?.name||'')})};current.rgsdevModelName=choice.model;current.g.visible=true;current.g.position.set(483,islandGroundY(483,500),500);current.g.rotation.y=Math.PI;current.x=483;current.z=500;current.heading=Math.PI;current.speed=0;current.parked=true;current.occupied=false;current.drivable=true;current.worldX=483;current.worldZ=500;garageVehicle=current;garageUseButton.textContent='USE KEY BOARD';garageUseButton.title=paintedMaterialCount?'Selected '+choice.model+' in '+choice.color.name+'; recolored '+paintedMaterialCount+' body material slot(s)':'Selected '+choice.model+'; source FBX has no safely identifiable body-paint material slot, so non-body parts were left untouched';garageUseButton.setAttribute('aria-label','Vehicle ready: '+choice.model+', '+choice.color.name+'. Use key board to choose again');};garageUseButton.addEventListener('click',()=>{if(player.mode!=='walk'||manager.getActiveWorldId()!=='homey-garage')return;openGarageVehicleChooser({vehicles,currentVehicle:garageVehicle,onConfirm:swapGarageVehicle,onCancel:()=>{}});});const button=document.createElement('button');button.id='coastlineWorldTransition';button.type='button';button.setAttribute('aria-label','Cross bridge between Coastline Island and City');button.style.cssText='display:none;position:fixed;left:50%;bottom:170px;transform:translateX(-50%);z-index:1000;pointer-events:auto;border:1px solid #a7f4ff88;border-radius:12px;padding:6px 8px;background:#06202aee;color:#effcff;font:800 12px system-ui,sans-serif;letter-spacing:.08em;box-shadow:0 8px 24px #0008';let promptedTransitionId='city-to-island';
     button.addEventListener('click',()=>transition(promptedTransitionId).catch(error=>{button.textContent=`TRANSITION FAILED: ${error.message}`;}));
