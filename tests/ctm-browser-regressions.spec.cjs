@@ -375,12 +375,15 @@ test('Waterfront uses the approved GLB vendor, natural cave props, and automatic
     await window.__coastlineTransitionTest.transition('island-to-waterfront');
   });
   await page.waitForFunction(() => Boolean(window.__coastlineWaterfrontVendorActor?.root), null, { timeout: 20000 });
+  await page.waitForFunction(() => window.__coastlineRegionRoot?.userData?.coastlineCaveFormationPrepared === true || Boolean(window.__coastlineRegionRoot?.userData?.coastlineCaveFormationError), null, { timeout: 30000 });
   const state = await page.evaluate(() => {
     const root = window.__coastlineRegionRoot;
     return {
       activeWorld: window.__coastlineTransitionTest.status().activeWorldId,
       glbVendor: Boolean(root?.getObjectByName('coastline-waterfront-lemonade-vendor-glb')),
-      caveMountain: Boolean(root?.getObjectByName('coastline-waterfront-cave-mountain')),
+      caveMountain: Boolean(root?.getObjectByName('coastline-waterfront-three-cave-formation')),
+      legacyCaveMountain: Boolean(root?.getObjectByName('coastline-waterfront-cave-mountain')),
+      cavePrepared: root?.userData?.coastlineCaveFormationPrepared === true,
       approachPath: Boolean(root?.getObjectByName('coastline-waterfront-cave-approach-path')),
       lemonadeCounter: Boolean(root?.getObjectByName('coastline-waterfront-lemonade-counter')),
       priceSign: Boolean(root?.getObjectByName('coastline-waterfront-lemonade-price-sign')),
@@ -391,6 +394,8 @@ test('Waterfront uses the approved GLB vendor, natural cave props, and automatic
   expect(state.activeWorld).toBe('waterfront');
   expect(state.glbVendor).toBe(true);
   expect(state.caveMountain).toBe(true);
+  expect(state.legacyCaveMountain).toBe(false);
+  expect(state.cavePrepared).toBe(true);
   expect(state.approachPath).toBe(true);
   expect(state.lemonadeCounter).toBe(true);
   expect(state.priceSign).toBe(true);
