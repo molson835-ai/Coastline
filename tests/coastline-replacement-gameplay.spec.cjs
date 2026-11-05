@@ -82,7 +82,7 @@ test('replacement: cave asset failure never leaves invisible cave collision bloc
   }));
   expect(state.error).toBeTruthy();
   expect(state.collisionReady).toBe(false);
-  expect(state.caveBlockers).toBe(0);
+  expect(state.surfaceSegments).toBe(0);
   expect(state.entranceUse).toBe(false);
 });
 
