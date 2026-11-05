@@ -50,14 +50,18 @@ test('replacement: authored Cozy hair receives the coverage correction without a
 test('replacement: cave doorway is clear while mountain side/rear remains blocked', async ({ page }) => {
   await openGame(page, 'replacement-cave');
   await page.evaluate(async () => { await window.__coastlineTransitionTest.transition('city-to-island'); await window.__coastlineTransitionTest.transition('island-to-waterfront'); });
-  await page.waitForFunction(() => Boolean(window.__coastlineRegionRoot), null, { timeout: 30000 });
+  await page.waitForFunction(() => window.__coastlineRegionRoot?.userData?.coastlineCaveFormationPrepared === true || Boolean(window.__coastlineRegionRoot?.userData?.coastlineCaveFormationError), null, { timeout: 30000 });
   const result = await page.evaluate(() => ({
+    prepared: window.__coastlineRegionRoot?.userData?.coastlineCaveFormationPrepared === true,
+    formationError: window.__coastlineRegionRoot?.userData?.coastlineCaveFormationError || null,
     entrance: window.__coastlineTest.buildingBlocked(520, 542.5, .45),
     left: window.__coastlineTest.buildingBlocked(514, 542.5, .45),
     right: window.__coastlineTest.buildingBlocked(526, 542.5, .45),
     rear: window.__coastlineTest.buildingBlocked(520, 558, .45),
     caveYaw: window.__coastlineRegionRoot.userData.coastlineCaveGLB?.rotation?.y ?? null,
   }));
+  expect(result.prepared).toBe(true);
+  expect(result.formationError).toBeNull();
   expect(result.entrance).toBe(false);
   expect(result.left).toBe(true);
   expect(result.right).toBe(true);
@@ -126,7 +130,9 @@ test('replacement: all three front-facing cave doorways have independent matchin
 
 test('replacement: reaching the real cave threshold invokes the existing CTM and returns coherently', async ({ page }) => {
   await openGame(page, 'replacement-ctm');
-  await page.evaluate(async () => { await window.__coastlineTransitionTest.transition('city-to-island'); await window.__coastlineTransitionTest.transition('island-to-waterfront'); window.__coastlineTest.setWalkPosition(520, 542.5, Math.PI); await window.__coastlineElectricLemonade.interact(); });
+  await page.evaluate(async () => { await window.__coastlineTransitionTest.transition('city-to-island'); await window.__coastlineTransitionTest.transition('island-to-waterfront'); });
+  await page.waitForFunction(() => window.__coastlineRegionRoot?.userData?.coastlineCaveFormationPrepared === true, null, { timeout: 30000 });
+  await page.evaluate(async () => { window.__coastlineTest.setWalkPosition(520, 542.5, Math.PI); await window.__coastlineElectricLemonade.interact(); });
   await expect.poll(() => page.evaluate(() => window.__coastlineTransitionTest.status().activeWorldId), { timeout: 8000 }).toBe('electric-lemonade-dungeon');
   const inside = await page.evaluate(() => window.__coastlineTransitionTest.playerState());
   expect(inside.mode).toBe('walk');
