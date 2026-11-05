@@ -106,6 +106,7 @@ test('wildlife loader uses GLB animation, rider socket, source paths, and CTM-ow
   assert.match(game, /exit:\{\.\.\.COASTLINE_CAVE_THRESHOLD\},boots:\{x:524,z:568,radius:2\.8\}/, 'center exit and pickup align with the cave portal');
   assert.doesNotMatch(loader, /loadCaveIntoRoot|assets\/cave-entrance\.glb/, 'obsolete single-cave GLB is no longer loaded');
   assert.match(transitions, /prepareWaterfrontCaveFormation=async root/);
+  assert.match(transitions, /Cave Rock Mountain\(\[123\]\)/, 'runtime matcher recognizes the three actual authored GLB mountain names');
   assert.match(transitions, /formation\.rotation\.y=Math\.PI/, 'all three approved cave entrances face the front approach');
   assert.match(game, /wildlifeAssetState/);
   assert.match(packageBuilder, /coastline-wildlife-assets\.js/);
@@ -133,7 +134,13 @@ test('repository GLBs are valid binary glTF; licensed Warhorse Lite is optional 
     assert.equal(buffer.toString('ascii', 16, 20), 'JSON');
     return JSON.parse(buffer.toString('utf8', 20, 20 + chunkLength).trim());
   };
-  assert.ok(readGlbJson(caveFormation).meshes?.length >= 3, 'approved cave formation contains all three mountain meshes');
+  const caveJson = readGlbJson(caveFormation);
+  assert.equal(caveJson.meshes?.length, 4, 'approved formation contains three mountain meshes plus the authored ladder');
+  const caveMountainIds = new Set((caveJson.nodes || []).map(node => {
+    const match = String(node.name || '').match(/^Cave Rock Mountain([123])(?:_|$)/i);
+    return match ? Number(match[1]) : null;
+  }).filter(Number.isInteger));
+  assert.deepEqual([...caveMountainIds].sort(), [1, 2, 3], 'approved GLB exposes all three authored mountain mesh names recognized by the runtime');
   assert.ok(readGlbJson(ostrich).meshes?.length, 'ostrich asset has mesh geometry');
   assert.match(ignore, /assets\/animals\/warhorse-lite\.glb/);
   assert.doesNotMatch(loader, /Warhorse_Lite_v1\.0\.0\.zip|loadWarhorseFromArchive|cave-entrance\.glb/);
