@@ -77,13 +77,13 @@ test('replacement: cave asset failure never leaves invisible cave collision bloc
   const state = await page.evaluate(() => ({
     error: window.__coastlineRegionRoot.userData.coastlineCaveFormationError,
     collisionReady: Boolean(window.__coastlineRegionRoot.userData.coastlineCaveCollisionReady),
-    caveBlockers: (window.__coastlineActiveWorldColliders || []).filter(c => String(c.name || '').startsWith('coastline-waterfront-cave-')).length,
+    surfaceSegments: window.__coastlineRegionRoot?.userData?.coastlineCaveSurfaceCollision?.segmentCount || 0,
     entranceUse: window.__coastlineElectricLemonade.canUse(),
   }));
   expect(state.error).toBeTruthy();
   expect(state.collisionReady).toBe(false);
   expect(state.caveBlockers).toBe(0);
-  expect(state.entranceUse).toBe(true);
+  expect(state.entranceUse).toBe(false);
 });
 
 test('replacement: all three front-facing cave doorways have independent matching CTM return routes', async ({ page }) => {
@@ -96,7 +96,7 @@ test('replacement: all three front-facing cave doorways have independent matchin
     mountainMeshCount: window.__coastlineRegionRoot?.userData?.coastlineCaveMountainMeshCount,
     formation: Boolean(window.__coastlineRegionRoot?.userData?.coastlineCaveGLB),
     collisionReady: Boolean(window.__coastlineRegionRoot?.userData?.coastlineCaveCollisionReady),
-    caveBlockerCount: (window.__coastlineActiveWorldColliders || []).filter(c => String(c.name || '').startsWith('coastline-waterfront-cave-')).length,
+    caveCollisionSegments: window.__coastlineRegionRoot?.userData?.coastlineCaveSurfaceCollision?.segmentCount || 0,
     yaw: window.__coastlineRegionRoot?.userData?.coastlineCaveGLB?.rotation?.y ?? null,
   }));
   expect(exterior.prepared).toBe(true);
@@ -104,7 +104,7 @@ test('replacement: all three front-facing cave doorways have independent matchin
   expect(exterior.mountainMeshCount).toBe(3);
   expect(exterior.formation).toBe(true);
   expect(exterior.collisionReady).toBe(true);
-  expect(exterior.caveBlockerCount).toBeGreaterThan(0);
+  expect(exterior.caveCollisionSegments).toBeGreaterThan(20);
   expect(Math.abs(Math.abs(exterior.yaw) - Math.PI)).toBeLessThan(0.001);
   for (const entrance of [{ id: 'left', x: 508.1 }, { id: 'right', x: 530.7 }]) {
     await page.evaluate(async ({ x }) => {
@@ -112,11 +112,21 @@ test('replacement: all three front-facing cave doorways have independent matchin
       await window.__coastlineElectricLemonade.interact();
     }, entrance);
     await expect.poll(() => page.evaluate(() => window.__coastlineTransitionTest.status().activeWorldId), { timeout: 8000 }).toBe('electric-lemonade-dungeon');
-    const inside = await page.evaluate(() => ({ player: window.__coastlineTransitionTest.playerState(), labyrinths: window.__coastlineActiveWorldRoot?.userData?.coastlineCaveLabyrinths || null }));
+    const inside = await page.evaluate(({ id }) => {
+      const end = id === 'left' ? { x: 507, z: 665 } : { x: 531, z: 665 };
+      return {
+        player: window.__coastlineTransitionTest.playerState(),
+        labyrinths: window.__coastlineActiveWorldRoot?.userData?.coastlineCaveLabyrinths || null,
+        walkableAreaCount: window.__coastlineActiveWorldRoot?.userData?.coastlineDungeonWalkableAreas?.length || 0,
+        routeEndBlocked: window.__coastlineTest.buildingBlocked(end.x, end.z, .45),
+      };
+    }, entrance);
     expect(inside.player.mode).toBe('walk');
     expect(Math.abs(inside.player.position.x - entrance.x)).toBeLessThan(0.1);
     expect(inside.labyrinths?.['left-labyrinth']?.routeLength).toBeGreaterThanOrEqual(120);
     expect(inside.labyrinths?.['right-labyrinth']?.routeLength).toBeGreaterThanOrEqual(120);
+    expect(inside.walkableAreaCount).toBeGreaterThan(10);
+    expect(inside.routeEndBlocked).toBe(false);
     await page.evaluate(async ({ x }) => {
       window.__coastlineTest.setWalkPosition(x, 542.5, 0);
       await window.__coastlineElectricLemonade.interact();
