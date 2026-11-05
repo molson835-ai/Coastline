@@ -1,5 +1,5 @@
 import { createTransitionManager } from './transition-manager.js';
-import { COASTLINE_ISLAND_ELEVATION, COASTLINE_ISLAND_WATER_DROP, createCoastlineIslandRoot, getCoastlineIslandRegion, getCoastlineCaveColliders } from './coastline-island-regions.js';
+import { COASTLINE_ISLAND_ELEVATION, COASTLINE_ISLAND_WATER_DROP, createCoastlineIslandRoot, getCoastlineIslandRegion } from './coastline-island-regions.js';
 import { buildHomeyGarageInterior, openGarageVehicleChooser, didCrossGarageThreshold, didCrossHouseDoorThreshold, canUseGarageKeyBoard } from './coastline-homey-garage.js';
 import { buildHomeyHouseInterior } from './coastline-homey-house-interior.js';
 
@@ -19,6 +19,99 @@ const disposeRoot = root => root?.traverse(object => {
   const materials = Array.isArray(object.material) ? object.material : object.material ? [object.material] : [];
   for (const material of materials) material.dispose?.();
 });
+
+/** Build player collision from the actual triangles of visible cave wall meshes. */
+function buildMeshSurfaceCollisionIndex(THREE, root, includeMesh, baseY) {
+  const cellSize = 2.5, buckets = new Map(), segments = [];
+  let triangleCount = 0;
+  const levels = [0.2, 0.65, 1.1, 1.55, 2.0];
+  const key = (x, z) => String(x) + ',' + z;
+  const addSegment = (ax, az, bx, bz) => {
+    if (Math.hypot(bx - ax, bz - az) < 0.015) return;
+    const id = segments.length;
+    segments.push({ id, ax, az, bx, bz });
+    const minX = Math.floor(Math.min(ax, bx) / cellSize), maxX = Math.floor(Math.max(ax, bx) / cellSize);
+    const minZ = Math.floor(Math.min(az, bz) / cellSize), maxZ = Math.floor(Math.max(az, bz) / cellSize);
+    for (let gx = minX; gx <= maxX; gx++) for (let gz = minZ; gz <= maxZ; gz++) {
+      const bucketKey = key(gx, gz);
+      let bucket = buckets.get(bucketKey);
+      if (!bucket) buckets.set(bucketKey, bucket = []);
+      bucket.push(id);
+    }
+  };
+  root.updateMatrixWorld(true);
+  const a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3();
+  const ab = new THREE.Vector3(), ac = new THREE.Vector3(), normal = new THREE.Vector3();
+  root.traverse(mesh => {
+    if (!mesh.isMesh || mesh.visible === false || !includeMesh(mesh) || !mesh.geometry?.attributes?.position) return;
+    const geometry = mesh.geometry, position = geometry.attributes.position, index = geometry.index;
+    const count = index ? index.count : position.count;
+    const drawStart = geometry.drawRange?.start || 0;
+    const drawCount = Number.isFinite(geometry.drawRange?.count) ? Math.min(count - drawStart, geometry.drawRange.count) : count - drawStart;
+    const end = drawStart + drawCount;
+    for (let i = drawStart; i + 2 < end; i += 3) {
+      const ia = index ? index.getX(i) : i;
+      const ib = index ? index.getX(i + 1) : i + 1;
+      const ic = index ? index.getX(i + 2) : i + 2;
+      a.fromBufferAttribute(position, ia).applyMatrix4(mesh.matrixWorld);
+      b.fromBufferAttribute(position, ib).applyMatrix4(mesh.matrixWorld);
+      c.fromBufferAttribute(position, ic).applyMatrix4(mesh.matrixWorld);
+      ab.subVectors(b, a); ac.subVectors(c, a); normal.crossVectors(ab, ac);
+      const normalLength = normal.length();
+      if (normalLength < 1e-7 || Math.abs(normal.y / normalLength) > 0.965) continue;
+      triangleCount++;
+      const vertices = [a, b, c];
+      for (const offset of levels) {
+        const planeY = baseY + offset;
+        const distances = [a.y - planeY, b.y - planeY, c.y - planeY];
+        if (Math.min(...distances) > 0 || Math.max(...distances) < 0) continue;
+        const points = [];
+        const addPoint = (x, z) => {
+          if (!points.some(point => Math.hypot(point.x - x, point.z - z) < 0.01)) points.push({ x, z });
+        };
+        for (let edge = 0; edge < 3; edge++) {
+          const next = (edge + 1) % 3, da = distances[edge], db = distances[next];
+          if (Math.abs(da) < 1e-5) addPoint(vertices[edge].x, vertices[edge].z);
+          if ((da < -1e-5 && db > 1e-5) || (da > 1e-5 && db < -1e-5)) {
+            const t = da / (da - db), p = vertices[edge], q = vertices[next];
+            addPoint(p.x + (q.x - p.x) * t, p.z + (q.z - p.z) * t);
+          }
+        }
+        if (points.length < 2) continue;
+        let first = points[0], second = points[1], farthest = 0;
+        for (let p = 0; p < points.length; p++) for (let q = p + 1; q < points.length; q++) {
+          const distance = (points[p].x - points[q].x) ** 2 + (points[p].z - points[q].z) ** 2;
+          if (distance > farthest) { farthest = distance; first = points[p]; second = points[q]; }
+        }
+        if (farthest > 1e-5) addSegment(first.x, first.z, second.x, second.z);
+      }
+    }
+  });
+  return {
+    triangleCount, segmentCount: segments.length,
+    blocks(x, z, radius = 0.45) {
+      if (![x, z, radius].every(Number.isFinite) || radius < 0) return true;
+      const minX = Math.floor((x - radius) / cellSize), maxX = Math.floor((x + radius) / cellSize);
+      const minZ = Math.floor((z - radius) / cellSize), maxZ = Math.floor((z + radius) / cellSize);
+      const tested = new Set(), thresholdSquared = (radius + 0.1) ** 2;
+      for (let gx = minX; gx <= maxX; gx++) for (let gz = minZ; gz <= maxZ; gz++) {
+        const bucket = buckets.get(key(gx, gz));
+        if (!bucket) continue;
+        for (const id of bucket) {
+          if (tested.has(id)) continue;
+          tested.add(id);
+          const segment = segments[id], dx = segment.bx - segment.ax, dz = segment.bz - segment.az;
+          const lengthSquared = dx * dx + dz * dz;
+          const t = lengthSquared > 1e-8 ? Math.max(0, Math.min(1, ((x - segment.ax) * dx + (z - segment.az) * dz) / lengthSquared)) : 0;
+          const px = segment.ax + t * dx, pz = segment.az + t * dz;
+          if ((x - px) ** 2 + (z - pz) ** 2 <= thresholdSquared) return true;
+        }
+      }
+      return false;
+    },
+  };
+}
+
 
 export const COASTLINE_ROPE_BRIDGE_CONFIG = Object.freeze({
   deckWidth: 5.2,
@@ -398,7 +491,7 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
     // each authored mountain exactly once; do not count the ladder as a mountain.
     const mountainMeshIds=new Set();
     formation.traverse(node=>{
-      const match=node.isMesh&&String(node.name||'').match(/^Cave Rock Mountain([123])(?:_|$)/i);
+      const match=node.isMesh&&String(node.name||'').match(/^Cave Rock Mountain\s*([123])(?:\b|_|$)/i);
       if(match)mountainMeshIds.add(Number(match[1]));
     });
     const mountainMeshCount=mountainMeshIds.size;
@@ -421,6 +514,8 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
       node.geometry=node.geometry?.clone?.()||node.geometry;
       node.material=Array.isArray(node.material)?node.material.map(material=>material?.clone?.()||material):node.material?.clone?.()||node.material;
       node.castShadow=true;node.receiveShadow=true;node.userData.coastlineApprovedCaveExterior=true;
+      const mountainMatch=String(node.name||'').match(/^Cave Rock Mountain\s*([123])(?:\b|_|$)/i);
+      if(mountainMatch)node.userData.coastlineApprovedCaveMountainId=Number(mountainMatch[1]);
     });
     // The obsolete procedural exterior and mouth no longer coexist with the GLB.
     const disposeLegacy=object=>{object?.traverse?.(node=>{node.geometry?.dispose?.();const materials=Array.isArray(node.material)?node.material:[node.material];for(const material of materials)material?.dispose?.();});};
@@ -429,18 +524,22 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
     const oldMouth=root.getObjectByName('coastline-electric-lemonade-cave-mouth');
     if(oldMouth){root.remove(oldMouth);disposeLegacy(oldMouth);}
     root.add(formation);
-    // Cave collision is installed only after the approved visible formation
-    // has loaded and passed validation. Never leave phantom cave walls when
-    // the GLB request or validation fails.
-    const caveColliders=getCoastlineCaveColliders(520,545);
-    // The active collision system may already hold this array by reference.
-    // Mutate it in place so asynchronously installed cave walls become active
-    // immediately without leaving a stale empty collider list behind.
+    root.updateMatrixWorld(true);
+    // The transformed GLB stone triangles are the sole exterior cave barrier.
+    // Their real openings remain open; no rectangular portal or ridge blockers.
+    const surfaceCollision=buildMeshSurfaceCollisionIndex(
+      THREE,formation,
+      node=>Number.isInteger(node.userData?.coastlineApprovedCaveMountainId),
+      floorY
+    );
+    if(surfaceCollision.triangleCount<100||surfaceCollision.segmentCount<20){
+      throw new Error('Approved cave formation did not produce sufficient stone-surface collision geometry');
+    }
     const activeColliders=root.userData.coastlineColliders||(root.userData.coastlineColliders=[]);
     for(let index=activeColliders.length-1;index>=0;index--){
       if(String(activeColliders[index]?.name||'').startsWith('coastline-waterfront-cave-'))activeColliders.splice(index,1);
     }
-    activeColliders.push(...caveColliders);
+    root.userData.coastlineCaveSurfaceCollision=surfaceCollision;
     root.userData.coastlineCaveCollisionReady=true;
     root.userData.coastlineCaveFormation=formation;
     root.userData.coastlineCaveGLB=formation;
@@ -461,18 +560,17 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
       // Make the destination world resident and move the actor before any
       // optional GLB request. Network-bound cave/vendor assets must not leave
       // the player staring at the previous world while initialization waits.
-      roots.addWorldRoot(root);root.visible=true;pendingRegionRoots.set(worldId,root);
+      roots.addWorldRoot(root);root.visible=false;pendingRegionRoots.set(worldId,root);
       moveActiveActor(root);
       const fallbackSpawn={x:420,y:islandGroundY(420,500),z:500,rotationY:Math.PI/2};
       applySnapshot({player:context.player,vehicle:context.vehicle,vehicleIndex:context.vehicleIndex},root,destinationSpawn||fallbackSpawn);
       if(regionId==='waterfront'){
-        // Cave preparation is independent of world activation. Start it as soon
-        // as the destination is resident, but never block world loading on the
-        // external GLB request. The player starts well before the cave entrance.
-        void prepareWaterfrontCaveFormation(root).catch(error=>{
+        // Resolve cave visuals, collision and CTM readiness before exposing Waterfront.
+        try { await prepareWaterfrontCaveFormation(root); }
+        catch(error) {
           root.userData.coastlineCaveFormationError=String(error?.message||error);
-          console.error('[Coastline] Waterfront cave formation unavailable; keeping the Waterfront world active.',error);
-        });
+          console.error('[Coastline] Waterfront cave formation unavailable; cave entry remains disabled.',error);
+        }
         const proceduralVendor=root.getObjectByName('coastline-electric-lemonade-vendor');
         try{
           const {loadCozyCharacterAsset,createCozyCharacterInstance,setCozyCharacterAnimation}=await import('./coastline-asset-swap.js');
@@ -496,6 +594,7 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
           console.warn('[Coastline] GLB lemonade vendor unavailable; procedural fallback remains visible.',error);
         }
       }
+      root.visible=true;
       return{id:worldId,root};
     },
     unload:async handle=>{
@@ -523,7 +622,7 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
     setIslandCollisionScope(true);window.__coastlineActiveWorldId='electric-lemonade-dungeon';
     const floorY=finiteOr(islandGroundY());
     pendingDungeonRoot=new THREE.Group();pendingDungeonRoot.name='coastline-electric-lemonade-dungeon-root';
-    const root=pendingDungeonRoot,colliders=[];
+    const root=pendingDungeonRoot,walkableAreas=[];
     // The interior is built as three organic cave branches rather than a box room.
     const caveShellMat=new THREE.MeshStandardMaterial({color:0x303332,roughness:1,side:THREE.BackSide});
     const caveFloorMat=new THREE.MeshStandardMaterial({color:0x35332e,roughness:1});
@@ -541,11 +640,9 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
         const length=Math.hypot(dx,dz),midX=(x1+x2)/2,midZ=(z1+z2)/2;
         const floor=new THREE.Mesh(new THREE.BoxGeometry(8.4,.32,length+1.2),caveFloorMat);
         floor.name='electric-dungeon-'+id+'-walkable-stone-floor-'+i;
-        floor.position.set(midX,floorY-.02,midZ);floor.rotation.y=Math.atan2(dx,dz);floor.receiveShadow=true;root.add(floor);
-        const nx=dz/Math.max(.001,length),nz=-dx/Math.max(.001,length);
-        for(const side of [-1,1]){
-          colliders.push({name:'electric-dungeon-'+id+'-tunnel-wall-'+i+'-'+side,x:midX+nx*side*4.65,z:midZ+nz*side*4.65,w:1.25,d:length+1});
-        }
+        const routeYaw=Math.atan2(dx,dz);
+        floor.position.set(midX,floorY-.02,midZ);floor.rotation.y=routeYaw;floor.receiveShadow=true;root.add(floor);
+        walkableAreas.push({x:midX,z:midZ,width:8.4,depth:length+1.2,yaw:routeYaw});
       }
       for(const [index,[x,z]] of points.entries()){
         if(index===0||index===points.length-1)continue;
@@ -574,20 +671,34 @@ export function createCoastlineWorldTransitions({ THREE, scene, roots, player, v
       const branch=new THREE.Mesh(new THREE.TubeGeometry(branchCurve,32,3.4,8,false),caveShellMat);
       branch.name='electric-dungeon-'+id+'-branch';root.add(branch);
       const branchFloor=new THREE.Mesh(new THREE.BoxGeometry(5.8,.3,Math.hypot(dx,dz)+1),caveFloorMat);
-      branchFloor.position.set(x+dx/2,floorY-.03,z+dz/2);branchFloor.rotation.y=Math.atan2(dx,dz);root.add(branchFloor);
-      const branchLength=Math.max(.001,Math.hypot(dx,dz)),branchNX=dz/branchLength,branchNZ=-dx/branchLength;
-      for(const side of [-1,1])colliders.push({name:'electric-dungeon-'+id+'-branch-wall-'+side,x:x+dx/2+branchNX*side*3.05,z:z+dz/2+branchNZ*side*3.05,w:1.0,d:branchLength+1});
-      colliders.push({name:'electric-dungeon-'+id+'-branch-end',x:x+dx,z:z+dz,w:3.5,d:3.5});
+      const branchLength=Math.max(.001,Math.hypot(dx,dz)),branchYaw=Math.atan2(dx,dz);
+      branchFloor.position.set(x+dx/2,floorY-.03,z+dz/2);branchFloor.rotation.y=branchYaw;root.add(branchFloor);
+      walkableAreas.push({x:x+dx/2,z:z+dz/2,width:5.8,depth:branchLength+1,yaw:branchYaw});
     }
     // A small neon boot pair marks the Electric Lemonade reward alcove.
     const bootMat=new THREE.MeshStandardMaterial({color:0x62f5ff,emissive:0x18bcd1,emissiveIntensity:1.8,roughness:.38,metalness:.22});
     const boots=new THREE.Group();boots.name='electric-dungeon-rocket-boots-pickup';boots.position.set(524,floorY+.45,568);
     for(const dx of [-.34,.34]){const boot=new THREE.Mesh(new THREE.BoxGeometry(.38,.38,.78),bootMat);boot.position.set(dx,0,0);boot.rotation.y=dx<0?-.12:.12;boots.add(boot);const sole=new THREE.Mesh(new THREE.BoxGeometry(.4,.09,.8),new THREE.MeshStandardMaterial({color:0xe8fbff,emissive:0x4bd5e6,emissiveIntensity:1.1}));sole.position.set(dx,-.2,0);boots.add(sole);}
-    root.add(boots);root.userData.coastlineColliders=colliders;root.userData.coastlineDungeonFloorY=floorY;root.userData.coastlineRocketBootsPickup=boots;root.userData.coastlineCaveLabyrinths=caveLabyrinths;
+    root.add(boots);
+    root.userData.coastlineColliders=[];
+    root.userData.coastlineDungeonFloorY=floorY;
+    root.userData.coastlineDungeonWalkableAreas=walkableAreas;
+    root.userData.coastlineRocketBootsPickup=boots;
+    root.userData.coastlineCaveLabyrinths=caveLabyrinths;
+    root.updateMatrixWorld(true);
+    const dungeonSurfaceCollision=buildMeshSurfaceCollisionIndex(
+      THREE,root,
+      node=>node.isMesh&&node.name.startsWith('electric-dungeon-')&&(
+        node.name.includes('-natural-tunnel-shell')||node.name.endsWith('-branch')||node.name.includes('-chamber-')
+      ),
+      floorY
+    );
+    if(dungeonSurfaceCollision.segmentCount<100)throw new Error('Dungeon cave walls did not produce collision surfaces');
+    root.userData.coastlineDungeonSurfaceCollision=dungeonSurfaceCollision;
     roots.addWorldRoot(root);root.visible=true;window.__coastlineElectricDungeonFloorY=floorY;window.__coastlineElectricDungeonPickup=boots;
     if(avatar&&avatar.parent!==root)root.add(avatar);moveActiveActor(root);
     applySnapshot({player:context.player,vehicle:context.vehicle,vehicleIndex:context.vehicleIndex},root,destinationSpawn||{x:548,y:floorY,z:542,rotationY:0});
-    window.__coastlineActiveWorldColliders=colliders;return{id:'electric-lemonade-dungeon',root};
+    window.__coastlineActiveWorldColliders=[];return{id:'electric-lemonade-dungeon',root};
   },unload:async handle=>{if(handle.root?.parent)roots.removeWorldRoot(handle.root);disposeRoot(handle.root);if(pendingDungeonRoot===handle.root)pendingDungeonRoot=null;if(window.__coastlineElectricDungeonFloorY!==undefined)delete window.__coastlineElectricDungeonFloorY;window.__coastlineElectricDungeonPickup=null;},cleanupFailedLoad:async({context})=>{
     const activeId=manager.getActiveWorldId(),sourceRoot=activeId==='city'?roots.world1Root:activeId==='island'?pendingIslandRoot:activeId==='homey-garage'?pendingGarageRoot:activeId==='home-interior'?pendingHouseRoot:activeId==='electric-lemonade-dungeon'?pendingDungeonRoot:pendingRegionRoots.get(activeId);
     window.__coastlineActiveWorldId=activeId||'waterfront';setIslandCollisionScope(activeId!=='city');window.__coastlineActiveWorldColliders=sourceRoot?.userData?.coastlineColliders||[];
