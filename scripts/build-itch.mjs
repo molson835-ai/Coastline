@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const output = path.join(root, 'dist', 'itch-html');
 const files = [
-  'game-v3.html', 'coastline-asset-swap.js', 'coastline-vehicle-sizing.js', 'assets/Free Low Poly Vehicles Pack by Rgsdev.zip', 'assets/grab3d-cozy-character.glb', 'assets/cave-entrance.glb', 'assets/3_evil_rock_mountains_with_cave_stylized.glb', 'assets/animals/ostrich.glb', 'ASSET_CREDITS.md', 'vehicle-visual-enhancer.js', 'cinematic-world-upgrade.js',
+  'game-v3.html', 'coastline-asset-swap.js', 'coastline-vehicle-sizing.js', 'assets/Free Low Poly Vehicles Pack by Rgsdev.zip', 'assets/grab3d-cozy-character.glb', 'assets/3_evil_rock_mountains_with_cave_stylized.glb', 'assets/animals/ostrich.glb', 'ASSET_CREDITS.md', 'vehicle-visual-enhancer.js', 'cinematic-world-upgrade.js',
   'car-customization.js', 'world-model.js', 'world-engine.js', 'living-world.js', 'coastline-wildlife-assets.js',
   'douglassville-layout.js', 'realism-library.js', 'presentation-runtime.js',
   'cinematic-visual-library.js', 'cinematic-animation-library.js',
@@ -49,11 +49,11 @@ await writeFile(path.join(output, 'index.html'), html);
 let sw = await readFile(path.join(output, 'coastline-sw.js'), 'utf8');
 // The website cache may have advanced independently. Give the standalone package
 // its own version and cache only files that are actually shipped in this package.
-sw = sw.replace(/const CACHE_NAME='[^']+';/, "const CACHE_NAME='coastline-itch-static-v3';");
+sw = sw.replace(/const CACHE_NAME='[^']+';/, "const CACHE_NAME='coastline-itch-static-v4';");
 // Large GLB payload modules are imported only when the world instance needs them; keep them out of the eager offline precache.
 const packagedCore = ['./', './index.html', ...files.filter(file => !file.endsWith('-payload.js') && !file.includes('assets/wildlife-payload/') && !file.endsWith('.glb') && !file.endsWith('.zip')).map(file => './' + file)];
 sw = sw.replace(/const CORE=\[[^\]]*\];/, "const CORE=[" + packagedCore.map(file => "'" + file + "'").join(',') + "]");
-if (!sw.includes("'./index.html'") || !sw.includes('coastline-itch-static-v3')) {
+if (!sw.includes("'./index.html'") || !sw.includes('coastline-itch-static-v4')) {
   throw new Error('Unable to configure service-worker cache for the packaged entry point.');
 }
 await writeFile(path.join(output, 'coastline-sw.js'), sw);
