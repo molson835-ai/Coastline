@@ -65,7 +65,7 @@ test('Waterfront dock boardwalk remains separate from the current three-entrance
   assert.match(transitions, /coastlineCaveEntranceCount=3/);
   assert.doesNotMatch(source, /coastline-waterfront-cave-mountain-peak-/);
   assert.doesNotMatch(source, /coastline-waterfront-cave-mountain-left-slope|coastline-waterfront-cave-mountain-right-slope|coastline-waterfront-cave-mountain-rear-ridge/);
-  assert.doesNotMatch(source, /const caveApproachShape = new THREE\.Shape\(\)/);
+  assert.match(source, /const caveApproachShape = new THREE\.Shape\(\)/, 'natural cave approach path remains in place');
   assert.doesNotMatch(source, /new THREE\.PlaneGeometry\(15, 11\)/);
 });
 
