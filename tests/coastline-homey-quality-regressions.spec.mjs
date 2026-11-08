@@ -56,21 +56,17 @@ test('visible island boundary segments cover the collision outline and preserve 
   assert.ok(residential.some(segment => segment.z < 401 && Math.abs(segment.x - 500) > 5 && Math.abs(segment.x - 500) < 17));
 });
 
-test('cave has a mountain silhouette and the dock boardwalk clears its approach', async () => {
+test('Waterfront dock boardwalk remains separate from the current three-entrance cave asset', async () => {
   const source = await read('coastline-island-regions.js');
+  const transitions = await read('coastline-world-transitions.js');
   assert.match(source, /coastline-waterfront-boardwalk',center\.x\+5,edgeY\+\.04,center\.z\+92/);
   assert.match(source, /coastline-waterfront-dock-\$\{i \+ 1\}.*center\.z \+ 92/);
-  const transitions = await read('coastline-world-transitions.js');
-  assert.doesNotMatch(source, /coastline-waterfront-cave-mountain-peak-/);
   assert.match(transitions, /assets\/3_evil_rock_mountains_with_cave_stylized\.glb/);
   assert.match(transitions, /coastlineCaveEntranceCount=3/);
-  assert.match(source, /coastline-waterfront-cave-mountain-left-slope/);
-  assert.match(source, /coastline-waterfront-cave-mountain-right-slope/);
-  assert.match(source, /coastline-waterfront-cave-mountain-rear-ridge/);
-  assert.match(source, /const caveApproachShape = new THREE\.Shape\(\)/);
-  assert.match(source, /new THREE\.ShapeGeometry\(caveApproachShape, 2\)/);
+  assert.doesNotMatch(source, /coastline-waterfront-cave-mountain-peak-/);
+  assert.doesNotMatch(source, /coastline-waterfront-cave-mountain-left-slope|coastline-waterfront-cave-mountain-right-slope|coastline-waterfront-cave-mountain-rear-ridge/);
+  assert.doesNotMatch(source, /const caveApproachShape = new THREE\.Shape\(\)/);
   assert.doesNotMatch(source, /new THREE\.PlaneGeometry\(15, 11\)/);
-  assert.ok((500 + 92 - 5) > (500 + 45 + 15 + 11.5 + 2), 'boardwalk starts beyond the cave mountain');
 });
 
 test('City map-edge collision has a continuous visible rock course with a deck-width north bridge gap', async () => {
