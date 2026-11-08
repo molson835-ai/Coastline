@@ -56,6 +56,7 @@ test('visible island boundary segments cover the collision outline and preserve 
   assert.ok(residential.some(segment => segment.z < 401 && Math.abs(segment.x - 500) > 5 && Math.abs(segment.x - 500) < 17));
 });
 
+// Current-scope regression coverage only: retired procedural cave scenery is intentionally not asserted.
 test('Waterfront dock boardwalk remains separate from the current three-entrance cave asset', async () => {
   const source = await read('coastline-island-regions.js');
   const transitions = await read('coastline-world-transitions.js');
