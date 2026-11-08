@@ -50,7 +50,7 @@ test('cave threshold triggers only on foot inside Waterfront portal radius', () 
   assert.equal(isCoastlineCaveThreshold({ ...onThreshold, mode: 'interior' }), false);
 });
 
-test('cave collision is owned by the approved visible GLB surface, not retired procedural AABBs', () => {
+test('cave collision is owned by the approved visible GLB surface, not retired procedural AABBs', async () => {
   assert.deepEqual(getCoastlineCaveColliders(), [], 'legacy procedural cave colliders stay retired');
   assert.equal(COASTLINE_CAVE_PORTAL_CLEAR_WIDTH, 3);
   assert.equal(isCoastlineCavePointBlocked(COASTLINE_CAVE_THRESHOLD.x, COASTLINE_CAVE_THRESHOLD.z, 0.45), false);
