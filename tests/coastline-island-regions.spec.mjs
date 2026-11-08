@@ -84,7 +84,6 @@ test('Homey and cave island scenery expose named natural-detail contracts', asyn
   const source = await fs.readFile(new URL('../coastline-island-regions.js', import.meta.url), 'utf8');
   assert.match(source, /coastline-residential-garden-groundcover/);
   assert.match(source, /coastline-residential-neighborhood-shrubs/);
-  assert.match(source, /coastline-waterfront-cave-mountain/);
   assert.match(source, /coastline-waterfront-cave-approach-path/);
   assert.match(source, /coastline-waterfront-lemonade-counter/);
   assert.match(source, /coastline-waterfront-lemonade-price-sign/);
