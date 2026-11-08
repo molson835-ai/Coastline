@@ -34,7 +34,6 @@ test('wildlife placement includes six City mounts and one locally-owned mount pe
 test('animal and cave scales normalize to plausible world-unit heights', () => {
   assert.ok(Math.abs(getCoastlineTargetScale('horse', 2.12) * 2.12 - 2.05) < 1e-9);
   assert.ok(Math.abs(getCoastlineTargetScale('ostrich', 2.4) * 2.4 - 2.25) < 1e-9);
-  assert.ok(Math.abs(getCoastlineTargetScale('cave', 3.96) * 3.96 - 5.35) < 1e-9);
   assert.equal(getCoastlineTargetScale('horse', 0), 1);
 });
 
@@ -51,16 +50,17 @@ test('cave threshold triggers only on foot inside Waterfront portal radius', () 
   assert.equal(isCoastlineCaveThreshold({ ...onThreshold, mode: 'interior' }), false);
 });
 
-test('cave rock collision leaves a walkable doorway and blocks the mountain sides and rear', () => {
-  const colliders = getCoastlineCaveColliders();
-  assert.ok(colliders.length >= 9);
-  assert.ok(colliders.some(c => c.name.includes('portal-jamb')));
+test('cave collision is owned by the approved visible GLB surface, not retired procedural AABBs', () => {
+  assert.deepEqual(getCoastlineCaveColliders(), [], 'legacy procedural cave colliders stay retired');
   assert.equal(COASTLINE_CAVE_PORTAL_CLEAR_WIDTH, 3);
-  assert.equal(isCoastlineCavePointBlocked(COASTLINE_CAVE_THRESHOLD.x, COASTLINE_CAVE_THRESHOLD.z, 0.45), false, 'character fits through the centered portal');
-  assert.equal(isCoastlineCavePointBlocked(514, COASTLINE_CAVE_THRESHOLD.z, 0.45), true, 'left stone shoulder blocks foot movement');
-  assert.equal(isCoastlineCavePointBlocked(526, COASTLINE_CAVE_THRESHOLD.z, 0.45), true, 'right stone shoulder blocks foot movement');
-  assert.equal(isCoastlineCavePointBlocked(520, 558, 0.45), true, 'rear of mountain is solid behind the north-facing cave body');
-  assert.equal(isCoastlineCavePointBlocked(508, 558, 0.45), true, 'side/rear mountain is solid');
+  assert.equal(isCoastlineCavePointBlocked(COASTLINE_CAVE_THRESHOLD.x, COASTLINE_CAVE_THRESHOLD.z, 0.45), false);
+  assert.equal(isCoastlineCavePointBlocked(514, COASTLINE_CAVE_THRESHOLD.z, 0.45), false);
+  assert.equal(isCoastlineCavePointBlocked(526, COASTLINE_CAVE_THRESHOLD.z, 0.45), false);
+  assert.equal(isCoastlineCavePointBlocked(520, 558, 0.45), false);
+  const transitions = await read('coastline-world-transitions.js');
+  assert.match(transitions, /buildCaveSurfaceCollision/);
+  assert.match(transitions, /coastlineCaveSurfaceCollision/);
+  assert.match(transitions, /coastlineCaveCollisionReady=true/);
 });
 
 test('wildlife loader uses GLB animation, rider socket, source paths, and CTM-owned root lifecycle', async () => {
@@ -106,7 +106,7 @@ test('wildlife loader uses GLB animation, rider socket, source paths, and CTM-ow
   assert.match(game, /exit:\{\.\.\.COASTLINE_CAVE_THRESHOLD\},boots:\{x:524,z:568,radius:2\.8\}/, 'center exit and pickup align with the cave portal');
   assert.doesNotMatch(loader, /loadCaveIntoRoot|assets\/cave-entrance\.glb/, 'obsolete single-cave GLB is no longer loaded');
   assert.match(transitions, /prepareWaterfrontCaveFormation=async root/);
-  assert.match(transitions, /Cave Rock Mountain\(\[123\]\)/, 'runtime matcher recognizes the three actual authored GLB mountain names');
+  assert.match(transitions, /Cave Rock Mountain\\s\*\(\[123\]\)/, 'runtime matcher recognizes the three actual authored GLB mountain names with optional export spacing');
   assert.match(transitions, /formation\.rotation\.y=Math\.PI/, 'all three approved cave entrances face the front approach');
   assert.match(game, /wildlifeAssetState/);
   assert.match(packageBuilder, /coastline-wildlife-assets\.js/);
